@@ -18,8 +18,9 @@ public final class AppModel {
     public enum SettingsTab: String, Hashable, Sendable { case general, notifications, providers, plan, diagnostics }
     public enum PopoverRoute: Hashable, Sendable { case overview, detail, inspector(poolKey: String, fromDetail: Bool) }
     public enum OnboardingStep: Int, CaseIterable, Sendable { case welcome, plan, provider, consent, firstReading, alerts, done }
-    public enum DetailsTab: String, Hashable, Sendable { case limits, session, stats }
-    public enum StatsPage: String, Hashable, Sendable { case overview, models }
+    /// Increment 1.8c: one sidebar, one level of sections.
+    public enum DetailsSection: String, Hashable, Sendable, CaseIterable { case limits, session, overview, models }
+    public enum ModelsView: String, Hashable, Sendable { case chart, arena }
 
     public private(set) var snapshot: OverviewSnapshot
     public private(set) var problem: Problem?
@@ -42,9 +43,11 @@ public final class AppModel {
     /// Navigation lives here so "Connect…" and similar can deep-link, and Escape always has one place to go back to.
     public var popoverRoute: PopoverRoute = .overview
     public var onboardingStep: OnboardingStep = .welcome
-    public var detailsTab: DetailsTab = .limits
-    public var statsPage: StatsPage = .overview
+    public var detailsSection: DetailsSection = .limits
     public var statsRange: StatsSummary.Range = .allTime
+    /// The year the all-time calendar shows; nil means the current year.
+    public var statsYear: Int?
+    public var modelsView: ModelsView = .arena
     /// The delete-all confirmation sheet; on the model so the verification probe can show it.
     public var confirmingDeleteAll = false
     public let catalog: PlanCatalog?

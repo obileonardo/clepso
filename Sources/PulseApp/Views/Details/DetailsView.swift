@@ -1,10 +1,11 @@
+import ClaudeCodeAdapter
 import DesignSystem
 import Domain
 import SwiftUI
 import UsageEngine
 
-/// The Details window (increment 1.7e–f): Limits with history and pace, the Session in full, and Stats like Claude
-/// Code's /stats. Opened from the popover's DETAILS and STATS buttons.
+/// The Details window (increments 1.7e–f, reorganised in 1.8c): a sidebar of sections, a title row with that
+/// section's controls, and content laid out to use the window's width.
 public struct DetailsView: View {
     @Bindable var model: AppModel
     @Environment(\.theme) private var theme
@@ -14,130 +15,197 @@ public struct DetailsView: View {
 
     public var body: some View {
         let snapshot = model.snapshot
-        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
-                Text(Copy.Header.title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                DemoTag()
-                Spacer()
-                PixelTabs([(AppModel.DetailsTab.limits, Copy.Details.limits), (.session, Copy.Details.session), (.stats, Copy.Details.stats)],
-                          selection: $model.detailsTab)
-            }
-            ScrollView {
-                Group {
-                    switch model.detailsTab {
-                    case .limits: LimitsTab(model: model, snapshot: snapshot)
-                    case .session: SessionTab(snapshot: snapshot, zone: model.environment.timeZone, locale: model.environment.locale)
-                    case .stats: StatsTab(model: model)
+        HStack(spacing: 0) {
+            DetailsSidebar(model: model)
+            Rectangle().fill(theme.color(.separator, scheme)).frame(width: theme.stroke(.hairline)).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                header
+                ScrollView {
+                    Group {
+                        switch model.detailsSection {
+                        case .limits: LimitsSection(model: model, snapshot: snapshot)
+                        case .session: SessionSection(snapshot: snapshot, zone: model.environment.timeZone, locale: model.environment.locale)
+                        case .overview: StatsGate(model: model) { summary, file in OverviewSection(model: model, summary: summary, file: file) }
+                        case .models: StatsGate(model: model) { summary, file in ModelsSection(model: model, summary: summary, file: file) }
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(.bottom, theme.spacing(.spacious))
+                    .environment(\.isFixtureData, false)       // the header's DEMO tag covers the page, and stays in view
                 }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-                .padding(.bottom, theme.spacing(.spacious))
             }
+            .padding(theme.spacing(.spacious))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(theme.spacing(.spacious))
         .frame(minWidth: DetailsMetrics.minWidth, minHeight: DetailsMetrics.minHeight, alignment: .topLeading)
         .background(theme.color(.background, scheme))
         .overlay(PixelScanlines())
         .environment(\.isFixtureData, snapshot.isDemo)
         .environment(\.displayTimeZone, model.environment.timeZone)
     }
+
+    /// Section title, a one-line explanation, and the section's own controls on the right.
+    var header: some View {
+        HStack(alignment: .center, spacing: theme.spacing(.standard)) {
+            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                HStack(spacing: theme.spacing(.standard)) {
+                    Text(DetailsSidebar.title(model.detailsSection).uppercased()).font(theme.font(.metricMedium))
+                        .foregroundStyle(theme.color(.textPrimary, scheme))
+                    DemoTag()
+                }
+                Text(DetailsSidebar.subtitle(model.detailsSection)).font(theme.font(.supporting))
+                    .foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            Spacer()
+            if model.detailsSection == .overview || model.detailsSection == .models {
+                PixelSegmented(Copy.Stats.rangeLabel, options: [(StatsSummary.Range.allTime, Copy.Stats.allTime), (.last30, Copy.Stats.last30),
+                                                                (.last7, Copy.Stats.last7)], selection: $model.statsRange)
+            }
+            if model.detailsSection == .models {
+                PixelSegmented(Copy.Stats.viewLabel, options: [(AppModel.ModelsView.arena, Copy.Stats.arena), (.chart, Copy.Stats.chart)],
+                               selection: $model.modelsView)
+            }
+        }
+    }
 }
 
 enum DetailsMetrics {
-    static let minWidth: CGFloat = 720
-    static let minHeight: CGFloat = 600
-    static let chartHeight: CGFloat = 140
+    static let minWidth: CGFloat = 960
+    static let minHeight: CGFloat = 660
+    static let sidebarWidth: CGFloat = 200
+    static let sideColumn: CGFloat = 260
+    static let chartHeight: CGFloat = 200
 }
 
-/// Every limit with its history and the pace estimate.
-struct LimitsTab: View {
+/// Primary navigation: every section one click away, with the selected one lit and marked for VoiceOver.
+struct DetailsSidebar: View {
+    @Bindable var model: AppModel
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    static func title(_ s: AppModel.DetailsSection) -> String {
+        switch s {
+        case .limits: Copy.Details.limits
+        case .session: Copy.Details.session
+        case .overview: Copy.Stats.overview
+        case .models: Copy.Stats.models
+        }
+    }
+    static func subtitle(_ s: AppModel.DetailsSection) -> String {
+        switch s {
+        case .limits: Copy.Details.limitsSubtitle
+        case .session: Copy.Details.sessionSubtitle
+        case .overview: Copy.Stats.overviewSubtitle
+        case .models: Copy.Stats.modelsSubtitle
+        }
+    }
+    static func symbol(_ s: AppModel.DetailsSection) -> String {
+        switch s {
+        case .limits: "gauge.with.dots.needle.50percent"
+        case .session: "terminal"
+        case .overview: "calendar"
+        case .models: "person.3"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            Text(Copy.Header.title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                .padding(.bottom, theme.spacing(.spacious))
+            group(Copy.Details.usage, [.limits, .session])
+            group(Copy.Details.stats, [.overview, .models])
+            Spacer()
+        }
+        .padding(theme.spacing(.spacious))
+        .frame(width: DetailsMetrics.sidebarWidth, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(theme.color(.surfaceElevated, scheme))
+    }
+
+    func group(_ title: String, _ sections: [AppModel.DetailsSection]) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            Text(title.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .padding(.top, theme.spacing(.standard)).accessibilityAddTraits(.isHeader)
+            ForEach(sections, id: \.self) { section in
+                let selected = model.detailsSection == section
+                Button { model.detailsSection = section } label: {
+                    HStack(spacing: theme.spacing(.standard)) {
+                        Image(systemName: Self.symbol(section)).frame(width: theme.spacing(.spacious)).accessibilityHidden(true)
+                        Text(Self.title(section)).font(theme.font(.label))
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(theme.color(selected ? .textPrimary : .textSecondary, scheme))
+                    .padding(.vertical, theme.spacing(.standard) + theme.spacing(.compact))
+                    .padding(.horizontal, theme.spacing(.standard) + theme.spacing(.compact))
+                    .background(selected ? theme.color(.surfaceMuted, scheme) : Color.clear)
+                    .overlay(alignment: .leading) {
+                        if selected { Rectangle().fill(theme.color(.accent, scheme)).frame(width: theme.stroke(.emphasis) * 2).accessibilityHidden(true) }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+    }
+}
+
+/// Stats sections need the user's agreement and a readable file; this shows the explainer or the problem first.
+struct StatsGate<Content: View>: View {
     let model: AppModel
-    let snapshot: OverviewSnapshot
+    @ViewBuilder let content: (StatsSummary, ClaudeCodeStats) -> Content
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            if let provider = snapshot.provider, !provider.pools.isEmpty {
-                ForEach(provider.pools) { row in
-                    PixelPanel {
-                        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                            PixelLimitRow(model: row.model, now: snapshot.now, pace: PaceText.make(row.pace, model: model))
-                            HistoryChart(row: row, now: snapshot.now, zone: model.environment.timeZone, locale: model.environment.locale)
-                        }
+        Group {
+            if !model.statsEnabled {
+                PixelPanel {
+                    VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                        Text(Copy.Stats.explainerTitle).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                        Text(Copy.Stats.explainerBody).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button(Copy.Stats.enable) { Task { await model.setStatsEnabled(true) } }.buttonStyle(PixelButtonStyle(prominent: true))
                     }
                 }
-                Label(provider.unreadLimitWindows > 0 ? Copy.Detail.unreadLimits(provider.unreadLimitWindows) : Copy.Detail.otherLimits,
-                      systemImage: "info.circle")
-                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
             } else {
-                Text(Copy.Details.noLimits).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                switch model.stats {
+                case .failure(let problem)?:
+                    Text(problem == .missing ? Copy.Stats.missing : Copy.Stats.unreadable).font(theme.font(.label))
+                        .foregroundStyle(theme.color(.textSecondary, scheme))
+                case .success(let file)?:
+                    if let summary = model.statsSummary(model.statsRange) {
+                        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                            content(summary, file)
+                            if let through = summary.computedThrough {
+                                Text(Copy.Stats.through(StatsFormat.day(through))).font(theme.font(.supporting))
+                                    .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                case nil:
+                    ProgressView()
+                }
             }
         }
+        .task { model.loadStats() }
     }
 }
 
-/// Pace estimate in words; always says "Estimate".
-enum PaceText {
-    @MainActor
-    static func make(_ pace: PaceEstimate, model: AppModel) -> String? {
-        switch pace {
-        case .reachesLimit(let at):
-            Copy.Pace.reaches(Formatting.resetTime(at, now: model.environment.clock.now(), zone: model.environment.timeZone,
-                                                   locale: model.environment.locale))
-        case .belowAtReset(let pct): Copy.Pace.byReset(Formatting.percent(Decimal(pct.rounded())))
-        case .notRising: Copy.Pace.notRising
-        case .notEnoughData: nil
-        case .atLimit: nil
-        }
+enum StatsFormat {
+    /// "2026-10-13" → "Oct 13".
+    static func day(_ day: String) -> String {
+        guard let date = StatsSummary.Day.date(day) else { return day }
+        return date.formatted(Date.FormatStyle(timeZone: StatsSummary.Day.calendar.timeZone).month(.abbreviated).day())
     }
-}
-
-/// Used % over the window so far: a step line, dotted 80/95/100 guides, NOW, and the dashed pace projection.
-struct HistoryChart: View {
-    let row: PoolRow
-    let now: Date
-    let zone: TimeZone
-    let locale: Locale
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
-
-    var span: TimeInterval { row.poolKey.hasSuffix("five_hour") ? 5 * 3600 : 7 * 86_400 }
-
-    var body: some View {
-        let start = now.addingTimeInterval(-span)
-        let end = max(now, row.model.resetsAt.value ?? now).addingTimeInterval(span * 0.02)
-        let points = row.history.filter { $0.at >= start }.map { (x: $0.at.timeIntervalSince1970, y: $0.usedPct) }
-        let projection = projectionLine(lastPoint: points.last)
-        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-            PixelLineChart(series: [ChartSeries(id: row.poolKey, points: points, role: .accent)],
-                           xRange: start.timeIntervalSince1970...end.timeIntervalSince1970, yRange: 0...max(100, points.map(\.y).max() ?? 0),
-                           guides: [80, 95, 100], guideLabel: { $0 == 95 ? "" : "\(Int($0))%" }, projection: projection, marker: now.timeIntervalSince1970,
-                           summary: summary(points))
-                .frame(height: DetailsMetrics.chartHeight)
-            HStack {
-                Text(Formatting.resetTime(start, now: now, zone: zone, locale: locale).uppercased())
-                Spacer()
-                Text(Copy.Details.now)
-                Spacer()
-                Text(row.model.resetsAt.value.map { Copy.Details.resets(Formatting.resetTime($0, now: now, zone: zone, locale: locale)) } ?? "")
-            }
-            .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-            .accessibilityHidden(true)
-        }
+    static func month(_ day: String) -> String {
+        guard let date = StatsSummary.Day.date(day) else { return day }
+        return date.formatted(Date.FormatStyle(timeZone: StatsSummary.Day.calendar.timeZone).month(.abbreviated))
     }
-
-    func projectionLine(lastPoint: (x: Double, y: Double)?) -> (from: (x: Double, y: Double), to: (x: Double, y: Double))? {
-        guard let last = lastPoint else { return nil }
-        switch row.pace {
-        case .reachesLimit(let at): return (last, (at.timeIntervalSince1970, 100))
-        case .belowAtReset(let pct): return row.model.resetsAt.value.map { (last, ($0.timeIntervalSince1970, pct)) }
-        default: return nil
-        }
-    }
-
-    func summary(_ points: [(x: Double, y: Double)]) -> String {
-        guard let first = points.first, let last = points.last else { return Copy.Details.noHistory(row.model.scope) }
-        return Copy.Details.historySummary(scope: row.model.scope, from: Int(first.y.rounded()), to: Int(last.y.rounded()), readings: points.count)
+    static func weekday(_ day: String) -> String {
+        guard let date = StatsSummary.Day.date(day) else { return day }
+        return date.formatted(Date.FormatStyle(timeZone: StatsSummary.Day.calendar.timeZone).weekday(.abbreviated))
     }
 }

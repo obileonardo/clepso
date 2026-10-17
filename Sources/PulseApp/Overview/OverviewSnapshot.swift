@@ -59,7 +59,9 @@ public struct SessionDetail: Sendable, Identifiable, Equatable {
     public let modelName: String?
     public let lastSeen: Date?
     public let contextPct: Decimal?
-    public let tokensIn: Int64?                 // context_window.total_input_tokens
+    /// `context_window.total_input_tokens` / `total_output_tokens`: the current context window's contents,
+    /// not the session's cumulative usage (verified against the real capture: input total = context size).
+    public let tokensIn: Int64?
     public let tokensOut: Int64?
     public let contextWindow: Int64?
     public let costUSD: Decimal?                // Claude Code's estimate at list price, not a bill
@@ -77,10 +79,12 @@ public struct ModelGroup: Sendable, Identifiable, Equatable {
     public var id: String { name }
     public let name: String
     public let sessions: Int
-    public let tokens: Int64                    // in + out
-    public let costUSD: Decimal
+    public let costUSD: Decimal                 // Claude Code's estimates, summed over the group's sessions
     public let linesAdded: Int64
-    public let share: Double                    // of all sessions' tokens
+    public let apiMs: Int64
+    /// Share of the summed cost estimates. Context token counts are not summed: they describe one context window
+    /// at a time, not usage (increment 1.8).
+    public let share: Double
 }
 
 /// One allowance pool with what the provenance inspector needs, prefetched (DESIGN_SYSTEM §9).

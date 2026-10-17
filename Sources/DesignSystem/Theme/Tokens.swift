@@ -67,6 +67,16 @@ public struct Theme: Sendable {
     public func radius(_ token: RadiusToken) -> CGFloat { radiusValues[token] ?? 6 }
     public func stroke(_ token: StrokeToken) -> CGFloat { strokeValues[token] ?? 1 }
 
+    /// The system text style behind each sentence-text token in the pixel theme. On macOS at the default size,
+    /// body is 13 pt and callout 12 pt (caption, footnote and subheadline are 10–11 pt, too small; 1.8 review).
+    public static func pixelTextStyle(_ token: TypographyToken) -> Font.TextStyle? {
+        switch token {
+        case .label: .body
+        case .supporting, .micro: .callout
+        case .metricHero, .metricMedium, .title: nil
+        }
+    }
+
     /// Dynamic Type styles, so every size scales with the user's text-size setting. Pixel faces scale too
     /// (`relativeTo:`); long text stays in the system face (monospaced in the pixel theme) for legibility.
     public func font(_ token: TypographyToken) -> Font {
@@ -74,12 +84,14 @@ public struct Theme: Sendable {
             PixelFonts.ensureRegistered()
             return switch token {
             // Silkscreen for figures: its 5 and S differ clearly (in Pixelify Sans "8.5B" read as "8.SB").
-            case .metricHero: .custom(PixelFonts.display, size: 30, relativeTo: .largeTitle)
-            case .metricMedium: .custom(PixelFonts.display, size: 19, relativeTo: .title2)
-            case .title: .custom(PixelFonts.display, size: 13, relativeTo: .headline)
-            case .label: .system(.subheadline, design: .monospaced)
-            case .supporting: .system(.footnote, design: .monospaced)
-            case .micro: .custom(PixelFonts.display, size: 8, relativeTo: .caption2)
+            // Increment 1.8 (founder review): nothing under 12 pt. Pixel faces carry figures, titles and buttons;
+            // captions moved from 8 pt pixel type to a monospaced face at 12 pt or more (`pixelTextStyle`).
+            case .metricHero: .custom(PixelFonts.display, size: 34, relativeTo: .largeTitle)
+            case .metricMedium: .custom(PixelFonts.display, size: 22, relativeTo: .title2)
+            case .title: .custom(PixelFonts.display, size: 15, relativeTo: .headline)
+            case .label: .system(Self.pixelTextStyle(.label) ?? .body, design: .monospaced).weight(.medium)
+            case .supporting: .system(Self.pixelTextStyle(.supporting) ?? .callout, design: .monospaced)
+            case .micro: .system(Self.pixelTextStyle(.micro) ?? .callout, design: .monospaced).weight(.semibold)
             }
         }
         return switch token {
@@ -131,7 +143,7 @@ public struct Theme: Sendable {
             .statusSuccess: RGB(0x4DFF8F), .statusAttention: RGB(0xFFC04D), .statusBlocked: RGB(0xFF6B5E),
             .statusStale: RGB(0x9AAFA2), .statusUnknown: RGB(0x98A79E),
         ]),
-        spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12],
+        spacingValues: [.compact: 4, .standard: 8, .spacious: 20, .windowPadding: 16],
         radiusValues: [.control: 2, .card: 2, .pill: 2],
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2],
         typeface: .pixel, name: "phosphor")

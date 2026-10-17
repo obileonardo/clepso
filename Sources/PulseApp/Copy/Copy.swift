@@ -101,14 +101,21 @@ enum Copy {
         }
         static let unknownModel = "Unknown model"
         static let context = "CONTEXT"
+        static func contextShort(_ pct: String) -> String { "Context \(pct)" }
         static let tokensIn = "Tokens in", tokensOut = "Tokens out", costEstimate = "Cost est.", cacheHits = "Cache hits"
         static let apiTime = "API time", wallTime = "Wall time", lines = "Lines +/−", cacheState = "Cache"
         static let warm = "Warm", cold = "Cold"
+        static func cacheCounts(requests: Int64, misses: Int64) -> String { "Cache · \(requests) req · \(misses) miss" }
         static let costNote = "Cost is Claude Code's estimate at API list price for this session. It is not your bill and not your plan's usage."
         static let byModel = "BY MODEL · LAST 30 DAYS"
-        static func groupLine(sessions: Int, tokens: String, cost: String, share: Int) -> String {
-            "\(sessions) session\(sessions == 1 ? "" : "s") · \(tokens) tokens · \(cost) est. · \(share)%"
+        static func groupLine(sessions: Int, cost: String, lines: String, api: String, share: Int) -> String {
+            "\(sessions) session\(sessions == 1 ? "" : "s") · \(cost) est. · +\(lines) lines · \(api) API · \(share)% of cost"
         }
+        static let usage = "Usage"
+        static let limitsSubtitle = "Each limit over its own window, with readings, thresholds and a pace estimate"
+        static let sessionSubtitle = "The current Claude Code session in full, and recent ones beside it"
+        static let notWatching = "NOT WATCHING YET"
+        static let recentSessions = "RECENT SESSIONS"
         static let byModelNote = "Grouped by each session's main model. Claude Code also uses smaller models in the background; those count under the main one. For exact per-model figures, see Stats."
     }
 
@@ -132,6 +139,44 @@ enum Copy {
         static func modelBreakdown(input: String, output: String, read: String, write: String) -> String {
             "In \(input) · Out \(output) · Cache \(read) read · \(write) write"
         }
+        static let rangeLabel = "Range", viewLabel = "View", arena = "Arena", chart = "Chart"
+        static let overviewSubtitle = "Your Claude Code activity, from its own statistics file"
+        static let modelsSubtitle = "What each model did: tokens by kind, and by day"
+        static func activityIn(_ days: Int, _ year: Int) -> String { "\(days) ACTIVE DAY\(days == 1 ? "" : "S") IN \(year)" }
+        static let previousYear = "Previous year", nextYear = "Next year"
+        static let last30Title = "LAST 30 DAYS", last7Title = "LAST 7 DAYS"
+        static let pending = "Counted tomorrow"
+        static func dayDetail(sessions: Int, tokens: String) -> String { "\(sessions) session\(sessions == 1 ? "" : "s")\n\(tokens) tokens" }
+        static let messagesPerDay = "Bars: messages per day. Today's counts arrive once Claude Code folds today into its statistics file."
+        static let tokenKinds = "TOKENS BY KIND · ALL TIME"
+        static let input = "Input", output = "Output", cacheRead = "Cache read", cacheWrite = "Cache write"
+        static let allTimeNote = "Most tokens are cache reads: Claude Code re-reads the conversation from the prompt cache on every turn."
+        static let noData = "No data", less = "Less", more = "More"
+        static func noDataDay(_ day: String) -> String { "\(day): no data" }
+        static func dayTooltip(_ day: String, messages: Int, sessions: Int) -> String {
+            "\(day): \(messages) message\(messages == 1 ? "" : "s"), \(sessions) session\(sessions == 1 ? "" : "s")"
+        }
+        static let hours = "SESSIONS BY HOUR OF DAY"
+        static func hourTooltip(_ h: Int, _ n: Int) -> String { String(format: "%02d:00", h) + " · \(n) session\(n == 1 ? "" : "s") started" }
+        static func hoursSummary(peak: Int) -> String { "Sessions started by hour of day; the busiest hour is " + String(format: "%02d:00", peak) }
+        static let tokensPerWeek = "TOKENS PER WEEK"
+        static func tokensTotal(_ n: String) -> String { "\(n) tokens" }
+        static let hoverHint = "Point at a bar for its numbers"
+        static let noTokens = "no tokens"
+        static let noModels = "No model activity in this range yet."
+        static func level(_ n: Int) -> String { "LV \(n)" }
+        static let xp = "XP · TOKENS"
+        static func xpLabel(_ level: Int, _ pct: Int) -> String { "Level \(level), \(pct)% of the way to the next level" }
+        static func tokensShare(_ n: String, _ pct: Int) -> String { "\(n) · \(pct)%" }
+        static func daysActive(_ n: Int, _ allTime: Bool) -> String { "Active \(n) day\(n == 1 ? "" : "s")\(allTime ? " in total" : " in this range")" }
+        static let doingRecall = "Reading from cache", doingStore = "Writing to cache", doingWrite = "Writing output", doingRead = "Reading input"
+        static let activityUnknown = "Tokens by kind appear in All time"
+        static func specialty(_ doing: String, times: Double) -> String {
+            times < 1.1 ? "All-rounder" : "\(doing) · \(times < 10 ? String(format: "%.1f", times) : String(Int(times)))× the party"
+        }
+        static let specialtyHelp = "Its specialty: the token kind this model uses most compared with all models together. All-rounder: no kind stands out."
+        static let arenaNote = "Level goes up each time a model's tokens double. Bars show its all-time tokens by kind, from Claude Code's statistics file."
+        static let arenaRangeNote = "Level and share are for this range. Claude Code records tokens by kind for all time only, so the bars show all time."
         static let toggle = "Read Claude Code's statistics file"
         static let toggleSublabel = "For the Stats tab: dates, counts and model names only"
     }

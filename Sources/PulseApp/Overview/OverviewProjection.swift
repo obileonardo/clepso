@@ -146,20 +146,21 @@ public enum OverviewProjection {
     }
 
     static func modelGroups(_ sessions: [SessionDetail]) -> [ModelGroup] {
-        var groups: [String: (sessions: Int, tokens: Int64, cost: Decimal, lines: Int64)] = [:]
+        var groups: [String: (sessions: Int, cost: Decimal, lines: Int64, apiMs: Int64)] = [:]
         for s in sessions {
             let name = s.modelName ?? "Unknown model"
             var g = groups[name] ?? (0, 0, 0, 0)
             g.sessions += 1
-            g.tokens += (s.tokensIn ?? 0) + (s.tokensOut ?? 0)
             g.cost += s.costUSD ?? 0
             g.lines += s.linesAdded ?? 0
+            g.apiMs += s.apiMs ?? 0
             groups[name] = g
         }
-        let total = groups.values.map(\.tokens).reduce(0, +)
-        return groups.map { ModelGroup(name: $0.key, sessions: $0.value.sessions, tokens: $0.value.tokens, costUSD: $0.value.cost,
-                                       linesAdded: $0.value.lines, share: total > 0 ? Double($0.value.tokens) / Double(total) : 0) }
-            .sorted { ($0.tokens, $1.name) > ($1.tokens, $0.name) }
+        let total = groups.values.map(\.cost).reduce(0, +)
+        return groups.map { ModelGroup(name: $0.key, sessions: $0.value.sessions, costUSD: $0.value.cost, linesAdded: $0.value.lines,
+                                       apiMs: $0.value.apiMs,
+                                       share: total > 0 ? NSDecimalNumber(decimal: $0.value.cost / total).doubleValue : 0) }
+            .sorted { ($0.costUSD, $1.name) > ($1.costUSD, $0.name) }
     }
 
     static func provenance(_ plan: Store.PlanIdentity?) -> PlanProvenance {

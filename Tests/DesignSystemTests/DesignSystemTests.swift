@@ -171,3 +171,37 @@ struct TextTests {
         #expect(stale.contains("last seen 42 minutes ago") && !stale.lowercased().contains("live"))
     }
 }
+
+#if canImport(AppKit)
+import AppKit
+
+@Suite("Readable text (1.8 review)")
+struct ReadableTextTests {
+    @Test("Every sentence-text token in the pixel theme is at least 12 pt at the default text size")
+    func minimumSize() {
+        func points(_ style: Font.TextStyle) -> CGFloat {
+            let ns: NSFont.TextStyle = switch style {
+            case .largeTitle: .largeTitle
+            case .title: .title1
+            case .title2: .title2
+            case .title3: .title3
+            case .headline: .headline
+            case .subheadline: .subheadline
+            case .body: .body
+            case .callout: .callout
+            case .footnote: .footnote
+            case .caption: .caption1
+            case .caption2: .caption2
+            @unknown default: .caption2
+            }
+            return NSFont.preferredFont(forTextStyle: ns).pointSize
+        }
+        for token in TypographyToken.allCases {
+            guard let style = Theme.pixelTextStyle(token) else { continue }
+            #expect(points(style) >= 12, "\(token) uses \(style) at \(points(style)) pt")
+        }
+        #expect(Theme.pixelTextStyle(.label).map(points) ?? 0 > Theme.pixelTextStyle(.supporting).map(points) ?? 0,
+                "labels should outrank supporting text")
+    }
+}
+#endif

@@ -17,7 +17,7 @@ public struct PopoverView: View {
 
     public var body: some View {
         let snapshot = model.snapshot
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
             switch model.popoverRoute {
             case .overview:
                 header(snapshot)
@@ -108,17 +108,21 @@ public struct PopoverView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Shows provider details")
-                    ForEach(provider.pools) { row in
-                        Button { model.popoverRoute = .inspector(poolKey: row.poolKey, fromDetail: false) } label: {
-                            PixelLimitRow(model: row.model, now: snapshot.now, pace: PaceText.make(row.pace, model: model)).contentShape(Rectangle())
+                    // The header's DEMO tag and "Demo data" line mark the whole list; rows don't repeat it.
+                    Group {
+                        ForEach(provider.pools) { row in
+                            Button { model.popoverRoute = .inspector(poolKey: row.poolKey, fromDetail: false) } label: {
+                                PixelLimitRow(model: row.model, now: snapshot.now, pace: PaceText.make(row.pace, model: model)).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Shows where this number comes from")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Shows where this number comes from")
+                        if let session = provider.sessions.first { SessionStrip(session: session) }
                     }
-                    if let session = provider.sessions.first { SessionStrip(session: session) }
+                    .environment(\.isFixtureData, false)
                     HStack(spacing: theme.spacing(.standard)) {
                         Button(Copy.Details.open) { openDetails(.limits) }.buttonStyle(PixelButtonStyle(prominent: true))
-                        Button(Copy.Details.openStats) { openDetails(.stats) }.buttonStyle(PixelButtonStyle())
+                        Button(Copy.Details.openStats) { openDetails(.overview) }.buttonStyle(PixelButtonStyle())
                         Spacer()
                     }
                 }
@@ -145,8 +149,8 @@ public struct PopoverView: View {
     }
 
     /// DETAILS and STATS open the Details window on that tab.
-    func openDetails(_ tab: AppModel.DetailsTab) {
-        model.detailsTab = tab
+    func openDetails(_ section: AppModel.DetailsSection) {
+        model.detailsSection = section
         dismiss()
         NSApp.activate(ignoringOtherApps: true)
         openWindow(id: PulseScenes.detailsID)
@@ -208,7 +212,7 @@ struct SessionStrip: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
             HStack {
                 Text((session.modelName ?? Copy.Details.unknownModel).uppercased()).font(theme.font(.title))
                     .foregroundStyle(theme.color(.background, scheme))
@@ -216,18 +220,24 @@ struct SessionStrip: View {
                     .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.accent, scheme)))
                 Spacer()
                 if let pct = session.contextPct {
-                    Text("CTX \(Formatting.percent(pct))").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    Text(Copy.Details.contextShort(Formatting.percent(pct))).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
             }
             if let pct = session.contextPct {
                 PixelBar(fraction: NSDecimalNumber(decimal: pct).doubleValue / 100, role: .accent, pattern: .solid, segments: 32)
             }
-            HStack {
-                PixelStat(session.costUSD.map { $0.formatted(.currency(code: "USD").locale(Locale(identifier: "en_US"))) } ?? "—", Copy.Details.costEstimate)
-                PixelStat(session.cacheHitPct.map(Formatting.percent) ?? "—", Copy.Details.cacheHits)
-                PixelStat(session.linesAdded.map { "+" + Formatting.compact($0) } ?? "—", Copy.Details.lines)
-                PixelStat(session.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime)
+            // Two by two: each caption fits on one line at the 12 pt minimum.
+            Grid(alignment: .topLeading, horizontalSpacing: theme.spacing(.spacious), verticalSpacing: theme.spacing(.standard)) {
+                GridRow {
+                    PixelStat(session.costUSD.map { $0.formatted(.currency(code: "USD").locale(Locale(identifier: "en_US"))) } ?? "—", Copy.Details.costEstimate)
+                    PixelStat(session.cacheHitPct.map(Formatting.percent) ?? "—", Copy.Details.cacheHits)
+                }
+                GridRow {
+                    PixelStat(session.linesAdded.map { "+" + Formatting.compact($0) } ?? "—", Copy.Details.lines)
+                    PixelStat(session.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime)
+                }
             }
+            .fixedSize(horizontal: false, vertical: true)          // full-size figures; never squeezed to fit the popover
         }
         .accessibilityElement(children: .combine)
     }

@@ -68,10 +68,17 @@ enum PopoverProbe {
         // The Details window, each tab; Stats with the synthetic file the probe's home provides.
         await model.setStatsEnabled(true)
         openDetails()
-        for (name, tab, page) in [("limits", AppModel.DetailsTab.limits, AppModel.StatsPage.overview), ("session", .session, .overview),
-                                  ("stats-overview", .stats, .overview), ("stats-models", .stats, .models)] {
-            model.detailsTab = tab
-            model.statsPage = page
+        let pages: [(String, AppModel.DetailsSection, StatsSummary.Range, AppModel.ModelsView)] = [
+            ("limits", .limits, .allTime, .arena), ("session", .session, .allTime, .arena),
+            ("stats-overview", .overview, .allTime, .arena), ("stats-overview-30", .overview, .last30, .arena),
+            ("stats-overview-7", .overview, .last7, .arena), ("stats-models", .models, .allTime, .chart),
+            ("stats-models-30", .models, .last30, .chart), ("stats-arena", .models, .allTime, .arena),
+            ("stats-arena-7", .models, .last7, .arena), ("stats-overview-prev-year", .overview, .allTime, .arena)]
+        for (name, section, range, view) in pages {
+            model.statsYear = name.hasSuffix("prev-year") ? Calendar.current.component(.year, from: model.environment.clock.now()) - 1 : nil
+            model.detailsSection = section
+            model.statsRange = range
+            model.modelsView = view
             try? await Task.sleep(for: .milliseconds(800))
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) {
                 recorder.log(shoot(window, folder, "details-\(name)"))

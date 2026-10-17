@@ -57,6 +57,7 @@ public struct PixelLimitRow: View {
                     .foregroundStyle(theme.color(.textSecondary, scheme))
             }
         }
+        .fixedSize(horizontal: false, vertical: true)               // wraps; never truncated to fit a short popover
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(AccessibilityText.poolRow(model, now: now, staleAfter: staleAfter, zone: zone, locale: locale, isDemo: isDemo)
                             + (pace.map { ", " + $0 } ?? ""))
@@ -110,10 +111,13 @@ public struct PixelStat: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
-            Text(value).font(large ? theme.font(.metricMedium) : theme.font(.label).weight(.semibold)).monospacedDigit()
+            // The value always outranks its caption: pixel display face, larger than the caption's small caps.
+            Text(value).font(large ? theme.font(.metricMedium) : theme.font(.title)).monospacedDigit()
                 .foregroundStyle(theme.color(.textPrimary, scheme)).lineLimit(1).minimumScaleFactor(0.6)
             Text(label.uppercased()).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)       // wraps rather than truncating
         }
+        .fixedSize(horizontal: false, vertical: true)               // never squeezed shorter, so figures keep their size
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
@@ -292,5 +296,44 @@ public struct PixelHeatmap: View {
 
     func color(_ level: Int) -> Color {
         level == 0 ? theme.color(.surfaceMuted, scheme) : theme.color(.accent, scheme).opacity([0, 0.3, 0.55, 0.8, 1][min(level, 4)])
+    }
+}
+
+/// Secondary navigation (increment 1.8c): a compact connected control, visibly lighter than the primary sidebar and
+/// tabs so the two levels never look alike. Each segment is a button; the selected one is lit.
+public struct PixelSegmented<Option: Hashable>: View {
+    let options: [(Option, String)]
+    @Binding var selection: Option
+    let label: String
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    public init(_ label: String, options: [(Option, String)], selection: Binding<Option>) {
+        self.label = label
+        self.options = options
+        self._selection = selection
+    }
+
+    public var body: some View {
+        let px = theme.stroke(.hairline) * 2
+        HStack(spacing: 0) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                let selected = option.0 == selection
+                Button { selection = option.0 } label: {
+                    Text(option.1.uppercased()).font(theme.font(.micro))
+                        .foregroundStyle(theme.color(selected ? .background : .textSecondary, scheme))
+                        .padding(.horizontal, theme.spacing(.standard) + px).padding(.vertical, theme.spacing(.compact) + px / 2)
+                        .background(selected ? theme.color(.accent, scheme) : Color.clear)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(px)
+        .background(PixelRect(step: px).fill(theme.color(.surfaceMuted, scheme)))
+        .overlay(PixelRect(step: px).strokeBorder(theme.color(.separator, scheme), lineWidth: px / 2))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(label)
     }
 }
