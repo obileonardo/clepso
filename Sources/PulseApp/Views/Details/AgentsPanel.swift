@@ -13,34 +13,28 @@ struct AgentsPanel: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
+    /// 1.14: content only; the page's section supplies the name and the line.
     var body: some View {
-        PixelPanel {
-            if let summary {
+        if let summary {
+            if let latest = summary.latest {
                 VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                    VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                        Text(Copy.Agents.title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
-                        Text(Copy.Agents.taskLabel).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
+                        latestBlock(latest).frame(maxWidth: .infinity, alignment: .topLeading)
+                        Figure(value: "\(summary.tasks)", caption: Copy.Agents.tasks)
+                        Figure(value: String(format: "%.1f", summary.averagePerTask), caption: Copy.Agents.average)
+                        Figure(value: "\(summary.mostInOneTask)", caption: Copy.Agents.most)
                     }
-                    if let latest = summary.latest {
-                        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
-                            latestBlock(latest).frame(width: DetailsMetrics.sideColumn, alignment: .topLeading)
-                            totals(summary).frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-                        recent(summary)
-                    } else {
-                        Text(Copy.Agents.noTasks).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    recent(summary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                    Text(Copy.Agents.offTitle).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    Text(Copy.Agents.offBody).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button(Copy.Agents.openSettings, action: openProviders).buttonStyle(PixelButtonStyle())
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(Copy.Agents.noTasks).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                Text(Copy.Agents.offBody).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(Copy.Agents.openSettings, action: openProviders).buttonStyle(PixelButtonStyle())
             }
         }
     }

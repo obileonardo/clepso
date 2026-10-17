@@ -123,5 +123,7 @@ struct DashboardTests {
         #expect(days[5].met == false && days[6].met == true && days[0].value == nil && days[0].met == nil)
         let active = GoalHistory.days(.activeDays, goals: Goals(), fiveHour: [], sevenDay: [], activeDays: ["2026-10-16"], now: now, zone: utc)
         #expect(active.map { $0.met == true } == [false, false, false, false, false, false, true])
+        let pending = GoalHistory.days(.activeDays, goals: Goals(), fiveHour: [], sevenDay: [], activeDays: [], knownThrough: "2026-10-15", now: now, zone: utc)
+        #expect(pending.last?.met == nil && pending[5].met == false, "today, past the file's last day, is unknown rather than missed")
     }
 }

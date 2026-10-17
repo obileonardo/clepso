@@ -235,9 +235,9 @@ enum ForYou {
             items.append(.init(kind: .task, title: Copy.ForYou.running(task.agents), detail: task.byType.map { "\($0.name) \($0.count)" }.joined(separator: " · "),
                                action: Copy.ForYou.view, section: .session))
         }
-        if !input.connected { items.append(.init(kind: .connect, title: Copy.Home.connectTitle, detail: Copy.Home.connectBody, action: Copy.Home.connect, section: nil)) }
-        if !input.statsOn { items.append(.init(kind: .stats, title: Copy.Home.statsTitle, detail: Copy.Home.statsBody, action: Copy.Home.turnOn, section: nil)) }
-        if !input.agentsOn { items.append(.init(kind: .agents, title: Copy.Home.agentsTitle, detail: Copy.Home.agentsBody, action: Copy.Home.turnOn, section: .settings)) }
+        if !input.connected { items.append(.init(kind: .connect, title: Copy.ForYou.connectTitle, detail: Copy.Home.connectBody, action: Copy.Home.connect, section: nil)) }
+        if !input.statsOn { items.append(.init(kind: .stats, title: Copy.ForYou.statsTitle, detail: Copy.Home.statsBody, action: Copy.Home.turnOn, section: nil)) }
+        if !input.agentsOn { items.append(.init(kind: .agents, title: Copy.ForYou.agentsTitle, detail: Copy.Home.agentsBody, action: Copy.Home.turnOn, section: .settings)) }
         if !input.signedIn { items.append(.init(kind: .account, title: Copy.ForYou.signInTitle, detail: Copy.ForYou.signInBody, action: Copy.ForYou.signIn, section: .account)) }
         if items.isEmpty { items.append(.init(kind: .allClear, title: Copy.ForYou.allClear, detail: Copy.ForYou.allClearBody, action: nil, section: nil)) }
         return items
@@ -279,7 +279,7 @@ enum GoalHistory {
     /// The last seven local days, oldest first: the 5-hour peak, the 7-day value at the day's last reading, or whether the
     /// day was active. nil value: no data that day.
     static func days(_ kind: GoalStatus.Kind, goals: Goals, fiveHour: [UsagePoint], sevenDay: [UsagePoint],
-                     activeDays: Set<String>, now: Date, zone: TimeZone) -> [GoalDay] {
+                     activeDays: Set<String>, knownThrough: String? = nil, now: Date, zone: TimeZone) -> [GoalDay] {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         func label(_ date: Date) -> String {
@@ -289,7 +289,11 @@ enum GoalHistory {
         let labels = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0 - 6, to: now).map(label) }
         switch kind {
         case .activeDays:
-            return labels.map { GoalDay(day: $0, value: activeDays.contains($0) ? 1 : 0, met: activeDays.contains($0)) }
+            // Days after the statistics file's last day aren't known yet (unless already seen active): no data, not "missed".
+            return labels.map { day in
+                if !activeDays.contains(day), let known = knownThrough, day > known { return GoalDay(day: day, value: nil, met: nil) }
+                return GoalDay(day: day, value: activeDays.contains(day) ? 1 : 0, met: activeDays.contains(day))
+            }
         case .fiveHourPeak:
             var peaks: [String: Double] = [:]
             for p in fiveHour where p.at <= now { peaks[label(p.at)] = max(peaks[label(p.at)] ?? 0, p.usedPct) }

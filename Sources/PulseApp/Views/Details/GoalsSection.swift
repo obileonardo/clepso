@@ -24,112 +24,60 @@ struct GoalsSection: View {
         }
     }
 
-    @State private var selected: GoalStatus.Kind = .activeDays
-
-    /// Monarch's grid of goal cards (1.12); the chosen one opens Charma's detail: progress, the last seven days, and a
-    /// sidebar with its state, streak and target.
+    /// 1.14: Account's structure. A section per goal: its value and state, a bar, the last seven days as squares, and
+    /// the target on the right.
     var body: some View {
         let statuses = Dictionary(model.goalStatuses.map { ($0.kind, $0) }, uniquingKeysWith: { a, _ in a })
-        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                ForEach(GoalStatus.Kind.allCases, id: \.self) { kind in card(kind, statuses[kind]) }
+        PageColumn {
+            ForEach(GoalStatus.Kind.allCases, id: \.self) { kind in
+                PageSection(Self.title(kind), statuses[kind]?.detail ?? Copy.Goals.off) { goal(kind, statuses[kind]) }
             }
-            .fixedSize(horizontal: false, vertical: true)
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                PixelPanel { detail(selected, statuses[selected]) }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                PixelPanel { sidebar(selected, statuses[selected]) }.frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 2)
-                    .frame(maxHeight: .infinity, alignment: .top)
+            PageSection(Copy.Goals.aboutTitle, nil) {
+                Text(Copy.Goals.note).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .fixedSize(horizontal: false, vertical: true)
-            Text(Copy.Goals.note).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                .fixedSize(horizontal: false, vertical: true)
         }
         .task { model.loadStats() }
     }
 
-    /// A Monarch card: a big pixel emblem, the goal, its value and a thin bar; lit when chosen.
-    func card(_ kind: GoalStatus.Kind, _ status: GoalStatus?) -> some View {
-        let on = selected == kind
-        return Button { selected = kind } label: {
-            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                HStack(alignment: .top) {
-                    PixelIcon(symbol: symbol(kind), size: 24).foregroundStyle(theme.color(.accent, scheme))
-                        .frame(width: theme.spacing(.spacious) * 3, height: theme.spacing(.spacious) * 3)
-                        .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
-                    Spacer()
-                    if let status { StateTag(state: status.state) } else { Text(Copy.Goals.off.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)) }
-                }
-                Text(Self.title(kind).uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                Text(status?.value ?? "—").font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
-                PixelBar(fraction: status.flatMap { $0.state == .noData ? nil : $0.fraction }, role: status.map { Self.role($0.state) } ?? .statusUnknown,
-                         pattern: status?.state == .noData || status == nil ? .outline : .solid, segments: 20)
-            }
-            .padding(theme.spacing(.windowPadding))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(on ? .surfaceMuted : .surfaceElevated, scheme)))
-            .overlay(PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(on ? .accent : .separator, scheme),
-                                                                               lineWidth: on ? theme.stroke(.emphasis) : theme.stroke(.hairline)))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(on ? .isSelected : [])
-    }
-
-    func detail(_ kind: GoalStatus.Kind, _ status: GoalStatus?) -> some View {
+    func goal(_ kind: GoalStatus.Kind, _ status: GoalStatus?) -> some View {
         let pools = model.snapshot.provider?.pools ?? []
         let five = pools.first { $0.poolKey.hasSuffix("five_hour") }?.history ?? []
         let seven = pools.first { $0.poolKey.hasSuffix("seven_day") }?.history ?? []
         let active = Set((model.statsFile?.days ?? []).filter { $0.messages > 0 }.map(\.date))
         let days = GoalHistory.days(kind, goals: model.goals, fiveHour: five, sevenDay: seven, activeDays: active,
-                                    now: model.environment.clock.now(), zone: model.environment.timeZone)
-        return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(Self.title(kind).uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-            if let status {
+                                    knownThrough: model.statsFile?.computedThrough, now: model.environment.clock.now(), zone: model.environment.timeZone)
+        return HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                 HStack(alignment: .lastTextBaseline, spacing: theme.spacing(.standard)) {
-                    Text(status.value).font(theme.font(.metricHero)).foregroundStyle(theme.color(.textPrimary, scheme))
-                    Text("/ " + status.target).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    Text(status?.value ?? "—").font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    if let status {
+                        Text("/ " + status.target).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        StateTag(state: status.state)
+                    }
                 }
-                PixelBar(fraction: status.state == .noData ? nil : status.fraction, role: Self.role(status.state),
-                         pattern: status.state == .noData ? .outline : .solid, segments: 40)
-                Text(status.detail).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Text(Copy.Goals.lastSeven).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).padding(.top, theme.spacing(.standard))
-            ForEach(days) { day in
-                HStack(spacing: theme.spacing(.standard)) {
-                    PixelIcon(symbol: day.met == true ? "checkmark.square.fill" : day.met == false ? "xmark.square" : "square.dashed")
-                        .foregroundStyle(theme.color(day.met == true ? .statusSuccess : day.met == false ? .statusBlocked : .textSecondary, scheme))
-                        .accessibilityHidden(true)
-                    Text(StatsFormat.weekday(day.day) + " " + StatsFormat.day(day.day)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                    Spacer()
-                    Text(Copy.Goals.dayValue(kind, day.value, day.met)).font(theme.font(.supporting)).monospacedDigit()
-                        .foregroundStyle(theme.color(.textSecondary, scheme))
+                PixelBar(fraction: status.flatMap { $0.state == .noData ? nil : $0.fraction }, role: status.map { Self.role($0.state) } ?? .statusUnknown,
+                         pattern: status == nil || status?.state == .noData ? .outline : .solid, segments: 30)
+                HStack(spacing: theme.spacing(.compact)) {
+                    ForEach(days) { day in
+                        VStack(spacing: theme.spacing(.compact)) {
+                            Rectangle().fill(theme.color(day.met == true ? .accent : day.met == false ? .statusBlocked : .surfaceMuted, scheme))
+                                .frame(width: theme.spacing(.spacious) * 1.4, height: theme.spacing(.spacious) * 1.4)
+                            Text(String(StatsFormat.weekday(day.day).prefix(2)).uppercased()).font(theme.font(.micro))
+                                .foregroundStyle(theme.color(.textSecondary, scheme))
+                        }
+                        .help(StatsFormat.day(day.day) + " · " + Copy.Goals.dayValue(kind, day.value, day.met))
+                        .accessibilityElement().accessibilityLabel(StatsFormat.day(day.day) + ": " + Copy.Goals.dayValue(kind, day.value, day.met))
+                    }
+                    if let streak = status?.streak, streak > 0 {
+                        Text(Copy.Goals.streak(streak)).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
+                            .padding(.leading, theme.spacing(.standard))
+                    }
                 }
-                .padding(.vertical, theme.spacing(.compact))
-                .accessibilityElement(children: .combine)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            editor(kind).frame(width: PageMetrics.labelColumn * 0.7, alignment: .topLeading)
         }
-    }
-
-    func sidebar(_ kind: GoalStatus.Kind, _ status: GoalStatus?) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(Copy.Goals.details).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).padding(.bottom, theme.spacing(.standard))
-            sideRow(Copy.Goals.status) { status.map { AnyView(StateTag(state: $0.state)) } ?? AnyView(Text(Copy.Goals.off).font(theme.font(.label))) }
-            sideRow(Copy.Goals.streakLabel) {
-                AnyView(Text(status?.streak.map { Copy.Goals.streak($0) } ?? "—").font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme)))
-            }
-            sideRow(Copy.Goals.target) { AnyView(editor(kind)) }
-        }
-    }
-
-    func sideRow(_ label: String, _ value: () -> AnyView) -> some View {
-        HStack(alignment: .center) {
-            Text(label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-            Spacer()
-            value()
-        }
-        .padding(.vertical, theme.spacing(.standard))
-        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
     }
 
     func symbol(_ kind: GoalStatus.Kind) -> String {

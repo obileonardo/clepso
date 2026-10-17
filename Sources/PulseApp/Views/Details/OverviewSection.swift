@@ -18,74 +18,74 @@ struct OverviewSection: View {
 
     @State private var selectedDay: String?
 
-    /// Steep's layout (1.12): the calendar and charts in the main column, an inspector on the right showing the chosen
-    /// day, or the range's headline numbers when no day is chosen.
+    /// 1.14: Account's structure. Activity (the calendar for the range, and a chosen day under it), the range at a
+    /// glance, when you work, and tokens by kind.
     var body: some View {
-        HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                switch summary.range {
-                case .allTime: yearView
-                case .last30: monthView
-                case .last7: weekView
-                }
-                HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                    PixelPanel { HourChart(counts: summary.hourCounts) }.frame(maxWidth: .infinity)
-                    PixelPanel { tokenBreakdown }.frame(maxWidth: .infinity)
+        PageColumn {
+            PageSection(Copy.OverviewPage.activity, activityLine) {
+                VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                    switch summary.range {
+                    case .allTime: yearView
+                    case .last30: monthView
+                    case .last7: weekView
+                    }
+                    if let day = selectedDay { dayFacts(day) }
                 }
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-            PixelPanel { inspector }.frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 2)
+            if summary.range != .allTime {
+                PageSection(Copy.OverviewPage.tokensTitle, Copy.OverviewPage.tokensSub) {
+                    StackedModelChart(summary: summary, from: StatsSummary.Day.adding(summary.range == .last30 ? -29 : -6, to: summary.today),
+                                      to: summary.today, stacked: false, height: DetailsMetrics.chartHeight)
+                }
+            }
+            PageSection(Copy.OverviewPage.glance, rangeName) { glance }
+            PageSection(Copy.OverviewPage.hoursTitle, Copy.OverviewPage.hoursSub) { HourChart(counts: summary.hourCounts, showsTitle: false) }
+            PageSection(Copy.OverviewPage.kindsTitle, Copy.Stats.allTimeNote) { tokenBreakdown }
         }
     }
 
-    // MARK: - Inspector
+    var activityLine: String {
+        switch summary.range {
+        case .allTime: Copy.OverviewPage.activityYear
+        case .last30: Copy.Stats.last30
+        case .last7: Copy.Stats.last7
+        }
+    }
 
-    @ViewBuilder var inspector: some View {
-        if let day = selectedDay {
-            let record = file.days.first { $0.date == day }
-            let tokens = file.dailyTokens.first { $0.date == day }?.byModel ?? [:]
-            let total = max(1, tokens.values.reduce(0, +))
-            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                HStack {
-                    Text(StatsFormat.weekday(day).uppercased() + " " + StatsFormat.day(day).uppercased()).font(theme.font(.title))
-                        .foregroundStyle(theme.color(.accent, scheme))
-                    Spacer()
-                    Button(Copy.OverviewPage.clear) { selectedDay = nil }.buttonStyle(.plain).font(theme.font(.supporting))
-                        .foregroundStyle(theme.color(.textSecondary, scheme))
-                }
-                inspectorRow(Copy.OverviewPage.messages, "\(record?.messages ?? 0)")
-                inspectorRow(Copy.Stats.sessions, "\(record?.sessions ?? 0)")
-                inspectorRow(Copy.OverviewPage.toolCalls, "\(record?.toolCalls ?? 0)")
-                inspectorRow(Copy.Stats.totalTokens, tokens.isEmpty ? "—" : Formatting.compact(tokens.values.reduce(0, +)))
-                if !tokens.isEmpty {
-                    Text(Copy.OverviewPage.byModel).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).padding(.top, theme.spacing(.standard))
-                    ForEach(tokens.sorted { $0.value > $1.value }, id: \.key) { id, n in
-                        VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
-                            HStack {
-                                Text(StatsReader.displayName(id)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                                Spacer()
-                                Text(Formatting.compact(n)).font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
-                            }
-                            PixelBar(fraction: Double(n) / Double(total), role: .accent, pattern: .solid, segments: 16)
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
+    /// The range's headline numbers, in two columns of fact rows.
+    var glance: some View {
+        let rows: [(String, String)] = [
+            (Copy.Stats.favorite, summary.favorite?.name ?? "—"), (Copy.Stats.totalTokens, Formatting.compact(summary.totalTokens)),
+            (Copy.Stats.sessions, "\(summary.sessions)"), (Copy.Stats.longestSession, summary.longestSessionMs.map { Formatting.duration(milliseconds: $0) } ?? "—"),
+            (Copy.Stats.activeDays, "\(summary.activeDays)/\(summary.dayCount)"), (Copy.Stats.currentStreak, Copy.Card.days(summary.currentStreak)),
+            (Copy.Stats.longestStreak, Copy.Card.days(summary.longestStreak)), (Copy.Stats.mostActive, summary.mostActiveDay.map(StatsFormat.day) ?? "—"),
+        ]
+        return Grid(alignment: .leading, horizontalSpacing: theme.spacing(.spacious) * 1.5, verticalSpacing: 0) {
+            ForEach(0..<4, id: \.self) { r in
+                GridRow {
+                    FactRow(label: rows[r * 2].0, value: rows[r * 2].1)
+                    FactRow(label: rows[r * 2 + 1].0, value: rows[r * 2 + 1].1)
                 }
             }
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(Copy.OverviewPage.summary(rangeName)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    .padding(.bottom, theme.spacing(.standard))
-                inspectorRow(Copy.Stats.favorite, summary.favorite?.name ?? "—")
-                inspectorRow(Copy.Stats.totalTokens, Formatting.compact(summary.totalTokens))
-                inspectorRow(Copy.Stats.sessions, "\(summary.sessions)")
-                inspectorRow(Copy.Stats.longestSession, summary.longestSessionMs.map { Formatting.duration(milliseconds: $0) } ?? "—")
-                inspectorRow(Copy.Stats.activeDays, "\(summary.activeDays)/\(summary.dayCount)")
-                inspectorRow(Copy.Stats.currentStreak, Copy.Card.days(summary.currentStreak))
-                inspectorRow(Copy.Stats.longestStreak, Copy.Card.days(summary.longestStreak))
-                inspectorRow(Copy.Stats.mostActive, summary.mostActiveDay.map(StatsFormat.day) ?? "—")
-                Text(Copy.OverviewPage.pickDay).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .fixedSize(horizontal: false, vertical: true).padding(.top, theme.spacing(.standard))
+        }
+    }
+
+    /// The chosen day, as fact rows under the calendar.
+    func dayFacts(_ day: String) -> some View {
+        let record = file.days.first { $0.date == day }
+        let tokens = file.dailyTokens.first { $0.date == day }?.byModel ?? [:]
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text((StatsFormat.weekday(day) + " " + StatsFormat.day(day)).uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Spacer()
+                Button(Copy.OverviewPage.clear) { selectedDay = nil }.buttonStyle(PixelButtonStyle())
+            }
+            .padding(.bottom, theme.spacing(.standard))
+            FactRow(label: Copy.OverviewPage.messages, value: "\(record?.messages ?? 0)")
+            FactRow(label: Copy.Stats.sessions, value: "\(record?.sessions ?? 0)")
+            FactRow(label: Copy.OverviewPage.toolCalls, value: "\(record?.toolCalls ?? 0)")
+            ForEach(tokens.sorted { $0.value > $1.value }, id: \.key) { id, n in
+                FactRow(label: StatsReader.displayName(id), value: Formatting.compact(n) + " tokens")
             }
         }
     }
@@ -98,17 +98,6 @@ struct OverviewSection: View {
         }
     }
 
-    func inspectorRow(_ label: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-            Spacer()
-            Text(value).font(theme.font(.title)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme)).lineLimit(1).minimumScaleFactor(0.7)
-        }
-        .padding(.vertical, theme.spacing(.standard))
-        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
-        .accessibilityElement(children: .combine)
-    }
-
     // MARK: - All time: one calendar year
 
     var yearView: some View {
@@ -117,21 +106,19 @@ struct OverviewSection: View {
         let all = StatsSummary.make(file, range: .allTime, today: summary.today)
         let grid = StatsCalendar.year(year, stats: file, levels: all.heatmap, today: summary.today, firstDay: file.firstSessionDate)
         let active = grid.weeks.flatMap { $0 }.compactMap { $0 }.filter { if case .level(let l) = $0.state { l > 0 } else { false } }.count
-        return PixelPanel {
-            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                HStack(spacing: theme.spacing(.standard)) {
-                    Text(Copy.Stats.activityIn(active, year)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    Spacer()
-                    Button { model.statsYear = year - 1 } label: { PixelIcon(symbol: "chevron.left") }
-                        .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year - 1)).accessibilityLabel(Copy.Stats.previousYear)
-                    Text(String(year)).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme)).monospacedDigit()
-                    Button { model.statsYear = year + 1 } label: { PixelIcon(symbol: "chevron.right") }
-                        .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year + 1)).accessibilityLabel(Copy.Stats.nextYear)
-                }
-                CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: inner, weeks: grid.weeks.count, theme: theme), showDayNumbers: false,
-                                 selected: selectedDay, onSelect: { selectedDay = $0 })
-                CalendarLegend()
+        return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            HStack(spacing: theme.spacing(.standard)) {
+                Text(Copy.Stats.activityIn(active, year)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Spacer()
+                Button { model.statsYear = year - 1 } label: { PixelIcon(symbol: "chevron.left") }
+                    .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year - 1)).accessibilityLabel(Copy.Stats.previousYear)
+                Text(String(year)).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme)).monospacedDigit()
+                Button { model.statsYear = year + 1 } label: { PixelIcon(symbol: "chevron.right") }
+                    .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year + 1)).accessibilityLabel(Copy.Stats.nextYear)
             }
+            CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: PageMetrics.content, weeks: grid.weeks.count, theme: theme), showDayNumbers: false,
+                             selected: selectedDay, onSelect: { selectedDay = $0 })
+            CalendarLegend()
         }
     }
 
@@ -139,28 +126,16 @@ struct OverviewSection: View {
 
     var monthView: some View {
         let grid = StatsCalendar.recent(30, stats: file, levels: summary.heatmap, today: summary.today, firstDay: file.firstSessionDate)
-        return HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-            PixelPanel {
-                VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                    Text(Copy.Stats.last30Title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    CalendarGridView(grid: grid, cell: monthCell, showDayNumbers: true, transposed: true, selected: selectedDay, onSelect: { selectedDay = $0 })
-                    CalendarLegend()
-                }
-            }
-            .fixedSize(horizontal: true, vertical: false)
-            PixelPanel {
-                StackedModelChart(summary: summary, from: StatsSummary.Day.adding(-29, to: summary.today), to: summary.today, stacked: false,
-                                  height: DetailsMetrics.chartHeight)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            CalendarGridView(grid: grid, cell: monthCell, showDayNumbers: true, transposed: true, selected: selectedDay, onSelect: { selectedDay = $0 })
+            CalendarLegend()
         }
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Day squares sized so the calendar takes about half the width, never smaller than two lines of figures.
     var monthCell: CGFloat {
-        let fit = (width / 2 - (theme.spacing(.windowPadding) + theme.spacing(.standard)) * 2) / (7 + 6 * CalendarGridView.gapRatio)
-        return min(max(fit, theme.spacing(.spacious) * 2), theme.spacing(.spacious) * 4)
+        let fit = PageMetrics.content / (7 + 6 * CalendarGridView.gapRatio)
+        return min(max(fit, theme.spacing(.spacious) * 2), theme.spacing(.spacious) * 3.5)
     }
 
     // MARK: - 7 days: one column per day
@@ -170,9 +145,8 @@ struct OverviewSection: View {
         let byDate = Dictionary(file.days.map { ($0.date, $0) }, uniquingKeysWith: { a, _ in a })
         let tokens = Dictionary(file.dailyTokens.map { ($0.date, $0.byModel.values.reduce(0, +)) }, uniquingKeysWith: { a, _ in a })
         let maxMessages = max(1, days.compactMap { byDate[$0]?.messages }.max() ?? 1)
-        return PixelPanel {
+        return Group {
             VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                Text(Copy.Stats.last7Title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
                 HStack(alignment: .bottom, spacing: theme.spacing(.standard)) {
                     ForEach(days, id: \.self) { day in
                         let d = byDate[day]
@@ -210,7 +184,6 @@ struct OverviewSection: View {
         let read = totals.map(\.cacheRead).reduce(0, +), write = totals.map(\.cacheWrite).reduce(0, +)
         let all = max(1, input + output + read + write)
         return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(Copy.Stats.tokenKinds).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
             ForEach([(Copy.Stats.cacheRead, read), (Copy.Stats.cacheWrite, write), (Copy.Stats.output, output), (Copy.Stats.input, input)], id: \.0) { name, n in
                 VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
                     HStack {
@@ -222,7 +195,6 @@ struct OverviewSection: View {
                 }
                 .accessibilityElement(children: .combine)
             }
-            Text(Copy.Stats.allTimeNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
         }
     }
 }
@@ -359,6 +331,7 @@ struct CalendarLegend: View {
 /// Sessions started per hour of the day, from Claude Code's own counts, with a hover readout.
 struct HourChart: View {
     let counts: [Int: Int]
+    var showsTitle = true
     @State private var hover: Int?
     @State private var width: CGFloat = 0
     @Environment(\.theme) private var theme
@@ -368,7 +341,7 @@ struct HourChart: View {
         let top = max(1, counts.values.max() ?? 1)
         let footer = theme.spacing(.spacious) * 1.2
         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(Copy.Stats.hours).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+            if showsTitle { Text(Copy.Stats.hours).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)) }
             Canvas { context, size in
                 let plot = CGRect(x: 0, y: 0, width: size.width, height: size.height - footer)
                 let slot = plot.width / 24

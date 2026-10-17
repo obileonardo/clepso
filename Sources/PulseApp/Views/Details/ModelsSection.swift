@@ -13,18 +13,24 @@ struct ModelsSection: View {
 
     var body: some View {
         if summary.models.isEmpty {
-            PixelPanel {
-                Text(Copy.Stats.noModels).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            PageColumn {
+                PageSection(Copy.Stats.models, nil) {
+                    Text(Copy.Stats.noModels).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                }
             }
         } else {
-            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                distribution
+            // 1.14: Account's structure. The share, then the models (Arena) or tokens by day (Chart), then how levels work.
+            PageColumn {
+                PageSection(Copy.ModelsPage.distributionTitle, Copy.ModelsPage.distributionSub) { distribution }
                 switch model.modelsView {
                 case .arena: ModelArena(summary: summary)
                 case .chart:
-                    PixelPanel { StackedModelChart(summary: summary, from: first, to: summary.today) }
-                    ModelLegend(models: summary.models)
+                    PageSection(Copy.Stats.tokensPerDay.capitalized, Copy.ModelsPage.chartSub) {
+                        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                            StackedModelChart(summary: summary, from: first, to: summary.today)
+                            ModelLegend(models: summary.models)
+                        }
+                    }
                 }
             }
         }
@@ -32,53 +38,23 @@ struct ModelsSection: View {
 
     /// Krea's "usage distribution" (1.12): the share of tokens as a ring with the total inside, beside a card per model.
     var distribution: some View {
-        HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-            PixelPanel {
-                VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                    Text(Copy.ModelsPage.distribution).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    ZStack {
-                        PixelDonut(shares: summary.models.map(\.share))
-                        VStack(spacing: 0) {
-                            Text(Formatting.compact(summary.totalTokens)).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
-                            Text(Copy.ModelsPage.tokens).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                        }
-                    }
-                    .frame(width: theme.spacing(.spacious) * 9, height: theme.spacing(.spacious) * 9)
-                    .frame(maxWidth: .infinity)
-                    ForEach(Array(summary.models.prefix(6).enumerated()), id: \.element.id) { i, m in
-                        HStack(spacing: theme.spacing(.standard)) {
-                            Canvas { context, size in ModelStyle.fill(&context, CGRect(origin: .zero, size: size), index: i, theme: theme, scheme: scheme) }
-                                .frame(width: theme.spacing(.standard) + theme.spacing(.compact), height: theme.spacing(.standard) + theme.spacing(.compact))
-                                .accessibilityHidden(true)
-                            Text("\(m.name) (\(String(format: "%.1f", m.share * 100))%)").font(theme.font(.supporting))
-                                .foregroundStyle(theme.color(.textPrimary, scheme))
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
+        HStack(alignment: .center, spacing: theme.spacing(.spacious) * 1.5) {
+            ZStack {
+                PixelDonut(shares: summary.models.map(\.share))
+                VStack(spacing: 0) {
+                    Text(Formatting.compact(summary.totalTokens)).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    Text(Copy.ModelsPage.tokens).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
             }
-            .frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 2)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacing(.spacious), alignment: .top), count: summary.models.count > 4 ? 3 : 2),
-                      alignment: .leading, spacing: theme.spacing(.spacious)) {
+            .frame(width: theme.spacing(.spacious) * 8, height: theme.spacing(.spacious) * 8)
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(summary.models.enumerated()), id: \.element.id) { i, m in
-                    PixelPanel {
-                        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                            HStack {
-                                Text(m.name.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(ModelStyle.role(i), scheme)).lineLimit(1)
-                                Spacer()
-                                if let t = m.totals { Text(Copy.Stats.level(ModelLevel(output: t.output).level)).font(theme.font(.micro))
-                                    .foregroundStyle(theme.color(.textSecondary, scheme)) }
-                            }
-                            HStack { Text(Copy.ModelsPage.tokens.capitalized).font(theme.font(.supporting)); Spacer(); Text(Formatting.compact(m.tokens)).font(theme.font(.label)).monospacedDigit() }
-                                .foregroundStyle(theme.color(.textPrimary, scheme))
-                            HStack { Text(Copy.Stats.output).font(theme.font(.supporting)); Spacer(); Text(m.totals.map { Formatting.compact($0.output) } ?? "—").font(theme.font(.label)).monospacedDigit() }
-                                .foregroundStyle(theme.color(.textPrimary, scheme))
-                            PixelBar(fraction: m.share, role: ModelStyle.role(i), pattern: .solid, segments: 20)
-                            Text(Copy.ModelsPage.ofTotal(String(format: "%.1f", m.share * 100))).font(theme.font(.supporting))
-                                .foregroundStyle(theme.color(.textSecondary, scheme))
-                        }
+                    HStack(spacing: theme.spacing(.standard)) {
+                        Canvas { context, size in ModelStyle.fill(&context, CGRect(origin: .zero, size: size), index: i, theme: theme, scheme: scheme) }
+                            .frame(width: theme.spacing(.standard) + theme.spacing(.compact), height: theme.spacing(.standard) + theme.spacing(.compact))
+                            .accessibilityHidden(true)
+                        FactRow(label: m.name, value: "\(Formatting.compact(m.tokens)) · \(String(format: "%.1f", m.share * 100))%")
                     }
-                    .accessibilityElement(children: .combine)
                 }
             }
         }
@@ -283,17 +259,15 @@ struct ModelArena: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: theme.spacing(.spacious), alignment: .top)], alignment: .leading,
-                      spacing: theme.spacing(.spacious)) {
-                ForEach(Array(ranked.enumerated()), id: \.element.share.id) { rank, entry in
-                    FighterCard(share: entry.share, index: entry.index, rank: rank + 1, daysActive: daysActive(entry.share.model), range: summary.range,
-                                specialty: ModelSpecialty.of(entry.share.totals, party: summary.models.compactMap(\.totals)))
-                }
+        ForEach(Array(ranked.enumerated()), id: \.element.share.id) { rank, entry in
+            let specialty = ModelSpecialty.of(entry.share.totals, party: summary.models.compactMap(\.totals))
+            PageSection("#\(rank + 1) " + entry.share.name, specialty.map { Copy.Stats.specialty($0.kind.doing, times: $0.ratio) } ?? Copy.Stats.activityUnknown) {
+                FighterCard(share: entry.share, index: entry.index, rank: rank + 1, daysActive: daysActive(entry.share.model), range: summary.range,
+                            specialty: specialty)
             }
+        }
+        PageSection(Copy.Stats.legendTitle.capitalized, summary.range == .allTime ? Copy.Stats.arenaNote : Copy.Stats.arenaRangeNote) {
             LevelLegend(models: ranked.compactMap { entry in entry.share.totals.map { (entry.share.name, ModelLevel(output: $0.output)) } })
-            Text(summary.range == .allTime ? Copy.Stats.arenaNote : Copy.Stats.arenaRangeNote).font(theme.font(.supporting))
-                .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -321,56 +295,40 @@ struct FighterCard: View {
     var level: ModelLevel? { share.totals.map { ModelLevel(output: $0.output) } }
 
     var body: some View {
-        PixelPanel {
-            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                    VStack(spacing: theme.spacing(.compact)) {
-                        ModelSprite(family: ModelSprite.Family(share.model), role: ModelStyle.role(index))
-                            .frame(width: theme.spacing(.spacious) * 4.8, height: theme.spacing(.spacious) * 4.8)
-                            .background(theme.color(.surfaceMuted, scheme))
-                        Text(level.map { Copy.Stats.level($0.level) } ?? Copy.Stats.levelUnknown).font(theme.font(.title))
-                            .foregroundStyle(theme.color(ModelStyle.role(index), scheme))
-                    }
-                    VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(share.name.uppercased()).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
-                                .lineLimit(1).minimumScaleFactor(0.7)
+        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
+            VStack(spacing: theme.spacing(.compact)) {
+                ModelSprite(family: ModelSprite.Family(share.model), role: ModelStyle.role(index))
+                    .frame(width: theme.spacing(.spacious) * 4.8, height: theme.spacing(.spacious) * 4.8)
+                    .background(theme.color(.surfaceMuted, scheme))
+                Text(level.map { Copy.Stats.level($0.level) } ?? Copy.Stats.levelUnknown).font(theme.font(.title))
+                    .foregroundStyle(theme.color(ModelStyle.role(index), scheme))
+            }
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                if let level {
+                    VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                        HStack {
+                            Text(Copy.Stats.progressTo(level.level + 1)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                             Spacer()
-                            Text("#\(rank)").font(theme.font(.title)).foregroundStyle(theme.color(.textSecondary, scheme))
+                            Text(Copy.Stats.outputOf(Formatting.compact(level.output), Formatting.compact(level.next), toGo: Formatting.compact(level.next - level.output)))
+                                .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
                         }
-                        Text(specialty.map { Copy.Stats.specialty($0.kind.doing, times: $0.ratio) } ?? Copy.Stats.activityUnknown)
-                            .font(theme.font(.label)).foregroundStyle(theme.color(.accent, scheme))
-                            .help(Copy.Stats.specialtyHelp)
-                        if let level {
-                            // Exactly what the bar shows: output written so far against the next level's target.
-                            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                                Text(Copy.Stats.progressTo(level.level + 1)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                                PixelBar(fraction: level.progress, role: ModelStyle.role(index), pattern: .solid, segments: 20)
-                                Text(Copy.Stats.outputOf(Formatting.compact(level.output), Formatting.compact(level.next),
-                                                         toGo: Formatting.compact(level.next - level.output)))
-                                    .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(Copy.Stats.levelLabel(level.level, output: Formatting.compact(level.output), next: Formatting.compact(level.next)))
-                        }
-                        Text(Copy.Stats.tokensLine(Formatting.compact(share.tokens), Int((share.share * 100).rounded()), days: daysActive,
-                                                   allTime: range == .allTime))
-                            .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                            .fixedSize(horizontal: false, vertical: true)
+                        PixelBar(fraction: level.progress, role: ModelStyle.role(index), pattern: .solid, segments: 40)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Copy.Stats.levelLabel(level.level, output: Formatting.compact(level.output), next: Formatting.compact(level.next)))
                 }
                 if let t = share.totals, t.total > 0 {
-                    Grid(alignment: .leading, horizontalSpacing: theme.spacing(.standard), verticalSpacing: theme.spacing(.standard)) {
+                    Grid(alignment: .leading, horizontalSpacing: theme.spacing(.standard), verticalSpacing: theme.spacing(.compact)) {
                         stat(Copy.Stats.input, t.input, of: t.total)
                         stat(Copy.Stats.output, t.output, of: t.total)
                         stat(Copy.Stats.cacheRead, t.cacheRead, of: t.total)
                         stat(Copy.Stats.cacheWrite, t.cacheWrite, of: t.total)
                     }
                 }
+                Text(Copy.Stats.tokensLine(Formatting.compact(share.tokens), Int((share.share * 100).rounded()), days: daysActive, allTime: range == .allTime))
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .fixedSize(horizontal: false, vertical: true)               // names and figures keep their size in a short row
         .accessibilityElement(children: .contain)
     }
 
@@ -467,15 +425,9 @@ struct LevelLegend: View {
     var shown: Int { max(20, (models.map(\.level.level).max() ?? 0) + 1) }
 
     var body: some View {
-        PixelPanel {
-            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                Text(Copy.Stats.legendTitle).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    .accessibilityAddTraits(.isHeader)
-                HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
-                    ladder.frame(maxWidth: .infinity, alignment: .topLeading)
-                    definitions.frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-            }
+        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
+            ladder.frame(maxWidth: .infinity, alignment: .topLeading)
+            definitions.frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 

@@ -54,7 +54,7 @@ struct AccountSection: View {
                     VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                         // Sized from the column's known width: the section's right side is the column minus the label side.
                         let grid = StatsCalendar.year(year, stats: file, levels: summary.heatmap, today: summary.today, firstDay: file.firstSessionDate)
-                        CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: DetailsMetrics.settingsColumn - theme.spacing(.spacious) * 2,
+                        CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: PageMetrics.content,
                                                                                 weeks: grid.weeks.count, theme: theme), showDayNumbers: false)
                         CalendarLegend()
                     }
@@ -66,7 +66,7 @@ struct AccountSection: View {
             }
             dangerZone.padding(.top, theme.spacing(.spacious))
         }
-        .frame(maxWidth: DetailsMetrics.settingsColumn + DetailsMetrics.sideColumn, alignment: .leading)
+        .frame(maxWidth: PageMetrics.column, alignment: .leading)
         .frame(maxWidth: .infinity)
         .onAppear { name = model.profileName ?? "" }
         .task {
@@ -91,7 +91,7 @@ struct AccountSection: View {
                 Text(title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
                 Text(subtitle).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: DetailsMetrics.sideColumn, alignment: .leading)
+            .frame(width: PageMetrics.labelColumn, alignment: .leading)
             body.frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.vertical, theme.spacing(.spacious))

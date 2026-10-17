@@ -236,6 +236,7 @@ enum Copy {
 
     /// Card page milestones (1.12, after the founder's Tripadvisor pick).
     enum CardPage {
+        static let yourCard = "Your card"
         static let milestones = "MILESTONES", milestonesSub = "Each category has its own rungs. Lit squares are the ones you've reached."
         static func name(_ kind: Ladder.Kind) -> String {
             switch kind {
@@ -268,12 +269,17 @@ enum Copy {
     /// Models page (1.12, after the founder's Krea pick).
     enum ModelsPage {
         static let distribution = "USAGE DISTRIBUTION", tokens = "TOKENS"
+        static let distributionTitle = "Distribution", distributionSub = "Each model's share of all tokens in this range."
+        static let chartSub = "Stacked by model; every day on the axis, quiet ones included."
         static func ofTotal(_ pct: String) -> String { "\(pct)% of all tokens" }
     }
 
     /// Overview page (1.12, after the founder's Steep and Mixpanel picks).
     enum OverviewPage {
         static let clear = "Clear", messages = "Messages", toolCalls = "Tool calls", byModel = "TOKENS BY MODEL"
+        static let activity = "Activity", activityYear = "One year at a time. Choose a day to see it in full."
+        static let glance = "At a glance", hoursTitle = "When you work", hoursSub = "Sessions started, by hour of the day."
+        static let kindsTitle = "Tokens by kind", tokensTitle = "Tokens per day", tokensSub = "All models together."
         static func summary(_ range: String) -> String { range.uppercased() + " AT A GLANCE" }
         static let pickDay = "Choose a day in the calendar to see it here."
     }
@@ -281,17 +287,30 @@ enum Copy {
     /// Session page (1.12, after the founder's Adaline and Gumloop picks).
     enum SessionPage {
         static let details = "DETAILS", model = "Model", window = "Context window", requests = "Cache requests"
+        static let current = "Session", detailsTitle = "Details", detailsSub = "Everything Claude Code's status line reports about it."
+        static let recentTitle = "Recent sessions", recentSub = "Choose one to see it above."
+        static let byModelTitle = "By model"
         static let timeSplit = "TIME WAITING ON THE MODEL"
         static func apiShare(_ pct: Int) -> String { "\(pct)% of the session's wall time" }
     }
 
     /// Limits page (1.12, after the founder's Remote, StackAI and Sprig picks).
     enum LimitsPage {
-        static let allLimits = "ALL LIMITS", plan = "PLAN", left = "LEFT"
+        static let allLimits = "ALL LIMITS", plan = "Plan", left = "LEFT"
+        static let planSub = "What you're on, and where these numbers come from."
         static let planName = "Plan", source = "Source", lastReading = "Last reading", sessions = "Sessions seen"
         static func usage(_ scope: String) -> String { "\(scope) usage" }
         static func window(_ scope: String) -> String { "\(scope.uppercased()) WINDOW" }
         static let notReported = "Not reported"
+    }
+
+    /// 1.14: section names and lines for every page in Account's structure.
+    enum HomePage {
+        static let today = "Today", todaySub = "What needs you now, most urgent first."
+        static let limitsSub = "How much of each limit you've used, and when it resets."
+        static let monthSub = "Claude Code activity, day by day."
+        static let levelSub = "Grows with what your models write. See Card for the full ladder."
+        static let openCard = "Open card"
     }
 
     /// Home's "For you today" (after the founder's Deel pick).
@@ -302,9 +321,10 @@ enum Copy {
         static let limitCritical = "Nearly used up. New work may be refused until the reset."
         static func goal(_ name: String, _ over: Bool) -> String { (over ? "Goal missed: " : "Goal at risk: ") + name.lowercased() }
         static func running(_ agents: Int) -> String { agents == 0 ? "A task is running" : "A task is running with \(agents) agent\(agents == 1 ? "" : "s")" }
-        static let signInTitle = "SEE PULSE ANYWHERE", signInBody = "Sign in to check your goals and usage on the web.", signIn = "Sign in"
+        static let signInTitle = "See Pulse anywhere", signInBody = "Sign in to check your goals and usage on the web.", signIn = "Sign in"
         static let allClear = "ALL CLEAR", allClearBody = "Nothing needs you right now."
         static let view = "View"
+        static let connectTitle = "Connect Claude Code", statsTitle = "Show your Claude Code stats", agentsTitle = "Count agents per task"
         static let metric = "Metric"
         static let tokens = "Tokens", messages = "Messages", sessions = "Sessions"
         static let last30 = "LAST 30 DAYS"
@@ -340,7 +360,7 @@ enum Copy {
         static let met = "MET", onTrack = "ON TRACK", atRisk = "AT RISK", missed = "OVER", noData = "NO DATA"
         static func streak(_ n: Int) -> String { n == 1 ? "1 day in a row" : "\(n) days in a row" }
         static let off = "Off", target = "Target", details = "DETAILS", status = "Status", streakLabel = "Streak"
-        static let lastSeven = "LAST 7 DAYS"
+        static let lastSeven = "LAST 7 DAYS", aboutTitle = "About goals"
         static func dayValue(_ kind: GoalStatus.Kind, _ value: Double?, _ met: Bool?) -> String {
             guard let value else { return "no data" }
             switch kind {
@@ -399,6 +419,16 @@ enum Copy {
         static let demoSub = "Sample numbers, clearly marked DEMO; uploads pause"
         static let deleteSub = "Removes all of Pulse's data and restores Claude Code's settings", deleteAction = "Delete…"
         static let showLog = "Show log", hideLog = "Hide log"
+        static func groupLine(_ title: String) -> String {
+            switch title {
+            case general: "How Pulse looks and starts."
+            case notifications: "Alerts when a limit gets close."
+            case claudeCode: "What Pulse reads from Claude Code, and what it keeps."
+            case data: "Everything Pulse stores is on this Mac."
+            case diagnostics: "What Pulse received, for troubleshooting."
+            default: ""
+            }
+        }
         static let appearance = "Appearance", appearanceSub = "Dark is the original Phosphor look; System follows macOS"
         static let system = "System", light = "Light", dark = "Dark"
         static let loginSub = "Start Pulse when you log in"
@@ -413,7 +443,7 @@ enum Copy {
     enum Agents {
         static let lastTaskShort = "Agents, last task"
         static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom", unknown = "Unknown"
-        static let title = "AGENTS PER TASK"
+        static let title = "AGENTS PER TASK", titleShort = "Agents per task"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
         static func count(_ n: Int) -> String { n == 1 ? "1 agent" : "\(n) agents" }
         static let none = "No subagents"

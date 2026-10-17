@@ -32,6 +32,7 @@ enum PopoverProbe {
             NSApp.terminate(nil)
         }
         if defaults.bool(forKey: "PulseProbeDemo") { await model.setDemo(true) }
+        if defaults.bool(forKey: "PulseProbeLight") { await model.setAppearance(.light) }
         try? await Task.sleep(for: .seconds(1))
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
         recorder.start(button)

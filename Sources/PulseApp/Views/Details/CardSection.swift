@@ -12,75 +12,65 @@ struct CardSection: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
+    /// 1.14: Account's structure. The card with its actions, then the milestone ladders as aligned rows.
     var body: some View {
-        VStack(spacing: theme.spacing(.spacious)) {
+        PageColumn {
             if let card = model.playerCard {
-                PlayerCardView(card: card, topModelID: model.statsSummary(.allTime)?.favorite?.model)
-                    .frame(maxWidth: .infinity)
-                HStack(spacing: theme.spacing(.standard)) {
-                    Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
-                    Button(Copy.Card.save) { save(card) }.buttonStyle(PixelButtonStyle(prominent: true))
-                    if let image = image(card) {
-                        ShareLink(item: Image(nsImage: image), preview: SharePreview(card.name.isEmpty ? Product.name : card.name, image: Image(nsImage: image))) {
-                            Text(Copy.Card.share)
+                PageSection(Copy.CardPage.yourCard, Copy.Card.note) {
+                    VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                        PlayerCardView(card: card, topModelID: model.statsSummary(.allTime)?.favorite?.model)
+                        HStack(spacing: theme.spacing(.standard)) {
+                            Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
+                            Button(Copy.Card.save) { save(card) }.buttonStyle(PixelButtonStyle(prominent: true))
+                            if let image = image(card) {
+                                ShareLink(item: Image(nsImage: image), preview: SharePreview(card.name.isEmpty ? Product.name : card.name, image: Image(nsImage: image))) {
+                                    Text(Copy.Card.share)
+                                }
+                                .buttonStyle(PixelButtonStyle())
+                            }
+                            if let note { Text(note).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)) }
                         }
-                        .buttonStyle(PixelButtonStyle())
                     }
                 }
-                if let note { Text(note).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)) }
                 if let summary = model.statsSummary(.allTime) {
-                    milestones(Ladder.all(output: card.output, longestStreak: summary.longestStreak, sessions: summary.sessions,
-                                          activeDays: summary.activeDays))
+                    PageSection(Copy.CardPage.milestones.capitalized, Copy.CardPage.milestonesSub) {
+                        milestones(Ladder.all(output: card.output, longestStreak: summary.longestStreak, sessions: summary.sessions,
+                                              activeDays: summary.activeDays))
+                    }
                 }
-                Text(Copy.Card.note).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             } else {
-                Text(Copy.Card.needsStats).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                PageSection(Copy.Card.title, nil) {
+                    Text(Copy.Card.needsStats).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                }
             }
         }
-        .frame(maxWidth: .infinity)
     }
 
-    /// Tripadvisor's milestones (1.12): a card per category with its rungs, the ones reached lit, and the next step.
+    /// Tripadvisor's ladders as rows: the category and its tier on the left, the rungs, then what reaches the next.
     func milestones(_ ladders: [Ladder]) -> some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(Copy.CardPage.milestones).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-            Text(Copy.CardPage.milestonesSub).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacing(.spacious), alignment: .top), count: 2), spacing: theme.spacing(.spacious)) {
-                ForEach(ladders) { ladder in
-                    PixelPanel {
-                        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                            HStack(spacing: theme.spacing(.standard)) {
-                                PixelIcon(symbol: Self.symbol(ladder.kind), size: 18).foregroundStyle(theme.color(.accent, scheme))
-                                    .frame(width: theme.spacing(.spacious) * 2, height: theme.spacing(.spacious) * 2)
-                                    .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
-                                    .accessibilityHidden(true)
-                                VStack(alignment: .leading, spacing: 0) {
-                                    Text(Copy.CardPage.name(ladder.kind)).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                                    Text(Copy.CardPage.tier(ladder.kind, ladder.reached)).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
-                                }
-                            }
-                            HStack(spacing: theme.stroke(.hairline) * 2) {
-                                ForEach(Array(ladder.steps.enumerated()), id: \.offset) { i, _ in
-                                    Rectangle().fill(theme.color(i < ladder.reached ? .accent : .surfaceMuted, scheme))
-                                        .frame(height: theme.spacing(.standard))
-                                }
-                            }
-                            HStack {
-                                ForEach(Array(ladder.steps.enumerated()), id: \.offset) { _, step in
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(ladders) { ladder in
+                HStack(alignment: .center, spacing: theme.spacing(.spacious)) {
+                    IconRow(glyph: Self.symbol(ladder.kind), title: Copy.CardPage.tier(ladder.kind, ladder.reached), subtitle: Copy.CardPage.name(ladder.kind))
+                        .frame(width: PageMetrics.labelColumn - theme.spacing(.spacious), alignment: .leading)
+                    VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                        HStack(spacing: theme.stroke(.hairline) * 2) {
+                            ForEach(Array(ladder.steps.enumerated()), id: \.offset) { i, step in
+                                VStack(spacing: theme.spacing(.compact)) {
+                                    Rectangle().fill(theme.color(i < ladder.reached ? .accent : .surfaceMuted, scheme)).frame(height: theme.spacing(.standard))
                                     Text(Formatting.compact(step)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                                        .frame(maxWidth: .infinity)
                                 }
+                                .frame(maxWidth: .infinity)
                             }
-                            Text(ladder.remaining.map { Copy.CardPage.toGo(ladder.kind, Formatting.compact($0)) } ?? Copy.CardPage.top)
-                                .font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)).fixedSize(horizontal: false, vertical: true)
                         }
+                        Text(ladder.remaining.map { Copy.CardPage.toGo(ladder.kind, Formatting.compact($0)) } ?? Copy.CardPage.top)
+                            .font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
                     }
-                    .accessibilityElement(children: .combine)
                 }
+                .padding(.vertical, theme.spacing(.standard))
+                .accessibilityElement(children: .combine)
             }
         }
-        .frame(maxWidth: PlayerCardView.width * 1.4)
     }
 
     static func symbol(_ kind: Ladder.Kind) -> String {

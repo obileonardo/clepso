@@ -20,7 +20,7 @@ struct SettingsSection: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.spacious) * 1.5) {
+        PageColumn {
             group(Copy.SettingsPage.general) {
                 row("circle.lefthalf.filled", Copy.SettingsPage.appearance, Copy.SettingsPage.appearanceSub) {
                     PixelSegmented(Copy.SettingsPage.appearance, options: [(AppModel.Appearance.system, Copy.SettingsPage.system),
@@ -84,8 +84,6 @@ struct SettingsSection: View {
                 if showLog { log }
             }
         }
-        .frame(maxWidth: DetailsMetrics.settingsColumn, alignment: .leading)
-        .frame(maxWidth: .infinity)                                   // centred column, like the references
         .task {
             model.refreshPreview()
             await model.refreshNotificationStatus()
@@ -184,14 +182,11 @@ struct SettingsSection: View {
 
     // MARK: - Building blocks
 
+    /// 1.14: a page section, like Account: the group's name and a line on the left, its rows on the right.
     func group(_ title: String, @ViewBuilder _ content: () -> some View) -> some View {
         let rows = content()
-        return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
-            PixelPanel {
-                VStack(alignment: .leading, spacing: 0) { rows }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        return PageSection(title, Copy.SettingsPage.groupLine(title)) {
+            VStack(alignment: .leading, spacing: 0) { rows }
         }
     }
 

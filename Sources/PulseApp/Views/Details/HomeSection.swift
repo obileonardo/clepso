@@ -13,19 +13,13 @@ struct HomeSection: View {
 
     enum HomeMetric: Hashable { case tokens, messages, sessions }
 
+    /// 1.14: Account's structure. Today first (what needs you), then the limits, the last 30 days, and the level.
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                PixelPanel { hero }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                PixelPanel { forYou }.frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 4).frame(maxHeight: .infinity, alignment: .top)
-            }
-            .fixedSize(horizontal: false, vertical: true)
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                PixelPanel { levelCard }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                PixelPanel { limitsGlance }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                PixelPanel { monthStats }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }
-            .fixedSize(horizontal: false, vertical: true)
+        PageColumn {
+            PageSection(Copy.HomePage.today, Copy.HomePage.todaySub) { forYou }
+            PageSection(Copy.Home.limits, Copy.HomePage.limitsSub) { limitsGlance }
+            PageSection(Copy.ForYou.last30, Copy.HomePage.monthSub) { hero }
+            PageSection(Copy.ForYou.level, Copy.HomePage.levelSub) { levelCard }
         }
         .task { model.loadStats() }
     }
@@ -57,12 +51,8 @@ struct HomeSection: View {
 
     @ViewBuilder var hero: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            HStack(alignment: .center) {
-                PixelSegmented(Copy.ForYou.metric, options: [(HomeMetric.tokens, Copy.ForYou.tokens), (.messages, Copy.ForYou.messages),
-                                                             (.sessions, Copy.ForYou.sessions)], selection: $metric)
-                Spacer()
-                Text(Copy.ForYou.last30).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-            }
+            PixelSegmented(Copy.ForYou.metric, options: [(HomeMetric.tokens, Copy.ForYou.tokens), (.messages, Copy.ForYou.messages),
+                                                         (.sessions, Copy.ForYou.sessions)], selection: $metric)
             let data = series
             if data.isEmpty {
                 Text(Copy.Card.needsStats).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
@@ -71,7 +61,7 @@ struct HomeSection: View {
             } else {
                 Text(Copy.ForYou.total(Formatting.compact(data.map(\.value).reduce(0, +)), metricName).uppercased())
                     .font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
-                DailyBars(values: data, unit: metricName).frame(minHeight: DetailsMetrics.chartHeight, maxHeight: .infinity)
+                DailyBars(values: data, unit: metricName).frame(height: DetailsMetrics.chartHeight)
             }
         }
     }
@@ -100,33 +90,13 @@ struct HomeSection: View {
     }
 
     var forYou: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(Copy.ForYou.title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(items) { item in
-                HStack(alignment: .top, spacing: theme.spacing(.standard)) {
-                    PixelIcon(symbol: Self.symbol(item.kind)).font(theme.font(.label))
-                        .foregroundStyle(theme.color(Self.role(item.kind), scheme))
-                        .frame(width: theme.spacing(.spacious) * 1.6, height: theme.spacing(.spacious) * 1.6)
-                        .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
-                        Text(item.title).font(theme.font(.label).weight(.semibold)).foregroundStyle(theme.color(.textPrimary, scheme))
-                            .fixedSize(horizontal: false, vertical: true)
-                        if !item.detail.isEmpty {
-                            Text(item.detail).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    Spacer(minLength: theme.spacing(.compact))
-                    if let action = item.action {
-                        Button(action) { perform(item) }.buttonStyle(PixelButtonStyle())
-                    }
+                IconRow(glyph: Self.symbol(item.kind), title: item.title, subtitle: item.detail.isEmpty ? nil : item.detail, role: Self.role(item.kind)) {
+                    if let action = item.action { Button(action) { perform(item) }.buttonStyle(PixelButtonStyle()) }
                 }
-                .padding(.vertical, theme.spacing(.compact))
-                .accessibilityElement(children: .combine)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     func perform(_ item: ForYouItem) {
@@ -163,77 +133,40 @@ struct HomeSection: View {
     // MARK: Level (Delphi's score card)
 
     @ViewBuilder var levelCard: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            HStack {
-                Text(Copy.ForYou.level).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                Spacer()
-                Button(Copy.Home.seeAll) { model.detailsSection = .card }.buttonStyle(.plain)
-                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-            }
-            if let card = model.playerCard {
-                Text(Copy.Card.levelBar(card.level.level, card.levelName)).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
-                    .lineLimit(1).minimumScaleFactor(0.6)
-                HStack {
-                    Text("LV \(card.level.level)").font(theme.font(.micro))
+        if let card = model.playerCard {
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(Copy.Card.levelBar(card.level.level, card.levelName)).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
                     Spacer()
-                    Text("LV \(card.level.level + 1)").font(theme.font(.micro))
+                    Button(Copy.HomePage.openCard) { model.detailsSection = .card }.buttonStyle(PixelButtonStyle())
                 }
-                .foregroundStyle(theme.color(.textSecondary, scheme))
-                PixelBar(fraction: card.level.progress, role: .accent, pattern: .solid, segments: 20)
+                PixelBar(fraction: card.level.progress, role: .accent, pattern: .solid, segments: 30)
                 HStack {
-                    Text(Formatting.compact(card.level.floor)).font(theme.font(.supporting))
+                    Text(Formatting.compact(card.level.floor)).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                     Spacer()
-                    Text(Formatting.compact(card.level.next)).font(theme.font(.supporting))
+                    Text(Copy.Card.toNext(Formatting.compact(card.level.next - card.level.output), card.level.level + 1))
+                        .font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
+                    Spacer()
+                    Text(Formatting.compact(card.level.next)).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
-                .foregroundStyle(theme.color(.textSecondary, scheme))
-                Text(Copy.Card.toNext(Formatting.compact(card.level.next - card.level.output), card.level.level + 1))
-                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
-            } else {
-                Text(Copy.Card.needsStats).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .fixedSize(horizontal: false, vertical: true)
             }
+        } else {
+            Text(Copy.Card.needsStats).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder var limitsGlance: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            HStack {
-                Text(Copy.Home.limits).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                Spacer()
-                Button(Copy.Home.seeAll) { model.detailsSection = .limits }.buttonStyle(.plain)
-                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-            }
-            if let pools = model.snapshot.provider?.pools, !pools.isEmpty {
+        if let pools = model.snapshot.provider?.pools, !pools.isEmpty {
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                 ForEach(pools) { row in LimitMeterRow(row: row, now: model.snapshot.now, model: model) }
-            } else {
-                Text(Copy.Details.noLimits).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .fixedSize(horizontal: false, vertical: true)
             }
+        } else {
+            Text(Copy.Details.noLimits).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    @ViewBuilder var monthStats: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(Copy.ForYou.thisMonth).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                .padding(.bottom, theme.spacing(.standard))
-            let s = model.statsSummary(.last30)
-            statRow(Copy.ForYou.activeDays, s.map { "\($0.activeDays)/\($0.dayCount)" } ?? "—")
-            statRow(Copy.ForYou.sessionsMonth, s.map { "\($0.sessions)" } ?? "—")
-            statRow(Copy.ForYou.streak, s.map { Copy.Card.days($0.currentStreak) } ?? "—")
-            statRow(Copy.ForYou.agentsPerTask, model.snapshot.agents.map { String(format: "%.1f", $0.averagePerTask) } ?? "—")
-        }
-    }
-
-    func statRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-            Spacer()
-            Text(value).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme)).monospacedDigit()
-        }
-        .padding(.vertical, theme.spacing(.standard))
-        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
-        .accessibilityElement(children: .combine)
-    }
 }
 
 /// A limit in one row (after the founder's StackAI pick): name and its reset on the left, a segmented meter and the
