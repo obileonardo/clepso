@@ -96,7 +96,7 @@ def build_weight(style, weight, wv, wh, out_dir):
                 metrics[name] = (M.ADV, int(round(b[0])) if b else 0)
         fb.setupHorizontalMetrics(metrics)
         fontmeta.setup_common(fb, family=FAMILY, ps=PS, style=style, weight=weight,
-                              ascender=950, descender=-250, line_gap=0, cap=M.CAP, x_height=M.XH, mono=True,
+                              ascender=960, descender=-240, line_gap=0, cap=M.CAP, x_height=M.XH, mono=True,
                               description="Pulse Mono: the body face of the Pulse identity, a monospace "
                                           "constructed from rounded rectangles.")
         addOpenTypeFeaturesFromString(fb.font, "languagesystem DFLT dflt;\nlanguagesystem latn dflt;\n")

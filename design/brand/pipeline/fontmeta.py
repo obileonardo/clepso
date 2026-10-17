@@ -4,9 +4,11 @@ Vertical metrics follow the 'webfont strategy' used by Google Fonts: hhea = typo
 macOS, Windows and browsers lay lines out identically. Names avoid every Reserved Font Name of the OFL faces the app
 bundled before (Silkscreen, Pixelify Sans, VT323): these faces are drawn from scratch, not derived.
 """
+from fontTools.misc.timeTools import timestampFromString
 from fontTools.ttLib import TTFont
 
 VERSION = "1.000"
+RELEASED = "Sat Oct 17 12:00:00 2026"
 VENDOR = "PULS"
 COPYRIGHT = "Copyright 2026 The Pulse Project Authors"
 DESIGNER = "Pulse brand team"
@@ -44,6 +46,9 @@ def setup_common(fb, *, family, ps, style, weight, ascender, descender, line_gap
         panose=panose(mono, weight))
     fb.setupPost(isFixedPitch=1 if mono else 0, underlinePosition=-150, underlineThickness=80 if not mono else 70)
     fb.font["head"].fontRevision = float(VERSION)
+    # Reproducible builds: fixed timestamps (the release date of this version), never "now".
+    fb.font["head"].created = fb.font["head"].modified = timestampFromString(RELEASED)
+    fb.font.recalcTimestamp = False
     fb.font["head"].macStyle = (1 if style == "Bold" else 0)
     fb.font["OS/2"].recalcUnicodeRanges(fb.font)
 
@@ -61,6 +66,6 @@ def panose(mono, weight):
 
 
 def woff2(src, dst):
-    font = TTFont(str(src))
+    font = TTFont(str(src), recalcTimestamp=False)
     font.flavor = "woff2"
     font.save(str(dst))

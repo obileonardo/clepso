@@ -387,9 +387,18 @@ def write_app_icon(out: Path):
     for s in (16, 32, 64, 128, 256, 512, 1024):
         cache[s] = app_icon_png(s)
         cache[s].save(out / f"pulse-app-icon-{s}.png")
+    appiconset = out / "AppIcon.appiconset"
+    appiconset.mkdir(exist_ok=True)
+    images = []
     for pt in (16, 32, 128, 256, 512):
         cache[pt].save(iconset / f"icon_{pt}x{pt}.png")
         cache[pt * 2].save(iconset / f"icon_{pt}x{pt}@2x.png")
+        for scale, px in ((1, pt), (2, pt * 2)):
+            name = f"icon_{pt}x{pt}{'@2x' if scale == 2 else ''}.png"
+            cache[px].save(appiconset / name)
+            images.append({"filename": name, "idiom": "mac", "scale": f"{scale}x", "size": f"{pt}x{pt}"})
+    import json
+    (appiconset / "Contents.json").write_text(json.dumps({"images": images, "info": {"author": "xcode", "version": 1}}, indent=2) + "\n")
     return cache
 
 
