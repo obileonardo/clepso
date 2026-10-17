@@ -1,0 +1,652 @@
+{
+ "grid": {
+  "unit": "p",
+  "symbol": 16,
+  "small": 12,
+  "tracking": 2,
+  "lockupGap": 5,
+  "stackGap": 4,
+  "wordTop": 4,
+  "clear": 4
+ },
+ "symbol": [
+  ".....######.....",
+  "...##......##...",
+  "..#..........#..",
+  ".#....#.......#.",
+  ".#...#.#......#.",
+  "#....#.#.......#",
+  "#....#.#.......#",
+  "#....#.#.......#",
+  "#..###.#..###..#",
+  "#......#.#.....#",
+  "#......#.#.....#",
+  ".#.....#.#....#.",
+  ".#......#.....#.",
+  "..#..........#..",
+  "...##......##...",
+  ".....######....."
+ ],
+ "symbolSmall": [
+  "....####....",
+  "..##....##..",
+  ".#........#.",
+  ".#...#....#.",
+  "#...#.#....#",
+  "#...#.#....#",
+  "#.###.#.##.#",
+  "#.....#.#..#",
+  ".#.....#..#.",
+  ".#........#.",
+  "..##....##..",
+  "....####...."
+ ],
+ "ring": [
+  ".....######.....",
+  "...##......##...",
+  "..#..........#..",
+  ".#............#.",
+  ".#............#.",
+  "#..............#",
+  "#..............#",
+  "#..............#",
+  "#..............#",
+  "#..............#",
+  "#..............#",
+  ".#............#.",
+  ".#............#.",
+  "..#..........#..",
+  "...##......##...",
+  ".....######....."
+ ],
+ "wordmark": [
+  "####...#...#..#.......####..#####",
+  "#...#..#...#..#......#......#....",
+  "#...#..#...#..#......#......#....",
+  "####...#...#..#.......###...####.",
+  "#......#...#..#..........#..#....",
+  "#......#...#..#..........#..#....",
+  "#.......###...#####..####...#####"
+ ],
+ "colours": {
+  "phosphor": "#4DFF8F",
+  "deep": "#0A7238",
+  "black": "#000000",
+  "white": "#FFFFFF"
+ },
+ "explorations": [
+  {
+   "code": "A",
+   "name": "ECG line",
+   "rows": [
+    "................",
+    "................",
+    "................",
+    ".......#........",
+    ".......#........",
+    "......##........",
+    "......#.#..#....",
+    "......#.#..#....",
+    ".....#..#.#.#...",
+    ".#####..#.#.###.",
+    "........#.#.....",
+    ".........##.....",
+    ".........#......",
+    ".........#......",
+    "................",
+    "................"
+   ],
+   "verdict": "The favicon's heartbeat, alone. Says 'health app'; every fitness tracker owns it. Without a container it has no silhouette at 16 px and cannot carry a status.",
+   "chosen": false
+  },
+  {
+   "code": "B",
+   "name": "Lit core",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#............#.",
+    ".#............#.",
+    "#..............#",
+    "#..............#",
+    "#......##......#",
+    "#......##......#",
+    "#..............#",
+    "#..............#",
+    ".#............#.",
+    ".#............#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ],
+   "verdict": "The 1.11 menu bar ring with a 2 × 2 core. Clean, but reads as a radio button or a record light: a control, not a product.",
+   "chosen": false
+  },
+  {
+   "code": "C",
+   "name": "P monogram",
+   "rows": [
+    "................",
+    "..##########....",
+    "..###########...",
+    "..##.......###..",
+    "..##........##..",
+    "..##........##..",
+    "..##.......###..",
+    "..###########...",
+    "..##########....",
+    "..##............",
+    "..##............",
+    "..##............",
+    "..##............",
+    "..##............",
+    "................",
+    "................"
+   ],
+   "verdict": "Ownable as a letter, empty as an idea, and tied to a working name that may change. A pixel P also blurs into 'D' and 'R' at 16 px.",
+   "chosen": false
+  },
+  {
+   "code": "D",
+   "name": "Gauge",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#............#.",
+    ".#..........#.#.",
+    "#..........#...#",
+    "#.........#....#",
+    "#........#.....#",
+    "#......##......#",
+    "#......##......#",
+    "#..............#",
+    ".#............#.",
+    ".#............#.",
+    "..#..........#..",
+    "...#........#...",
+    "................"
+   ],
+   "verdict": "Speedometer cliché. The needle's angle is illegible at 16 px, and it promises a precise reading the app often cannot give (stale and missing are first-class states).",
+   "chosen": false
+  },
+  {
+   "code": "E",
+   "name": "Signal bars",
+   "rows": [
+    "................",
+    "........##......",
+    "........##......",
+    "........##......",
+    ".....##.##......",
+    ".....##.##......",
+    ".....##.##......",
+    ".....##.##.##...",
+    ".....##.##.##...",
+    "..##.##.##.##...",
+    "..##.##.##.##...",
+    "..##.##.##.##...",
+    "..##.##.##.##...",
+    "..##.##.##.##...",
+    "..##.##.##.##...",
+    "................"
+   ],
+   "verdict": "Reads as Wi-Fi, audio level or cell signal. Strong silhouette, wrong meaning.",
+   "chosen": false
+  },
+  {
+   "code": "F",
+   "name": "Beat in the ring",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#....#.......#.",
+    ".#...#.#......#.",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "#..###.#..###..#",
+    "#......#.#.....#",
+    "#......#.#.....#",
+    ".#.....#.#....#.",
+    ".#......#.....#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ],
+   "verdict": "Chosen. The ring is the limit (and the existing menu bar ring); the beat is the live reading. One idea, legible at 16 px, and it can flatline, warn or go stale without changing shape.",
+   "chosen": true
+  }
+ ],
+ "refinements": [
+  {
+   "code": "F1",
+   "name": "Trace edge to edge",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#....#.......#.",
+    ".#...#.#......#.",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "######.#..######",
+    "#......#.#.....#",
+    "#......#.#.....#",
+    ".#.....#.#....#.",
+    ".#......#.....#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ],
+   "note": "The line splits the ring into halves: reads as a theta or a null sign.",
+   "chosen": false
+  },
+  {
+   "code": "F2",
+   "name": "Heavy beat",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#....##......#.",
+    ".#....##......#.",
+    "#....#..#......#",
+    "#....#..#......#",
+    "#....#..#..#...#",
+    "######..#.#.####",
+    "#.......#.#....#",
+    "#........#.....#",
+    ".#.......#....#.",
+    ".#............#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ],
+   "note": "Two-pixel peak clots at 16 px and fights the 1 p ring.",
+   "chosen": false
+  },
+  {
+   "code": "F3",
+   "name": "Square screen",
+   "rows": [
+    ".##############.",
+    "#..............#",
+    "#..............#",
+    "#......#.......#",
+    "#.....#.#......#",
+    "#.....#.#......#",
+    "#.....#.#......#",
+    "#.....#.#......#",
+    "#######.#..#####",
+    "#.......#.#....#",
+    "#.......#.#....#",
+    "#.......#.#....#",
+    "#........#.....#",
+    "#..............#",
+    "#..............#",
+    ".##############."
+   ],
+   "note": "An oscilloscope, but also a generic chart icon; loses the menu bar ring.",
+   "chosen": false
+  },
+  {
+   "code": "F4",
+   "name": "Floating trace",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#....#.......#.",
+    ".#...#.#......#.",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "#..###.#..###..#",
+    "#......#.#.....#",
+    "#......#.#.....#",
+    ".#.....#.#....#.",
+    ".#......#.....#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ],
+   "note": "Chosen: the beat floats with a 2 p margin, centred on both axes.",
+   "chosen": true
+  }
+ ],
+ "states": [
+  {
+   "key": "beat",
+   "label": "Available (the brand mark)",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#....#.......#.",
+    ".#...#.#......#.",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "#....#.#.......#",
+    "#..###.#..###..#",
+    "#......#.#.....#",
+    "#......#.#.....#",
+    ".#.....#.#....#.",
+    ".#......#.....#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ]
+  },
+  {
+   "key": "approaching",
+   "label": "Approaching a limit",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#............#.",
+    ".#.....##.....#.",
+    "#......##......#",
+    "#......##......#",
+    "#......##......#",
+    "#......##......#",
+    "#......##......#",
+    "#..............#",
+    ".#.....##.....#.",
+    ".#............#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ]
+  },
+  {
+   "key": "flatline",
+   "label": "Limit reached: the beat flatlines",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#............#.",
+    ".#............#.",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..##########..#",
+    "#..............#",
+    "#..............#",
+    ".#............#.",
+    ".#............#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ]
+  },
+  {
+   "key": "stale",
+   "label": "Stale: last reading is old",
+   "rows": [
+    ".....######.....",
+    "...##......##...",
+    "..#..........#..",
+    ".#............#.",
+    ".#.....#......#.",
+    "#......#.......#",
+    "#......#.......#",
+    "#......#.......#",
+    "#......####....#",
+    "#..............#",
+    "#..............#",
+    ".#............#.",
+    ".#............#.",
+    "..#..........#..",
+    "...##......##...",
+    ".....######....."
+   ]
+  },
+  {
+   "key": "demo",
+   "label": "Demo data: broken ring",
+   "rows": [
+    "......##..#.....",
+    "................",
+    ".............#..",
+    "......#.........",
+    ".....#.#......#.",
+    ".....#.#........",
+    "#....#.#........",
+    "#....#.#.......#",
+    "...###.#..###..#",
+    ".......#.#......",
+    "#......#.#......",
+    ".......#.#......",
+    "........#.....#.",
+    "..#..........#..",
+    "....#.......#...",
+    ".......##......."
+   ]
+  }
+ ],
+ "type": {
+  "families": {
+   "pixel": {
+    "family": "Pulse Pixel",
+    "ps": {
+     "Regular": "PulsePixel-Regular"
+    },
+    "role": "Display: figures, titles, labels, buttons, the wordmark"
+   },
+   "mono": {
+    "family": "Pulse Mono",
+    "ps": {
+     "Regular": "PulseMono-Regular",
+     "Medium": "PulseMono-Medium",
+     "Bold": "PulseMono-Bold"
+    },
+    "role": "Body: sentences, captions, data labels, code"
+   }
+  },
+  "app": [
+   {
+    "token": "metricHero",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 35,
+    "lineHeight": 40,
+    "tracking": 0,
+    "case": "as set",
+    "use": "The big percentage",
+    "replaces": "Silkscreen 34"
+   },
+   {
+    "token": "metricMedium",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 20,
+    "lineHeight": 24,
+    "tracking": 0,
+    "case": "as set",
+    "use": "Secondary figures",
+    "replaces": "Silkscreen 22"
+   },
+   {
+    "token": "title",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 15,
+    "lineHeight": 20,
+    "tracking": 0,
+    "case": "UPPER",
+    "use": "Card titles, tabs, buttons",
+    "replaces": "Silkscreen 15"
+   },
+   {
+    "token": "label",
+    "face": "mono",
+    "weight": "Medium",
+    "size": 13,
+    "lineHeight": 18,
+    "tracking": 0,
+    "case": "as set",
+    "use": "Status words, row labels",
+    "replaces": "SF Mono Medium 13 (.body)"
+   },
+   {
+    "token": "supporting",
+    "face": "mono",
+    "weight": "Regular",
+    "size": 12,
+    "lineHeight": 17,
+    "tracking": 0,
+    "case": "as set",
+    "use": "Reset lines, freshness, notes",
+    "replaces": "SF Mono 12 (.callout)"
+   },
+   {
+    "token": "micro",
+    "face": "mono",
+    "weight": "Medium",
+    "size": 12,
+    "lineHeight": 16,
+    "tracking": 0.4,
+    "case": "UPPER",
+    "use": "Badges, tiny captions",
+    "replaces": "SF Mono Semibold 12"
+   },
+   {
+    "token": "menuBar",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 10,
+    "lineHeight": 12,
+    "tracking": 0,
+    "case": "as set",
+    "use": "Percentage beside the menu bar icon",
+    "replaces": "Silkscreen 11"
+   }
+  ],
+  "web": [
+   {
+    "token": "display",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 80,
+    "lineHeight": 80,
+    "tracking": 0,
+    "case": "UPPER",
+    "use": "Hero wordmark-scale lines (50 on phones)"
+   },
+   {
+    "token": "h1",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 50,
+    "lineHeight": 56,
+    "tracking": 0,
+    "case": "UPPER",
+    "use": "Page titles (30 on phones)"
+   },
+   {
+    "token": "h2",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 30,
+    "lineHeight": 36,
+    "tracking": 0,
+    "case": "UPPER",
+    "use": "Section titles"
+   },
+   {
+    "token": "h3",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 20,
+    "lineHeight": 24,
+    "tracking": 0,
+    "case": "UPPER",
+    "use": "Sub-sections, card titles"
+   },
+   {
+    "token": "figure",
+    "face": "pixel",
+    "weight": "Regular",
+    "size": 60,
+    "lineHeight": 60,
+    "tracking": 0,
+    "case": "as set",
+    "use": "Stat figures"
+   },
+   {
+    "token": "eyebrow",
+    "face": "mono",
+    "weight": "Medium",
+    "size": 12,
+    "lineHeight": 16,
+    "tracking": 1.7,
+    "case": "UPPER",
+    "use": "Kickers, table heads, labels"
+   },
+   {
+    "token": "body",
+    "face": "mono",
+    "weight": "Regular",
+    "size": 15,
+    "lineHeight": 24,
+    "tracking": 0,
+    "case": "as set",
+    "use": "Running text"
+   },
+   {
+    "token": "small",
+    "face": "mono",
+    "weight": "Regular",
+    "size": 13,
+    "lineHeight": 20,
+    "tracking": 0,
+    "case": "as set",
+    "use": "Captions, notes"
+   }
+  ]
+ },
+ "fonts": [
+  {
+   "file": "PulseMono-Bold",
+   "family": "Pulse Mono",
+   "style": "Bold",
+   "postscript": "PulseMono-Bold",
+   "weight": 700,
+   "characters": 211,
+   "version": "Version 1.000"
+  },
+  {
+   "file": "PulseMono-Medium",
+   "family": "Pulse Mono",
+   "style": "Medium",
+   "postscript": "PulseMono-Medium",
+   "weight": 500,
+   "characters": 211,
+   "version": "Version 1.000"
+  },
+  {
+   "file": "PulseMono-Regular",
+   "family": "Pulse Mono",
+   "style": "Regular",
+   "postscript": "PulseMono-Regular",
+   "weight": 400,
+   "characters": 211,
+   "version": "Version 1.000"
+  },
+  {
+   "file": "PulsePixel-Regular",
+   "family": "Pulse Pixel",
+   "style": "Regular",
+   "postscript": "PulsePixel-Regular",
+   "weight": 400,
+   "characters": 217,
+   "version": "Version 1.000"
+  }
+ ]
+}
