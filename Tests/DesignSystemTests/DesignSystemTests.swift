@@ -1,3 +1,4 @@
+import CoreText
 import Domain
 import Foundation
 import SwiftUI
@@ -39,7 +40,30 @@ struct ThemeTests {
 
     @Test("Every colour token has a light and a dark value; nothing falls back to magenta")
     func complete() {
-        for token in ColorToken.allCases { #expect(Theme.mac.palette[token] != nil, "\(token)") }
+        for theme in Theme.all {
+            for token in ColorToken.allCases { #expect(theme.palette[token] != nil, "\(theme.name) \(token)") }
+        }
+    }
+
+    @Test("1.7b concept palettes: every text token reaches 4.5:1 on every surface")
+    func conceptContrast() {
+        for theme in [Theme.phosphor, .ember] {
+            for text in ColorToken.textTokens {
+                for surface in ColorToken.surfaces {
+                    let ratio = RGB.contrast(theme.rgb(text, .dark), theme.rgb(surface, .dark))
+                    #expect(ratio >= 4.5, "\(theme.name): \(text) on \(surface): \(ratio)")
+                }
+            }
+        }
+    }
+
+    @Test("The bundled pixel faces register and resolve to their own families, not a fallback")
+    func pixelFonts() {
+        #expect(PixelFonts.ensureRegistered())
+        for family in [PixelFonts.display, PixelFonts.number, PixelFonts.terminal] {
+            let font = CTFontCreateWithName(family as CFString, 12, nil)
+            #expect(CTFontCopyFamilyName(font) as String == family, "\(family) resolved to \(CTFontCopyFamilyName(font))")
+        }
     }
 
     @Test("Reduce Motion turns every animation off")

@@ -9,6 +9,11 @@ import UniformTypeIdentifiers
 // so the design-system page shows the shipped code, not an imitation. Every value shown is demo data.
 // usage: pulse-design-render <output dir>
 
+if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "--concept" {
+    try renderConceptBoards(to: URL(fileURLWithPath: CommandLine.arguments[2]))
+    exit(0)
+}
+
 let output = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? "design-render")
 let images = output.appendingPathComponent("img")
 try FileManager.default.createDirectory(at: images, withIntermediateDirectories: true)

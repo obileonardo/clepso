@@ -45,12 +45,17 @@ public enum RadiusToken: String, CaseIterable, Sendable { case control, card, pi
 public enum StrokeToken: String, CaseIterable, Sendable { case hairline, emphasis, focus }
 public enum MotionToken: String, CaseIterable, Sendable { case ringFill, stateChange }
 
+/// How text is set: the system faces, or the pixel faces of increment 1.7b (bundled under the SIL OFL).
+public enum Typeface: String, Sendable { case system, pixel }
+
 /// One theme value, injected through the environment. Components read only from here.
 public struct Theme: Sendable {
     public var palette: [ColorToken: (light: RGB, dark: RGB)]
     public var spacingValues: [SpacingToken: CGFloat]
     public var radiusValues: [RadiusToken: CGFloat]
     public var strokeValues: [StrokeToken: CGFloat]
+    public var typeface: Typeface = .system
+    public var name = "mac"
 
     public func rgb(_ token: ColorToken, _ scheme: ColorScheme) -> RGB {
         let pair = palette[token] ?? (RGB(0xFF00FF), RGB(0xFF00FF))   // magenta: a missing token is visible, never silent
@@ -62,9 +67,21 @@ public struct Theme: Sendable {
     public func radius(_ token: RadiusToken) -> CGFloat { radiusValues[token] ?? 6 }
     public func stroke(_ token: StrokeToken) -> CGFloat { strokeValues[token] ?? 1 }
 
-    /// Dynamic Type styles, so every size scales with the user's text-size setting.
+    /// Dynamic Type styles, so every size scales with the user's text-size setting. Pixel faces scale too
+    /// (`relativeTo:`); long text stays in the system face (monospaced in the pixel theme) for legibility.
     public func font(_ token: TypographyToken) -> Font {
-        switch token {
+        if typeface == .pixel {
+            PixelFonts.ensureRegistered()
+            return switch token {
+            case .metricHero: .custom(PixelFonts.number, size: 34, relativeTo: .largeTitle)
+            case .metricMedium: .custom(PixelFonts.number, size: 22, relativeTo: .title2)
+            case .title: .custom(PixelFonts.display, size: 13, relativeTo: .headline)
+            case .label: .system(.subheadline, design: .monospaced)
+            case .supporting: .system(.footnote, design: .monospaced)
+            case .micro: .custom(PixelFonts.display, size: 8, relativeTo: .caption2)
+            }
+        }
+        return switch token {
         case .metricHero: .system(.largeTitle, design: .rounded).weight(.bold).monospacedDigit()
         case .metricMedium: .system(.title2, design: .rounded).weight(.semibold).monospacedDigit()
         case .title: .headline
@@ -101,6 +118,41 @@ public struct Theme: Sendable {
         spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12],
         radiusValues: [.control: 6, .card: 10, .pill: 999],
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2])
+
+    // Increment 1.7b concept palettes (founder references: Matrix, Tesla Roadster, Hearth's glass, a pixel UI pack).
+    // Dark in both appearances: the same value is given for light and dark. Contrast is tested like `mac`.
+
+    /// Phosphor: near-black glass, phosphor green, Roadster-white type.
+    public static let phosphor = Theme(
+        palette: dark([
+            .background: RGB(0x060907), .surfaceElevated: RGB(0x0D1410), .surfaceMuted: RGB(0x16211A), .separator: RGB(0x2C4034),
+            .textPrimary: RGB(0xEAF7EE), .textSecondary: RGB(0x93B9A0), .accent: RGB(0x4DFF8F),
+            .statusSuccess: RGB(0x4DFF8F), .statusAttention: RGB(0xFFC04D), .statusBlocked: RGB(0xFF6B5E),
+            .statusStale: RGB(0x9AAFA2), .statusUnknown: RGB(0x98A79E),
+        ]),
+        spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12],
+        radiusValues: [.control: 2, .card: 2, .pill: 2],
+        strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2],
+        typeface: .pixel, name: "phosphor")
+
+    /// Ember: the pixel pack's warm browns and amber, on dark glass.
+    public static let ember = Theme(
+        palette: dark([
+            .background: RGB(0x130D09), .surfaceElevated: RGB(0x221811), .surfaceMuted: RGB(0x33241A), .separator: RGB(0x6B4A33),
+            .textPrimary: RGB(0xF7E7D0), .textSecondary: RGB(0xD3B48E), .accent: RGB(0xF4AE55),
+            .statusSuccess: RGB(0xA5E58A), .statusAttention: RGB(0xF4AE55), .statusBlocked: RGB(0xFF7A63),
+            .statusStale: RGB(0xBFA88F), .statusUnknown: RGB(0xBBA690),
+        ]),
+        spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12],
+        radiusValues: [.control: 2, .card: 2, .pill: 2],
+        strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2],
+        typeface: .pixel, name: "ember")
+
+    public static let all: [Theme] = [.mac, .phosphor, .ember]
+
+    static func dark(_ colors: [ColorToken: RGB]) -> [ColorToken: (light: RGB, dark: RGB)] {
+        colors.mapValues { ($0, $0) }
+    }
 }
 
 extension EnvironmentValues {

@@ -35,7 +35,7 @@ let package = Package(
         // Pure limit, reset and session state machines (DATA_MODEL §6–§7). No I/O, clock injected.
         .target(name: "UsageEngine", dependencies: ["Domain"]),
         // SwiftUI tokens, status styles and components (DESIGN_SYSTEM.md). The founder restyles Theme/ and component bodies.
-        .target(name: "DesignSystem", dependencies: ["Domain"]),
+        .target(name: "DesignSystem", dependencies: ["Domain"], resources: [.copy("Resources/Fonts")]),
         .target(name: "Storage", dependencies: ["Domain", "UsageEngine", .product(name: "GRDB", package: "GRDB.swift")]),
         // Claude Code adapter: reversible settings install (statusline-shim.md §3); listener and ingest arrive in 1.1.
         .target(name: "ClaudeCodeAdapter", dependencies: ["Domain", "ShimProtocol"]),
