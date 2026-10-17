@@ -17,21 +17,21 @@ public struct PulseScenes: Scene {
         MenuBarExtra {
             PopoverView(model: model)
                 .environment(\.theme, .phosphor)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(model.appearance.colorScheme)
         } label: {
             MenuBarLabel(model: model)
         }
         .menuBarExtraStyle(.window)
 
         Window(Product.name, id: Self.detailsID) {
-            DetailsView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark)
+            DetailsView(model: model).environment(\.theme, .phosphor).preferredColorScheme(model.appearance.colorScheme)
                 .onOpenURL { url in Task { await model.handleOpenURL(url) } }      // the sign-in link returns here (ROADMAP 2.0)
         }
         .handlesExternalEvents(matching: ["auth-callback"])
         .defaultSize(width: DetailsMetrics.defaultWidth, height: DetailsMetrics.minHeight + 160)
 
         Window("Welcome to \(Product.name)", id: Self.onboardingID) {
-            OnboardingView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark).tint(PulseScenes.accent)
+            OnboardingView(model: model).environment(\.theme, .phosphor).preferredColorScheme(model.appearance.colorScheme).tint(PulseScenes.accent)
         }
         .windowResizability(.contentSize)
     }

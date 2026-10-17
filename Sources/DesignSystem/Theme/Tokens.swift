@@ -135,14 +135,23 @@ public struct Theme: Sendable {
     // Increment 1.7b concept palettes (founder references: Matrix, Tesla Roadster, Hearth's glass, a pixel UI pack).
     // Dark in both appearances: the same value is given for light and dark. Contrast is tested like `mac`.
 
-    /// Phosphor: near-black glass, phosphor green, Roadster-white type.
+    /// Phosphor: near-black glass, phosphor green, Roadster-white type. Increment 1.13 adds its light mode: warm
+    /// paper, ink-dark text and a deeper phosphor green, at the same 4.5:1 floor for every text colour on every surface.
     public static let phosphor = Theme(
-        palette: dark([
-            .background: RGB(0x060907), .surfaceElevated: RGB(0x0D1410), .surfaceMuted: RGB(0x16211A), .separator: RGB(0x2C4034),
-            .textPrimary: RGB(0xEAF7EE), .textSecondary: RGB(0x93B9A0), .accent: RGB(0x4DFF8F),
-            .statusSuccess: RGB(0x4DFF8F), .statusAttention: RGB(0xFFC04D), .statusBlocked: RGB(0xFF6B5E),
-            .statusStale: RGB(0x9AAFA2), .statusUnknown: RGB(0x98A79E),
-        ]),
+        palette: [
+            .background: (RGB(0xF3F1E7), RGB(0x060907)),
+            .surfaceElevated: (RGB(0xFBFAF4), RGB(0x0D1410)),
+            .surfaceMuted: (RGB(0xE4E0D0), RGB(0x16211A)),
+            .separator: (RGB(0xB9B29C), RGB(0x2C4034)),
+            .textPrimary: (RGB(0x0F1A13), RGB(0xEAF7EE)),
+            .textSecondary: (RGB(0x44564A), RGB(0x93B9A0)),
+            .accent: (RGB(0x0A7238), RGB(0x4DFF8F)),
+            .statusSuccess: (RGB(0x0A7238), RGB(0x4DFF8F)),
+            .statusAttention: (RGB(0x7E4C00), RGB(0xFFC04D)),
+            .statusBlocked: (RGB(0xAD241C), RGB(0xFF6B5E)),
+            .statusStale: (RGB(0x52605A), RGB(0x9AAFA2)),
+            .statusUnknown: (RGB(0x56615B), RGB(0x98A79E)),
+        ],
         spacingValues: [.compact: 4, .standard: 8, .spacious: 20, .windowPadding: 16],
         radiusValues: [.control: 2, .card: 2, .pill: 2],
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2],

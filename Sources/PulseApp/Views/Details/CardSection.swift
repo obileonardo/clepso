@@ -51,7 +51,7 @@ struct CardSection: View {
                     PixelPanel {
                         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                             HStack(spacing: theme.spacing(.standard)) {
-                                Image(systemName: Self.symbol(ladder.kind)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                                PixelIcon(symbol: Self.symbol(ladder.kind), size: 18).foregroundStyle(theme.color(.accent, scheme))
                                     .frame(width: theme.spacing(.spacious) * 2, height: theme.spacing(.spacious) * 2)
                                     .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
                                     .accessibilityHidden(true)

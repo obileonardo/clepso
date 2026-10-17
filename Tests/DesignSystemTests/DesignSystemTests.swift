@@ -60,13 +60,15 @@ struct ThemeTests {
 
     @Test("1.7b concept palettes: every text token reaches 4.5:1 on every surface")
     func conceptContrast() {
-        for theme in [Theme.phosphor, .ember] {
+        for (theme, scheme) in [(Theme.phosphor, ColorScheme.dark), (.phosphor, .light), (.ember, .dark)] {     // phosphor light: 1.13
             for text in ColorToken.textTokens {
                 for surface in ColorToken.surfaces {
-                    let ratio = RGB.contrast(theme.rgb(text, .dark), theme.rgb(surface, .dark))
-                    #expect(ratio >= 4.5, "\(theme.name): \(text) on \(surface): \(ratio)")
+                    let ratio = RGB.contrast(theme.rgb(text, scheme), theme.rgb(surface, scheme))
+                    #expect(ratio >= 4.5, "\(theme.name) \(scheme): \(text) on \(surface): \(ratio)")
                 }
             }
+            // Text on an accent fill (chips, selected tabs, prominent buttons) uses the background colour.
+            #expect(RGB.contrast(theme.rgb(.background, scheme), theme.rgb(.accent, scheme)) >= 4.5)
         }
     }
 
@@ -222,3 +224,35 @@ struct PixelMenuBarIconTests {
     }
 }
 #endif
+
+@Suite("Pixel icon set (1.13)")
+struct PixelIconSetTests {
+    @Test("Every glyph is 12×12, glyphs are distinct, and every symbol name in use maps to a glyph")
+    func glyphs() throws {
+        for glyph in PixelGlyph.allCases {
+            #expect(glyph.rows.count == 12 && glyph.rows.allSatisfy { $0.count == 12 }, "\(glyph)")
+            #expect(glyph.rows.joined().contains("#"), "\(glyph) is empty")
+        }
+        let shapes = PixelGlyph.allCases.map { $0.rows.joined() }
+        #expect(Set(shapes).count == shapes.count, "two glyphs are identical")
+        // Every name the app and its status styles pass to PixelIcon(symbol:) is in the map (else it would draw "?").
+        let styles = ValueState.allCases.map { StatusStyles.of($0).symbol } + CardState.allCases.map { StatusStyles.of($0).symbol }
+            + CardState.allCases.compactMap { StatusStyles.of($0).badge } + PlanProvenance.allCases.map { StatusStyles.of($0).symbol }
+        for name in styles { #expect(PixelGlyph.symbols[name] != nil, "no glyph for \(name)") }
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let sources = FileManager.default.enumerator(atPath: root.appendingPathComponent("Sources/PulseApp").path)?
+            .compactMap { $0 as? String }.filter { $0.hasSuffix(".swift") } ?? []
+        let pattern = try NSRegularExpression(pattern: #"(?:symbol: |return |: )"([a-z][a-z0-9.]+)""#)
+        for file in sources {
+            let text = try String(contentsOf: root.appendingPathComponent("Sources/PulseApp/" + file), encoding: .utf8)
+            for match in pattern.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+                let name = String(text[Range(match.range(at: 1), in: text)!])
+                guard name.contains("."), PixelGlyph.symbols[name] == nil, ["circle", "trash", "key"].contains(name) == false else { continue }
+                // Dotted lowercase strings that aren't icons (diagnostic codes, preference keys) are skipped by prefix.
+                let isIcon = ["person", "chevron", "clock", "gauge", "chart", "square", "exclamation", "checkmark", "flag", "text", "dot", "link",
+                              "bolt", "arrow", "questionmark", "ellipsis", "minus", "waveform", "theatermasks", "circle."].contains { name.hasPrefix($0) }
+                #expect(!isIcon, "\(file): no glyph for \(name)")
+            }
+        }
+    }
+}

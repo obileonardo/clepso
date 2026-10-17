@@ -64,7 +64,7 @@ struct DeleteAllSheet: View {
             Text(Copy.DeleteAll.body).font(theme.font(.label)).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
                 ForEach(model.deleteAllItems, id: \.self) { item in
-                    Label(item, systemImage: "trash").font(theme.font(.supporting)).fixedSize(horizontal: false, vertical: true)
+                    PixelLabel(item, symbol: "trash").font(theme.font(.supporting)).fixedSize(horizontal: false, vertical: true)
                 }
             }
             Toggle(Copy.DeleteAll.backups, isOn: $includeBackups)

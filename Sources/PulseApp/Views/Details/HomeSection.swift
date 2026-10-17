@@ -104,7 +104,7 @@ struct HomeSection: View {
             Text(Copy.ForYou.title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
             ForEach(items) { item in
                 HStack(alignment: .top, spacing: theme.spacing(.standard)) {
-                    Image(systemName: Self.symbol(item.kind)).font(theme.font(.label))
+                    PixelIcon(symbol: Self.symbol(item.kind)).font(theme.font(.label))
                         .foregroundStyle(theme.color(Self.role(item.kind), scheme))
                         .frame(width: theme.spacing(.spacious) * 1.6, height: theme.spacing(.spacious) * 1.6)
                         .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))

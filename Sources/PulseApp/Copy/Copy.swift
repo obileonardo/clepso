@@ -399,6 +399,8 @@ enum Copy {
         static let demoSub = "Sample numbers, clearly marked DEMO; uploads pause"
         static let deleteSub = "Removes all of Pulse's data and restores Claude Code's settings", deleteAction = "Delete…"
         static let showLog = "Show log", hideLog = "Hide log"
+        static let appearance = "Appearance", appearanceSub = "Dark is the original Phosphor look; System follows macOS"
+        static let system = "System", light = "Light", dark = "Dark"
         static let loginSub = "Start Pulse when you log in"
         static let percentSub = "The highest limit's % next to the icon"
         static let notificationsTitle = "Notifications"

@@ -57,7 +57,7 @@ public struct PopoverView: View {
                     HStack(spacing: theme.spacing(.compact)) {
                         Text("· " + provider.identity.wordmark).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
                         PlanPill(planName: provider.planName.map(PopoverMetrics.shortPlan), provenance: provider.plan).fixedSize()
-                        Image(systemName: "chevron.right").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        PixelIcon(symbol: "chevron.right").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                             .accessibilityHidden(true)
                     }
                     .contentShape(Rectangle())
@@ -185,7 +185,7 @@ struct Banner: View {
     @Environment(\.colorScheme) private var scheme
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
-            Image(systemName: "exclamationmark.triangle").foregroundStyle(theme.color(.statusBlocked, scheme)).accessibilityHidden(true)
+            PixelIcon(symbol: "exclamationmark.triangle").foregroundStyle(theme.color(.statusBlocked, scheme)).accessibilityHidden(true)
             Text(text).font(theme.font(.supporting)).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             if let action { Button(action, action: perform) }

@@ -5,6 +5,7 @@ import enum Domain.Freshness
 import enum Domain.Product
 import struct Domain.Redacted
 import Foundation
+import enum SwiftUI.ColorScheme
 import Observation
 import enum ShimProtocol.HookFrame
 import Sync
@@ -50,6 +51,18 @@ public final class AppModel {
     public private(set) var accountMessage: String?
     public private(set) var accountBusy = false
     private var lastSyncAttempt: Date?
+    /// Increment 1.13: Dark (the original Phosphor look), Light, or follow the system.
+    public enum Appearance: String, Codable, Sendable, CaseIterable {
+        case system, light, dark
+        public var colorScheme: ColorScheme? {
+            switch self {
+            case .system: nil
+            case .light: .light
+            case .dark: .dark
+            }
+        }
+    }
+    public private(set) var appearance: Appearance = .dark
     /// Increment 1.10: the name Home greets, and the user's goals (both kept in preferences).
     public private(set) var profileName: String?
     public private(set) var goals = Goals()
@@ -114,6 +127,7 @@ public final class AppModel {
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
             lastSync = try await store.preference(Pref.lastSync, as: Date.self)
+            appearance = try await store.preference(Pref.appearance, as: Appearance.self) ?? .dark
             let chose = try await store.preference(Pref.loginItem, as: Bool.self) ?? false
             loginItemEnabled = chose && environment.loginItem.isEnabled
             plan = try await store.currentPlan()
@@ -373,6 +387,11 @@ public final class AppModel {
     }
 
     // MARK: - Home, card, goals, account (increment 1.10)
+
+    public func setAppearance(_ value: Appearance) async {
+        appearance = value
+        try? await store?.setPreference(Pref.appearance, value, now: environment.clock.now())
+    }
 
     public func setProfileName(_ name: String) async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -759,6 +778,7 @@ public final class AppModel {
         stats = nil
         lastSync = nil
         accountMessage = nil
+        appearance = .dark
         socketHealth = IngestSocket.Health()
         popoverRoute = .overview
         onboardingStep = .welcome
@@ -783,6 +803,7 @@ public final class AppModel {
         static let profileName = "profile.name"
         static let goals = "goals.v1"
         static let lastSync = "account.lastSync"
+        static let appearance = "general.appearance"
     }
 }
 

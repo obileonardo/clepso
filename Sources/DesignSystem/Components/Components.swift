@@ -114,7 +114,7 @@ public struct ResetCountdown: View {
 
     public var body: some View {
         HStack(spacing: theme.spacing(.compact)) {
-            Image(systemName: symbol).imageScale(.small)
+            PixelIcon(symbol: symbol).imageScale(.small)
             Text(text).monospacedDigit()
         }
         .font(theme.font(.supporting))
@@ -147,7 +147,7 @@ public struct PlanPill: View {
     public var body: some View {
         let style = StatusStyles.of(provenance)
         HStack(spacing: theme.spacing(.compact)) {
-            Image(systemName: style.symbol).imageScale(.small)
+            PixelIcon(symbol: style.symbol).imageScale(.small)
             Text([planName, style.label].compactMap { $0 }.joined(separator: " · ")).lineLimit(1)
         }
         .font(theme.font(.micro))
@@ -182,7 +182,7 @@ public struct ConnectionHealth: View {
     public var body: some View {
         let style = StatusStyles.of(state)
         HStack(spacing: theme.spacing(.compact)) {
-            Image(systemName: state == .live ? "checkmark.circle" : style.symbol)
+            PixelIcon(symbol: state == .live ? "checkmark.circle" : style.symbol)
             Text(text).lineLimit(1)
         }
         .font(theme.font(.supporting))
@@ -283,7 +283,7 @@ public struct ProviderCard: View {
             return text
         }()
         return HStack(spacing: theme.spacing(.standard)) {
-            Image(systemName: "text.bubble")
+            PixelIcon(symbol: "text.bubble")
             Text([s.modelName, context].compactMap { $0 }.joined(separator: " · ")).lineLimit(1)
         }
         .font(theme.font(.supporting))
@@ -366,9 +366,9 @@ struct StatusGlyph: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
     var body: some View {
-        Image(systemName: style.symbol)
+        PixelIcon(symbol: style.symbol)
             .overlay(alignment: .bottomTrailing) {
-                if let badge = style.badge { Image(systemName: badge).font(theme.font(.micro)).offset(x: 4, y: 3) }
+                if let badge = style.badge { PixelIcon(symbol: badge).font(theme.font(.micro)).offset(x: 4, y: 3) }
             }
             .foregroundStyle(theme.color(style.role, scheme))
             .font(theme.font(.supporting))

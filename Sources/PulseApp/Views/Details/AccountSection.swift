@@ -124,9 +124,9 @@ struct AccountSection: View {
                 .padding(.leading, theme.spacing(.spacious) * 1.6 + theme.spacing(.standard))
                 .padding(.bottom, theme.spacing(.standard))
             }
-            methodRow("apple.logo", "Apple", Copy.AccountPage.soonSub) { soon }
-            methodRow("g.circle", "Google", Copy.AccountPage.soonSub) { soon }
-            methodRow("chevron.left.forwardslash.chevron.right", "GitHub", Copy.AccountPage.soonSub) { soon }
+            methodRow("letter:A", "Apple", Copy.AccountPage.soonSub) { soon }
+            methodRow("letter:G", "Google", Copy.AccountPage.soonSub) { soon }
+            methodRow("letter:GH", "GitHub", Copy.AccountPage.soonSub) { soon }
         }
     }
 
@@ -142,7 +142,11 @@ struct AccountSection: View {
 
     func methodRow(_ symbol: String, _ title: String, _ subtitle: String, @ViewBuilder control: () -> some View) -> some View {
         HStack(alignment: .center, spacing: theme.spacing(.standard)) {
-            Image(systemName: symbol).frame(width: theme.spacing(.spacious) * 1.6, height: theme.spacing(.spacious) * 1.6)
+            // Providers as pixel monograms rather than their logos.
+            Group {
+                if symbol.hasPrefix("letter:") { Text(symbol.dropFirst(7)).font(theme.font(.title)) } else { PixelIcon(symbol: symbol) }
+            }
+            .frame(width: theme.spacing(.spacious) * 1.6, height: theme.spacing(.spacious) * 1.6)
                 .foregroundStyle(theme.color(.accent, scheme))
                 .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme))).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {

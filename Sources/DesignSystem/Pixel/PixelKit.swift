@@ -53,7 +53,7 @@ public struct PixelLimitRow: View {
                 ResetCountdown(resetsAt: model.resetsAt, card: model.card, now: now)
             }
             if let pace {
-                Label(pace, systemImage: "chart.line.uptrend.xyaxis").font(theme.font(.supporting))
+                PixelLabel(pace, symbol: "chart.line.uptrend.xyaxis").font(theme.font(.supporting))
                     .foregroundStyle(theme.color(.textSecondary, scheme))
             }
         }

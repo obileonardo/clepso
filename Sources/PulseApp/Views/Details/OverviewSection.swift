@@ -122,10 +122,10 @@ struct OverviewSection: View {
                 HStack(spacing: theme.spacing(.standard)) {
                     Text(Copy.Stats.activityIn(active, year)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
                     Spacer()
-                    Button { model.statsYear = year - 1 } label: { Image(systemName: "chevron.left") }
+                    Button { model.statsYear = year - 1 } label: { PixelIcon(symbol: "chevron.left") }
                         .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year - 1)).accessibilityLabel(Copy.Stats.previousYear)
                     Text(String(year)).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme)).monospacedDigit()
-                    Button { model.statsYear = year + 1 } label: { Image(systemName: "chevron.right") }
+                    Button { model.statsYear = year + 1 } label: { PixelIcon(symbol: "chevron.right") }
                         .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year + 1)).accessibilityLabel(Copy.Stats.nextYear)
                 }
                 CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: inner, weeks: grid.weeks.count, theme: theme), showDayNumbers: false,

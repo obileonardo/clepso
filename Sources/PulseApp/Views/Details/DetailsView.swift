@@ -182,7 +182,7 @@ struct DetailsSidebar: View {
                 let selected = model.detailsSection == section
                 Button { model.detailsSection = section } label: {
                     HStack(spacing: theme.spacing(.standard)) {
-                        Image(systemName: Self.symbol(section)).frame(width: theme.spacing(.spacious)).accessibilityHidden(true)
+                        PixelIcon(symbol: Self.symbol(section)).frame(width: theme.spacing(.spacious)).accessibilityHidden(true)
                         Text(Self.title(section)).font(theme.font(.label))
                         Spacer(minLength: 0)
                     }

@@ -37,8 +37,8 @@ struct ProviderDetailView: View {
                 ConnectionHealth(source: first.model.source, lastSeen: provider.lastSeen,
                                  state: first.model.valueState(now: now, staleAfter: Freshness.localTelemetryTTL), now: now)
             }
-            Label(provider.unreadLimitWindows > 0 ? Copy.Detail.unreadLimits(provider.unreadLimitWindows) : Copy.Detail.otherLimits,
-                  systemImage: provider.unreadLimitWindows > 0 ? "exclamationmark.circle" : "info.circle")
+            PixelLabel(provider.unreadLimitWindows > 0 ? Copy.Detail.unreadLimits(provider.unreadLimitWindows) : Copy.Detail.otherLimits,
+                  symbol: provider.unreadLimitWindows > 0 ? "exclamationmark.circle" : "info.circle")
                 .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                 .fixedSize(horizontal: false, vertical: true)
             Text(provider.sessionCount == 0 ? Copy.Empty.noSessions : Copy.Detail.sessions(provider.sessionCount))
@@ -142,7 +142,7 @@ struct BackButton: View {
     let action: () -> Void
     @Environment(\.theme) private var theme
     var body: some View {
-        Button(action: action) { Label(title, systemImage: "chevron.backward") }
+        Button(action: action) { PixelLabel(title, symbol: "chevron.backward") }
             .buttonStyle(.borderless)
             .font(theme.font(.label))
             .accessibilityLabel("Back to \(title)")

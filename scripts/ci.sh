@@ -84,7 +84,10 @@ design_tokens_only() {
     hits=$(grep -rnE 'Color\((red|\.sRGB|white|hue)|Color\.(red|blue|green|orange|yellow|gray|primary|secondary|black|white)|\.padding\([[:space:]]*[0-9]|Font\.system\(size:|Date\(\)' \
         Sources/DesignSystem/Components Sources/DesignSystem/Pixel Sources/PulseApp 2>/dev/null || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
-    echo "components use Theme tokens only"
+    # 1.13: icons are pixel glyphs (PixelIcon), never the system's smooth symbols.
+    hits=$(grep -rnE 'Image\(systemName|systemImage:' Sources/DesignSystem Sources/PulseApp 2>/dev/null || true)
+    [ -z "$hits" ] || { echo "use PixelIcon / PixelLabel:"; echo "$hits"; return 1; }
+    echo "components use Theme tokens and pixel icons only"
 }
 
 # PRIVACY_AND_SECURITY §5: `unsafeReveal` only in Storage and the helper's passthrough; `Redacted` is never Codable.

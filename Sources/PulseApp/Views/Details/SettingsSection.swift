@@ -22,6 +22,11 @@ struct SettingsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.spacious) * 1.5) {
             group(Copy.SettingsPage.general) {
+                row("circle.lefthalf.filled", Copy.SettingsPage.appearance, Copy.SettingsPage.appearanceSub) {
+                    PixelSegmented(Copy.SettingsPage.appearance, options: [(AppModel.Appearance.system, Copy.SettingsPage.system),
+                                                                           (.light, Copy.SettingsPage.light), (.dark, Copy.SettingsPage.dark)],
+                                   selection: Binding(get: { model.appearance }, set: { value in Task { await model.setAppearance(value) } }))
+                }
                 row("power", Copy.Settings.launchAtLogin, Copy.SettingsPage.loginSub) {
                     toggle(model.loginItemEnabled) { on in Task { await model.setLoginItem(on) } }
                 }
@@ -159,7 +164,7 @@ struct SettingsSection: View {
                             HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
                                 Text(entry.at.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened, timeZone: model.environment.timeZone)))
                                     .foregroundStyle(theme.color(.textSecondary, scheme)).monospacedDigit()
-                                Image(systemName: entry.level == .info ? "info.circle" : "exclamationmark.triangle")
+                                PixelIcon(symbol: entry.level == .info ? "info.circle" : "exclamationmark.triangle")
                                     .foregroundStyle(theme.color(entry.level == .info ? .textSecondary : .statusAttention, scheme))
                                     .accessibilityLabel(entry.level.rawValue)
                                 Text(entry.text).textSelection(.enabled).foregroundStyle(theme.color(.textPrimary, scheme))
@@ -192,7 +197,7 @@ struct SettingsSection: View {
 
     func row(_ symbol: String, _ title: String, _ subtitle: String?, danger: Bool = false, @ViewBuilder control: () -> some View) -> some View {
         HStack(alignment: .center, spacing: theme.spacing(.spacious)) {
-            Image(systemName: symbol).font(theme.font(.label))
+            PixelIcon(symbol: symbol).font(theme.font(.label))
                 .foregroundStyle(theme.color(danger ? .statusBlocked : .accent, scheme))
                 .frame(width: theme.spacing(.spacious) * 1.8, height: theme.spacing(.spacious) * 1.8)
                 .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))

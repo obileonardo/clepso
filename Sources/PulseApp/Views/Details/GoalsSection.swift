@@ -53,7 +53,7 @@ struct GoalsSection: View {
         return Button { selected = kind } label: {
             VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                 HStack(alignment: .top) {
-                    Image(systemName: symbol(kind)).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.accent, scheme))
+                    PixelIcon(symbol: symbol(kind), size: 24).foregroundStyle(theme.color(.accent, scheme))
                         .frame(width: theme.spacing(.spacious) * 3, height: theme.spacing(.spacious) * 3)
                         .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
                     Spacer()
@@ -97,7 +97,7 @@ struct GoalsSection: View {
             Text(Copy.Goals.lastSeven).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).padding(.top, theme.spacing(.standard))
             ForEach(days) { day in
                 HStack(spacing: theme.spacing(.standard)) {
-                    Image(systemName: day.met == true ? "checkmark.square.fill" : day.met == false ? "xmark.square" : "square.dashed")
+                    PixelIcon(symbol: day.met == true ? "checkmark.square.fill" : day.met == false ? "xmark.square" : "square.dashed")
                         .foregroundStyle(theme.color(day.met == true ? .statusSuccess : day.met == false ? .statusBlocked : .textSecondary, scheme))
                         .accessibilityHidden(true)
                     Text(StatsFormat.weekday(day.day) + " " + StatsFormat.day(day.day)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
