@@ -82,9 +82,12 @@ struct SettingsSection: View {
                 if let deleteMessage { note(deleteMessage) }
             }
             group(Copy.SettingsPage.diagnostics) {
-                row("waveform.path.ecg", Copy.Diagnostics.receiving, receivingLine) {
+                row("waveform.path.ecg", Copy.Diagnostics.receiving, nil) {
                     Button(showLog ? Copy.SettingsPage.hideLog : Copy.SettingsPage.showLog) { showLog.toggle() }.buttonStyle(PixelButtonStyle())
                 }
+                FigureStrip(items: receivingFigures, summary: receivingLine)
+                    .padding(.leading, theme.spacing(.spacious) * 2.8)
+                    .padding(.bottom, theme.spacing(.standard) + theme.spacing(.compact))
                 if showLog { log }
             }
         }
@@ -148,6 +151,13 @@ struct SettingsSection: View {
         case .notDetermined:
             Button(Copy.SettingsPage.allow) { Task { await model.requestNotifications() } }.buttonStyle(PixelButtonStyle(prominent: true))
         }
+    }
+
+    var receivingFigures: [(value: String, label: String)] {
+        let h = model.socketHealth
+        return [("\(h.accepted)", Copy.Diagnostics.received), ("\(h.rejectedFrame)", Copy.Diagnostics.malformed),
+                ("\(h.oversize)", Copy.Diagnostics.tooLarge), ("\(h.rateLimited)", Copy.Diagnostics.rateLimited),
+                ("\(h.rejectedPeer)", Copy.Diagnostics.otherUser)]
     }
 
     var receivingLine: String {

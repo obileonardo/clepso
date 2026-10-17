@@ -128,3 +128,28 @@ struct Figure: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// 1.15: a few figures in a row, each over its small-caps caption, columns set off by hairlines. Replaces a sentence
+/// of numbers ("0 received · 0 malformed · …"); VoiceOver reads the sentence it replaces.
+struct FigureStrip: View {
+    let items: [(value: String, label: String)]
+    let summary: String
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                PixelStat(item.value, item.label)
+                    .padding(.leading, index == 0 ? 0 : theme.spacing(.standard) + theme.spacing(.compact))
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .overlay(alignment: .leading) {
+                        if index > 0 { Rectangle().fill(theme.color(.separator, scheme)).frame(width: theme.stroke(.hairline)) }
+                    }
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(summary)
+    }
+}

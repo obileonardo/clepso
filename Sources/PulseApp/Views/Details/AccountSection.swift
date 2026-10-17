@@ -74,7 +74,17 @@ struct AccountSection: View {
             await model.refreshAccount()
         }
         .sheet(isPresented: $choosingPlan) {
-            PlanPicker(model: model) { choosingPlan = false }.padding(theme.spacing(.spacious)).frame(width: SettingsMetrics.sheetWidth)
+            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                HStack(spacing: theme.spacing(.standard)) {
+                    PixelIcon(.card, size: 18).foregroundStyle(theme.color(.accent, scheme)).accessibilityHidden(true)
+                    Text(Copy.Onboarding.planTitle.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                        .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+                }
+                PlanPicker(model: model, onSaved: { choosingPlan = false }, onCancel: { choosingPlan = false })
+            }
+            .padding(theme.spacing(.spacious) + theme.spacing(.compact))
+            .frame(width: SettingsMetrics.sheetWidth)
+            .background(theme.color(.background, scheme))
         }
         .confirmationDialog(Copy.Sync.deleteTitle, isPresented: $confirmDelete) {
             Button(Copy.Sync.deleteConfirm, role: .destructive) { Task { await model.deleteAccount() } }

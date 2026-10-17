@@ -31,6 +31,8 @@ enum Copy {
         static func doneConnected(_ time: String) -> String { "Connected · Claude Code · observed \(time)" }
         static let doneWaiting = "Installed · waiting for first reading"
         static let doneOpen = "Open menu bar"
+        static let planSkip = "Skip for now"
+        static func step(_ n: Int, of total: Int) -> String { "Step \(n) of \(total)" }
     }
 
     enum Explainer {
@@ -290,6 +292,8 @@ enum Copy {
         static let current = "Session", detailsTitle = "Details", detailsSub = "Everything Claude Code's status line reports about it."
         static let recentTitle = "Recent sessions", recentSub = "Choose one to see it above."
         static let byModelTitle = "By model"
+        /// 1.15: the by-model table's column heads.
+        static let colModel = "Model", colSessions = "Sessions", colCost = "Cost est.", colLines = "Lines +", colAPI = "API time", colShare = "Share of cost"
         static let timeSplit = "TIME WAITING ON THE MODEL"
         static func apiShare(_ pct: Int) -> String { "\(pct)% of the session's wall time" }
     }
@@ -577,6 +581,8 @@ enum Copy {
             "\(h.accepted) received · \(h.malformed) malformed · \(h.oversize) too large · \(h.rateLimited) over the rate limit · \(h.otherUser) from another user"
         }
         static let deleteAll = "Delete all \(product) data…"
+        /// 1.15: the same counts as figures.
+        static let received = "Received", malformed = "Malformed", tooLarge = "Too large", rateLimited = "Rate-limited", otherUser = "Other user"
     }
 
     enum Demo {

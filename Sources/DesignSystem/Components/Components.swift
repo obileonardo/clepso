@@ -154,8 +154,8 @@ public struct PlanPill: View {
         .foregroundStyle(theme.color(style.role, scheme))
         .padding(.horizontal, theme.spacing(.standard))
         .padding(.vertical, theme.spacing(.compact))
-        .background(Capsule().fill(theme.color(.surfaceMuted, scheme)))
-        .overlay(Capsule().strokeBorder(theme.color(.separator, scheme), style: StrokeStyle(lineWidth: theme.stroke(.hairline),
+        .background(RoundedRectangle(cornerRadius: theme.radius(.pill)).fill(theme.color(.surfaceMuted, scheme)))
+        .overlay(RoundedRectangle(cornerRadius: theme.radius(.pill)).strokeBorder(theme.color(.separator, scheme), style: StrokeStyle(lineWidth: theme.stroke(.hairline),
                                                                                               dash: style.pattern == .outline ? [3, 2] : [])))
         .accessibilityElement(children: .combine)
     }
@@ -400,7 +400,7 @@ public struct DemoTag: View {
                 .font(theme.font(.micro).weight(.bold))
                 .foregroundStyle(theme.color(.surfaceElevated, scheme))
                 .padding(.horizontal, theme.spacing(.compact))
-                .background(Capsule().fill(theme.color(.accent, scheme)))
+                .background(RoundedRectangle(cornerRadius: theme.radius(.pill)).fill(theme.color(.accent, scheme)))
                 .accessibilityLabel("Demo data")
         }
     }

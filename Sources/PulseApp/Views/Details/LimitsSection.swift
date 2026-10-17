@@ -24,8 +24,10 @@ struct LimitsSection: View {
                         FactRow(label: Copy.LimitsPage.lastReading, value: provider.lastSeen.map {
                             Formatting.age(of: $0, now: snapshot.now, zone: model.environment.timeZone, locale: model.environment.locale) } ?? "—")
                         FactRow(label: Copy.LimitsPage.sessions, value: "\(provider.sessionCount)")
-                        Text(provider.unreadLimitWindows > 0 ? Copy.Detail.unreadLimits(provider.unreadLimitWindows) : Copy.Detail.otherLimits)
-                            .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        PixelLabel(provider.unreadLimitWindows > 0 ? Copy.Detail.unreadLimits(provider.unreadLimitWindows) : Copy.Detail.otherLimits,
+                                   glyph: provider.unreadLimitWindows > 0 ? .circleAlert : .info)
+                            .font(theme.font(.supporting))
+                            .foregroundStyle(theme.color(provider.unreadLimitWindows > 0 ? .statusAttention : .textSecondary, scheme))
                             .fixedSize(horizontal: false, vertical: true).padding(.top, theme.spacing(.standard))
                     }
                 }
