@@ -1,0 +1,4 @@
+{
+  "statusLine": {"type": "command", "command": "a"},
+  "statusLine": {"type": "command", "command": "b"}
+}

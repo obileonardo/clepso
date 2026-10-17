@@ -1,0 +1,39 @@
+{
+  "cwd": "/fixture/home/projects/app-two",
+  "session_id": "fixture-f08-session-b",
+  "transcript_path": "/fixture/home/.claude/projects/app-two/transcript.jsonl",
+  "model": { "id": "claude-opus-5-5", "display_name": "Opus" },
+  "workspace": {
+    "current_dir": "/fixture/home/projects/app-two",
+    "project_dir": "/fixture/home/projects/app-two",
+    "added_dirs": []
+  },
+  "version": "2.1.301",
+  "output_style": { "name": "default" },
+  "cost": {
+    "total_cost_usd": 0.12,
+    "total_duration_ms": 240000,
+    "total_api_duration_ms": 15000,
+    "total_lines_added": 4,
+    "total_lines_removed": 0
+  },
+  "context_window": {
+    "total_input_tokens": 24000,
+    "total_output_tokens": 900,
+    "context_window_size": 200000,
+    "used_percentage": 12,
+    "remaining_percentage": 88,
+    "current_usage": {
+      "input_tokens": 4000,
+      "output_tokens": 900,
+      "cache_creation_input_tokens": 2000,
+      "cache_read_input_tokens": 18000
+    }
+  },
+  "exceeds_200k_tokens": false,
+  "effort": { "level": "high" },
+  "rate_limits": {
+    "five_hour": { "used_percentage": 83, "resets_at": 1792167300 },
+    "seven_day": { "used_percentage": 21, "resets_at": 1792330800 }
+  }
+}

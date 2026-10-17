@@ -1,0 +1,79 @@
+{
+  "context_window" : {
+    "context_window_size" : 1000000,
+    "current_usage" : {
+      "cache_creation_input_tokens" : 408,
+      "cache_read_input_tokens" : 729359,
+      "input_tokens" : 2,
+      "output_tokens" : 386
+    },
+    "remaining_percentage" : 27,
+    "total_input_tokens" : 729769,
+    "total_output_tokens" : 386,
+    "used_percentage" : 73
+  },
+  "cost" : {
+    "total_api_duration_ms" : 2762182,
+    "total_cost_usd" : 22.770040699999999,
+    "total_duration_ms" : 5271359,
+    "total_lines_added" : 4740,
+    "total_lines_removed" : 20
+  },
+  "cwd" : "/fixture/path",
+  "effort" : {
+    "level" : "high"
+  },
+  "exceeds_200k_tokens" : true,
+  "fast_mode" : false,
+  "model" : {
+    "display_name" : "Opus 5.5",
+    "id" : "claude-opus-5-5"
+  },
+  "output_style" : {
+    "name" : "default"
+  },
+  "prompt_cache" : {
+    "cache_write_tokens" : 698937,
+    "caching_observed" : true,
+    "expected_rebuilds" : 0,
+    "expires_at" : 1792190942,
+    "hit_ratio" : 0.98902860006783444,
+    "last_miss_at" : null,
+    "last_miss_cause" : null,
+    "miss_causes" : {
+
+    },
+    "miss_recache_tokens" : 0,
+    "misses" : 0,
+    "recache_tokens_if_cold" : 729769,
+    "requests" : 127,
+    "ttl" : "5m",
+    "warm" : true
+  },
+  "prompt_id" : "redacted",
+  "rate_limits" : {
+    "five_hour" : {
+      "resets_at" : 1792199400,
+      "used_percentage" : 14
+    },
+    "seven_day" : {
+      "resets_at" : 1792641600,
+      "used_percentage" : 20
+    }
+  },
+  "scratchpad_dir" : "/fixture/path",
+  "session_id" : "capture-98cb18b565260a5c",
+  "session_name" : "redacted",
+  "thinking" : {
+    "enabled" : true
+  },
+  "transcript_path" : "/fixture/path",
+  "version" : "2.1.302",
+  "workspace" : {
+    "added_dirs" : [
+
+    ],
+    "current_dir" : "/fixture/path",
+    "project_dir" : "/fixture/path"
+  }
+}

@@ -1,0 +1,303 @@
+{
+  "expectedSchema": 1,
+  "fixtureId": "F06",
+  "parser": {
+    "events": [
+      {
+        "file": "stdin/01-first-response.json",
+        "accepted": true
+      }
+    ],
+    "unknownTopLevelKeys": [],
+    "health": {
+      "accepted": 1,
+      "rejected": 0,
+      "scrubbed": 0
+    }
+  },
+  "forwarded": {
+    "fields": [
+      "session_id",
+      "version",
+      "model.id",
+      "model.display_name",
+      "context_window.context_window_size",
+      "context_window.used_percentage",
+      "context_window.total_input_tokens",
+      "context_window.total_output_tokens",
+      "context_window.current_usage.input_tokens",
+      "context_window.current_usage.output_tokens",
+      "context_window.current_usage.cache_creation_input_tokens",
+      "context_window.current_usage.cache_read_input_tokens",
+      "context_window.remaining_percentage",
+      "exceeds_200k_tokens",
+      "prompt_cache.warm",
+      "prompt_cache.caching_observed",
+      "prompt_cache.ttl",
+      "prompt_cache.expires_at",
+      "prompt_cache.hit_ratio",
+      "prompt_cache.requests",
+      "prompt_cache.misses",
+      "effort.level",
+      "cost.total_cost_usd"
+    ],
+    "droppedByConstruction": [
+      "cwd",
+      "transcript_path",
+      "workspace",
+      "output_style",
+      "cost.total_duration_ms",
+      "cost.total_api_duration_ms",
+      "cost.total_lines_added",
+      "cost.total_lines_removed",
+      "prompt_cache.expected_rebuilds",
+      "prompt_cache.cache_write_tokens",
+      "prompt_cache.miss_recache_tokens",
+      "prompt_cache.last_miss_at",
+      "prompt_cache.last_miss_cause",
+      "prompt_cache.miss_causes",
+      "prompt_cache.recache_tokens_if_cold"
+    ],
+    "allowlistSource": "docs/specs/statusline-shim.md section 6, forward_cost=true (DECISIONS A4, A5)",
+    "sessionIdIsHMAC": true,
+    "rawSessionIdPresentAnywhere": false,
+    "scrubbed": []
+  },
+  "observations": [
+    {
+      "subject": "pool",
+      "metricKind": "quotaUsedPct",
+      "measurement": {
+        "kind": "absent",
+        "reason": "providerOmitted"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "unknown",
+      "providerPoolKey": "claude-code.rate_limits.five_hour",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "resetAt",
+      "measurement": {
+        "kind": "absent",
+        "reason": "providerOmitted"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "unknown",
+      "providerPoolKey": "claude-code.rate_limits.five_hour",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "quotaUsedPct",
+      "measurement": {
+        "kind": "absent",
+        "reason": "providerOmitted"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "unknown",
+      "providerPoolKey": "claude-code.rate_limits.seven_day",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "resetAt",
+      "measurement": {
+        "kind": "absent",
+        "reason": "providerOmitted"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "unknown",
+      "providerPoolKey": "claude-code.rate_limits.seven_day",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextUsedPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "34"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 68000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextWindowSize",
+      "measurement": {
+        "kind": "tokens",
+        "value": 200000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "requestInputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 12000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "requestOutputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 2100
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheReadTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 50000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheCreationTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 6000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "apiCostUSD",
+      "measurement": {
+        "kind": "usd",
+        "value": "0.0412"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "estimated",
+      "sessionRef": "A"
+    }
+  ],
+  "snapshot": {
+    "claude-code.rate_limits.five_hour": {
+      "state": "unknown",
+      "usedPct": null,
+      "resetsAt": null,
+      "usedAbsence": "providerOmitted"
+    },
+    "claude-code.rate_limits.seven_day": {
+      "state": "unknown",
+      "usedPct": null,
+      "resetsAt": null,
+      "usedAbsence": "providerOmitted"
+    }
+  },
+  "ui": {
+    "header": "AI Capacity \u00b7 Updated 1m ago",
+    "aggregate": "Claude Code metrics connected \u00b7 plan not verified",
+    "plan": {
+      "label": "Plan not set"
+    },
+    "rows": [
+      {
+        "scope": "5-hour",
+        "cardState": "Unknown",
+        "valueState": "Not available",
+        "line": "5-hour Not available \u00b7 Claude Code \u00b7 1m ago",
+        "resetLine": null,
+        "detail": "Account quota not reported for this session",
+        "voiceOver": "5-hour, not available, Claude Code, 1 minute ago"
+      },
+      {
+        "scope": "7-day",
+        "cardState": "Unknown",
+        "valueState": "Not available",
+        "line": "7-day Not available \u00b7 Claude Code \u00b7 1m ago",
+        "resetLine": null,
+        "detail": "Account quota not reported for this session",
+        "voiceOver": "7-day, not available, Claude Code, 1 minute ago"
+      },
+      {
+        "scope": "Context",
+        "cardState": "Available",
+        "valueState": "Live",
+        "line": "Context 34% \u00b7 Claude Code \u00b7 1m ago",
+        "resetLine": null,
+        "detail": "68,000 of 200,000 tokens",
+        "voiceOver": "Context, 34 percent, Claude Code, 1 minute ago"
+      }
+    ],
+    "sessions": [
+      {
+        "sessionIdIsHMAC": true,
+        "model": "Opus",
+        "contextLine": "Context 34% \u00b7 1m ago"
+      }
+    ],
+    "forbiddenSubstrings": [
+      "0%",
+      "Live quota",
+      "Ready",
+      "Available again"
+    ],
+    "demoBadge": true
+  },
+  "events": [],
+  "notifications": [],
+  "shim": {
+    "framesDelivered": 1
+  },
+  "pendingSections": {
+    "ui": "1.4",
+    "notifications": "2.1"
+  },
+  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL \u00a75.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
+  "engineNote": "No rate_limits at all: both pools unknown, never 0."
+}

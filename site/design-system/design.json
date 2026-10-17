@@ -1,0 +1,955 @@
+{
+  "contrast" : [
+    {
+      "passesAA" : true,
+      "ratio" : 15.25,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "textPrimary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 17.010000000000002,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "textPrimary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 13.550000000000001,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "textPrimary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.1100000000000003,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "textSecondary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.8200000000000003,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "textSecondary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.4299999999999997,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "textSecondary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.9699999999999998,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "accent"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.6600000000000001,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "accent"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.3099999999999996,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "accent"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.5099999999999998,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "statusSuccess"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.1500000000000004,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "statusSuccess"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 4.9000000000000004,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "statusSuccess"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.8799999999999999,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "statusAttention"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.5599999999999996,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "statusAttention"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.2300000000000004,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "statusAttention"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.8899999999999997,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "statusBlocked"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.5700000000000003,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "statusBlocked"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.2400000000000002,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "statusBlocked"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.6399999999999997,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "statusStale"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.2999999999999998,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "statusStale"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.0099999999999998,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "statusStale"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.3899999999999997,
+      "scheme" : "light",
+      "surface" : "background",
+      "text" : "statusUnknown"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.0099999999999998,
+      "scheme" : "light",
+      "surface" : "surfaceElevated",
+      "text" : "statusUnknown"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 4.79,
+      "scheme" : "light",
+      "surface" : "surfaceMuted",
+      "text" : "statusUnknown"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 15.630000000000001,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "textPrimary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 12.800000000000001,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "textPrimary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 10.42,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "textPrimary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 7.9100000000000001,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "textSecondary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.4800000000000004,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "textSecondary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.2800000000000002,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "textSecondary"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 7.25,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "accent"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.9400000000000004,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "accent"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 4.8399999999999999,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "accent"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 8.9199999999999999,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "statusSuccess"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 7.2999999999999998,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "statusSuccess"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.9500000000000002,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "statusSuccess"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 9.2899999999999991,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "statusAttention"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 7.6100000000000003,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "statusAttention"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.2000000000000002,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "statusAttention"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 7.4400000000000004,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "statusBlocked"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 6.0999999999999996,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "statusBlocked"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 4.9699999999999998,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "statusBlocked"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 7.2199999999999998,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "statusStale"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.9199999999999999,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "statusStale"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 4.8200000000000003,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "statusStale"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 7.0599999999999996,
+      "scheme" : "dark",
+      "surface" : "background",
+      "text" : "statusUnknown"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 5.7800000000000002,
+      "scheme" : "dark",
+      "surface" : "surfaceElevated",
+      "text" : "statusUnknown"
+    },
+    {
+      "passesAA" : true,
+      "ratio" : 4.71,
+      "scheme" : "dark",
+      "surface" : "surfaceMuted",
+      "text" : "statusUnknown"
+    }
+  ],
+  "demoInstant" : "2026-10-16T14:01:00Z",
+  "generatedAt" : "2026-10-16T23:42:42Z",
+  "palette" : [
+    {
+      "dark" : "#1C1C1E",
+      "isText" : false,
+      "light" : "#F2F2F7",
+      "token" : "background"
+    },
+    {
+      "dark" : "#2C2C2E",
+      "isText" : false,
+      "light" : "#FFFFFF",
+      "token" : "surfaceElevated"
+    },
+    {
+      "dark" : "#3A3A3C",
+      "isText" : false,
+      "light" : "#E5E5EA",
+      "token" : "surfaceMuted"
+    },
+    {
+      "dark" : "#48484A",
+      "isText" : false,
+      "light" : "#C7C7CC",
+      "token" : "separator"
+    },
+    {
+      "dark" : "#F5F5F7",
+      "isText" : true,
+      "light" : "#1C1C1E",
+      "token" : "textPrimary"
+    },
+    {
+      "dark" : "#B0B0BA",
+      "isText" : true,
+      "light" : "#5A5A64",
+      "token" : "textSecondary"
+    },
+    {
+      "dark" : "#7FA8FF",
+      "isText" : true,
+      "light" : "#1D4FD7",
+      "token" : "accent"
+    },
+    {
+      "dark" : "#4CD47A",
+      "isText" : true,
+      "light" : "#15703B",
+      "token" : "statusSuccess"
+    },
+    {
+      "dark" : "#F2B544",
+      "isText" : true,
+      "light" : "#8A4F00",
+      "token" : "statusAttention"
+    },
+    {
+      "dark" : "#FF8A7E",
+      "isText" : true,
+      "light" : "#B42318",
+      "token" : "statusBlocked"
+    },
+    {
+      "dark" : "#A8A8B3",
+      "isText" : true,
+      "light" : "#5F5F6B",
+      "token" : "statusStale"
+    },
+    {
+      "dark" : "#A6A6B1",
+      "isText" : true,
+      "light" : "#62626E",
+      "token" : "statusUnknown"
+    }
+  ],
+  "radius" : [
+    {
+      "points" : 6,
+      "token" : "control"
+    },
+    {
+      "points" : 10,
+      "token" : "card"
+    },
+    {
+      "points" : 999,
+      "token" : "pill"
+    }
+  ],
+  "spacing" : [
+    {
+      "points" : 4,
+      "token" : "compact"
+    },
+    {
+      "points" : 8,
+      "token" : "standard"
+    },
+    {
+      "points" : 16,
+      "token" : "spacious"
+    },
+    {
+      "points" : 12,
+      "token" : "windowPadding"
+    }
+  ],
+  "specimens" : [
+    {
+      "caption" : "Available · 41%",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-available-dark.png",
+      "height" : 81.5,
+      "id" : "quota-available",
+      "light" : "img/quota-available-light.png"
+    },
+    {
+      "caption" : "Approaching · crossed 80%",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-approaching-dark.png",
+      "height" : 81.5,
+      "id" : "quota-approaching",
+      "light" : "img/quota-approaching-light.png"
+    },
+    {
+      "caption" : "Nearly exhausted · crossed 95%",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-critical-dark.png",
+      "height" : 81.5,
+      "id" : "quota-critical",
+      "light" : "img/quota-critical-light.png"
+    },
+    {
+      "caption" : "Limit reached",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-exhausted-dark.png",
+      "height" : 81.5,
+      "id" : "quota-exhausted",
+      "light" : "img/quota-exhausted-light.png"
+    },
+    {
+      "caption" : "Limit reached, no reset time reported",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-exhausted-no-reset-dark.png",
+      "height" : 81.5,
+      "id" : "quota-exhausted-no-reset",
+      "light" : "img/quota-exhausted-no-reset-light.png"
+    },
+    {
+      "caption" : "Limit reached, paid usage evidenced",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-overage-dark.png",
+      "height" : 81.5,
+      "id" : "quota-overage",
+      "light" : "img/quota-overage-light.png"
+    },
+    {
+      "caption" : "Reset time passed, no fresh reading yet",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-reset-expected-dark.png",
+      "height" : 81.5,
+      "id" : "quota-reset-expected",
+      "light" : "img/quota-reset-expected-light.png"
+    },
+    {
+      "caption" : "Available again, verified by a fresh reading",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-available-again-dark.png",
+      "height" : 81.5,
+      "id" : "quota-available-again",
+      "light" : "img/quota-available-again-light.png"
+    },
+    {
+      "caption" : "Manual snapshot",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-entered-by-you-dark.png",
+      "height" : 81.5,
+      "id" : "quota-entered-by-you",
+      "light" : "img/quota-entered-by-you-light.png"
+    },
+    {
+      "caption" : "Stale: last reading 42 minutes ago",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-stale-dark.png",
+      "height" : 81.5,
+      "id" : "quota-stale",
+      "light" : "img/quota-stale-light.png"
+    },
+    {
+      "caption" : "Provider did not send rate limits (F06)",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-not-available-dark.png",
+      "height" : 75,
+      "id" : "quota-not-available",
+      "light" : "img/quota-not-available-light.png"
+    },
+    {
+      "caption" : "Provider sent null (first event, F07)",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-not-reported-dark.png",
+      "height" : 75,
+      "id" : "quota-not-reported",
+      "light" : "img/quota-not-reported-light.png"
+    },
+    {
+      "caption" : "Value failed validation",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-provider-error-dark.png",
+      "height" : 75,
+      "id" : "quota-provider-error",
+      "light" : "img/quota-provider-error-light.png"
+    },
+    {
+      "caption" : "Not connected",
+      "component" : "QuotaProgress",
+      "dark" : "img/quota-disconnected-dark.png",
+      "height" : 75.5,
+      "id" : "quota-disconnected",
+      "light" : "img/quota-disconnected-light.png"
+    },
+    {
+      "caption" : "Verified reset ahead",
+      "component" : "ResetCountdown",
+      "dark" : "img/reset-upcoming-dark.png",
+      "height" : 45,
+      "id" : "reset-upcoming",
+      "light" : "img/reset-upcoming-light.png"
+    },
+    {
+      "caption" : "Reset time reached: never says Ready",
+      "component" : "ResetCountdown",
+      "dark" : "img/reset-expected-dark.png",
+      "height" : 45,
+      "id" : "reset-expected",
+      "light" : "img/reset-expected-light.png"
+    },
+    {
+      "caption" : "No reset time reported",
+      "component" : "ResetCountdown",
+      "dark" : "img/reset-unknown-dark.png",
+      "height" : 45,
+      "id" : "reset-unknown",
+      "light" : "img/reset-unknown-light.png"
+    },
+    {
+      "caption" : "User confirmed",
+      "component" : "PlanPill",
+      "dark" : "img/plan-user-confirmed-dark.png",
+      "height" : 53,
+      "id" : "plan-user-confirmed",
+      "light" : "img/plan-user-confirmed-light.png"
+    },
+    {
+      "caption" : "Provider verified",
+      "component" : "PlanPill",
+      "dark" : "img/plan-provider-verified-dark.png",
+      "height" : 53,
+      "id" : "plan-provider-verified",
+      "light" : "img/plan-provider-verified-light.png"
+    },
+    {
+      "caption" : "Selected, not verified",
+      "component" : "PlanPill",
+      "dark" : "img/plan-selected-dark.png",
+      "height" : 53,
+      "id" : "plan-selected",
+      "light" : "img/plan-selected-light.png"
+    },
+    {
+      "caption" : "Plan not set",
+      "component" : "PlanPill",
+      "dark" : "img/plan-not-set-dark.png",
+      "height" : 53,
+      "id" : "plan-not-set",
+      "light" : "img/plan-not-set-light.png"
+    },
+    {
+      "caption" : "Live",
+      "component" : "ConnectionHealth",
+      "dark" : "img/health-live-dark.png",
+      "height" : 45,
+      "id" : "health-live",
+      "light" : "img/health-live-light.png"
+    },
+    {
+      "caption" : "No new readings",
+      "component" : "ConnectionHealth",
+      "dark" : "img/health-stale-dark.png",
+      "height" : 45,
+      "id" : "health-stale",
+      "light" : "img/health-stale-light.png"
+    },
+    {
+      "caption" : "Not connected",
+      "component" : "ConnectionHealth",
+      "dark" : "img/health-not-connected-dark.png",
+      "height" : 45.5,
+      "id" : "health-not-connected",
+      "light" : "img/health-not-connected-light.png"
+    },
+    {
+      "caption" : "Source and freshness",
+      "component" : "DataSourceLabel",
+      "dark" : "img/source-live-dark.png",
+      "height" : 45,
+      "id" : "source-live",
+      "light" : "img/source-live-light.png"
+    },
+    {
+      "caption" : "Stale",
+      "component" : "DataSourceLabel",
+      "dark" : "img/source-stale-dark.png",
+      "height" : 45,
+      "id" : "source-stale",
+      "light" : "img/source-stale-light.png"
+    },
+    {
+      "caption" : "Compact: menu bar popover",
+      "component" : "ProviderCard",
+      "dark" : "img/card-compact-dark.png",
+      "height" : 216,
+      "id" : "card-compact",
+      "light" : "img/card-compact-light.png"
+    },
+    {
+      "caption" : "Expanded: provider detail, reset passed",
+      "component" : "ProviderCard",
+      "dark" : "img/card-expanded-dark.png",
+      "height" : 286,
+      "id" : "card-expanded",
+      "light" : "img/card-expanded-light.png"
+    },
+    {
+      "caption" : "No rate limits reported, plan not set (F06, F15)",
+      "component" : "ProviderCard",
+      "dark" : "img/card-no-rate-limits-dark.png",
+      "height" : 203,
+      "id" : "card-no-rate-limits",
+      "light" : "img/card-no-rate-limits-light.png"
+    }
+  ],
+  "stroke" : [
+    {
+      "points" : 1,
+      "token" : "hairline"
+    },
+    {
+      "points" : 2,
+      "token" : "emphasis"
+    },
+    {
+      "points" : 2,
+      "token" : "focus"
+    }
+  ],
+  "styles" : [
+    {
+      "accessibility" : "live",
+      "badge" : null,
+      "family" : "value",
+      "glyph" : "img/glyph-value-live",
+      "label" : "Live",
+      "pattern" : "solid",
+      "role" : "textSecondary",
+      "state" : "live",
+      "symbol" : "dot.radiowaves.left.and.right"
+    },
+    {
+      "accessibility" : "last seen",
+      "badge" : null,
+      "family" : "value",
+      "glyph" : "img/glyph-value-stale",
+      "label" : "Last seen",
+      "pattern" : "hatched",
+      "role" : "statusStale",
+      "state" : "stale",
+      "symbol" : "clock.badge.exclamationmark"
+    },
+    {
+      "accessibility" : "not available",
+      "badge" : null,
+      "family" : "value",
+      "glyph" : "img/glyph-value-notAvailable",
+      "label" : "Not available",
+      "pattern" : "outline",
+      "role" : "statusUnknown",
+      "state" : "notAvailable",
+      "symbol" : "minus.circle"
+    },
+    {
+      "accessibility" : "not reported yet",
+      "badge" : null,
+      "family" : "value",
+      "glyph" : "img/glyph-value-notReportedYet",
+      "label" : "Not reported yet",
+      "pattern" : "outline",
+      "role" : "statusUnknown",
+      "state" : "notReportedYet",
+      "symbol" : "ellipsis.circle"
+    },
+    {
+      "accessibility" : "not connected",
+      "badge" : null,
+      "family" : "value",
+      "glyph" : "img/glyph-value-notConnected",
+      "label" : "Not connected",
+      "pattern" : "dashed",
+      "role" : "statusUnknown",
+      "state" : "notConnected",
+      "symbol" : "link.badge.plus"
+    },
+    {
+      "accessibility" : "couldn't read last update",
+      "badge" : null,
+      "family" : "value",
+      "glyph" : "img/glyph-value-providerError",
+      "label" : "Couldn't read last update",
+      "pattern" : "outline",
+      "role" : "statusBlocked",
+      "state" : "providerError",
+      "symbol" : "exclamationmark.triangle"
+    },
+    {
+      "accessibility" : "available",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-available",
+      "label" : "Available",
+      "pattern" : "solid",
+      "role" : "statusSuccess",
+      "state" : "available",
+      "symbol" : "circle"
+    },
+    {
+      "accessibility" : "approaching limit",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-approaching",
+      "label" : "Approaching limit",
+      "pattern" : "solid",
+      "role" : "statusAttention",
+      "state" : "approaching",
+      "symbol" : "circle.badge.exclamationmark"
+    },
+    {
+      "accessibility" : "nearly exhausted",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-critical",
+      "label" : "Nearly exhausted",
+      "pattern" : "solid",
+      "role" : "statusAttention",
+      "state" : "critical",
+      "symbol" : "exclamationmark.circle.fill"
+    },
+    {
+      "accessibility" : "limit reached",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-exhausted",
+      "label" : "Limit reached",
+      "pattern" : "solid",
+      "role" : "statusBlocked",
+      "state" : "exhausted",
+      "symbol" : "nosign"
+    },
+    {
+      "accessibility" : "limit reached, reset time not reported",
+      "badge" : "questionmark",
+      "family" : "card",
+      "glyph" : "img/glyph-card-exhaustedNoReset",
+      "label" : "Limit reached · reset time not reported",
+      "pattern" : "solid",
+      "role" : "statusBlocked",
+      "state" : "exhaustedNoReset",
+      "symbol" : "nosign"
+    },
+    {
+      "accessibility" : "limit reached, paid usage may continue",
+      "badge" : "creditcard",
+      "family" : "card",
+      "glyph" : "img/glyph-card-exhaustedOverage",
+      "label" : "Limit reached · paid usage may continue",
+      "pattern" : "solid",
+      "role" : "statusBlocked",
+      "state" : "exhaustedOverage",
+      "symbol" : "nosign"
+    },
+    {
+      "accessibility" : "reset expected, awaiting next update",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-resetExpected",
+      "label" : "Reset expected · awaiting next update",
+      "pattern" : "hatched",
+      "role" : "statusAttention",
+      "state" : "resetExpected",
+      "symbol" : "clock.arrow.circlepath"
+    },
+    {
+      "accessibility" : "available again",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-availableAgain",
+      "label" : "Available again",
+      "pattern" : "solid",
+      "role" : "statusSuccess",
+      "state" : "availableAgain",
+      "symbol" : "checkmark.circle"
+    },
+    {
+      "accessibility" : "available again, you confirmed",
+      "badge" : "person",
+      "family" : "card",
+      "glyph" : "img/glyph-card-availableAgainUser",
+      "label" : "Available again · you confirmed",
+      "pattern" : "solid",
+      "role" : "statusSuccess",
+      "state" : "availableAgainUser",
+      "symbol" : "checkmark.circle"
+    },
+    {
+      "accessibility" : "account quota not available",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-quotaNotAvailable",
+      "label" : "Account quota not available",
+      "pattern" : "outline",
+      "role" : "statusUnknown",
+      "state" : "quotaNotAvailable",
+      "symbol" : "minus.circle"
+    },
+    {
+      "accessibility" : "not connected",
+      "badge" : null,
+      "family" : "card",
+      "glyph" : "img/glyph-card-disconnected",
+      "label" : "Not connected",
+      "pattern" : "dashed",
+      "role" : "statusUnknown",
+      "state" : "disconnected",
+      "symbol" : "bolt.slash"
+    },
+    {
+      "accessibility" : "provider verified",
+      "badge" : null,
+      "family" : "plan",
+      "glyph" : "img/glyph-plan-providerVerified",
+      "label" : "Provider verified",
+      "pattern" : "solid",
+      "role" : "statusSuccess",
+      "state" : "providerVerified",
+      "symbol" : "checkmark.seal"
+    },
+    {
+      "accessibility" : "user confirmed",
+      "badge" : null,
+      "family" : "plan",
+      "glyph" : "img/glyph-plan-userConfirmed",
+      "label" : "User confirmed",
+      "pattern" : "solid",
+      "role" : "textSecondary",
+      "state" : "userConfirmed",
+      "symbol" : "person.crop.circle.badge.checkmark"
+    },
+    {
+      "accessibility" : "selected, not verified",
+      "badge" : null,
+      "family" : "plan",
+      "glyph" : "img/glyph-plan-selectedUnverified",
+      "label" : "Selected · not verified",
+      "pattern" : "outline",
+      "role" : "statusUnknown",
+      "state" : "selectedUnverified",
+      "symbol" : "person.crop.circle"
+    },
+    {
+      "accessibility" : "plan not set",
+      "badge" : null,
+      "family" : "plan",
+      "glyph" : "img/glyph-plan-notSet",
+      "label" : "Plan not set",
+      "pattern" : "outline",
+      "role" : "statusUnknown",
+      "state" : "notSet",
+      "symbol" : "questionmark.circle"
+    }
+  ],
+  "typography" : [
+    {
+      "style" : "Large Title, rounded, bold, tabular digits",
+      "token" : "metricHero"
+    },
+    {
+      "style" : "Title 2, rounded, semibold, tabular digits",
+      "token" : "metricMedium"
+    },
+    {
+      "style" : "Headline",
+      "token" : "title"
+    },
+    {
+      "style" : "Subheadline",
+      "token" : "label"
+    },
+    {
+      "style" : "Footnote",
+      "token" : "supporting"
+    },
+    {
+      "style" : "Caption 2",
+      "token" : "micro"
+    }
+  ]
+}

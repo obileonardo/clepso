@@ -1,0 +1,9 @@
+{
+  "model": "opus",
+  "permissions": {
+    "allow": ["Bash(git status)"]
+  },
+  "env": {
+    "EDITOR": "vim"
+  }
+}

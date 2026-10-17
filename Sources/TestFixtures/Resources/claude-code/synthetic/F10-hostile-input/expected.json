@@ -1,0 +1,84 @@
+{
+  "expectedSchema": 1,
+  "fixtureId": "F10",
+  "shim": {
+    "framesDelivered": 2
+  },
+  "parser": {
+    "events": [
+      {
+        "file": "stdin/01-wrong-types.json",
+        "accepted": true
+      },
+      {
+        "file": "stdin/02-too-deep.json",
+        "accepted": false
+      },
+      {
+        "file": "stdin/03-garbage.bin",
+        "accepted": false
+      },
+      {
+        "file": "generated",
+        "accepted": false
+      },
+      {
+        "file": "stdin/05-unknown-keys.json",
+        "accepted": true
+      }
+    ],
+    "unknownTopLevelKeys": [
+      "future_field",
+      "hook_event_name"
+    ],
+    "health": {
+      "accepted": 2,
+      "rejected": 3,
+      "scrubbed": 3
+    }
+  },
+  "forwarded": {
+    "fields": [
+      "context_window.context_window_size",
+      "context_window.current_usage.cache_creation_input_tokens",
+      "context_window.current_usage.cache_read_input_tokens",
+      "context_window.current_usage.input_tokens",
+      "context_window.current_usage.output_tokens",
+      "context_window.remaining_percentage",
+      "context_window.total_input_tokens",
+      "context_window.total_output_tokens",
+      "cost.total_cost_usd",
+      "effort.level",
+      "exceeds_200k_tokens",
+      "model.id",
+      "rate_limits.five_hour.resets_at",
+      "session_id",
+      "version"
+    ],
+    "droppedByConstruction": [
+      "cost.total_api_duration_ms",
+      "cost.total_duration_ms",
+      "cost.total_lines_added",
+      "cost.total_lines_removed",
+      "cwd",
+      "output_style",
+      "transcript_path",
+      "workspace"
+    ],
+    "scrubbed": [
+      "context_window.used_percentage",
+      "model.display_name",
+      "rate_limits.five_hour.used_percentage"
+    ],
+    "allowlistSource": "docs/specs/statusline-shim.md section 6, forward_cost=true (DECISIONS A4, A5)",
+    "sessionIdIsHMAC": true,
+    "rawSessionIdPresentAnywhere": false
+  },
+  "pendingSections": {
+    "observations": "1.1",
+    "snapshot": "1.2",
+    "events": "1.2",
+    "ui": "1.4",
+    "notifications": "2.1"
+  }
+}

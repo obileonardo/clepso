@@ -1,0 +1,58 @@
+{
+  "cwd": "/fixture/home/projects/sample-app",
+  "session_id": "fixture-f06-session-0001",
+  "transcript_path": "/fixture/home/.claude/projects/sample-app/transcript.jsonl",
+  "model": {
+    "id": "claude-opus-5-5",
+    "display_name": "Opus"
+  },
+  "workspace": {
+    "current_dir": "/fixture/home/projects/sample-app",
+    "project_dir": "/fixture/home/projects/sample-app",
+    "added_dirs": []
+  },
+  "version": "2.1.301",
+  "output_style": {
+    "name": "default"
+  },
+  "cost": {
+    "total_cost_usd": 0.0412,
+    "total_duration_ms": 180000,
+    "total_api_duration_ms": 9000,
+    "total_lines_added": 12,
+    "total_lines_removed": 3
+  },
+  "context_window": {
+    "total_input_tokens": 68000,
+    "total_output_tokens": 2100,
+    "context_window_size": 200000,
+    "used_percentage": 34,
+    "remaining_percentage": 66,
+    "current_usage": {
+      "input_tokens": 12000,
+      "output_tokens": 2100,
+      "cache_creation_input_tokens": 6000,
+      "cache_read_input_tokens": 50000
+    }
+  },
+  "exceeds_200k_tokens": false,
+  "prompt_cache": {
+    "warm": true,
+    "caching_observed": true,
+    "ttl": "5m",
+    "expires_at": 1792159500,
+    "requests": 3,
+    "misses": 0,
+    "expected_rebuilds": 0,
+    "hit_ratio": 0.73,
+    "cache_write_tokens": 6000,
+    "miss_recache_tokens": 0,
+    "last_miss_at": null,
+    "last_miss_cause": null,
+    "miss_causes": {},
+    "recache_tokens_if_cold": 18000
+  },
+  "effort": {
+    "level": "high"
+  }
+}

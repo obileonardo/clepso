@@ -1,0 +1,46 @@
+{
+  "fixtureSchema": 1,
+  "id": "F01",
+  "slug": "5h-12-no-reset",
+  "origin": "synthetic",
+  "scrubbed": false,
+  "scrubCount": 0,
+  "providerSchema": {
+    "name": "claude-code-statusline",
+    "version": "2.1.301",
+    "docURL": "https://code.claude.com/docs/en/statusline",
+    "docCheckedAt": "2026-10-16"
+  },
+  "prdRefs": [
+    "33"
+  ],
+  "description": "SYNTHETIC. 5-hour at 12% with no resets_at. Expect Available, 'Reset time not reported', no events.",
+  "clock": {
+    "start": "2026-10-16T14:00:00Z",
+    "renderAt": "2026-10-16T14:01:00Z",
+    "displayTimeZone": "Europe/London"
+  },
+  "account": {
+    "id": "local-account-1",
+    "label": "This Mac",
+    "plan": {
+      "label": "Plan not set",
+      "evidence": null
+    }
+  },
+  "agent": "present",
+  "events": [
+    {
+      "atOffsetSeconds": 0,
+      "originalCommandStdout": "[Opus] 41% context\n",
+      "file": "stdin/01-first-response.json"
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-16",
+      "by": "increment 0.3",
+      "why": "Initial corpus."
+    }
+  ]
+}

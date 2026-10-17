@@ -1,0 +1,34 @@
+{
+  "fixtureSchema": 1,
+  "id": "F08",
+  "slug": "two-sessions-one-pool",
+  "origin": "synthetic",
+  "scrubbed": false,
+  "scrubCount": 0,
+  "providerSchema": {
+    "name": "claude-code-statusline",
+    "version": "2.1.301",
+    "docURL": "https://code.claude.com/docs/en/statusline",
+    "docCheckedAt": "2026-10-16"
+  },
+  "prdRefs": ["15.6", "FR-04", "22.4", "33.required-fixtures.two-concurrent-sessions"],
+  "description": "SYNTHETIC. Two Claude Code sessions on the same Mac login report the same 5-hour pool at 80 then 83. The account pool must show 83, never 163, and two session rows must appear. Initial-state alerts are off, so no notification fires.",
+  "clock": {
+    "start": "2026-10-16T14:00:00Z",
+    "renderAt": "2026-10-16T14:01:30Z",
+    "displayTimeZone": "Europe/London"
+  },
+  "account": {
+    "id": "local-account-1",
+    "label": "This Mac",
+    "plan": { "label": "Plan not set", "evidence": null }
+  },
+  "settings": { "initialStateAlerts": false, "thresholds": [80, 95, 100], "hysteresisPoints": 3 },
+  "events": [
+    { "file": "stdin/01-session-a.json", "atOffsetSeconds": 0,  "originalCommandStdout": "[Opus] 41% context\n" },
+    { "file": "stdin/02-session-b.json", "atOffsetSeconds": 30, "originalCommandStdout": "[Opus] 12% context\n" }
+  ],
+  "history": [
+    { "date": "2026-10-16", "by": "seat 8", "why": "Initial draft v0." }
+  ]
+}

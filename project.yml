@@ -1,0 +1,68 @@
+# Generates Pulse.xcodeproj (gitignored). Package.swift stays the source of truth for all code (RELEASE_AND_CI §1).
+# Run: scripts/bootstrap.sh && .tools/xcodegen/bin/xcodegen   (or: make app)
+name: Pulse
+options:
+  bundleIdPrefix: dev.tokone          # placeholder until DECISIONS A7 names the real prefix
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+    DEVELOPMENT_TEAM: DD8UY75RZT       # the Apple Development certificate's team; Developer ID comes with DECISIONS A6
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: Apple Development
+    ENABLE_HARDENED_RUNTIME: YES       # COMPLIANCE_GATES §4 item 2, on every target
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+packages:
+  Tokone:
+    path: .
+targets:
+  PulseMac:
+    type: application
+    platform: macOS
+    sources: [App/PulseMac]
+    info:
+      path: App/PulseMac/Info.plist
+      properties:
+        CFBundleName: Pulse
+        CFBundleDisplayName: Pulse
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true              # menu bar only: no Dock icon, no main menu
+        LSApplicationCategoryType: public.app-category.developer-tools
+    entitlements:
+      path: App/PulseMac/PulseMac.entitlements
+      properties: {}                   # empty: no sandbox (ADR-002), no network, no exceptions (RELEASE_AND_CI §5)
+    settings:
+      base:
+        PRODUCT_NAME: Pulse
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tokone.pulse
+        ENABLE_APP_SANDBOX: NO
+    dependencies:
+      - package: Tokone
+        product: PulseApp
+      - target: pulse-statusline
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
+  pulse-statusline:
+    type: tool
+    platform: macOS
+    sources: [Sources/pulse-statusline]
+    settings:
+      base:
+        PRODUCT_NAME: pulse-statusline
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tokone.pulse.statusline   # <bundle-prefix>.pulse.statusline
+        SKIP_INSTALL: YES
+        GENERATE_INFOPLIST_FILE: YES        # embedded __info_plist: codesign then uses the bundle id as the identifier,
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES   # which the app's peer check will require (PRIVACY_AND_SECURITY §3)
+    dependencies:
+      - package: Tokone
+        product: StatusLineShim

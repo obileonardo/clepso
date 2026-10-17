@@ -1,0 +1,118 @@
+{
+  "corpusVersion": 1,
+  "fixtures": [
+    {
+      "id": "F01",
+      "slug": "5h-12-no-reset",
+      "status": "active"
+    },
+    {
+      "id": "F02",
+      "slug": "5h-79-with-reset",
+      "status": "active"
+    },
+    {
+      "id": "F03",
+      "slug": "5h-79-to-95",
+      "status": "active"
+    },
+    {
+      "id": "F04",
+      "slug": "5h-100-with-reset",
+      "status": "active"
+    },
+    {
+      "id": "F05",
+      "slug": "7d-100-reset-passes",
+      "status": "active"
+    },
+    {
+      "id": "F06",
+      "slug": "no-rate-limits",
+      "status": "active"
+    },
+    {
+      "id": "F07",
+      "slug": "current-usage-null",
+      "status": "active"
+    },
+    {
+      "id": "F08",
+      "slug": "two-sessions-one-pool",
+      "status": "active"
+    },
+    {
+      "id": "F09",
+      "status": "covered",
+      "stage": "1.2",
+      "reason": "Out-of-order arrival is a reducer property. Through the helper, observedAt is the read time, so an older sample can only arrive later via a millisecond race between concurrent sessions; the fixture injects observations directly.",
+      "coveredBy": "UsageEngineTests LimitStateTests.outOfOrder; StorageTests StoreTests.outOfOrder"
+    },
+    {
+      "id": "F10",
+      "slug": "hostile-input",
+      "status": "active"
+    },
+    {
+      "id": "F11",
+      "status": "covered",
+      "stage": "1.2",
+      "reason": "Paid-overage evidence is an entitlement, not status-line input; stdin is identical to F04.",
+      "coveredBy": "UsageEngineTests LimitStateTests.paidOverage"
+    },
+    {
+      "id": "F12",
+      "slug": "schema-older-and-newer",
+      "status": "active"
+    },
+    {
+      "id": "F13",
+      "slug": "settings",
+      "status": "active",
+      "kind": "settings",
+      "reason": "Install/uninstall corpus in settings/: files prefixed refused- must be refused untouched; every other file must round-trip byte for byte."
+    },
+    {
+      "id": "F14",
+      "slug": "app-absent",
+      "status": "active"
+    },
+    {
+      "id": "F15",
+      "status": "deferred",
+      "stage": "1.4",
+      "reason": "Plan label rendering is an app concern."
+    },
+    {
+      "id": "F16",
+      "status": "deferred",
+      "stage": "1.4",
+      "reason": "A time-zone change alters rendered clock times only; stored instants are UTC epoch values, so it is a rendering fixture (moved from 1.2)."
+    },
+    {
+      "id": "F17",
+      "status": "deferred",
+      "stage": "2.3",
+      "reason": "DST is exercised by reset reminders."
+    },
+    {
+      "id": "F18",
+      "status": "deferred",
+      "stage": "3.2",
+      "reason": "Manual free-reset entry is a manual-snapshot feature."
+    },
+    {
+      "id": "F19",
+      "status": "deferred",
+      "stage": "1.4",
+      "reason": "No-CLI onboarding is an app concern."
+    },
+    {
+      "id": "C01",
+      "slug": "real-session",
+      "status": "active",
+      "dir": "captured/2.1.302",
+      "reason": "First real capture: Claude Max account, Claude Code 2.1.302, 16 Oct 2026, scrubbed."
+    }
+  ]
+}

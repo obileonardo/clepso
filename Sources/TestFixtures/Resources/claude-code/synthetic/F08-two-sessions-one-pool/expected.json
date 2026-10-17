@@ -1,0 +1,472 @@
+{
+  "expectedSchema": 1,
+  "fixtureId": "F08",
+  "parser": {
+    "events": [
+      {
+        "file": "stdin/01-session-a.json",
+        "accepted": true
+      },
+      {
+        "file": "stdin/02-session-b.json",
+        "accepted": true
+      }
+    ],
+    "unknownTopLevelKeys": [],
+    "health": {
+      "accepted": 2,
+      "rejected": 0,
+      "scrubbed": 0
+    }
+  },
+  "forwarded": {
+    "fields": [
+      "session_id",
+      "version",
+      "model.id",
+      "model.display_name",
+      "context_window.context_window_size",
+      "context_window.used_percentage",
+      "context_window.total_input_tokens",
+      "context_window.total_output_tokens",
+      "context_window.current_usage.input_tokens",
+      "context_window.current_usage.output_tokens",
+      "context_window.current_usage.cache_creation_input_tokens",
+      "context_window.current_usage.cache_read_input_tokens",
+      "context_window.remaining_percentage",
+      "exceeds_200k_tokens",
+      "effort.level",
+      "cost.total_cost_usd",
+      "rate_limits.five_hour.used_percentage",
+      "rate_limits.five_hour.resets_at",
+      "rate_limits.seven_day.used_percentage",
+      "rate_limits.seven_day.resets_at"
+    ],
+    "droppedByConstruction": [
+      "cwd",
+      "transcript_path",
+      "workspace",
+      "output_style",
+      "cost.total_duration_ms",
+      "cost.total_api_duration_ms",
+      "cost.total_lines_added",
+      "cost.total_lines_removed"
+    ],
+    "allowlistSource": "docs/specs/statusline-shim.md section 6, forward_cost=true (DECISIONS A4, A5)",
+    "sessionIdIsHMAC": true,
+    "rawSessionIdPresentAnywhere": false,
+    "scrubbed": []
+  },
+  "observations": [
+    {
+      "subject": "pool",
+      "metricKind": "quotaUsedPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "80"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.five_hour",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "resetAt",
+      "measurement": {
+        "kind": "instant",
+        "epochSeconds": 1792167300
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.five_hour",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "quotaUsedPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "20"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.seven_day",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "resetAt",
+      "measurement": {
+        "kind": "instant",
+        "epochSeconds": 1792330800
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.seven_day",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextUsedPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "41"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 82000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextWindowSize",
+      "measurement": {
+        "kind": "tokens",
+        "value": 200000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "requestInputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 9000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "requestOutputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 6100
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheReadTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 70000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheCreationTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 3000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "apiCostUSD",
+      "measurement": {
+        "kind": "usd",
+        "value": "1.9"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "estimated",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "quotaUsedPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "83"
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.five_hour",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "resetAt",
+      "measurement": {
+        "kind": "instant",
+        "epochSeconds": 1792167300
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.five_hour",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "quotaUsedPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "21"
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.seven_day",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "pool",
+      "metricKind": "resetAt",
+      "measurement": {
+        "kind": "instant",
+        "epochSeconds": 1792330800
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "providerPoolKey": "claude-code.rate_limits.seven_day",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextUsedPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "12"
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 24000
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "contextWindowSize",
+      "measurement": {
+        "kind": "tokens",
+        "value": 200000
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "requestInputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 4000
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "requestOutputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 900
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheReadTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 18000
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheCreationTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 2000
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "apiCostUSD",
+      "measurement": {
+        "kind": "usd",
+        "value": "0.12"
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "estimated",
+      "sessionRef": "B"
+    }
+  ],
+  "snapshot": {
+    "claude-code.rate_limits.five_hour": {
+      "state": "approaching.warning",
+      "usedPct": "83",
+      "resetsAt": 1792167300,
+      "usedAbsence": null
+    },
+    "claude-code.rate_limits.seven_day": {
+      "state": "available",
+      "usedPct": "21",
+      "resetsAt": 1792330800,
+      "usedAbsence": null
+    }
+  },
+  "invariants": {
+    "poolUsedPercentNever": [
+      "163",
+      "160",
+      "81.5"
+    ],
+    "observationCount": 12,
+    "dedupeRejections": 0
+  },
+  "ui": {
+    "header": "AI Capacity \u00b7 Updated 1m ago",
+    "aggregate": "1 limit nearing capacity",
+    "plan": {
+      "label": "Plan not set"
+    },
+    "rows": [
+      {
+        "scope": "5-hour",
+        "cardState": "Approaching",
+        "valueState": "Live",
+        "line": "5-hour 83% used \u00b7 Claude Code \u00b7 1m ago",
+        "resetLine": "Resets 5:15 PM",
+        "voiceOver": "5-hour, 83 percent used, approaching limit, Claude Code, 1 minute ago, resets 5:15 PM"
+      },
+      {
+        "scope": "7-day",
+        "cardState": "Available",
+        "valueState": "Live",
+        "line": "7-day 21% used \u00b7 Claude Code \u00b7 1m ago",
+        "resetLine": "Resets Sun 2:40 PM",
+        "voiceOver": "7-day, 21 percent used, Claude Code, 1 minute ago, resets Sunday 2:40 PM"
+      }
+    ],
+    "sessions": [
+      {
+        "sessionRef": "A",
+        "sessionIdIsHMAC": true,
+        "model": "Opus",
+        "contextLine": "Context 41% \u00b7 1m ago"
+      },
+      {
+        "sessionRef": "B",
+        "sessionIdIsHMAC": true,
+        "model": "Opus",
+        "contextLine": "Context 12% \u00b7 1m ago"
+      }
+    ],
+    "forbiddenSubstrings": [
+      "163%",
+      "0%",
+      "Ready",
+      "Available again"
+    ],
+    "demoBadge": true
+  },
+  "events": [
+    {
+      "kind": "windowOpened",
+      "pool": "claude-code.rate_limits.five_hour"
+    },
+    {
+      "kind": "windowOpened",
+      "pool": "claude-code.rate_limits.seven_day"
+    }
+  ],
+  "notifications": [],
+  "notes": "No notification: the pool entered Approaching on its first fresh observation and initialStateAlerts is false (PRD 10). 80 -> 83 is not an upward crossing of any threshold. A variant F08b with initialStateAlerts=true expects exactly one approaching(80) candidate with the dedup key above.",
+  "shim": {
+    "framesDelivered": 2
+  },
+  "pendingSections": {
+    "ui": "1.4",
+    "notifications": "2.1"
+  },
+  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL \u00a75.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
+  "engineNote": "Two sessions, one pool: 80 then 83 shows 83 (never 163). 80 is the first value (no event); 80 to 83 crosses nothing."
+}

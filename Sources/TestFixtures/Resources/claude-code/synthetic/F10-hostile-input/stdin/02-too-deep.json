@@ -1,0 +1,12 @@
+{
+  "session_id": "fixture-f10-deep",
+  "workspace": {
+    "repo": {
+      "a": {
+        "b": {
+          "c": 1
+        }
+      }
+    }
+  }
+}

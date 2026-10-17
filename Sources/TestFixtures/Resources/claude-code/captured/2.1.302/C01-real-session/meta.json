@@ -1,0 +1,57 @@
+{
+  "capture" : {
+    "capturedAt" : "2026-10-16T22:44:08Z",
+    "rawStdinBytes" : 1686,
+    "topLevelKeys" : [
+      "context_window",
+      "cost",
+      "cwd",
+      "effort",
+      "exceeds_200k_tokens",
+      "fast_mode",
+      "model",
+      "output_style",
+      "prompt_cache",
+      "prompt_id",
+      "rate_limits",
+      "scratchpad_dir",
+      "session_id",
+      "session_name",
+      "thinking",
+      "transcript_path",
+      "version",
+      "workspace"
+    ]
+  },
+  "clock" : {
+    "displayTimeZone" : "Europe/London",
+    "renderAt" : "2026-10-16T22:45:08Z",
+    "start" : "2026-10-16T22:44:08Z"
+  },
+  "events" : [
+    {
+      "atOffsetSeconds" : 0,
+      "file" : "stdin/01-real-session.json",
+      "originalCommandStdout" : ""
+    }
+  ],
+  "fixtureSchema" : 1,
+  "history" : [
+    {
+      "by" : "increment 0.6",
+      "date" : "2026-10-16",
+      "why" : "First real capture."
+    }
+  ],
+  "id" : "C01",
+  "origin" : "captured",
+  "providerSchema" : {
+    "docCheckedAt" : "2026-10-16",
+    "docURL" : "https://code.claude.com/docs/en/statusline",
+    "name" : "claude-code-statusline",
+    "version" : "2.1.302"
+  },
+  "scrubbed" : true,
+  "scrubCount" : 7,
+  "slug" : "real-session"
+}

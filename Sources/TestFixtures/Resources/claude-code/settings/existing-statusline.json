@@ -1,0 +1,11 @@
+{
+  "model": "opus",
+  "statusLine": {
+    "type": "command",
+    "command": "~/bin/my-status.sh --color 'auto'",
+    "padding": 2,
+    "refreshInterval": 5,
+    "futureKey": true
+  },
+  "theme": "dark"
+}

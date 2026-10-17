@@ -1,0 +1,70 @@
+{
+  "fixtureSchema": 1,
+  "id": "F10",
+  "slug": "hostile-input",
+  "origin": "synthetic",
+  "scrubbed": false,
+  "scrubCount": 0,
+  "providerSchema": {
+    "name": "claude-code-statusline",
+    "version": "2.1.301",
+    "docURL": "https://code.claude.com/docs/en/statusline",
+    "docCheckedAt": "2026-10-16"
+  },
+  "prdRefs": [
+    "15.16"
+  ],
+  "description": "SYNTHETIC. Hostile input. Wrong types and path-like strings become null and are counted; excessive depth, garbage bytes and 10 MB stdin produce no frame; unknown top-level keys are counted, never copied. The user's status line prints in every case.",
+  "clock": {
+    "start": "2026-10-16T14:00:00Z",
+    "renderAt": "2026-10-16T14:01:00Z",
+    "displayTimeZone": "Europe/London"
+  },
+  "account": {
+    "id": "local-account-1",
+    "label": "This Mac",
+    "plan": {
+      "label": "Plan not set",
+      "evidence": null
+    }
+  },
+  "agent": "present",
+  "events": [
+    {
+      "atOffsetSeconds": 0,
+      "originalCommandStdout": "[Opus] 41% context\n",
+      "file": "stdin/01-wrong-types.json"
+    },
+    {
+      "atOffsetSeconds": 10,
+      "originalCommandStdout": "[Opus] 41% context\n",
+      "file": "stdin/02-too-deep.json"
+    },
+    {
+      "atOffsetSeconds": 20,
+      "originalCommandStdout": "[Opus] 41% context\n",
+      "file": "stdin/03-garbage.bin"
+    },
+    {
+      "atOffsetSeconds": 30,
+      "originalCommandStdout": "[Opus] 41% context\n",
+      "file": null,
+      "generate": {
+        "repeatByte": "x",
+        "count": 10485760
+      }
+    },
+    {
+      "atOffsetSeconds": 40,
+      "originalCommandStdout": "[Opus] 41% context\n",
+      "file": "stdin/05-unknown-keys.json"
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-16",
+      "by": "increment 0.3",
+      "why": "Initial corpus."
+    }
+  ]
+}

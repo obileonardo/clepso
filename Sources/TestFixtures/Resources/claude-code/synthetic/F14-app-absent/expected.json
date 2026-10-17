@@ -1,0 +1,14 @@
+{
+  "expectedSchema": 1,
+  "fixtureId": "F14",
+  "shim": {
+    "framesDelivered": 0
+  },
+  "pendingSections": {
+    "observations": "1.1",
+    "snapshot": "1.2",
+    "events": "1.2",
+    "ui": "1.4",
+    "notifications": "2.1"
+  }
+}
