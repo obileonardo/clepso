@@ -1,0 +1,18 @@
+# PROPOSAL ONLY. To adopt: copy to .github/dependabot.yml.
+# Version updates are weekly and grouped so they arrive as one reviewable pull request per ecosystem.
+# Major versions are not ignored, but each still needs a human review against the changelog before merging.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"   # keeps the commit-SHA pins in workflows current
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "swift"            # Package.swift / Package.resolved (GRDB)
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
