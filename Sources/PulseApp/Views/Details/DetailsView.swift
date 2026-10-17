@@ -233,8 +233,9 @@ struct StatsGate<Content: View>: View {
                                 Text(Copy.Stats.through(StatsFormat.day(through))).font(theme.font(.supporting))
                                     .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
                                     .padding(.top, theme.spacing(.spacious))
+                                    .frame(maxWidth: PageMetrics.column, alignment: .leading)       // the rule spans the column
                                     .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
-                                    .frame(maxWidth: PageMetrics.column, alignment: .leading).frame(maxWidth: .infinity)   // in the page column
+                                    .frame(maxWidth: .infinity)
                             }
                         }
                     }

@@ -31,6 +31,8 @@ enum Copy {
         static func doneConnected(_ time: String) -> String { "Connected · Claude Code · observed \(time)" }
         static let doneWaiting = "Installed · waiting for first reading"
         static let doneOpen = "Open menu bar"
+        static let planSkip = "Skip for now"
+        static func step(_ n: Int, of total: Int) -> String { "Step \(n) of \(total)" }
     }
 
     enum Explainer {
@@ -290,6 +292,8 @@ enum Copy {
         static let current = "Session", detailsTitle = "Details", detailsSub = "Everything Claude Code's status line reports about it."
         static let recentTitle = "Recent sessions", recentSub = "Choose one to see it above."
         static let byModelTitle = "By model"
+        /// 1.15: the by-model table's column heads.
+        static let colModel = "Model", colSessions = "Sessions", colCost = "Cost est.", colLines = "Lines +", colAPI = "API time", colShare = "Share of cost"
         static let timeSplit = "TIME WAITING ON THE MODEL"
         static func apiShare(_ pct: Int) -> String { "\(pct)% of the session's wall time" }
     }
@@ -429,7 +433,28 @@ enum Copy {
             default: ""
             }
         }
-        static let appearance = "Appearance", appearanceSub = "Dark is the original Phosphor look; System follows macOS"
+        static let appearance = "Appearance", appearanceSub = "Light, dark, or follow macOS"
+        /// 1.15: colour themes. Names and one-line intents; every theme has a light and a dark palette.
+        static let theme = "Theme", themeSub = "The colours of the menu bar panel and this window"
+        static func themeName(_ id: String) -> String {
+            switch id {
+            case "amber": "Amber"
+            case "cobalt": "Cobalt"
+            case "orchid": "Orchid"
+            case "graphite": "Graphite"
+            default: "Phosphor"
+            }
+        }
+        static func themeIntent(_ id: String) -> String {
+            switch id {
+            case "amber": "Warm amber CRT"
+            case "cobalt": "Cool ice blue"
+            case "orchid": "Violet and orchid"
+            case "graphite": "Monochrome ink"
+            default: "The original green"
+            }
+        }
+        static let selected = "Selected"
         static let system = "System", light = "Light", dark = "Dark"
         static let loginSub = "Start Pulse when you log in"
         static let percentSub = "The highest limit's % next to the icon"
@@ -442,6 +467,7 @@ enum Copy {
     /// Increment 1.9: agents per task, from Claude Code hooks (counts only).
     enum Agents {
         static let lastTaskShort = "Agents, last task"
+        static let statShort = "Agents"
         static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom", unknown = "Unknown"
         static let title = "AGENTS PER TASK", titleShort = "Agents per task"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
@@ -477,6 +503,10 @@ enum Copy {
         static func byReset(_ pct: String) -> String { "Estimate: about \(pct) used by the reset" }
         static let notRising = "Estimate: not rising right now"
         static let notEnough = "Estimate: needs a few more readings"
+        /// 1.15: the same estimates in a card's one-line form; still always marked as an estimate.
+        static func reachesShort(_ time: String) -> String { "Est. 100% by \(time)" }
+        static func byResetShort(_ pct: String) -> String { "Est. \(pct) at reset" }
+        static let notRisingShort = "Est. not rising"
         static let atLimit = "At the limit"
     }
 
@@ -484,6 +514,12 @@ enum Copy {
         static let openUsage = "Open usage in Claude"
         static let changePlan = "Change plan…"
         static func sessions(_ n: Int) -> String { n == 1 ? "1 Claude Code session" : "\(n) Claude Code sessions" }
+        /// 1.15: the detail page's compact status strip and action bar.
+        static func sessionsShort(_ n: Int) -> String { n == 1 ? "1 session" : "\(n) sessions" }
+        static let openUsageShort = "Usage"
+        static let coverage = "5-hour & 7-day only"
+        static func unreadShort(_ n: Int) -> String { n == 1 ? "1 limit not read" : "\(n) limits not read" }
+        static let moreInfo = "More about which limits Pulse reads"
         /// DECISIONS C7: say what the source covers, so "available" is never read as "every limit".
         static let otherLimits = "Claude Code's status line reports the 5-hour and 7-day limits only. Others, such as a weekly limit for one model, appear in /\u{2060}usage in Claude Code."          // word joiner: never break "/usage" across lines
         static func unreadLimits(_ n: Int) -> String {
@@ -545,10 +581,13 @@ enum Copy {
             "\(h.accepted) received · \(h.malformed) malformed · \(h.oversize) too large · \(h.rateLimited) over the rate limit · \(h.otherUser) from another user"
         }
         static let deleteAll = "Delete all \(product) data…"
+        /// 1.15: the same counts as figures.
+        static let received = "Received", malformed = "Malformed", tooLarge = "Too large", rateLimited = "Rate-limited", otherUser = "Other user"
     }
 
     enum Demo {
         static let header = "Demo data · not your account"
         static let exit = "Stop showing demo data"
+        static let strip = "Sample data · not your account", exitShort = "Exit demo"
     }
 }

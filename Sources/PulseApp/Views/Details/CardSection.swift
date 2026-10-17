@@ -20,8 +20,9 @@ struct CardSection: View {
                     VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
                         PlayerCardView(card: card, topModelID: model.statsSummary(.allTime)?.favorite?.model)
                         HStack(spacing: theme.spacing(.standard)) {
-                            Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
+                            // 1.15: the primary action leads, as in every action row.
                             Button(Copy.Card.save) { save(card) }.buttonStyle(PixelButtonStyle(prominent: true))
+                            Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
                             if let image = image(card) {
                                 ShareLink(item: Image(nsImage: image), preview: SharePreview(card.name.isEmpty ? Product.name : card.name, image: Image(nsImage: image))) {
                                     Text(Copy.Card.share)

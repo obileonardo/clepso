@@ -7,34 +7,60 @@ import SwiftUI
 public struct PulseScenes: Scene {
     public static let onboardingID = "onboarding"
     public static let detailsID = "details"
-    /// Native controls (toggles, pickers) take the Phosphor accent.
-    static let accent = Theme.phosphor.color(.accent, .dark)
     let model: AppModel
 
     public init(model: AppModel) { self.model = model }
 
     public var body: some Scene {
         MenuBarExtra {
-            PopoverView(model: model)
-                .environment(\.theme, .phosphor)
-                .preferredColorScheme(model.appearance.colorScheme)
+            PopoverView(model: model).themed(model)
         } label: {
             MenuBarLabel(model: model)
         }
         .menuBarExtraStyle(.window)
 
         Window(Product.name, id: Self.detailsID) {
-            DetailsView(model: model).environment(\.theme, .phosphor).preferredColorScheme(model.appearance.colorScheme)
+            DetailsView(model: model).themed(model)
                 .onOpenURL { url in Task { await model.handleOpenURL(url) } }      // the sign-in link returns here (ROADMAP 2.0)
         }
         .handlesExternalEvents(matching: ["auth-callback"])
         .defaultSize(width: DetailsMetrics.defaultWidth, height: DetailsMetrics.minHeight + 160)
 
         Window("Welcome to \(Product.name)", id: Self.onboardingID) {
-            OnboardingView(model: model).environment(\.theme, .phosphor).preferredColorScheme(model.appearance.colorScheme).tint(PulseScenes.accent)
+            OnboardingView(model: model).themed(model)
         }
         .windowResizability(.contentSize)
     }
+}
+
+/// Every window's root (1.15): the chosen colour theme, the chosen appearance, and native controls (pickers,
+/// toggles, focus rings) tinted with that theme's accent for the scheme actually shown.
+struct ThemedRoot: ViewModifier {
+    let model: AppModel
+    func body(content: Content) -> some View {
+        content.modifier(Tint(theme: model.theme)).environment(\.theme, model.theme)
+            .modifier(Scheme(forced: model.appearance.colorScheme))
+            .preferredColorScheme(model.appearance.colorScheme)
+    }
+
+    /// `preferredColorScheme` never reaches the menu bar panel (it follows the menu bar), so a chosen Light or Dark is
+    /// also set in the environment, which is what every token and native control reads.
+    struct Scheme: ViewModifier {
+        let forced: ColorScheme?
+        func body(content: Content) -> some View {
+            if let forced { content.environment(\.colorScheme, forced) } else { content }
+        }
+    }
+
+    struct Tint: ViewModifier {
+        let theme: Theme
+        @Environment(\.colorScheme) private var scheme
+        func body(content: Content) -> some View { content.tint(theme.color(.accent, scheme)) }
+    }
+}
+
+extension View {
+    func themed(_ model: AppModel) -> some View { modifier(ThemedRoot(model: model)) }
 }
 
 /// The status item: shape, optional text, and the aggregate line as its accessibility label (AT-07).

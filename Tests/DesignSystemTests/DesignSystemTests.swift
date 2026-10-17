@@ -72,6 +72,36 @@ struct ThemeTests {
         }
     }
 
+    @Test("1.15 colour themes: every text token reaches 4.5:1 on every surface, in light and dark, for every theme")
+    func themeContrast() {
+        #expect(Theme.selectable.map(\.name) == ["phosphor", "amber", "cobalt", "orchid", "graphite"])
+        for theme in Theme.selectable {
+            for scheme in [ColorScheme.light, .dark] {
+                for text in ColorToken.textTokens {
+                    for surface in ColorToken.surfaces {
+                        let ratio = RGB.contrast(theme.rgb(text, scheme), theme.rgb(surface, scheme))
+                        #expect(ratio >= 4.5, "\(theme.name) \(scheme): \(text) on \(surface): \(ratio)")
+                    }
+                }
+                // Text on an accent fill (chips, selected tabs, prominent buttons, the DEMO tag) uses a surface colour.
+                for onAccent in [ColorToken.background, .surfaceElevated] {
+                    let ratio = RGB.contrast(theme.rgb(onAccent, scheme), theme.rgb(.accent, scheme))
+                    #expect(ratio >= 4.5, "\(theme.name) \(scheme): \(onAccent) on accent: \(ratio)")
+                }
+            }
+        }
+    }
+
+    @Test("Themes are found by name; an unknown name falls back to Phosphor, and every theme keeps the pixel type")
+    func themeLookup() {
+        for theme in Theme.selectable {
+            #expect(Theme.named(theme.name).name == theme.name)
+            #expect(theme.typeface == .pixel)
+            #expect(theme.spacingValues == Theme.phosphor.spacingValues)
+        }
+        #expect(Theme.named("no-such-theme").name == "phosphor")
+    }
+
     @Test("The bundled pixel faces register and resolve to their own families, not a fallback")
     func pixelFonts() {
         #expect(PixelFonts.ensureRegistered())

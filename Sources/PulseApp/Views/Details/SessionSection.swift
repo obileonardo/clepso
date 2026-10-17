@@ -80,7 +80,7 @@ struct SessionSection: View {
                 Figure(value: s.cacheHitPct.map(Formatting.percent) ?? "—", caption: Copy.Details.cacheHits)
                 Figure(value: s.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", caption: Copy.Details.apiTime)
             }
-            Text(Copy.Details.costNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            PixelLabel(Copy.Details.costNote, glyph: .info).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -96,22 +96,39 @@ struct SessionSection: View {
         }
     }
 
+    /// 1.15: one aligned table instead of a sentence per model: figures in columns, the share as a meter.
     func byModel(_ groups: [ModelGroup]) -> some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            ForEach(groups) { g in
-                VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                    HStack {
-                        Text(g.name).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                        Spacer()
-                        Text(Copy.Details.groupLine(sessions: g.sessions, cost: money(g.costUSD), lines: Formatting.compact(g.linesAdded),
-                                                    api: Formatting.duration(milliseconds: g.apiMs), share: Int((g.share * 100).rounded())))
-                            .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    }
-                    PixelBar(fraction: g.share, role: .accent, pattern: .solid, segments: 40)
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: theme.spacing(.spacious), verticalSpacing: theme.spacing(.standard)) {
+            GridRow {
+                ForEach([Copy.SessionPage.colModel, Copy.SessionPage.colSessions, Copy.SessionPage.colCost, Copy.SessionPage.colLines,
+                         Copy.SessionPage.colAPI, Copy.SessionPage.colShare], id: \.self) { head in
+                    Text(head.uppercased()).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
-                .accessibilityElement(children: .combine)
+            }
+            .accessibilityHidden(true)
+            ForEach(groups) { g in
+                GridRow {
+                    Text(g.name).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    figure("\(g.sessions)")
+                    figure(money(g.costUSD))
+                    figure("+" + Formatting.compact(g.linesAdded))
+                    figure(Formatting.duration(milliseconds: g.apiMs))
+                    HStack(spacing: theme.spacing(.standard)) {
+                        PixelBar(fraction: g.share, role: .accent, pattern: .solid, segments: 12)
+                        Text("\(Int((g.share * 100).rounded()))%").font(theme.font(.label)).monospacedDigit()
+                            .foregroundStyle(theme.color(.textPrimary, scheme)).fixedSize()
+                    }
+                    .gridColumnAlignment(.leading)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(g.name + ": " + Copy.Details.groupLine(sessions: g.sessions, cost: money(g.costUSD), lines: Formatting.compact(g.linesAdded),
+                                                                         api: Formatting.duration(milliseconds: g.apiMs), share: Int((g.share * 100).rounded())))
             }
         }
+    }
+
+    func figure(_ text: String) -> some View {
+        Text(text).font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme)).lineLimit(1).fixedSize()
     }
 
     func contextLine(_ s: SessionDetail) -> String {

@@ -120,13 +120,21 @@ public struct PixelPanel<Content: View>: View {
 /// Bevelled pixel button: a lit top-left edge and a shaded bottom-right edge that swap when pressed.
 public struct PixelButtonStyle: ButtonStyle {
     public var prominent: Bool
-    public init(prominent: Bool = false) { self.prominent = prominent }
+    /// 1.15: an irreversible action (Delete All): the blocked colour as the face, so it never looks like the safe choice.
+    public var destructive: Bool
+    public init(prominent: Bool = false, destructive: Bool = false) {
+        self.prominent = prominent
+        self.destructive = destructive
+    }
 
-    public func makeBody(configuration: Configuration) -> some View { PixelButtonBody(configuration: configuration, prominent: prominent) }
+    public func makeBody(configuration: Configuration) -> some View {
+        PixelButtonBody(configuration: configuration, prominent: prominent, destructive: destructive)
+    }
 
     struct PixelButtonBody: View {
         let configuration: ButtonStyleConfiguration
         let prominent: Bool
+        let destructive: Bool
         @Environment(\.theme) private var theme
         @Environment(\.colorScheme) private var scheme
         @Environment(\.isEnabled) private var enabled
@@ -134,11 +142,12 @@ public struct PixelButtonStyle: ButtonStyle {
         var body: some View {
             let px = theme.stroke(.hairline) * 2
             let pressed = configuration.isPressed
-            let face = prominent ? theme.color(.accent, scheme) : theme.color(.surfaceMuted, scheme)
+            let filled = prominent || destructive
+            let face = destructive ? theme.color(.statusBlocked, scheme) : prominent ? theme.color(.accent, scheme) : theme.color(.surfaceMuted, scheme)
             configuration.label
                 .font(theme.font(.title))
                 .textCase(.uppercase)
-                .foregroundStyle(prominent ? theme.color(.background, scheme) : theme.color(.textPrimary, scheme))
+                .foregroundStyle(filled ? theme.color(.background, scheme) : theme.color(.textPrimary, scheme))
                 .padding(.horizontal, theme.spacing(.windowPadding))
                 .padding(.vertical, theme.spacing(.compact) + px)
                 .background(PixelRect(step: px).fill(face))

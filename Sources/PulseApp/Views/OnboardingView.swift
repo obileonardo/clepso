@@ -17,10 +17,13 @@ public struct OnboardingView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+            progress
             content
         }
         .padding(theme.spacing(.spacious) + theme.spacing(.standard))
         .frame(width: OnboardingMetrics.width, alignment: .topLeading)
+        .background(theme.color(.background, scheme))
+        .overlay(PixelScanlines())
         .environment(\.isFixtureData, model.snapshot.isDemo)
         .task { model.refreshPreview() }
     }
@@ -30,20 +33,19 @@ public struct OnboardingView: View {
         case .welcome:
             title(Copy.Onboarding.welcomeTitle)
             body(Copy.Onboarding.welcomeBody)
-            primary(Copy.Onboarding.continue) { go(.plan) }
+            footer { primary(Copy.Onboarding.continue) { go(.plan) } }
 
         case .plan:
             title(Copy.Onboarding.planTitle)
-            PlanPicker(model: model) { go(.provider) }
-            secondary(Copy.Onboarding.continue) { go(.provider) }
+            PlanPicker(model: model, onSaved: { go(.provider) }, onSkip: { go(.provider) })
 
         case .provider:
             if model.preview.claudeDetected {
                 title(Copy.Onboarding.providerDetected(model.snapshot.provider?.sourceVersion))
-                primary(Copy.Onboarding.continue) { go(model.preview.installed ? .firstReading : .consent) }
+                footer { primary(Copy.Onboarding.continue) { go(model.preview.installed ? .firstReading : .consent) } }
             } else {
                 body(Copy.Onboarding.providerNotDetected)
-                secondary(Copy.Onboarding.providerManualOnly) { go(.done) }
+                footer { secondary(Copy.Onboarding.providerManualOnly) { go(.done) } }
             }
 
         case .consent:
@@ -52,13 +54,11 @@ public struct OnboardingView: View {
         case .firstReading:
             if let at = model.firstRealReadingAt {
                 title(Copy.Onboarding.firstReadingReceived(clock(at)))
-                primary(Copy.Onboarding.continue) { go(.alerts) }
+                footer { primary(Copy.Onboarding.continue) { go(.alerts) } }
             } else {
                 body(Copy.Onboarding.firstReadingWaiting)
-                HStack {
-                    Button(Copy.Onboarding.firstReadingDemo) { Task { await model.setDemo(true) } }
-                    Spacer()
-                    Button(Copy.Onboarding.continue) { go(.done) }
+                footer(leading: { quiet(Copy.Onboarding.firstReadingDemo) { Task { await model.setDemo(true) } } }) {
+                    secondary(Copy.Onboarding.continue) { go(.done) }
                 }
             }
 
@@ -67,9 +67,9 @@ public struct OnboardingView: View {
             if model.firstRealReadingAt != nil {
                 title(Copy.Onboarding.alertsTitle)
                 body(Copy.Onboarding.alertsBody)
-                HStack(spacing: theme.spacing(.standard)) {
-                    Button(Copy.Onboarding.alertsEnable) { Task { await model.requestNotifications(); go(.done) } }
+                footer {
                     Button(Copy.Onboarding.alertsSkip) { go(.done) }      // equal weight: both bordered, neither default
+                    Button(Copy.Onboarding.alertsEnable) { Task { await model.requestNotifications(); go(.done) } }
                 }
                 .buttonStyle(PixelButtonStyle())
             } else {
@@ -78,11 +78,17 @@ public struct OnboardingView: View {
 
         case .done:
             title(doneLine)
-            Toggle(Copy.Settings.launchAtLogin, isOn: Binding(get: { model.loginItemEnabled }, set: { on in Task { await model.setLoginItem(on) } }))
-            primary(Copy.Onboarding.doneOpen) {
-                Task {
-                    await model.completeOnboarding()
-                    dismissWindow(id: PulseScenes.onboardingID)
+            Toggle(isOn: Binding(get: { model.loginItemEnabled }, set: { on in Task { await model.setLoginItem(on) } })) {
+                Text(Copy.Settings.launchAtLogin).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .toggleStyle(PixelToggleStyle())
+            footer {
+                primary(Copy.Onboarding.doneOpen) {
+                    Task {
+                        await model.completeOnboarding()
+                        dismissWindow(id: PulseScenes.onboardingID)
+                    }
                 }
             }
         }
@@ -110,14 +116,15 @@ public struct OnboardingView: View {
             detail(Copy.Explainer.backup(preview.backupsDir))
             if let existing { detail(Copy.Explainer.existingCommand(existing)) }
         }
+        .padding(theme.spacing(.windowPadding))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
         if let refusal = preview.refusal {
             Banner(text: Copy.Explainer.installFailed(AppModel.reason(refusal)), action: nil) {}
         } else if let installError {
             Banner(text: Copy.Explainer.installFailed(installError), action: nil) {}
         }
-        HStack(spacing: theme.spacing(.standard)) {
-            Button(Copy.Explainer.cancel) { go(.done) }.buttonStyle(PixelButtonStyle())
-            Spacer()
+        footer(leading: { Button(Copy.Explainer.cancel) { go(.done) }.buttonStyle(PixelButtonStyle()) }) {
             Button(existing == nil ? Copy.Explainer.ctaNoExisting : Copy.Explainer.ctaExisting) {
                 installing = true
                 Task {
@@ -136,6 +143,39 @@ public struct OnboardingView: View {
     // MARK: - Pieces
 
     func go(_ step: AppModel.OnboardingStep) { model.onboardingStep = step }
+
+    /// Where you are: one lit segment per step done, and the step in words.
+    var progress: some View {
+        let steps = AppModel.OnboardingStep.allCases.count
+        let current = model.onboardingStep.rawValue
+        return HStack(spacing: theme.spacing(.standard)) {
+            HStack(spacing: theme.spacing(.compact)) {
+                ForEach(0..<steps, id: \.self) { i in
+                    Rectangle().fill(theme.color(i <= current ? .accent : .surfaceMuted, scheme))
+                        .frame(width: theme.spacing(.spacious), height: theme.spacing(.compact))
+                }
+            }
+            Text(Copy.Onboarding.step(current + 1, of: steps).uppercased()).font(theme.font(.micro)).tracking(1)
+                .foregroundStyle(theme.color(.textSecondary, scheme))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Copy.Onboarding.step(current + 1, of: steps))
+    }
+
+    /// The step's buttons on one rule: the way out or aside on the left, the way forward on the right.
+    func footer(@ViewBuilder leading: () -> some View = { EmptyView() }, @ViewBuilder trailing: () -> some View) -> some View {
+        HStack(spacing: theme.spacing(.standard)) {
+            leading()
+            Spacer(minLength: theme.spacing(.standard))
+            trailing()
+        }
+        .padding(.top, theme.spacing(.standard) + theme.spacing(.compact))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
+    }
+
+    func quiet(_ label: String, action: @escaping () -> Void) -> some View {
+        Button(label, action: action).buttonStyle(PixelQuietButtonStyle())
+    }
 
     func clock(_ date: Date) -> String { Formatting.clock(date, zone: model.environment.timeZone, locale: model.environment.locale) }
 
