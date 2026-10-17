@@ -46,7 +46,7 @@ let package = Package(
         // The bundled plan catalog seed (PLAN_CATALOG.md); signed downloads arrive in 3.1.
         .target(name: "SubscriptionCatalog", resources: [.copy("Resources/plan-catalog.v1.json")]),
         // Composition root, view models and screens (ARCHITECTURE §2). The Xcode app target is a thin @main over this.
-        .target(name: "PulseApp", dependencies: ["DesignSystem", "Domain", "Storage", "UsageEngine", "ClaudeCodeAdapter",
+        .target(name: "PulseApp", dependencies: ["DesignSystem", "Domain", "Storage", "UsageEngine", "ClaudeCodeAdapter", "CodexAdapter",
                                                  "SubscriptionCatalog", "ShimProtocol", "Sync"]),
         // Pulse accounts (ROADMAP 2.0): the only module allowed to make network calls.
         .target(name: "Sync"),

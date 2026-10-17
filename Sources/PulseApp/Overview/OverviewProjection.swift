@@ -27,8 +27,11 @@ public enum OverviewProjection {
         "rate_limits.\(window(of: poolKey)).used_percentage"
     }
 
+    /// The window part of any agent's pool key: `claude-code.rate_limits.five_hour` and `codex.rate_limits.five_hour`
+    /// are both `five_hour`.
     static func window(of poolKey: String) -> String {
-        poolKey.hasPrefix("claude-code.rate_limits.") ? String(poolKey.dropFirst("claude-code.rate_limits.".count)) : poolKey
+        guard let range = poolKey.range(of: ".rate_limits.") else { return poolKey }
+        return String(poolKey[range.upperBound...])
     }
 
     public static func make(_ input: OverviewInput, now: Date, staleAfter: TimeInterval, zone: TimeZone, locale: Locale) -> OverviewSnapshot {
@@ -63,7 +66,29 @@ public enum OverviewProjection {
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
         return OverviewSnapshot(now: now, isDemo: input.isDemo, icon: icon, iconStaleMark: staleMark, iconText: text,
                                 aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty,
-                                agents: input.agentsTracking ? agents(input.agentTasks, now: now) : nil)
+                                agents: input.agentsTracking ? agents(input.agentTasks, now: now) : nil,
+                                codex: input.codexEnabled && !input.isDemo ? codex(input, now: now) : nil)
+    }
+
+    static let codexSource = SourceDescriptor(evidence: .officialLocalTelemetry, displayName: "Codex", version: nil)
+
+    /// Codex's section: 5-hour first, then weekly, then any other window; nil until Codex has written a reading.
+    static func codex(_ input: OverviewInput, now: Date) -> AgentLimitsSection? {
+        guard !input.codexPools.isEmpty else { return nil }
+        let order = ["five_hour", "seven_day"]
+        let ordered = input.codexPools.sorted {
+            (order.firstIndex(of: window(of: $0.poolKey)) ?? order.count, $0.poolKey) < (order.firstIndex(of: window(of: $1.poolKey)) ?? order.count, $1.poolKey)
+        }
+        let rows = ordered.map { state in
+            PoolRow(poolKey: state.poolKey, providerField: "rate_limits.\(window(of: state.poolKey) == "five_hour" ? "primary" : "secondary").used_percent",
+                    model: card(state, source: codexSource, connection: .connected, now: now),
+                    receivedAt: state.latest?.receivedAt, recent: input.recent[state.poolKey] ?? [],
+                    history: input.history[state.poolKey] ?? [],
+                    pace: PaceEstimate.estimate(input.history[state.poolKey] ?? [], windowOpenedAt: state.window?.openedAt,
+                                                resetsAt: state.resetsAt, now: now, lookback: paceLookback(state.poolKey)))
+        }
+        return AgentLimitsSection(name: "Codex", plan: input.codexPlan, model: input.codexModel, pools: rows,
+                                  lastSeen: input.codexPools.compactMap(\.lastSeen).max())
     }
 
     static let agentTypeOrder = ["Explore", "Plan", "general-purpose", "claude-code-guide", "statusline-setup", "custom", "unknown"]

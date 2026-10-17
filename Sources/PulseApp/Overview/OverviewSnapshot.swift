@@ -21,6 +21,8 @@ public struct OverviewSnapshot: Sendable {
     public let empty: Empty?
     /// Agents per task (increment 1.9); nil while the hooks aren't installed.
     public let agents: AgentsSummary?
+    /// Codex's limits (increment 3.4); nil while reading Codex is off.
+    public var codex: AgentLimitsSection? = nil
 
     /// AT-07: the product name, then the aggregate line.
     public var iconAccessibilityLabel: String { "\(Product.name): \(aggregateLine)" }
@@ -119,6 +121,11 @@ public struct OverviewInput: Sendable {
     public var history: [String: [UsagePoint]] = [:]
     public var agentsTracking = false
     public var agentTasks: [Store.AgentTask] = []
+    /// Increment 3.4: Codex's pools, kept apart from Claude Code's; plan and model from its latest reading.
+    public var codexEnabled = false
+    public var codexPools: [PoolState] = []
+    public var codexPlan: String?
+    public var codexModel: String?
     public init() {}
 }
 
@@ -145,4 +152,13 @@ public struct AgentsSummary: Sendable, Equatable {
     public let totalAgents: Int
     public let mostInOneTask: Int
     public var averagePerTask: Double { tasks > 0 ? Double(totalAgents) / Double(tasks) : 0 }
+}
+
+/// Another agent's limits beside Claude Code's (increment 3.4: Codex), drawn with the same pool rows.
+public struct AgentLimitsSection: Sendable {
+    public let name: String
+    public let plan: String?
+    public let model: String?
+    public let pools: [PoolRow]
+    public let lastSeen: Date?
 }

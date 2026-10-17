@@ -1,4 +1,5 @@
 import ClaudeCodeAdapter
+import struct CodexAdapter.CodexReading
 import DesignSystem
 import enum Domain.EvidenceKind
 import enum Domain.Freshness
@@ -26,7 +27,7 @@ public final class AppModel {
     public enum ModelsView: String, Hashable, Sendable { case chart, arena }
 
     public private(set) var snapshot: OverviewSnapshot
-    public private(set) var problem: Problem?
+    public internal(set) var problem: Problem?
     public private(set) var plan: Store.PlanIdentity?
     public private(set) var preview: SettingsInstaller.Preview
     public private(set) var notificationStatus: NotificationAuthorization = .notDetermined
@@ -40,6 +41,10 @@ public final class AppModel {
     public private(set) var forwardCost = true          // founder decision A5: on by default
     /// Increment 1.7d: reading Claude Code's own statistics file is a second source, so it is off until the user agrees.
     public private(set) var statsEnabled = false
+    /// Increment 3.4: read Codex's session files (opt-in) and the latest reading's plan and model.
+    public internal(set) var codexEnabled = false
+    var codexLatest: CodexReading?
+    var codexConnection: UUID?
     /// ROADMAP 2.0: the Pulse account on this Mac.
     public enum AccountState: Equatable, Sendable {
         case signedOut
@@ -88,7 +93,7 @@ public final class AppModel {
     public private(set) var socketHealth = IngestSocket.Health()
 
     public let environment: AppEnvironment
-    private var store: Store?
+    private(set) var store: Store?
     private var socket: IngestSocket?
     private var ingestor: Ingestor?
     private var loggedHealth = IngestSocket.Health()
@@ -123,6 +128,7 @@ public final class AppModel {
             forwardCost = try await store.preference(Pref.forwardCost, as: Bool.self) ?? true
             firstRealReadingAt = try await store.preference(Pref.firstReading, as: Date.self)
             statsEnabled = try await store.preference(Pref.readStats, as: Bool.self) ?? false
+            codexEnabled = try await store.preference(Pref.readCodex, as: Bool.self) ?? false
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
@@ -188,6 +194,7 @@ public final class AppModel {
     }
 
     private func tick() async {
+        await pollCodex()
         _ = try? await store?.tick(now: environment.clock.now())
         await purgeIfDue()
         await syncIfDue()
@@ -264,6 +271,9 @@ public final class AppModel {
             return
         }
         input.showPercent = showPercent
+        input.codexEnabled = codexEnabled
+        input.codexPlan = codexLatest?.plan
+        input.codexModel = codexLatest?.model
         let snapshot = OverviewProjection.make(input, now: now, staleAfter: Freshness.localTelemetryTTL,
                                                zone: environment.timeZone, locale: environment.locale)
         guard mine == generation else { return }         // a newer refresh finished first
@@ -287,6 +297,9 @@ public final class AppModel {
         input.sourceVersion = try await store.latestSourceVersion()
         input.lastEventAt = try await store.lastEventAt()
         input.agentTasks = try await store.agentTasks(limit: 500)
+        // Increment 3.4: other agents' pools never mix into Claude Code's section.
+        input.codexPools = input.pools.filter { $0.poolKey.hasPrefix("codex.") }
+        input.pools = input.pools.filter { !$0.poolKey.hasPrefix("codex.") }
         return input
     }
 
@@ -776,6 +789,9 @@ public final class AppModel {
         forwardCost = true
         statsEnabled = false
         stats = nil
+        codexEnabled = false
+        codexLatest = nil
+        codexConnection = nil
         lastSync = nil
         accountMessage = nil
         appearance = .dark
@@ -804,6 +820,7 @@ public final class AppModel {
         static let goals = "goals.v1"
         static let lastSync = "account.lastSync"
         static let appearance = "general.appearance"
+        static let readCodex = "codex.readSessionFiles"
     }
 }
 
