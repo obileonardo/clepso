@@ -80,7 +80,8 @@ public struct DetailsView: View {
 }
 
 enum DetailsMetrics {
-    static let minWidth: CGFloat = 960
+    static let minWidth: CGFloat = 1100                 // 1.12: room for a side inspector beside a full year
+    static let defaultWidth: CGFloat = 1320
     static let minHeight: CGFloat = 660
     static let sidebarWidth: CGFloat = 200
     static let sideColumn: CGFloat = 260

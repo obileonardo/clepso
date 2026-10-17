@@ -28,7 +28,7 @@ public struct PulseScenes: Scene {
                 .onOpenURL { url in Task { await model.handleOpenURL(url) } }      // the sign-in link returns here (ROADMAP 2.0)
         }
         .handlesExternalEvents(matching: ["auth-callback"])
-        .defaultSize(width: DetailsMetrics.minWidth, height: DetailsMetrics.minHeight + 120)
+        .defaultSize(width: DetailsMetrics.defaultWidth, height: DetailsMetrics.minHeight + 160)
 
         Window("Welcome to \(Product.name)", id: Self.onboardingID) {
             OnboardingView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark).tint(PulseScenes.accent)

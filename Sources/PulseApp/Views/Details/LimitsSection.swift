@@ -3,7 +3,8 @@ import Domain
 import SwiftUI
 import UsageEngine
 
-/// Every limit: figures on the left, its window drawn on the right (increment 1.8d).
+/// Limits (1.8d, reworked in 1.12 after the founder's Remote, StackAI and Sprig picks): the plan and a ring gauge per
+/// limit on top, every limit as a meter row, then each limit's window drawn below.
 struct LimitsSection: View {
     let model: AppModel
     let snapshot: OverviewSnapshot
@@ -13,13 +14,31 @@ struct LimitsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
             if let provider = snapshot.provider, !provider.pools.isEmpty {
+                HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
+                    PixelPanel { planCard(provider) }.frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 2).frame(maxHeight: .infinity, alignment: .top)
+                    ForEach(provider.pools) { row in
+                        PixelPanel { LimitGauge(row: row, now: snapshot.now, model: model) }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                PixelPanel {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Copy.LimitsPage.allLimits).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                            .padding(.bottom, theme.spacing(.standard))
+                        ForEach(provider.pools) { row in meterRow(row) }
+                    }
+                }
                 ForEach(provider.pools) { row in
                     PixelPanel {
-                        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
-                            PixelLimitRow(model: row.model, now: snapshot.now, pace: PaceText.make(row.pace, model: model))
-                                .frame(width: DetailsMetrics.sideColumn, alignment: .topLeading)
+                        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(Copy.LimitsPage.window(row.model.scope)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                                Spacer()
+                                if let pace = PaceText.make(row.pace, model: model) {
+                                    Text(pace).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                                }
+                            }
                             WindowChart(row: row, now: snapshot.now, zone: model.environment.timeZone, locale: model.environment.locale)
-                                .frame(maxWidth: .infinity)
                         }
                     }
                 }
@@ -30,6 +49,118 @@ struct LimitsSection: View {
                 Text(Copy.Details.noLimits).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
             }
         }
+    }
+
+    /// Remote's "Plan details": plan, source, connection and freshness as label/value rows.
+    func planCard(_ provider: ProviderSection) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(Copy.LimitsPage.plan).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).padding(.bottom, theme.spacing(.standard))
+            fact(Copy.LimitsPage.planName, provider.planName ?? Copy.Account.planNotSet)
+            fact(Copy.LimitsPage.source, provider.identity.wordmark + (provider.sourceVersion.map { " " + $0 } ?? ""))
+            fact(Copy.LimitsPage.lastReading, provider.lastSeen.map { Formatting.age(of: $0, now: snapshot.now, zone: model.environment.timeZone,
+                                                                                    locale: model.environment.locale) } ?? "—")
+            fact(Copy.LimitsPage.sessions, "\(provider.sessionCount)")
+        }
+    }
+
+    func fact(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            Spacer()
+            Text(value).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme)).lineLimit(1).truncationMode(.middle)
+        }
+        .padding(.vertical, theme.spacing(.standard))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// StackAI's row: name and a sentence on the left, a segmented meter with % and reset on the right.
+    func meterRow(_ row: PoolRow) -> some View {
+        let pct = row.model.used.value.map { NSDecimalNumber(decimal: $0).doubleValue }
+        return HStack(alignment: .center, spacing: theme.spacing(.spacious)) {
+            VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
+                Text(Copy.LimitsPage.usage(row.model.scope)).font(theme.font(.label).weight(.semibold)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Text(StatusStyles.of(row.model.card).label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+            .frame(width: DetailsMetrics.sideColumn, alignment: .leading)
+            VStack(alignment: .trailing, spacing: theme.spacing(.compact)) {
+                PixelBar(fraction: pct.map { $0 / 100 }, role: StatusStyles.of(row.model.card).role, pattern: pct == nil ? .outline : .solid, segments: 40)
+                HStack {
+                    Text(pct.map { "\(Int($0.rounded()))% used" } ?? Copy.LimitsPage.notReported).font(theme.font(.supporting)).monospacedDigit()
+                    Spacer()
+                    if let reset = row.model.resetsAt.value {
+                        Text(Copy.Limits.resets(Formatting.resetTime(reset, now: snapshot.now, zone: model.environment.timeZone, locale: model.environment.locale)))
+                            .font(theme.font(.supporting))
+                    }
+                }
+                .foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+        }
+        .padding(.vertical, theme.spacing(.standard) + theme.spacing(.compact))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Remote's ring gauge, in pixels: how much of a limit is left, in a ring of lit squares, the reset beneath.
+struct LimitGauge: View {
+    let row: PoolRow
+    let now: Date
+    let model: AppModel
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let used = row.model.used.value.map { NSDecimalNumber(decimal: $0).doubleValue }
+        let style = StatusStyles.of(row.model.card)
+        VStack(spacing: theme.spacing(.standard)) {
+            Text(row.model.scope.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            ZStack {
+                PixelRing(fraction: used.map { 1 - $0 / 100 }, role: style.role)
+                VStack(spacing: 0) {
+                    Text(used.map { "\(max(0, 100 - Int($0.rounded())))%" } ?? "—").font(theme.font(.metricMedium)).monospacedDigit()
+                        .foregroundStyle(theme.color(.textPrimary, scheme))
+                    Text(Copy.LimitsPage.left).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                }
+            }
+            .frame(width: theme.spacing(.spacious) * 7, height: theme.spacing(.spacious) * 7)
+            Text(style.label).font(theme.font(.supporting)).foregroundStyle(theme.color(style.role, scheme))
+            if let reset = row.model.resetsAt.value {
+                Text(Copy.Limits.resets(Formatting.resetTime(reset, now: now, zone: model.environment.timeZone, locale: model.environment.locale)))
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme)).multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// A ring of square pixels, lit clockwise from the top for `fraction` (nil: outlined only).
+struct PixelRing: View {
+    let fraction: Double?
+    let role: ColorToken
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        Canvas { context, size in
+            let count = 36
+            let radius = min(size.width, size.height) / 2 - theme.spacing(.standard)
+            let block = radius * 0.16
+            let lit = Int(((fraction ?? 0) * Double(count)).rounded())
+            for i in 0..<count {
+                let angle = Double(i) / Double(count) * 2 * .pi - .pi / 2
+                let center = CGPoint(x: size.width / 2 + radius * cos(angle), y: size.height / 2 + radius * sin(angle))
+                let rect = CGRect(x: (center.x - block / 2).rounded(), y: (center.y - block / 2).rounded(), width: block, height: block)
+                if fraction != nil, i < lit {
+                    context.fill(Path(rect), with: .color(theme.color(role, scheme)))
+                } else {
+                    context.fill(Path(rect), with: .color(theme.color(.surfaceMuted, scheme)))
+                }
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

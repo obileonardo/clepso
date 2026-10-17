@@ -2,22 +2,26 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-/// The current session in full, recent sessions beside it, and sessions grouped by main model (increment 1.8b).
+/// Session (1.8b, reworked in 1.12 after the founder's Adaline and Gumloop picks): three panes. Sessions on the left;
+/// the selected one in the middle (model, context, headline figures, agents per task); its facts on the right as a
+/// key/value inspector with time split into API and the rest.
 struct SessionSection: View {
     let snapshot: OverviewSnapshot
     let zone: TimeZone
     let locale: Locale
     var openProviders: () -> Void = {}
+    @State private var selected: String?
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        if let sessions = snapshot.provider?.sessions, let current = sessions.first {
+        if let sessions = snapshot.provider?.sessions, !sessions.isEmpty {
+            let current = sessions.first { $0.id == selected } ?? sessions[0]
             VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
                 HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                    currentCard(current).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    recent(sessions).frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 2)
-                        .frame(maxHeight: .infinity, alignment: .top)
+                    PixelPanel { list(sessions, current: current) }.frame(width: DetailsMetrics.sideColumn).frame(maxHeight: .infinity, alignment: .top)
+                    PixelPanel { detail(current) }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    PixelPanel { inspector(current) }.frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious)).frame(maxHeight: .infinity, alignment: .top)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 agents
@@ -35,65 +39,104 @@ struct SessionSection: View {
         AgentsPanel(summary: snapshot.agents, now: snapshot.now, zone: zone, locale: locale, openProviders: openProviders)
     }
 
-    func currentCard(_ s: SessionDetail) -> some View {
-        PixelPanel {
-            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                HStack(alignment: .firstTextBaseline) {
-                    ModelChip(name: s.modelName)
-                    Spacer()
-                    if let seen = s.lastSeen {
-                        Text(Formatting.age(of: seen, now: snapshot.now, zone: zone, locale: locale)).font(theme.font(.supporting))
-                            .foregroundStyle(theme.color(.textSecondary, scheme))
-                    }
-                }
-                VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                    HStack(alignment: .lastTextBaseline) {
-                        Text(Copy.Details.context.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                        Spacer()
-                        Text(contextLine(s)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                    }
-                    PixelBar(fraction: s.contextPct.map { NSDecimalNumber(decimal: $0).doubleValue / 100 }, role: .accent, pattern: .solid, segments: 40)
-                }
-                Grid(alignment: .topLeading, horizontalSpacing: theme.spacing(.spacious), verticalSpacing: theme.spacing(.spacious)) {
-                    GridRow {
-                        PixelStat(s.costUSD.map(money) ?? "—", Copy.Details.costEstimate, large: true)
-                        PixelStat(s.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime, large: true)
-                        PixelStat(lines(s), Copy.Details.lines, large: true)
-                    }
-                    GridRow {
-                        PixelStat(s.cacheHitPct.map(Formatting.percent) ?? "—", Copy.Details.cacheHits)
-                        PixelStat(s.cacheWarm.map { $0 ? Copy.Details.warm : Copy.Details.cold } ?? "—", cacheLabel(s))
-                        PixelStat(s.wallMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.wallTime)
-                    }
-                }
-                Text(Copy.Details.costNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
+    // MARK: Panes
 
-    func recent(_ sessions: [SessionDetail]) -> some View {
-        PixelPanel {
-            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                Text(Copy.Details.recentSessions).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                ForEach(sessions.prefix(8)) { s in
+    func list(_ sessions: [SessionDetail], current: SessionDetail) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            Text(Copy.Details.recentSessions).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                .padding(.bottom, theme.spacing(.compact))
+            ForEach(sessions.prefix(10)) { s in
+                let on = s.id == current.id
+                Button { selected = s.id } label: {
                     VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
                         HStack {
-                            Text(s.modelName ?? Copy.Details.unknownModel).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                            Text(s.modelName ?? Copy.Details.unknownModel).font(theme.font(.label).weight(on ? .semibold : .regular))
                             Spacer()
-                            Text(s.costUSD.map(money) ?? "—").font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                            Text(s.costUSD.map(money) ?? "—").font(theme.font(.label)).monospacedDigit()
                         }
+                        .foregroundStyle(theme.color(on ? .textPrimary : .textSecondary, scheme))
                         Text([s.lastSeen.map { Formatting.age(of: $0, now: snapshot.now, zone: zone, locale: locale) }, Optional(lines(s))]
                                 .compactMap { $0 }.joined(separator: " · "))
                             .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                     }
-                    .padding(.vertical, theme.spacing(.compact))
-                    .accessibilityElement(children: .combine)
+                    .padding(theme.spacing(.standard))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(on ? theme.color(.surfaceMuted, scheme) : Color.clear)
+                    .overlay(alignment: .leading) { if on { Rectangle().fill(theme.color(.accent, scheme)).frame(width: theme.stroke(.emphasis) * 2) } }
+                    .contentShape(Rectangle())
                 }
-                Spacer(minLength: 0)
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            Spacer(minLength: 0)
         }
+    }
+
+    func detail(_ s: SessionDetail) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+            HStack(alignment: .firstTextBaseline) {
+                ModelChip(name: s.modelName)
+                Spacer()
+                if let seen = s.lastSeen {
+                    Text(Formatting.age(of: seen, now: snapshot.now, zone: zone, locale: locale)).font(theme.font(.supporting))
+                        .foregroundStyle(theme.color(.textSecondary, scheme))
+                }
+            }
+            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                HStack(alignment: .lastTextBaseline) {
+                    Text(Copy.Details.context.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    Spacer()
+                    Text(contextLine(s)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                }
+                PixelBar(fraction: s.contextPct.map { NSDecimalNumber(decimal: $0).doubleValue / 100 }, role: .accent, pattern: .solid, segments: 40)
+            }
+            Grid(alignment: .topLeading, horizontalSpacing: theme.spacing(.spacious), verticalSpacing: theme.spacing(.spacious)) {
+                GridRow {
+                    PixelStat(s.costUSD.map(money) ?? "—", Copy.Details.costEstimate, large: true)
+                    PixelStat(lines(s), Copy.Details.lines, large: true)
+                }
+                GridRow {
+                    PixelStat(s.cacheHitPct.map(Formatting.percent) ?? "—", Copy.Details.cacheHits, large: true)
+                    PixelStat(s.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime, large: true)
+                }
+            }
+            Text(Copy.Details.costNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Gumloop's side sheet: every fact as a labelled row, and time as one bar split into API and the rest.
+    func inspector(_ s: SessionDetail) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(Copy.SessionPage.details).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).padding(.bottom, theme.spacing(.standard))
+            fact(Copy.SessionPage.model, s.modelName ?? Copy.Details.unknownModel)
+            fact(Copy.SessionPage.window, s.contextWindow.map { Formatting.compact($0) } ?? "—")
+            fact(Copy.Details.wallTime, s.wallMs.map { Formatting.duration(milliseconds: $0) } ?? "—")
+            fact(Copy.Details.apiTime, s.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—")
+            fact(Copy.Details.cacheState, s.cacheWarm.map { $0 ? Copy.Details.warm : Copy.Details.cold } ?? "—")
+            fact(Copy.SessionPage.requests, s.cacheRequests.map { "\($0) · \(s.cacheMisses ?? 0) miss" } ?? "—")
+            if let wall = s.wallMs, let api = s.apiMs, wall > 0 {
+                VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                    Text(Copy.SessionPage.timeSplit).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    PixelBar(fraction: min(1, Double(api) / Double(wall)), role: .accent, pattern: .solid, segments: 24)
+                    Text(Copy.SessionPage.apiShare(Int((Double(api) / Double(wall) * 100).rounded()))).font(theme.font(.supporting))
+                        .foregroundStyle(theme.color(.textSecondary, scheme))
+                }
+                .padding(.top, theme.spacing(.standard))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    func fact(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            Spacer()
+            Text(value).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme)).lineLimit(1)
+        }
+        .padding(.vertical, theme.spacing(.standard))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
+        .accessibilityElement(children: .combine)
     }
 
     func byModel(_ groups: [ModelGroup]) -> some View {

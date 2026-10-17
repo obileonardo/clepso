@@ -2,135 +2,321 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-/// Increment 1.10 Home: the running total, both limits, the latest task and goals at a glance, and one useful next
-/// step. Structure after the Aqua Voice reference; look from the Phosphor pixel layer.
+/// Home (1.10, reworked in 1.12 after the founder's picks): Delphi's hero chart with a metric switch and a level card
+/// with tier progress; Deel's "For you today" list of things to act on, most urgent first.
 struct HomeSection: View {
     @Bindable var model: AppModel
+    @State private var metric: HomeMetric = .tokens
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
     @Environment(\.openWindow) private var openWindow
 
+    enum HomeMetric: Hashable { case tokens, messages, sessions }
+
     var body: some View {
-        let snapshot = model.snapshot
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            chips
-            if let prompt = nextStep { prompt }
             HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                PixelPanel {
-                    VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                        heading(Copy.Home.limits, .limits)
-                        if let pools = snapshot.provider?.pools, !pools.isEmpty {
-                            ForEach(pools) { row in PixelLimitRow(model: row.model, now: snapshot.now, pace: PaceText.make(row.pace, model: model)) }
-                        } else {
-                            Text(Copy.Details.noLimits).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                    PixelPanel { latestTask(snapshot.agents) }
-                    PixelPanel { goalsGlance }
-                }
-                .frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 3)
+                PixelPanel { hero }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                PixelPanel { forYou }.frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 4).frame(maxHeight: .infinity, alignment: .top)
             }
             .fixedSize(horizontal: false, vertical: true)
-            if let file = model.statsFile, let summary = model.statsSummary(.allTime) {
-                PixelPanel {
-                    VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                        heading(Copy.Home.lastYear, .overview)
-                        FittedCalendar(grid: StatsCalendar.recent(52 * 7, stats: file, levels: summary.heatmap, today: summary.today, firstDay: file.firstSessionDate))
-                        CalendarLegend()
-                    }
-                }
+            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
+                PixelPanel { levelCard }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                PixelPanel { limitsGlance }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                PixelPanel { monthStats }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
+            .fixedSize(horizontal: false, vertical: true)
         }
         .task { model.loadStats() }
     }
 
-    func heading(_ title: String, _ section: AppModel.DetailsSection) -> some View {
-        HStack {
-            Text(title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
-            Spacer()
-            Button(Copy.Home.seeAll) { model.detailsSection = section }.buttonStyle(.plain)
-                .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-        }
-    }
+    // MARK: Hero (Delphi)
 
-    /// Like Aqua's "139,775 words and counting (+1,908)": the total, the newest day, and the level.
-    @ViewBuilder var chips: some View {
-        HStack(spacing: theme.spacing(.standard)) {
-            if let total = model.runningTotal {
-                PixelChip(text: Copy.Home.runningTotal(Formatting.compact(total.tokens))
-                          + (total.lastDay.map { "  ·  " + Copy.Home.lastDay(Formatting.compact($0), StatsFormat.day(total.lastDayDate ?? "")) } ?? ""))
-            } else {
-                PixelChip(text: Copy.Home.watched(model.snapshot.provider?.sessions.count ?? 0))
+    var series: [(day: String, value: Int64)] {
+        guard let file = model.statsFile, let today = model.statsSummary(.last30)?.today else { return [] }
+        let days = (0..<30).map { StatsSummary.Day.adding($0 - 29, to: today) }
+        let byDay = Dictionary(file.days.map { ($0.date, $0) }, uniquingKeysWith: { a, _ in a })
+        let tokens = Dictionary(file.dailyTokens.map { ($0.date, $0.byModel.values.reduce(0, +)) }, uniquingKeysWith: { a, _ in a })
+        return days.map { day in
+            let value: Int64 = switch metric {
+            case .tokens: tokens[day] ?? 0
+            case .messages: Int64(byDay[day]?.messages ?? 0)
+            case .sessions: Int64(byDay[day]?.sessions ?? 0)
             }
-            if let card = model.playerCard {
-                Button { model.detailsSection = .card } label: {
-                    PixelChip(text: Copy.Card.levelBar(card.level.level, card.levelName), lit: true)
-                }
-                .buttonStyle(.plain)
-            }
+            return (day, value)
         }
     }
 
-    /// The first thing worth doing next, if any: connect, stats, then agents per task.
-    var nextStep: AnyView? {
-        if model.snapshot.empty == .notConnected, !model.snapshot.isDemo {
-            return AnyView(NextStepBanner(title: Copy.Home.connectTitle, message: Copy.Home.connectBody, action: Copy.Home.connect) {
-                model.onboardingStep = .consent
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: PulseScenes.onboardingID)
-            })
+    var metricName: String {
+        switch metric {
+        case .tokens: Copy.ForYou.tokens
+        case .messages: Copy.ForYou.messages
+        case .sessions: Copy.ForYou.sessions
         }
-        if !model.statsEnabled {
-            return AnyView(NextStepBanner(title: Copy.Home.statsTitle, message: Copy.Home.statsBody, action: Copy.Home.turnOn) {
-                Task { await model.setStatsEnabled(true) }
-            })
-        }
-        if model.snapshot.agents == nil {
-            return AnyView(NextStepBanner(title: Copy.Home.agentsTitle, message: Copy.Home.agentsBody, action: Copy.Home.turnOn) {
-                model.detailsSection = .settings
-            })
-        }
-        return nil
     }
 
-    @ViewBuilder func latestTask(_ agents: AgentsSummary?) -> some View {
+    @ViewBuilder var hero: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            heading(Copy.Home.latestTask, .session)
-            if let task = agents?.latest {
-                Text((task.agents == 0 ? Copy.Agents.none : Copy.Agents.count(task.agents)).uppercased()).font(theme.font(.metricMedium))
-                    .foregroundStyle(theme.color(.textPrimary, scheme))
-                Text(task.byType.map { "\($0.name) \($0.count)" }.joined(separator: " · "))
-                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                Text(task.running ? Copy.Agents.running : Copy.Agents.finished(task.finished, of: task.agents))
-                    .font(theme.font(.supporting)).foregroundStyle(theme.color(task.running ? .accent : .textSecondary, scheme))
+            HStack(alignment: .center) {
+                PixelSegmented(Copy.ForYou.metric, options: [(HomeMetric.tokens, Copy.ForYou.tokens), (.messages, Copy.ForYou.messages),
+                                                             (.sessions, Copy.ForYou.sessions)], selection: $metric)
+                Spacer()
+                Text(Copy.ForYou.last30).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+            let data = series
+            if data.isEmpty {
+                Text(Copy.Card.needsStats).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(Copy.Home.turnOn) { Task { await model.setStatsEnabled(true) } }.buttonStyle(PixelButtonStyle(prominent: true))
             } else {
-                Text(agents == nil ? Copy.Home.agentsBody : Copy.Agents.noTasks).font(theme.font(.supporting))
-                    .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
+                Text(Copy.ForYou.total(Formatting.compact(data.map(\.value).reduce(0, +)), metricName).uppercased())
+                    .font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
+                DailyBars(values: data, unit: metricName).frame(minHeight: DetailsMetrics.chartHeight, maxHeight: .infinity)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    var goalsGlance: some View {
+    // MARK: For you today (Deel)
+
+    var items: [ForYouItem] {
+        let snapshot = model.snapshot
+        var input = ForYou.Input()
+        input.limits = (snapshot.provider?.pools ?? []).map { row in
+            let pct = row.model.used.value.map { NSDecimalNumber(decimal: $0).doubleValue }
+            let state: GoalStatus.State = switch row.model.card {
+            case .critical, .exhausted, .exhaustedNoReset, .exhaustedOverage: .missed
+            case .approaching: .atRisk
+            default: .onTrack
+            }
+            return (row.model.scope, pct, state)
+        }
+        input.goals = model.goalStatuses
+        input.runningTask = snapshot.agents?.latest.flatMap { $0.running ? $0 : nil }
+        input.connected = snapshot.empty != .notConnected || snapshot.isDemo
+        input.statsOn = model.statsEnabled
+        input.agentsOn = snapshot.agents != nil
+        if case .signedIn = model.account { input.signedIn = true } else { input.signedIn = false }
+        return ForYou.make(input)
+    }
+
+    var forYou: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            heading(Copy.Home.goals, .goals)
-            ForEach(model.goalStatuses) { goal in
-                VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                    HStack {
-                        Text(GoalsSection.title(goal.kind)).font(theme.font(.supporting)).foregroundStyle(theme.color(.textPrimary, scheme))
-                        Spacer()
-                        StateTag(state: goal.state)
+            Text(Copy.ForYou.title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
+            ForEach(items) { item in
+                HStack(alignment: .top, spacing: theme.spacing(.standard)) {
+                    Image(systemName: Self.symbol(item.kind)).font(theme.font(.label))
+                        .foregroundStyle(theme.color(Self.role(item.kind), scheme))
+                        .frame(width: theme.spacing(.spacious) * 1.6, height: theme.spacing(.spacious) * 1.6)
+                        .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
+                        Text(item.title).font(theme.font(.label).weight(.semibold)).foregroundStyle(theme.color(.textPrimary, scheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                        if !item.detail.isEmpty {
+                            Text(item.detail).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
-                    PixelBar(fraction: goal.state == .noData ? nil : goal.fraction, role: GoalsSection.role(goal.state), pattern: goal.state == .noData ? .outline : .solid, segments: 16)
+                    Spacer(minLength: theme.spacing(.compact))
+                    if let action = item.action {
+                        Button(action) { perform(item) }.buttonStyle(PixelButtonStyle())
+                    }
                 }
+                .padding(.vertical, theme.spacing(.compact))
                 .accessibilityElement(children: .combine)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    func perform(_ item: ForYouItem) {
+        switch item.kind {
+        case .connect:
+            model.onboardingStep = .consent
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: PulseScenes.onboardingID)
+        case .stats: Task { await model.setStatsEnabled(true) }
+        default: if let section = item.section { model.detailsSection = section }
+        }
+    }
+
+    static func symbol(_ kind: ForYouItem.Kind) -> String {
+        switch kind {
+        case .limit: "gauge.with.dots.needle.67percent"
+        case .goal: "target"
+        case .task: "person.3"
+        case .connect: "link"
+        case .stats: "chart.bar.xaxis"
+        case .agents: "person.3"
+        case .account: "person.crop.circle"
+        case .allClear: "checkmark"
+        }
+    }
+
+    static func role(_ kind: ForYouItem.Kind) -> ColorToken {
+        switch kind {
+        case .limit, .goal: .statusAttention
+        default: .accent
+        }
+    }
+
+    // MARK: Level (Delphi's score card)
+
+    @ViewBuilder var levelCard: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            HStack {
+                Text(Copy.ForYou.level).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                Spacer()
+                Button(Copy.Home.seeAll) { model.detailsSection = .card }.buttonStyle(.plain)
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+            if let card = model.playerCard {
+                Text(Copy.Card.levelBar(card.level.level, card.levelName)).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                HStack {
+                    Text("LV \(card.level.level)").font(theme.font(.micro))
+                    Spacer()
+                    Text("LV \(card.level.level + 1)").font(theme.font(.micro))
+                }
+                .foregroundStyle(theme.color(.textSecondary, scheme))
+                PixelBar(fraction: card.level.progress, role: .accent, pattern: .solid, segments: 20)
+                HStack {
+                    Text(Formatting.compact(card.level.floor)).font(theme.font(.supporting))
+                    Spacer()
+                    Text(Formatting.compact(card.level.next)).font(theme.font(.supporting))
+                }
+                .foregroundStyle(theme.color(.textSecondary, scheme))
+                Text(Copy.Card.toNext(Formatting.compact(card.level.next - card.level.output), card.level.level + 1))
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
+            } else {
+                Text(Copy.Card.needsStats).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @ViewBuilder var limitsGlance: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            HStack {
+                Text(Copy.Home.limits).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                Spacer()
+                Button(Copy.Home.seeAll) { model.detailsSection = .limits }.buttonStyle(.plain)
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+            if let pools = model.snapshot.provider?.pools, !pools.isEmpty {
+                ForEach(pools) { row in LimitMeterRow(row: row, now: model.snapshot.now, model: model) }
+            } else {
+                Text(Copy.Details.noLimits).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @ViewBuilder var monthStats: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(Copy.ForYou.thisMonth).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                .padding(.bottom, theme.spacing(.standard))
+            let s = model.statsSummary(.last30)
+            statRow(Copy.ForYou.activeDays, s.map { "\($0.activeDays)/\($0.dayCount)" } ?? "—")
+            statRow(Copy.ForYou.sessionsMonth, s.map { "\($0.sessions)" } ?? "—")
+            statRow(Copy.ForYou.streak, s.map { Copy.Card.days($0.currentStreak) } ?? "—")
+            statRow(Copy.ForYou.agentsPerTask, model.snapshot.agents.map { String(format: "%.1f", $0.averagePerTask) } ?? "—")
+        }
+    }
+
+    func statRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            Spacer()
+            Text(value).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme)).monospacedDigit()
+        }
+        .padding(.vertical, theme.spacing(.standard))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// A limit in one row (after the founder's StackAI pick): name and its reset on the left, a segmented meter and the
+/// percentage on the right.
+struct LimitMeterRow: View {
+    let row: PoolRow
+    let now: Date
+    let model: AppModel
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let pct = row.model.used.value.map { NSDecimalNumber(decimal: $0).doubleValue }
+        let role: ColorToken = switch row.model.card {
+        case .approaching: .statusAttention
+        case .critical, .exhausted, .exhaustedNoReset, .exhaustedOverage: .statusBlocked
+        default: .accent
+        }
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(row.model.scope.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Spacer()
+                Text(pct.map { "\(Int($0.rounded()))%" } ?? "—").font(theme.font(.title)).monospacedDigit().foregroundStyle(theme.color(role, scheme))
+            }
+            PixelBar(fraction: pct.map { $0 / 100 }, role: role, pattern: pct == nil ? .outline : .solid, segments: 20)
+            if let reset = row.model.resetsAt.value {
+                Text(Copy.Limits.resets(Formatting.resetTime(reset, now: now, zone: model.environment.timeZone, locale: model.environment.locale)))
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+        }
+        .padding(.vertical, theme.spacing(.compact))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Daily bars for one value over a range, a scale, every 7th day labelled, and a hover readout.
+struct DailyBars: View {
+    let values: [(day: String, value: Int64)]
+    let unit: String
+    @State private var hover: Int?
+    @State private var width: CGFloat = 0
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let top = StackedModelChart.niceCeiling(values.map(\.value).max() ?? 0)
+        let gutter = theme.spacing(.spacious) * 2.4, footer = theme.spacing(.spacious) * 1.2
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            Canvas { context, size in
+                let plot = CGRect(x: gutter, y: theme.spacing(.standard), width: size.width - gutter, height: size.height - footer - theme.spacing(.standard))
+                let slot = plot.width / CGFloat(max(1, values.count))
+                let px = theme.stroke(.hairline) * 2
+                let secondary = theme.color(.textSecondary, scheme)
+                func y(_ v: Int64) -> CGFloat { plot.maxY - CGFloat(Double(v) / Double(max(1, top))) * plot.height }
+                for step in 0...4 {
+                    let v = top / 4 * Int64(step)
+                    var x0 = plot.minX
+                    while x0 < plot.maxX { context.fill(Path(CGRect(x: x0, y: y(v), width: px / 2, height: px / 2)), with: .color(theme.color(.separator, scheme))); x0 += px * 3 }
+                    context.draw(Text(Formatting.compact(v)).font(theme.font(.micro)).foregroundColor(secondary), at: CGPoint(x: plot.minX - theme.spacing(.standard), y: y(v)), anchor: .trailing)
+                }
+                for (i, item) in values.enumerated() {
+                    let x = plot.minX + CGFloat(i) * slot
+                    if hover == i { context.fill(Path(CGRect(x: x, y: plot.minY, width: slot, height: plot.height)), with: .color(theme.color(.surfaceMuted, scheme))) }
+                    let h = max(px / 2, plot.maxY - y(item.value))
+                    context.fill(Path(CGRect(x: x + slot * 0.15, y: plot.maxY - h, width: slot * 0.7, height: h)),
+                                 with: .color(theme.color(.accent, scheme).opacity(item.value == 0 ? 0.2 : 1)))
+                    if (i % 7 == 0 && values.count - 1 - i >= 4) || i == values.count - 1 {     // never two labels side by side
+                        ChartLabel.draw(context, Text(StatsFormat.day(item.day).uppercased()).font(theme.font(.micro)).foregroundColor(secondary),
+                                        centeredAt: x + slot / 2, top: plot.maxY + px * 3, width: size.width)
+                    }
+                }
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+            .onContinuousHover { phase in
+                if case .active(let p) = phase, width > gutter, p.x >= gutter {
+                    hover = min(values.count - 1, Int((p.x - gutter) / ((width - gutter) / CGFloat(max(1, values.count)))))
+                } else { hover = nil }
+            }
+            .accessibilityElement()
+            .accessibilityLabel(Copy.ForYou.total(Formatting.compact(values.map(\.value).reduce(0, +)), unit))
+            Text(hover.map { "\(StatsFormat.day(values[$0].day)) · \(Formatting.compact(values[$0].value)) \(unit.lowercased())" } ?? Copy.Stats.hoverHint)
+                .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(hover == nil ? .textSecondary : .textPrimary, scheme))
+        }
     }
 }
 

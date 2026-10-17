@@ -18,12 +18,67 @@ struct ModelsSection: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         } else {
-            switch model.modelsView {
-            case .arena: ModelArena(summary: summary)
-            case .chart:
-                VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                distribution
+                switch model.modelsView {
+                case .arena: ModelArena(summary: summary)
+                case .chart:
                     PixelPanel { StackedModelChart(summary: summary, from: first, to: summary.today) }
                     ModelLegend(models: summary.models)
+                }
+            }
+        }
+    }
+
+    /// Krea's "usage distribution" (1.12): the share of tokens as a ring with the total inside, beside a card per model.
+    var distribution: some View {
+        HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
+            PixelPanel {
+                VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                    Text(Copy.ModelsPage.distribution).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                    ZStack {
+                        PixelDonut(shares: summary.models.map(\.share))
+                        VStack(spacing: 0) {
+                            Text(Formatting.compact(summary.totalTokens)).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
+                            Text(Copy.ModelsPage.tokens).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        }
+                    }
+                    .frame(width: theme.spacing(.spacious) * 9, height: theme.spacing(.spacious) * 9)
+                    .frame(maxWidth: .infinity)
+                    ForEach(Array(summary.models.prefix(6).enumerated()), id: \.element.id) { i, m in
+                        HStack(spacing: theme.spacing(.standard)) {
+                            Canvas { context, size in ModelStyle.fill(&context, CGRect(origin: .zero, size: size), index: i, theme: theme, scheme: scheme) }
+                                .frame(width: theme.spacing(.standard) + theme.spacing(.compact), height: theme.spacing(.standard) + theme.spacing(.compact))
+                                .accessibilityHidden(true)
+                            Text("\(m.name) (\(String(format: "%.1f", m.share * 100))%)").font(theme.font(.supporting))
+                                .foregroundStyle(theme.color(.textPrimary, scheme))
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+            .frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 2)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacing(.spacious), alignment: .top), count: summary.models.count > 4 ? 3 : 2),
+                      alignment: .leading, spacing: theme.spacing(.spacious)) {
+                ForEach(Array(summary.models.enumerated()), id: \.element.id) { i, m in
+                    PixelPanel {
+                        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                            HStack {
+                                Text(m.name.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(ModelStyle.role(i), scheme)).lineLimit(1)
+                                Spacer()
+                                if let t = m.totals { Text(Copy.Stats.level(ModelLevel(output: t.output).level)).font(theme.font(.micro))
+                                    .foregroundStyle(theme.color(.textSecondary, scheme)) }
+                            }
+                            HStack { Text(Copy.ModelsPage.tokens.capitalized).font(theme.font(.supporting)); Spacer(); Text(Formatting.compact(m.tokens)).font(theme.font(.label)).monospacedDigit() }
+                                .foregroundStyle(theme.color(.textPrimary, scheme))
+                            HStack { Text(Copy.Stats.output).font(theme.font(.supporting)); Spacer(); Text(m.totals.map { Formatting.compact($0.output) } ?? "—").font(theme.font(.label)).monospacedDigit() }
+                                .foregroundStyle(theme.color(.textPrimary, scheme))
+                            PixelBar(fraction: m.share, role: ModelStyle.role(i), pattern: .solid, segments: 20)
+                            Text(Copy.ModelsPage.ofTotal(String(format: "%.1f", m.share * 100))).font(theme.font(.supporting))
+                                .foregroundStyle(theme.color(.textSecondary, scheme))
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
                 }
             }
         }
@@ -539,5 +594,36 @@ struct ModelSprite: View {
             "...a.aa.a...", ".aaaaaaaaaa.", ".a.aaaaaa.a.", "...aaaaaa...", "...a....a...", "..aa....aa.."]
         }
         return rows.map(Array.init)
+    }
+}
+
+/// A ring of square pixels split into consecutive arcs, one per share, in each model's colour (Krea's donut).
+struct PixelDonut: View {
+    let shares: [Double]
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        Canvas { context, size in
+            let count = 48
+            let radius = min(size.width, size.height) / 2 - theme.spacing(.standard)
+            let block = radius * 0.17
+            let total = max(shares.reduce(0, +), 0.0001)
+            var bounds: [Int] = []
+            var acc = 0.0
+            for share in shares { acc += share / total; bounds.append(Int((acc * Double(count)).rounded())) }
+            for i in 0..<count {
+                let angle = Double(i) / Double(count) * 2 * .pi - .pi / 2
+                let center = CGPoint(x: size.width / 2 + radius * cos(angle), y: size.height / 2 + radius * sin(angle))
+                let rect = CGRect(x: (center.x - block / 2).rounded(), y: (center.y - block / 2).rounded(), width: block, height: block)
+                if let index = bounds.firstIndex(where: { i < $0 }) {
+                    var ctx = context
+                    ModelStyle.fill(&ctx, rect, index: index, theme: theme, scheme: scheme)
+                } else {
+                    context.fill(Path(rect), with: .color(theme.color(.surfaceMuted, scheme)))
+                }
+            }
+        }
+        .accessibilityHidden(true)
     }
 }

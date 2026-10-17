@@ -88,4 +88,40 @@ struct DashboardTests {
         let image = try #require(renderer.cgImage)
         #expect(image.width == Int(PlayerCardView.width * 2) && image.height > 400)
     }
+
+    @Test("For you: limits and goals first, then a running task, then setup steps; all clear when nothing needs you")
+    func forYou() {
+        var input = ForYou.Input()
+        #expect(ForYou.make(input).map(\.kind) == [.allClear])
+        input.limits = [("5-hour", 83, .atRisk), ("7-day", 21, .onTrack), ("Weekly", 97, .missed)]
+        input.goals = [GoalStatus(kind: .fiveHourPeak, value: "83%", amount: 83, target: "≤ 80%", fraction: 1, state: .missed, detail: "d", streak: 0)]
+        input.statsOn = false
+        input.signedIn = false
+        let items = ForYou.make(input)
+        #expect(items.map(\.kind) == [.limit, .limit, .goal, .stats, .account])
+        #expect(items[0].title == "5-hour limit at 83%" && items[1].detail == Copy.ForYou.limitCritical)
+        #expect(items[2].section == .goals && items.last?.section == .account)
+    }
+
+    @Test("Ladders: rungs reached, the next one and how far; the top rung has no next")
+    func ladders() {
+        let all = Ladder.all(output: 18_200_000, longestStreak: 9, sessions: 2500, activeDays: 0)
+        #expect(all.map(\.reached) == [4, 2, 7, 0])
+        #expect(all[0].next == 100_000_000 && all[0].remaining == 81_800_000)
+        #expect(all[2].next == nil && all[2].remaining == nil)
+        #expect(all[3].next == 7 && all[3].remaining == 7)
+    }
+
+    @Test("Goal history: seven local days, oldest first; met against the target; days without data say so")
+    func goalHistory() {
+        let utc = TimeZone(identifier: "UTC")!
+        let now = Date(timeIntervalSince1970: 1_792_159_200)                    // Fri 16 Oct 2026 14:00 UTC
+        let day: Double = 86_400
+        let five = [UsagePoint(at: now - day, usedPct: 91), UsagePoint(at: now - 60, usedPct: 40)]
+        let days = GoalHistory.days(.fiveHourPeak, goals: Goals(), fiveHour: five, sevenDay: [], activeDays: [], now: now, zone: utc)
+        #expect(days.map(\.day) == ["2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"])
+        #expect(days[5].met == false && days[6].met == true && days[0].value == nil && days[0].met == nil)
+        let active = GoalHistory.days(.activeDays, goals: Goals(), fiveHour: [], sevenDay: [], activeDays: ["2026-10-16"], now: now, zone: utc)
+        #expect(active.map { $0.met == true } == [false, false, false, false, false, false, true])
+    }
 }

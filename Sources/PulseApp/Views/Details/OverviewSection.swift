@@ -16,20 +16,97 @@ struct OverviewSection: View {
     /// Room inside a panel: its padding and frame on both sides.
     var inner: CGFloat { max(0, width - (theme.spacing(.windowPadding) + theme.spacing(.standard)) * 2) }
 
+    @State private var selectedDay: String?
+
+    /// Steep's layout (1.12): the calendar and charts in the main column, an inspector on the right showing the chosen
+    /// day, or the range's headline numbers when no day is chosen.
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            switch summary.range {
-            case .allTime: yearView
-            case .last30: monthView
-            case .last7: weekView
+        HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
+            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                switch summary.range {
+                case .allTime: yearView
+                case .last30: monthView
+                case .last7: weekView
+                }
+                HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
+                    PixelPanel { HourChart(counts: summary.hourCounts) }.frame(maxWidth: .infinity)
+                    PixelPanel { tokenBreakdown }.frame(maxWidth: .infinity)
+                }
             }
-            tiles
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                PixelPanel { HourChart(counts: summary.hourCounts) }.frame(maxWidth: .infinity)
-                PixelPanel { tokenBreakdown }.frame(maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+            PixelPanel { inspector }.frame(width: DetailsMetrics.sideColumn + theme.spacing(.spacious) * 2)
+        }
+    }
+
+    // MARK: - Inspector
+
+    @ViewBuilder var inspector: some View {
+        if let day = selectedDay {
+            let record = file.days.first { $0.date == day }
+            let tokens = file.dailyTokens.first { $0.date == day }?.byModel ?? [:]
+            let total = max(1, tokens.values.reduce(0, +))
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                HStack {
+                    Text(StatsFormat.weekday(day).uppercased() + " " + StatsFormat.day(day).uppercased()).font(theme.font(.title))
+                        .foregroundStyle(theme.color(.accent, scheme))
+                    Spacer()
+                    Button(Copy.OverviewPage.clear) { selectedDay = nil }.buttonStyle(.plain).font(theme.font(.supporting))
+                        .foregroundStyle(theme.color(.textSecondary, scheme))
+                }
+                inspectorRow(Copy.OverviewPage.messages, "\(record?.messages ?? 0)")
+                inspectorRow(Copy.Stats.sessions, "\(record?.sessions ?? 0)")
+                inspectorRow(Copy.OverviewPage.toolCalls, "\(record?.toolCalls ?? 0)")
+                inspectorRow(Copy.Stats.totalTokens, tokens.isEmpty ? "—" : Formatting.compact(tokens.values.reduce(0, +)))
+                if !tokens.isEmpty {
+                    Text(Copy.OverviewPage.byModel).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).padding(.top, theme.spacing(.standard))
+                    ForEach(tokens.sorted { $0.value > $1.value }, id: \.key) { id, n in
+                        VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
+                            HStack {
+                                Text(StatsReader.displayName(id)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                                Spacer()
+                                Text(Formatting.compact(n)).font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                            }
+                            PixelBar(fraction: Double(n) / Double(total), role: .accent, pattern: .solid, segments: 16)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(Copy.OverviewPage.summary(rangeName)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                    .padding(.bottom, theme.spacing(.standard))
+                inspectorRow(Copy.Stats.favorite, summary.favorite?.name ?? "—")
+                inspectorRow(Copy.Stats.totalTokens, Formatting.compact(summary.totalTokens))
+                inspectorRow(Copy.Stats.sessions, "\(summary.sessions)")
+                inspectorRow(Copy.Stats.longestSession, summary.longestSessionMs.map { Formatting.duration(milliseconds: $0) } ?? "—")
+                inspectorRow(Copy.Stats.activeDays, "\(summary.activeDays)/\(summary.dayCount)")
+                inspectorRow(Copy.Stats.currentStreak, Copy.Card.days(summary.currentStreak))
+                inspectorRow(Copy.Stats.longestStreak, Copy.Card.days(summary.longestStreak))
+                inspectorRow(Copy.Stats.mostActive, summary.mostActiveDay.map(StatsFormat.day) ?? "—")
+                Text(Copy.OverviewPage.pickDay).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true).padding(.top, theme.spacing(.standard))
             }
         }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    }
+
+    var rangeName: String {
+        switch summary.range {
+        case .allTime: Copy.Stats.allTime
+        case .last30: Copy.Stats.last30
+        case .last7: Copy.Stats.last7
+        }
+    }
+
+    func inspectorRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            Spacer()
+            Text(value).font(theme.font(.title)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme)).lineLimit(1).minimumScaleFactor(0.7)
+        }
+        .padding(.vertical, theme.spacing(.standard))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme).opacity(0.6)).frame(height: theme.stroke(.hairline)) }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - All time: one calendar year
@@ -51,7 +128,8 @@ struct OverviewSection: View {
                     Button { model.statsYear = year + 1 } label: { Image(systemName: "chevron.right") }
                         .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year + 1)).accessibilityLabel(Copy.Stats.nextYear)
                 }
-                CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: inner, weeks: grid.weeks.count, theme: theme), showDayNumbers: false)
+                CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: inner, weeks: grid.weeks.count, theme: theme), showDayNumbers: false,
+                                 selected: selectedDay, onSelect: { selectedDay = $0 })
                 CalendarLegend()
             }
         }
@@ -65,7 +143,7 @@ struct OverviewSection: View {
             PixelPanel {
                 VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                     Text(Copy.Stats.last30Title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    CalendarGridView(grid: grid, cell: monthCell, showDayNumbers: true, transposed: true)
+                    CalendarGridView(grid: grid, cell: monthCell, showDayNumbers: true, transposed: true, selected: selectedDay, onSelect: { selectedDay = $0 })
                     CalendarLegend()
                 }
             }
@@ -126,26 +204,6 @@ struct OverviewSection: View {
 
     // MARK: - Shared
 
-    var tiles: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacing(.spacious)), count: 4), spacing: theme.spacing(.spacious)) {
-            tile(summary.favorite?.name ?? "—", Copy.Stats.favorite)
-            tile(Formatting.compact(summary.totalTokens), Copy.Stats.totalTokens)
-            tile("\(summary.sessions)", Copy.Stats.sessions)
-            tile(summary.longestSessionMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Stats.longestSession)
-            tile("\(summary.activeDays)/\(summary.dayCount)", Copy.Stats.activeDays)
-            tile("\(summary.currentStreak)", Copy.Stats.currentStreak)
-            tile("\(summary.longestStreak)", Copy.Stats.longestStreak)
-            tile(summary.mostActiveDay.map(StatsFormat.day) ?? "—", Copy.Stats.mostActive)
-        }
-    }
-
-    func tile(_ value: String, _ label: String) -> some View {
-        PixelStat(value, label, large: true)
-            .padding(theme.spacing(.windowPadding))
-            .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceElevated, scheme)))
-            .overlay(PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(.separator, scheme), lineWidth: theme.stroke(.hairline)))
-    }
-
     var tokenBreakdown: some View {
         let totals = file.models
         let input = totals.map(\.input).reduce(0, +), output = totals.map(\.output).reduce(0, +)
@@ -176,6 +234,9 @@ struct CalendarGridView: View {
     let cell: CGFloat
     let showDayNumbers: Bool
     var transposed = false
+    /// Steep's inspector (1.12): a day can be chosen to see it in full beside the calendar.
+    var selected: String? = nil
+    var onSelect: ((String) -> Void)? = nil
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
@@ -247,6 +308,14 @@ struct CalendarGridView: View {
                 }
             }
             .frame(width: cell, height: cell)
+            .overlay {
+                if selected == c.date {
+                    Rectangle().strokeBorder(theme.color(.textPrimary, scheme), lineWidth: max(theme.stroke(.hairline) * 2, cell * 0.12))
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { if case .level = c.state { onSelect?(c.date) } }
+            .accessibilityAddTraits(onSelect == nil ? [] : .isButton)
             .help(tooltip(c))
             .accessibilityElement()
             .accessibilityLabel(tooltip(c))

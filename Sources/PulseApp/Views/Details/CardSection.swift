@@ -28,6 +28,10 @@ struct CardSection: View {
                     }
                 }
                 if let note { Text(note).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)) }
+                if let summary = model.statsSummary(.allTime) {
+                    milestones(Ladder.all(output: card.output, longestStreak: summary.longestStreak, sessions: summary.sessions,
+                                          activeDays: summary.activeDays))
+                }
                 Text(Copy.Card.note).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                     .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             } else {
@@ -35,6 +39,57 @@ struct CardSection: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// Tripadvisor's milestones (1.12): a card per category with its rungs, the ones reached lit, and the next step.
+    func milestones(_ ladders: [Ladder]) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            Text(Copy.CardPage.milestones).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+            Text(Copy.CardPage.milestonesSub).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: theme.spacing(.spacious), alignment: .top), count: 2), spacing: theme.spacing(.spacious)) {
+                ForEach(ladders) { ladder in
+                    PixelPanel {
+                        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                            HStack(spacing: theme.spacing(.standard)) {
+                                Image(systemName: Self.symbol(ladder.kind)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                                    .frame(width: theme.spacing(.spacious) * 2, height: theme.spacing(.spacious) * 2)
+                                    .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text(Copy.CardPage.name(ladder.kind)).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                                    Text(Copy.CardPage.tier(ladder.kind, ladder.reached)).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                                }
+                            }
+                            HStack(spacing: theme.stroke(.hairline) * 2) {
+                                ForEach(Array(ladder.steps.enumerated()), id: \.offset) { i, _ in
+                                    Rectangle().fill(theme.color(i < ladder.reached ? .accent : .surfaceMuted, scheme))
+                                        .frame(height: theme.spacing(.standard))
+                                }
+                            }
+                            HStack {
+                                ForEach(Array(ladder.steps.enumerated()), id: \.offset) { _, step in
+                                    Text(Formatting.compact(step)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                                        .frame(maxWidth: .infinity)
+                                }
+                            }
+                            Text(ladder.remaining.map { Copy.CardPage.toGo(ladder.kind, Formatting.compact($0)) } ?? Copy.CardPage.top)
+                                .font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+        .frame(maxWidth: PlayerCardView.width * 1.4)
+    }
+
+    static func symbol(_ kind: Ladder.Kind) -> String {
+        switch kind {
+        case .output: "text.cursor"
+        case .streak: "flame"
+        case .sessions: "terminal"
+        case .activeDays: "calendar"
+        }
     }
 
     @MainActor func image(_ card: PlayerCard) -> NSImage? {

@@ -58,8 +58,8 @@ enum PopoverProbe {
             model.detailsSection = section
             model.statsRange = range
             model.modelsView = view
-            if name.hasSuffix("-tall"), let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }),
-               let screen = window.screen?.visibleFrame {
+            if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }), let screen = window.screen?.visibleFrame,
+               name.hasSuffix("-tall") || defaults.bool(forKey: "PulseProbeTall") {
                 // As tall as the screen allows, so content below the fold is captured too.
                 window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: min(screen.width, 1500), height: screen.height), display: true)
             }

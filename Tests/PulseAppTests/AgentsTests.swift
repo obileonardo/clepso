@@ -44,7 +44,7 @@ struct AgentsTests {
                       try hookBytes(.subagentStopped, at: now + 9, agent: "aaaaaaaaaaaaaaaa", type: "Explore")] {
             #expect(send(path, frame))
         }
-        #expect(await eventually { model.snapshot.agents?.latest?.agents == 2 })
+        #expect(await eventually { model.snapshot.agents?.latest?.agents == 2 && model.snapshot.agents?.latest?.finished == 1 })   // frames arrive in parallel
         let latest = try #require(model.snapshot.agents?.latest)
         #expect(latest.byType.map(\.name) == ["Explore", "Plan"] && latest.finished == 1 && latest.running)
 

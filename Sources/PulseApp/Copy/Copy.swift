@@ -216,6 +216,103 @@ enum Copy {
         static let seeAll = "See all"
     }
 
+    enum Limits {
+        static func resets(_ time: String) -> String { "Resets \(time)" }
+    }
+
+    /// Account page (1.12, after the founder's Twenty, Rive and GitBook picks).
+    enum AccountPage {
+        static let profile = "Profile", profileSub = "The name Home greets you with and the card shows."
+        static let plan = "Plan", planSub = "The plan you chose. Pulse never guesses it from usage."
+        static let signIn = "Sign in", signInSub = "Optional. Sign in to see goals and usage on the web."
+        static let sync = "Upload"
+        static let year = "Your year", yearSub = "Every day you used Claude Code this year."
+        static let emailLink = "Email link", emailSub = "A one-time link, no password"
+        static let connected = "CONNECTED", soon = "Soon", soonSub = "Being set up"
+        static let danger = "DANGER ZONE", signOutSub = "Stops uploads from this Mac. What's on the server stays."
+        static let deleteTitle = "Delete account"
+        static let dangerSignedOut = "Nothing to delete: you aren't signed in. To remove Pulse's data from this Mac, use Settings › Delete all."
+    }
+
+    /// Card page milestones (1.12, after the founder's Tripadvisor pick).
+    enum CardPage {
+        static let milestones = "MILESTONES", milestonesSub = "Each category has its own rungs. Lit squares are the ones you've reached."
+        static func name(_ kind: Ladder.Kind) -> String {
+            switch kind {
+            case .output: "Output written"
+            case .streak: "Longest streak"
+            case .sessions: "Sessions"
+            case .activeDays: "Active days"
+            }
+        }
+        static func tier(_ kind: Ladder.Kind, _ reached: Int) -> String {
+            let names: [String] = switch kind {
+            case .output: ["Starter", "Writer", "Author", "Publisher", "Press", "Library", "Archive"]
+            case .streak: ["Starter", "Warm-up", "Week run", "Fortnight", "Month run", "Two months", "Centurion", "Year run"]
+            case .sessions: ["Starter", "Regular", "Frequent", "Centurion", "Veteran", "Expert", "Master", "Legend"]
+            case .activeDays: ["Starter", "Week one", "Month one", "Hundred", "Two hundred", "Year", "Two years"]
+            }
+            return names[min(reached, names.count - 1)]
+        }
+        static func toGo(_ kind: Ladder.Kind, _ n: String) -> String {
+            switch kind {
+            case .output: "\(n) more output tokens to the next rung"
+            case .streak: "\(n) more days in a row to the next rung"
+            case .sessions: "\(n) more sessions to the next rung"
+            case .activeDays: "\(n) more active days to the next rung"
+            }
+        }
+        static let top = "Top rung reached"
+    }
+
+    /// Models page (1.12, after the founder's Krea pick).
+    enum ModelsPage {
+        static let distribution = "USAGE DISTRIBUTION", tokens = "TOKENS"
+        static func ofTotal(_ pct: String) -> String { "\(pct)% of all tokens" }
+    }
+
+    /// Overview page (1.12, after the founder's Steep and Mixpanel picks).
+    enum OverviewPage {
+        static let clear = "Clear", messages = "Messages", toolCalls = "Tool calls", byModel = "TOKENS BY MODEL"
+        static func summary(_ range: String) -> String { range.uppercased() + " AT A GLANCE" }
+        static let pickDay = "Choose a day in the calendar to see it here."
+    }
+
+    /// Session page (1.12, after the founder's Adaline and Gumloop picks).
+    enum SessionPage {
+        static let details = "DETAILS", model = "Model", window = "Context window", requests = "Cache requests"
+        static let timeSplit = "TIME WAITING ON THE MODEL"
+        static func apiShare(_ pct: Int) -> String { "\(pct)% of the session's wall time" }
+    }
+
+    /// Limits page (1.12, after the founder's Remote, StackAI and Sprig picks).
+    enum LimitsPage {
+        static let allLimits = "ALL LIMITS", plan = "PLAN", left = "LEFT"
+        static let planName = "Plan", source = "Source", lastReading = "Last reading", sessions = "Sessions seen"
+        static func usage(_ scope: String) -> String { "\(scope) usage" }
+        static func window(_ scope: String) -> String { "\(scope.uppercased()) WINDOW" }
+        static let notReported = "Not reported"
+    }
+
+    /// Home's "For you today" (after the founder's Deel pick).
+    enum ForYou {
+        static let title = "FOR YOU TODAY"
+        static func limit(_ scope: String, _ pct: Int) -> String { "\(scope) limit at \(pct)%" }
+        static let limitApproaching = "Approaching the limit. Pace yourself or plan around the reset."
+        static let limitCritical = "Nearly used up. New work may be refused until the reset."
+        static func goal(_ name: String, _ over: Bool) -> String { (over ? "Goal missed: " : "Goal at risk: ") + name.lowercased() }
+        static func running(_ agents: Int) -> String { agents == 0 ? "A task is running" : "A task is running with \(agents) agent\(agents == 1 ? "" : "s")" }
+        static let signInTitle = "SEE PULSE ANYWHERE", signInBody = "Sign in to check your goals and usage on the web.", signIn = "Sign in"
+        static let allClear = "ALL CLEAR", allClearBody = "Nothing needs you right now."
+        static let view = "View"
+        static let metric = "Metric"
+        static let tokens = "Tokens", messages = "Messages", sessions = "Sessions"
+        static let last30 = "LAST 30 DAYS"
+        static func total(_ n: String, _ metric: String) -> String { "\(n) \(metric.lowercased())" }
+        static let level = "LEVEL", thisMonth = "THIS MONTH"
+        static let activeDays = "Active days", sessionsMonth = "Sessions", streak = "Current streak", agentsPerTask = "Agents per task"
+    }
+
     enum Card {
         static let title = "Card", subtitle = "Your Claude Code player card, ready to share"
         static func toNext(_ n: String, _ level: Int) -> String { "\(n) output to LV \(level)" }
@@ -242,7 +339,16 @@ enum Copy {
         static let noReadingsToday = "No readings yet today"
         static let met = "MET", onTrack = "ON TRACK", atRisk = "AT RISK", missed = "OVER", noData = "NO DATA"
         static func streak(_ n: Int) -> String { n == 1 ? "1 day in a row" : "\(n) days in a row" }
-        static let off = "Off", target = "Target"
+        static let off = "Off", target = "Target", details = "DETAILS", status = "Status", streakLabel = "Streak"
+        static let lastSeven = "LAST 7 DAYS"
+        static func dayValue(_ kind: GoalStatus.Kind, _ value: Double?, _ met: Bool?) -> String {
+            guard let value else { return "no data" }
+            switch kind {
+            case .activeDays: return met == true ? "active" : "not active"
+            case .fiveHourPeak: return "peak \(Int(value.rounded()))%"
+            case .weeklyFinish: return "\(Int(value.rounded()))% at day end"
+            }
+        }
         static let note = "Goals stay on this Mac for now. When accounts arrive (ACCOUNTS_AND_SYNC), you'll be able to see them anywhere."
     }
 
