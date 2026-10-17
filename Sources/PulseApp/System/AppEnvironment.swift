@@ -27,7 +27,8 @@ public struct AppEnvironment: Sendable {
     public var tickInterval: Duration
     /// The Mac account's full name, for Home's default greeting (the user can change the name in Account).
     public var fullUserName: String
-    /// Pulse accounts (ROADMAP 2.0). Tests and previews get one that can't reach the network.
+    /// Pulse accounts. Off (no project, no requests) unless the build carries a `SyncConfig`; tests and previews get
+    /// an unconfigured client unless they pass their own.
     public var sync: SyncClient
 
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
@@ -47,7 +48,7 @@ public struct AppEnvironment: Sendable {
         self.locale = locale
         self.tickInterval = tickInterval
         self.fullUserName = fullUserName
-        self.sync = sync ?? SyncClient(config: .production, transport: OfflineTransport(), store: MemoryAuthStore(), now: { [clock] in clock.now() })
+        self.sync = sync ?? SyncClient(config: nil, transport: OfflineTransport(), store: MemoryAuthStore(), now: { [clock] in clock.now() })
     }
 
     public var databaseURL: URL { dataDirectory.appendingPathComponent("pulse.sqlite") }
@@ -76,7 +77,8 @@ public struct AppEnvironment: Sendable {
         return AppEnvironment(dataDirectory: data, home: home, shimPath: shim,
                               loginItem: SystemLoginItem(), notifications: SystemNotifications(),
                               keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "dev.tokone.pulse"), appVersion: version,
-                              sync: SyncClient(config: .production, store: authStore, now: { SystemClock().now() }))
+                              sync: SyncClient(config: SyncConfig(infoDictionary: bundle.infoDictionary ?? [:]), store: authStore,
+                                               now: { SystemClock().now() }))
     }
 }
 

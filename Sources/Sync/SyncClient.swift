@@ -2,7 +2,8 @@ import CryptoKit
 import Foundation
 import Security
 
-/// Pulse accounts (ROADMAP 2.0, DECISIONS C9): signing in and uploading daily counts to Supabase.
+/// Pulse accounts: signing in and uploading daily counts to Supabase. Optional, and off in any build without a
+/// `SyncConfig` (see SyncConfig.swift): then every call below fails with `SyncError.unavailable` before a request is made.
 ///
 /// The only module allowed to make network calls (`make ci`, "networking only in Sync"). It talks to two Supabase
 /// endpoints: Auth (sign-in, refresh, sign-out) and the REST API (upserting the signed-in user's own rows). Every
@@ -102,6 +103,7 @@ public final class MemoryAuthStore: AuthStore, @unchecked Sendable {
 }
 
 public enum SyncError: Error, Equatable, Sendable {
+    case unavailable                      // this build has no accounts project configured: Sync is off
     case notSignedIn
     case noPendingSignIn
     case invalidCallback(String)          // the provider's own error description, or what was missing
@@ -134,29 +136,41 @@ public struct PKCE: Sendable, Equatable {
 public actor SyncClient {
     public enum Provider: String, Sendable, CaseIterable { case apple, google, github }
 
-    let config: SyncConfig
+    let configuration: SyncConfig?
     let transport: any HTTPTransport
     let store: any AuthStore
     let now: @Sendable () -> Date
 
-    public init(config: SyncConfig, transport: any HTTPTransport = URLSessionTransport(), store: any AuthStore = KeychainAuthStore(),
+    /// Whether this build can use accounts at all. False for builds from source without a configured project.
+    public nonisolated let isAvailable: Bool
+
+    /// `config` nil: Sync is off. No request is ever sent and no session is reported.
+    public init(config: SyncConfig?, transport: any HTTPTransport = URLSessionTransport(), store: any AuthStore = KeychainAuthStore(),
                 now: @escaping @Sendable () -> Date) {
-        self.config = config
+        self.configuration = config
+        self.isAvailable = config != nil
         self.transport = transport
         self.store = store
         self.now = now
     }
 
-    public var session: AuthSession? { store.load().session }
-    public var pendingEmail: String? { store.load().pendingEmail }
+    public var session: AuthSession? { isAvailable ? store.load().session : nil }
+    public var pendingEmail: String? { isAvailable ? store.load().pendingEmail : nil }
+
+    /// The configuration, or `unavailable` before anything touches the network.
+    func requireConfig() throws -> SyncConfig {
+        guard let configuration else { throw SyncError.unavailable }
+        return configuration
+    }
 
     // Sign-in
 
     /// Emails a one-time sign-in link that opens Pulse (`redirectURL`). PKCE: the link is useless without the verifier
     /// kept in this Mac's Keychain.
     public func requestEmailLink(_ email: String) async throws {
+        let config = try requireConfig()
         let pkce = PKCE.make()
-        var request = authRequest("otp", query: [URLQueryItem(name: "redirect_to", value: config.redirectURL.absoluteString)])
+        var request = try authRequest("otp", query: [URLQueryItem(name: "redirect_to", value: config.redirectURL.absoluteString)])
         request.httpMethod = "POST"
         request.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "create_user": true,
                                                                       "code_challenge": pkce.challenge, "code_challenge_method": "s256"])
@@ -167,8 +181,9 @@ public actor SyncClient {
         store.save(stored)
     }
 
-    /// The browser page for Apple, Google or GitHub; it returns to `redirectURL` with a code.
-    public func providerURL(_ provider: Provider) -> URL {
+    /// The browser page for Apple, Google or GitHub; it returns to `redirectURL` with a code. Nil when Sync is off.
+    public func providerURL(_ provider: Provider) -> URL? {
+        guard let config = configuration else { return nil }
         let pkce = PKCE.make()
         var stored = store.load()
         stored.pendingVerifier = pkce.verifier
@@ -184,6 +199,7 @@ public actor SyncClient {
     /// `dev.tokone.pulse://auth-callback?code=…` (or `…#error=…&error_description=…`): exchanges the code for a session.
     @discardableResult
     public func handleCallback(_ url: URL) async throws -> AuthSession {
+        let config = try requireConfig()
         guard url.scheme == config.redirectURL.scheme, url.host == config.redirectURL.host else { throw SyncError.invalidCallback("not a sign-in link") }
         let items = (URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? [])
             + (URLComponents(string: "?" + (url.fragment ?? ""))?.queryItems ?? [])
@@ -192,7 +208,7 @@ public actor SyncClient {
         if let error = value("error_description") ?? value("error") { throw SyncError.invalidCallback(error) }
         guard let code = value("code") else { throw SyncError.invalidCallback("no code in the link") }
         guard let verifier = store.load().pendingVerifier else { throw SyncError.noPendingSignIn }
-        var request = authRequest("token", query: [URLQueryItem(name: "grant_type", value: "pkce")])
+        var request = try authRequest("token", query: [URLQueryItem(name: "grant_type", value: "pkce")])
         request.httpMethod = "POST"
         request.httpBody = try JSONSerialization.data(withJSONObject: ["auth_code": code, "code_verifier": verifier])
         let session = try decodeSession(try await send(request))
@@ -202,9 +218,10 @@ public actor SyncClient {
 
     /// A session valid for at least another minute, refreshed if needed.
     public func validSession() async throws -> AuthSession {
+        _ = try requireConfig()
         guard let session = store.load().session else { throw SyncError.notSignedIn }
         if session.expiresAt.timeIntervalSince(now()) > 60 { return session }
-        var request = authRequest("token", query: [URLQueryItem(name: "grant_type", value: "refresh_token")])
+        var request = try authRequest("token", query: [URLQueryItem(name: "grant_type", value: "refresh_token")])
         request.httpMethod = "POST"
         request.httpBody = try JSONSerialization.data(withJSONObject: ["refresh_token": session.refreshToken])
         do {
@@ -219,8 +236,7 @@ public actor SyncClient {
 
     /// Signs out here and revokes the session on the server (best effort: offline, it still signs out here).
     public func signOut() async {
-        if let session = store.load().session {
-            var request = authRequest("logout", query: [URLQueryItem(name: "scope", value: "local")])
+        if configuration != nil, let session = store.load().session, var request = try? authRequest("logout", query: [URLQueryItem(name: "scope", value: "local")]) {
             request.httpMethod = "POST"
             request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
             _ = try? await send(request)
@@ -231,7 +247,7 @@ public actor SyncClient {
     /// Deletes the account and every row with it (server function `delete_account`), then signs out here.
     public func deleteAccount() async throws {
         let session = try await validSession()
-        var request = restRequest("rpc/delete_account", session: session)
+        var request = try restRequest("rpc/delete_account", session: session)
         request.httpMethod = "POST"
         request.httpBody = Data("{}".utf8)
         _ = try await send(request)
@@ -244,7 +260,7 @@ public actor SyncClient {
     public func upload(_ payload: SyncPayload) async throws {
         let session = try await validSession()
         if let profile = payload.profile {
-            var request = restRequest("profiles", session: session, query: [URLQueryItem(name: "user_id", value: "eq.\(session.userID)")])
+            var request = try restRequest("profiles", session: session, query: [URLQueryItem(name: "user_id", value: "eq.\(session.userID)")])
             request.httpMethod = "PATCH"
             request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
             request.httpBody = try SyncPayload.encoder.encode(profile)
@@ -261,7 +277,7 @@ public actor SyncClient {
 
     func upsert<Row: Encodable>(_ table: String, _ rows: [Row], conflict: String, session: AuthSession) async throws {
         guard !rows.isEmpty else { return }
-        var request = restRequest(table, session: session, query: [URLQueryItem(name: "on_conflict", value: conflict)])
+        var request = try restRequest(table, session: session, query: [URLQueryItem(name: "on_conflict", value: conflict)])
         request.httpMethod = "POST"
         request.setValue("resolution=merge-duplicates,return=minimal", forHTTPHeaderField: "Prefer")
         request.httpBody = try SyncPayload.encoder.encode(rows)
@@ -270,7 +286,8 @@ public actor SyncClient {
 
     // Plumbing
 
-    func authRequest(_ path: String, query: [URLQueryItem] = []) -> URLRequest {
+    func authRequest(_ path: String, query: [URLQueryItem] = []) throws -> URLRequest {
+        let config = try requireConfig()
         var components = URLComponents(url: config.projectURL.appendingPathComponent("auth/v1/\(path)"), resolvingAgainstBaseURL: false)!
         components.queryItems = query.isEmpty ? nil : query
         var request = URLRequest(url: components.url!)
@@ -279,7 +296,8 @@ public actor SyncClient {
         return request
     }
 
-    func restRequest(_ path: String, session: AuthSession, query: [URLQueryItem] = []) -> URLRequest {
+    func restRequest(_ path: String, session: AuthSession, query: [URLQueryItem] = []) throws -> URLRequest {
+        let config = try requireConfig()
         var components = URLComponents(url: config.projectURL.appendingPathComponent("rest/v1/\(path)"), resolvingAgainstBaseURL: false)!
         components.queryItems = query.isEmpty ? nil : query
         var request = URLRequest(url: components.url!)
@@ -290,6 +308,7 @@ public actor SyncClient {
     }
 
     func send(_ request: URLRequest) async throws -> Data {
+        _ = try requireConfig()                                   // belt and braces: never send without a project
         let (data, response) = try await transport.send(request)
         guard (200..<300).contains(response.statusCode) else {
             let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]

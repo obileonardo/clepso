@@ -20,7 +20,11 @@ final class RecordingTransport: HTTPTransport, @unchecked Sendable {
     var bodies: String { lock.withLock { log.map { String(decoding: $0.httpBody ?? Data(), as: UTF8.self) }.joined(separator: "\n") } }
 }
 
-/// ROADMAP 2.0 step 2: what an upload contains, and the account flow through the app.
+/// A stand-in accounts project for tests: nothing here can reach a real server (the transport records instead).
+let testSyncConfig = SyncConfig(projectURL: URL(string: "https://example.supabase.co")!, publishableKey: "sb_publishable_test",
+                                redirectURL: SyncConfig.redirectURL)
+
+/// What an upload contains, and the account flow through the app.
 @MainActor
 @Suite("Accounts in the app", .serialized)
 struct AccountSyncTests {
@@ -69,7 +73,7 @@ struct AccountSyncTests {
         let box = Sandbox(); defer { box.cleanUp() }
         let transport = RecordingTransport(), store = MemoryAuthStore(), clock = TestClock()
         var environment = box.model(clock: clock).environment
-        environment.sync = SyncClient(config: .production, transport: transport, store: store, now: { clock.now() })
+        environment.sync = SyncClient(config: testSyncConfig, transport: transport, store: store, now: { clock.now() })
         let model = AppModel(environment: environment)
         await model.start(); defer { model.stop() }
 
@@ -96,5 +100,57 @@ struct AccountSyncTests {
         _ = await model.deleteAll(includeBackups: false, relaunch: false)
         #expect(model.account == .signedOut && store.load() == StoredAuth())
         #expect(transport.paths.last == "/auth/v1/logout")
+    }
+
+    @Test("A build without an accounts project: sign-in unavailable, never suggested, and not one request")
+    func unconfigured() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let transport = RecordingTransport(), clock = TestClock()
+        // A session left in the store (say, from an official build) must not make an unconfigured build look signed in.
+        let store = MemoryAuthStore()
+        store.save(StoredAuth(session: AuthSession(accessToken: "a", refreshToken: "r", expiresAt: clock.now().addingTimeInterval(3600),
+                                                   userID: "u-1", email: "e@example.test")))
+        var environment = box.model(clock: clock).environment
+        environment.sync = SyncClient(config: nil, transport: transport, store: store, now: { clock.now() })
+        let model = AppModel(environment: environment)
+        await model.start(); defer { model.stop() }
+
+        #expect(!model.accountsAvailable)
+        await model.refreshAccount()
+        #expect(model.account == .signedOut)
+        await model.emailSignInLink("e@example.test")
+        #expect(model.account == .signedOut && model.accountMessage == Copy.Sync.unavailable)
+        await model.handleOpenURL(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!)
+        #expect(model.account == .signedOut && model.accountMessage == Copy.Sync.unavailable)
+        await model.syncNow()
+        await model.signOut()
+        await model.deleteAccount()
+        _ = await model.deleteAll(includeBackups: false, relaunch: false)
+        #expect(transport.paths.isEmpty, "no request of any kind without an accounts project")
+
+        var input = ForYou.Input()
+        input.signedIn = false
+        input.accountsAvailable = model.accountsAvailable
+        #expect(!ForYou.make(input).contains { $0.kind == .account }, "Home never suggests signing in")
+    }
+
+    @Test("The default environment (tests, previews, source builds) has Sync off")
+    func defaultEnvironmentIsUnconfigured() {
+        let box = Sandbox(); defer { box.cleanUp() }
+        #expect(!box.model(clock: TestClock()).environment.sync.isAvailable)
+    }
+
+    @Test("A sign-in link's own error text is never shown: any app can open the URL scheme")
+    func callbackTextNotEchoed() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let transport = RecordingTransport(), store = MemoryAuthStore(), clock = TestClock()
+        var environment = box.model(clock: clock).environment
+        environment.sync = SyncClient(config: testSyncConfig, transport: transport, store: store, now: { clock.now() })
+        let model = AppModel(environment: environment)
+        await model.start(); defer { model.stop() }
+        await model.handleOpenURL(URL(string: "dev.tokone.pulse://auth-callback?error_description=Call+0800+to+restore+your+account")!)
+        #expect(model.accountMessage == Copy.Sync.linkFailed)
+        #expect(!(model.accountMessage ?? "").contains("0800"))
+        #expect(transport.paths.isEmpty)
     }
 }

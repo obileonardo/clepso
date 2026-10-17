@@ -447,6 +447,9 @@ public final class AppModel {
 
     // MARK: - Account and sync (ROADMAP 2.0)
 
+    /// Whether this build can sign in at all. Builds from source carry no accounts project, so Sync stays off.
+    public var accountsAvailable: Bool { environment.sync.isAvailable }
+
     public func refreshAccount() async {
         if let session = await environment.sync.session { account = .signedIn(email: session.email) }
         else if let email = await environment.sync.pendingEmail { account = .linkSent(email: email) }
@@ -456,6 +459,7 @@ public final class AppModel {
     /// "Email me a link": a one-time sign-in link to `email`, which opens Pulse on this Mac.
     public func emailSignInLink(_ email: String) async {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard accountsAvailable else { accountMessage = Copy.Sync.unavailable; return }
         guard trimmed.contains("@"), trimmed.count <= 254 else { accountMessage = Copy.Sync.invalidEmail; return }
         accountBusy = true
         defer { accountBusy = false }
@@ -551,9 +555,10 @@ public final class AppModel {
 
     static func syncReason(_ error: Error) -> String {
         switch error as? SyncError {
+        case .unavailable?: Copy.Sync.unavailable
         case .notSignedIn?: Copy.Sync.notSignedIn
         case .noPendingSignIn?: Copy.Sync.noPending
-        case .invalidCallback(let why)?: Copy.Sync.linkFailed(why)
+        case .invalidCallback?: Copy.Sync.linkFailed      // the link's own text is never shown: any app can open the URL
         case .http(let status, let code)?: Copy.Sync.serverError(status, code)
         case .badResponse?: Copy.Sync.badResponse
         case nil: Copy.Sync.offline

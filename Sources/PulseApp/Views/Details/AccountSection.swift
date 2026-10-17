@@ -34,7 +34,14 @@ struct AccountSection: View {
                     Button(Copy.Account.change) { choosingPlan = true }.buttonStyle(PixelButtonStyle())
                 }
             }
-            section(Copy.AccountPage.signIn, Copy.AccountPage.signInSub) { signInMethods }
+            section(Copy.AccountPage.signIn, Copy.AccountPage.signInSub) {
+                if model.accountsAvailable {
+                    signInMethods
+                } else {
+                    Text(Copy.Sync.unavailable).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
             if signedIn {
                 section(Copy.AccountPage.sync, Copy.Sync.explainer) {
                     HStack(spacing: theme.spacing(.standard)) {

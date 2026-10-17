@@ -409,7 +409,8 @@ enum Copy {
         static let invalidEmail = "That doesn't look like an email address."
         static let notSignedIn = "You're signed out. Sign in again to keep uploading."
         static let noPending = "That link was sent from a different sign-in attempt. Ask for a new one."
-        static func linkFailed(_ why: String) -> String { "The sign-in link didn't work: \(why). Ask for a new one." }
+        static let linkFailed = "The sign-in link didn't work. Ask for a new one."
+        static let unavailable = "Accounts aren't available in this build. Builds made from source don't connect to Pulse's accounts service, so nothing leaves this Mac."
         static func serverError(_ status: Int, _ code: String?) -> String { "The server said no (\(status)\(code.map { ", \($0)" } ?? "")). Try again later." }
         static let badResponse = "The server's answer didn't make sense. Try again later."
         static let offline = "Couldn't reach the server. Pulse will try again within the hour."

@@ -27,6 +27,54 @@ func sessionJSON(_ access: String = "access-1", refresh: String = "refresh-1", e
 func body(_ r: URLRequest) -> [String: Any] { (try? JSONSerialization.jsonObject(with: r.httpBody ?? Data())) as? [String: Any] ?? [:] }
 func query(_ r: URLRequest, _ name: String) -> String? { URLComponents(url: r.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == name }?.value }
 
+@Suite("Accounts configuration")
+struct SyncConfigTests {
+    @Test("Read from Info.plist values: host and publishable key; https and the app's redirect")
+    func fromInfoPlist() throws {
+        let c = try #require(SyncConfig(infoDictionary: ["PulseSyncHost": "abcd.supabase.co", "PulseSyncPublishableKey": "sb_publishable_x"]))
+        #expect(c.projectURL.absoluteString == "https://abcd.supabase.co")
+        #expect(c.publishableKey == "sb_publishable_x" && c.redirectURL.absoluteString == "dev.tokone.pulse://auth-callback")
+    }
+
+    @Test("Missing, empty, unexpanded or malformed values mean no configuration (Sync off)",
+          arguments: [
+            [:],
+            ["PulseSyncHost": "abcd.supabase.co"],
+            ["PulseSyncPublishableKey": "sb_publishable_x"],
+            ["PulseSyncHost": "", "PulseSyncPublishableKey": ""],
+            ["PulseSyncHost": "$(PULSE_SYNC_HOST)", "PulseSyncPublishableKey": "$(PULSE_SYNC_PUBLISHABLE_KEY)"],
+            ["PulseSyncHost": "https://abcd.supabase.co", "PulseSyncPublishableKey": "sb_publishable_x"],
+            ["PulseSyncHost": "abcd.supabase.co/path", "PulseSyncPublishableKey": "sb_publishable_x"],
+            ["PulseSyncHost": "localhost", "PulseSyncPublishableKey": "sb_publishable_x"],
+            ["PulseSyncHost": "abcd.supabase.co", "PulseSyncPublishableKey": "sb_secret_x"],
+            ["PulseSyncHost": "abcd.supabase.co", "PulseSyncPublishableKey": "two words"],
+          ] as [[String: String]])
+    func refused(_ values: [String: String]) {
+        #expect(SyncConfig(infoDictionary: values) == nil)
+    }
+
+    @Test("No configuration: every call fails as unavailable before a request; no session is reported; sign-out stays local")
+    func unconfiguredSendsNothing() async throws {
+        let transport = StubTransport(), store = MemoryAuthStore()
+        store.save(StoredAuth(session: AuthSession(accessToken: "a", refreshToken: "r", expiresAt: t0.addingTimeInterval(3600),
+                                                   userID: "u-1", email: "e@example.test"), pendingVerifier: "v", pendingEmail: "e@example.test"))
+        let client = SyncClient(config: nil, transport: transport, store: store, now: { t0 })
+        #expect(!client.isAvailable)
+        let session = await client.session, pending = await client.pendingEmail
+        #expect(session == nil && pending == nil)
+        await #expect(throws: SyncError.unavailable) { try await client.requestEmailLink("e@example.test") }
+        await #expect(throws: SyncError.unavailable) { try await client.handleCallback(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!) }
+        await #expect(throws: SyncError.unavailable) { try await client.validSession() }
+        await #expect(throws: SyncError.unavailable) { try await client.upload(SyncPayload()) }
+        await #expect(throws: SyncError.unavailable) { try await client.deleteAccount() }
+        let providerURL = await client.providerURL(.github)
+        #expect(providerURL == nil)
+        await client.signOut()
+        #expect(transport.all.isEmpty, "not one request without a configuration")
+        #expect(store.load() == StoredAuth(), "signing out still clears this Mac")
+    }
+}
+
 @Suite("Accounts client")
 struct SyncClientTests {
     @Test("PKCE matches the RFC 7636 example, and fresh verifiers are long and URL-safe")

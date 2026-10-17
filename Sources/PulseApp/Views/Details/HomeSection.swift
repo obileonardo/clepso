@@ -86,6 +86,7 @@ struct HomeSection: View {
         input.statsOn = model.statsEnabled
         input.agentsOn = snapshot.agents != nil
         if case .signedIn = model.account { input.signedIn = true } else { input.signedIn = false }
+        input.accountsAvailable = model.accountsAvailable
         return ForYou.make(input)
     }
 

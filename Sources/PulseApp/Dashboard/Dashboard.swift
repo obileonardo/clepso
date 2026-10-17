@@ -218,6 +218,8 @@ enum ForYou {
         var statsOn = true
         var agentsOn = true
         var signedIn = true
+        /// False in builds without an accounts project (builds from source): then sign-in is never suggested.
+        var accountsAvailable = true
     }
 
     static func make(_ input: Input) -> [ForYouItem] {
@@ -238,7 +240,7 @@ enum ForYou {
         if !input.connected { items.append(.init(kind: .connect, title: Copy.ForYou.connectTitle, detail: Copy.Home.connectBody, action: Copy.Home.connect, section: nil)) }
         if !input.statsOn { items.append(.init(kind: .stats, title: Copy.ForYou.statsTitle, detail: Copy.Home.statsBody, action: Copy.Home.turnOn, section: nil)) }
         if !input.agentsOn { items.append(.init(kind: .agents, title: Copy.ForYou.agentsTitle, detail: Copy.Home.agentsBody, action: Copy.Home.turnOn, section: .settings)) }
-        if !input.signedIn { items.append(.init(kind: .account, title: Copy.ForYou.signInTitle, detail: Copy.ForYou.signInBody, action: Copy.ForYou.signIn, section: .account)) }
+        if input.accountsAvailable && !input.signedIn { items.append(.init(kind: .account, title: Copy.ForYou.signInTitle, detail: Copy.ForYou.signInBody, action: Copy.ForYou.signIn, section: .account)) }
         if items.isEmpty { items.append(.init(kind: .allClear, title: Copy.ForYou.allClear, detail: Copy.ForYou.allClearBody, action: nil, section: nil)) }
         return items
     }
