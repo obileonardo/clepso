@@ -11,11 +11,12 @@ visibility. **At public** = only available, or only free, once the repository is
 | Setting | Observed | Target |
 |---|---|---|
 | Visibility | Private | Public, only after the Stage A blockers and owner questions are resolved |
-| Description | "Pulse: local AI capacity monitor for Claude Code (macOS menu bar)" | Keep, or update once the product name is final |
+| Description | "Pulse: local AI capacity monitor for Claude Code (macOS menu bar)" | Keep; mention Codex once public |
+| Repository name | `tokone` | Rename to `pulse` deferred until after a trademark check (owner decision) |
 | Homepage, topics | None | Add (see below) |
 | Default branch | `main`, **not protected** | Protected by a ruleset |
 | Branch protection / rulesets | Not available: the API answers "Upgrade to GitHub Pro or make this repository public" | Ruleset on `main` (At public) |
-| Collaborators | Owner (admin) and one other account with **write** access | Confirm the second account still needs write access (owner question) |
+| Collaborators | Owner (admin) and one other account with **write** access | Kept as is: owner's decision (see §5) |
 | Deploy keys, webhooks | None | None |
 | Actions | Enabled; all actions allowed; SHA pinning not required | Allow only GitHub-owned and selected actions; require SHA pinning |
 | Default workflow token | Read-only; workflows cannot approve pull requests | Keep |
@@ -39,8 +40,8 @@ visibility. **At public** = only available, or only free, once the repository is
 3. **Dependabot version updates**: adopt `docs/open-source/proposed/dependabot.yml` as `.github/dependabot.yml`.
 4. **Secret scanning** and **Push protection**: Enable. Free for public repositories; for a private repository it
    needs GitHub Secret Protection. Turn both on no later than the moment the repository becomes public.
-5. **Private vulnerability reporting**: Enable. `SECURITY.md` points reporters to it. Check, after enabling, that the
-   **Report a vulnerability** button appears on the Security tab.
+5. **Private vulnerability reporting**: Enable (**owner action, required**: `SECURITY.md` names it as the only
+   reporting channel). Check, after enabling, that the **Report a vulnerability** button appears on the Security tab.
 6. **Code scanning**: once public, enable CodeQL *default setup*. Swift analysis needs a macOS build; if default setup
    cannot build the project, use advanced setup with `swift build` as the build command, or postpone and note it.
 
@@ -63,7 +64,7 @@ Create a branch ruleset targeting the default branch:
 - Require a pull request before merging; 1 approval once there is a second maintainer (until then, 0 approvals but
   still via pull request, so CI runs); dismiss stale approvals on new commits; require conversation resolution.
 - Require status checks to pass: the jobs from the adopted workflow (`Build and test (SwiftPM)`,
-  `Source and helper gates`); require branches to be up to date.
+  `Quality gates (contributor mode)`); require branches to be up to date.
 - Require linear history.
 - Bypass list: empty, or the owner only for emergencies.
 - Signed commits: optional. Useful if more maintainers join; not required for a single maintainer.
@@ -79,19 +80,21 @@ Add a tag ruleset for `v*`: restrict creation, update and deletion to the owner.
 - **Social preview**: upload an image made from a demo screenshot (Settings › General › Social preview).
 - **Topics** (About › gear): for example `macos`, `menu-bar-app`, `swift`, `swiftui`, `claude-code`,
   `developer-tools`, `usage-monitor`, `privacy`.
-- **Homepage**: the documentation site URL, once the owner decides it is public.
+- **Homepage**: the documentation site URL (the owner has approved the site for publication).
 
 ### 5. Access — Now
 
-- Review the second collaborator's write access (Settings › Collaborators). With `main` unprotected, write access
-  means they can push directly to `main`.
+- **Second collaborator: keeps write access (owner's decision, 17 Oct 2026).** A read-only role is not available on a
+  repository owned by a personal account; it needs an organization-owned repository (or, for viewing only, a public
+  one). Until a ruleset protects `main` (§3, at public), write access includes pushing directly to `main`.
 - Confirm two-factor authentication on the owner account.
 - Labels for contributors: `good first issue`, `help wanted`, `triage`, `bug`, `enhancement`, `documentation`,
   `privacy` (changes that touch what Pulse reads or sends), `security` (for advisories, not public issues).
 
 ### 6. Releases — Later
 
-- Use pre-release tags (`v0.1.0-alpha.1` …) until there is a signed, notarized build.
+- First public release: `v0.1.0-alpha` (owner decision), only after Stage C passes; further pre-releases
+  `v0.1.0-alpha.N` until there is a signed, notarized build.
 - Release notes from the changelog; attach the notarized DMG and its SHA-256; include third-party licence texts
   (GRDB, fonts) in the app bundle or the release download.
 - Signed builds run in a separate workflow bound to a `release` environment with the owner as required reviewer.

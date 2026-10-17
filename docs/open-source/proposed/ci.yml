@@ -7,9 +7,10 @@
 #   - Least privilege: the workflow token can only read the repository contents.
 #   - Every third-party action must be pinned to a full commit SHA (TODO markers below). Dependabot
 #     (docs/open-source/proposed/dependabot.yml) then proposes updates to those pins.
-#   - The "app bundle" gate is not run here: it needs the maintainer's signing identity, which must never be given
-#     to a workflow that runs pull-request code. Signed builds belong in a separate, environment-protected release
-#     workflow (lane D), added later.
+#   - Gates run in contributor mode (scripts/ci.sh --contributor): ad-hoc signing and no accounts project, so the
+#     workflow needs no secrets at all. The maintainer's signing identity and accounts project must never be given to
+#     a workflow that runs pull-request code; signed builds belong in a separate, environment-protected release
+#     workflow, added later.
 
 name: CI
 
@@ -59,7 +60,7 @@ jobs:
         run: swift test --skip-build
 
   gates:
-    name: Source and helper gates
+    name: Quality gates (contributor mode)
     runs-on: macos-26
     timeout-minutes: 30
     steps:
@@ -72,13 +73,9 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
           xcodebuild -version
 
-      # TODO(owner): needs a small Stage B change to scripts/ci.sh so a gate can be skipped, e.g.
-      #   scripts/ci.sh --skip "app bundle"
-      # Until then this step would fail at the app-bundle gate on any machine without the signing identity.
-      # The other gates (toolchain, helper linkage, networking only in Sync, clock injected, design tokens,
-      # redaction audit, secret scan) need no secrets.
-      - name: make ci without the signed app bundle
-        run: scripts/ci.sh --skip "app bundle"
+      # Every gate, including the ad-hoc-signed app bundle; no secrets needed.
+      - name: make ci-contributor
+        run: scripts/ci.sh --contributor
 
       - name: Keep gate logs
         if: always()

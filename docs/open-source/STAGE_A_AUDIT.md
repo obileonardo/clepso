@@ -14,6 +14,77 @@
 
 ---
 
+## Stage B record (17 Oct 2026)
+
+Stage B was approved by the owner; the branch was first rebased onto `main` (`3d70caf`: themes 1.15, Codex 3.4,
+identity 1.16). The Stage A report below is kept as it was written; file and line references in it point at
+`9ee28c7`.
+
+### Owner decisions applied
+
+| # | Decision | Applied as |
+|---|---|---|
+| 1 | Copyright (c) 2026 Elvis Obi; MIT at the root | `LICENSE` (standard MIT text); README and CONTRIBUTING updated |
+| 2 | No employment or contractor agreement covers the work | Recorded; closes F-13's employment question |
+| 3 | The second collaborator keeps write access | Recorded in `GITHUB_SETTINGS.md` §5 (read-only needs an organization-owned repository) |
+| 4 | Security: GitHub private vulnerability reporting; conduct: the owner via GitHub, placeholder for a future alias | `SECURITY.md`, `CODE_OF_CONDUCT.md`; enabling private reporting is an owner action |
+| 5 | Source builds never sign in to or upload to the owner's backend | F-02 fixed (below) |
+| 6 | Keep "Pulse"; trademark check before any public release; repository rename deferred | Recorded in `GITHUB_SETTINGS.md` and `THIRD_PARTY_NOTICES.md` |
+| 7 | Site, history and the scrubbed capture C01 may be public; design docs only as sanitised versions | Public `docs/ARCHITECTURE.md`, `DATA_MODEL.md`, `PRIVACY_AND_SECURITY.md`, `FIXTURES.md`; references swept |
+| 8 | First public release `v0.1.0-alpha`, only after Stage C | Recorded; nothing tagged |
+
+### Findings: status after Stage B
+
+| Finding | Status | What changed |
+|---|---|---|
+| B-1 licence | **Fixed** | `LICENSE` at the root |
+| F-02 production backend in source builds | **Fixed** | No project compiled in. `SyncConfig(infoDictionary:)` reads `PulseSyncHost` / `PulseSyncPublishableKey` from Info.plist, filled from the gitignored `Config/Sync.local.xcconfig`; empty, unexpanded, malformed or secret-looking values mean none. `SyncClient(config: nil)` refuses every call with `.unavailable` before building a request, reports no session, and signs out locally only. Account explains the absence; Home never suggests sign-in. Tests: Info.plist parsing (accepted and 10 refused cases), an unconfigured client sends nothing, the app with no project sends nothing across sign-in, callback, upload, sign-out, delete-account and delete-all, the default environment is unconfigured. New `make ci` gate "no committed accounts project". The owner's local file reproduces the previous project, so official builds behave as before |
+| F-03 contributors cannot run the gates | **Fixed** | Signing comes from `Config/Pulse.xcconfig` (ad hoc by default) plus the gitignored `Config/Signing.local.xcconfig`; `project.yml` no longer names a team. `make ci-contributor` accepts any Swift 6 toolchain, ad-hoc signing and no accounts project. Strict `make ci` is stronger than before: it now also fails on an ad-hoc signature or a missing accounts project. Verified: an ad-hoc build without local files signs, embeds the helper as `dev.tokone.pulse.statusline` and has empty Sync keys |
+| F-04 governance | Owner actions | `GITHUB_SETTINGS.md` updated; no setting changed by this work |
+| F-05 private-doc references | **Fixed** | Four public docs written from the code (not copied: the private drafts describe some plans, such as a Keychain-held HMAC key, that the code does not implement); comment-only sweep of 54 files; test names and one user-visible string fixed. Left on purpose: SQL comments in the released v1 migration, PRD notes in catalog data, the site generator's functional reads |
+| F-06 IPC code-signature check | Open (documented) | Described as current behaviour and planned work in `docs/PRIVACY_AND_SECURITY.md` §3 and `SECURITY.md` |
+| F-07 backend abuse limits | Open (documented) | Unchanged; hosted settings still unverified |
+| F-08 GRDB licence in the app | **Fixed** | `App/PulseMac/Acknowledgements.txt` (GRDB MIT text verbatim from the pinned revision; points to the bundled OFL texts); `make ci` checks both |
+| F-09 site build and personal paths | **Fixed** | `DOCS` from gitignored `Config/local.mk` (guarded); Vercel hint removed |
+| F-10 hosted CI, Dependabot | Proposal updated | `proposed/ci.yml` now runs `scripts/ci.sh --contributor` and needs no secrets; adoption is an owner action |
+| F-11 screenshots | **Fixed** (design/screens) | Probe uses the profile name "Sam" (or `-PulseProbeName`); `scripts/probe-home.py` builds a seeded synthetic statistics file; all 19 images in `design/screens` regenerated from the current app. **Not done:** the copies under `site/` (see below) |
+| F-14 undocumented probe flag | **Fixed** | Probe doc comment describes the real arguments |
+| F-16 another project's name | Partly fixed | Removed from code; still in generated `site/` (below) |
+| F-17 owner's name in tests | Unchanged | Low; the name is in the commit author metadata anyway |
+| F-18 URL-scheme error text | **Fixed** | A fixed message replaces the link's text; test with injected text |
+| F-19 hygiene | **Fixed** | `.editorconfig`, `.gitattributes` (fixture corpora exempt), `.gitignore` guards (local config, `.env*`, signing material, databases, exports, logs) |
+
+### New findings in Stage B
+
+| ID | Severity | Finding | Evidence |
+|---|---|---|---|
+| F-27 | **BLOCKER for publication** (owner decision) | Pulse Pixel and Pulse Mono embed a "Proprietary brand font… licence for third parties to be decided" licence string (name ID 13), which conflicts with the MIT grant covering the repository | `design/brand/pipeline/fontmeta.py:13-16`; font name tables; `THIRD_PARTY_NOTICES.md` "Pulse brand assets" |
+| F-28 | MEDIUM | `-Xswiftc -warnings-as-errors` does not fail the build on two Swift 6 concurrency warnings that came in with `main` (`Sources/PulseApp/Dashboard/Dashboard.swift:233`, `Sources/PulseApp/Views/Details/SettingsSection.swift:247`), so the "warnings are errors" gate is weaker than stated | strict build exit 0 with both warnings printed |
+| F-29 | LOW | A long `-PulseDataDirectory` path silently exceeds the 104-byte Unix socket limit and the panel then reports it isn't receiving updates | observed during the probe run; documented in README |
+| F-30 | HIGH (before publication) | Generated `site/` still contains the old screenshots showing the owner's first name (`site/screens/img/`, `site/design-system/img/screens/`) and another project's name (`site/index.html`, `site/progress/index.html`, `site/assets/search.json`, from the private roadmap text) | `git grep` |
+
+### Verification
+
+See the commit list and the final `make ci` / `make app` results in the hand-off report. Highlights: strict build
+exit 0; 244 tests passed; an ad-hoc contributor build of the app verified with `codesign`; the probe regenerated every
+screen against a synthetic home in an isolated data folder.
+
+### Left for Stage C or the owner
+
+1. Decide the brand-asset licence (F-27).
+2. Regenerate `site/` (`make site` with `DOCS` set) after neutral wording in the planning roadmap, or remove the
+   affected generated files (F-30).
+3. Enable private vulnerability reporting, secret scanning and push protection, Dependabot; restrict Actions; adopt the
+   CI proposal; at public, add the `main` ruleset (`GITHUB_SETTINGS.md`).
+4. Copy `Config/Signing.local.xcconfig`, `Config/Sync.local.xcconfig` and `Config/local.mk` into every checkout that
+   builds official releases (they are gitignored, so a merge does not bring them).
+5. Fix F-28 and decide F-06 / F-07.
+6. Trademark check for "Pulse"; then the repository rename, if any.
+7. Stage C: re-scan the exact tree and history to publish, run `make ci-contributor` on a machine without the owner's
+   files, review this report for publication (keep it private), GO/NO-GO.
+
+---
+
 ## 1. Executive summary
 
 **What it is.** Pulse (working name; repository `tokone`) is a native Swift 6 / SwiftUI macOS menu bar app that
