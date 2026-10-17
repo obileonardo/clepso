@@ -83,11 +83,11 @@ def search_dialog():
             '<p class="px-search-hint">↑ ↓ to move · ↵ to open · esc to close</p></div></div>')
 
 
-# The footer village (founder request, 17 Oct 2026). Statuses must match docs/ROADMAP.md: only Claude Code is read
-# today; Codex, Gemini and Grok are in 3.2 (manual snapshots) and 3.3 (spikes); the rest were requested, not planned.
+# The footer village (founder request, 17 Oct 2026). Statuses must match docs/ROADMAP.md: Claude Code and Codex (3.4) are
+# read today; Gemini and Grok are in 3.2 (manual snapshots) and 3.3 (spikes); the rest were requested, not planned.
 VILLAGE = [
     ("claude-code", "Claude Code", "#FF8A5B", "today", "Read today: both limits, the session, Claude Code's statistics and agents per task."),
-    ("codex", "Codex", "#8FD3FF", "planned", "On the roadmap: dated manual snapshots (3.2), then a spike on its documented outputs (3.3)."),
+    ("codex", "Codex", "#8FD3FF", "today", "Read today, if you turn it on: the 5-hour and weekly limits and plan, from Codex's own session files (3.4)."),
     ("gemini-cli", "Gemini CLI", "#A58CFF", "planned", "On the roadmap: dated manual snapshots (3.2), then a spike on its documented outputs (3.3)."),
     ("grok", "Grok", "#D9D4C4", "planned", "On the roadmap: dated manual snapshots (3.2)."),
     ("cursor", "Cursor", "#FFC04D", "requested", "Requested on 17 Oct 2026; not on the roadmap yet."),
@@ -117,7 +117,7 @@ def footer():
     cols = "".join(f'<div><p>{e(group)}</p><ul>' + "".join(f'<li><a href="/{p}">{e(n)}</a></li>' for p, n in items) + "</ul></div>"
                    for group, items in MENU)
     return (f'<div class="stripes" aria-hidden="true"></div><footer class="foot"><div class="wrap">'
-            f'<div class="foot-cols"><div><p>Pulse</p><ul><li>A macOS menu bar monitor for Claude Code limits.</li>'
+            f'<div class="foot-cols"><div><p>Pulse</p><ul><li>A macOS menu bar monitor for coding-agent limits: Claude Code and Codex.</li>'
             f'<li>Pulse is a working name.</li></ul></div>{cols}'
             f'<div><p>Build</p><ul><li>Commit <code>{e(COMMIT)}</code></li><li>{e(COMMIT_DATE)}</li><li>{len(GATES)} gates per commit</li></ul></div></div>'
             f'<div class="foot-word" aria-hidden="true"><small>PULSE.wordmark</small><b>PULSE</b><i></i><i></i><i></i><i></i></div></div>'
@@ -472,6 +472,7 @@ docs_page("metrics/", "Metrics", "How Pulse defines every number it shows: limit
 <h2 id="sources">Where the numbers come from</h2>
 <div class="table-wrap"><table><thead><tr><th>Source</th><th>What it gives</th><th>How fresh</th><th>Kept by Pulse</th></tr></thead><tbody>
 <tr><td>Claude Code status line</td><td>5-hour and 7-day usage with reset times, current model, context window, session cost estimate, durations, lines changed, prompt-cache counts</td><td>Every status refresh while Claude Code runs</td><td>Yes, on this Mac only, after an allowlist removes everything else (paths, prompts, ids)</td></tr>
+<tr><td>Codex session files (<code>~/.codex/sessions</code>, optional)</td><td>5-hour and weekly used % with reset times, plan type, model; only <code>token_count</code> events, from the last 256 KB of the three newest files</td><td>Each time Pulse checks, about every 30 seconds while on</td><td>Yes, the limits only, on this Mac. Prompts and replies in the same files are skipped without being parsed</td></tr>
 <tr><td>Claude Code statistics file (<code>~/.claude/stats-cache.json</code>, the data behind <code>/stats</code>)</td><td>Messages and sessions per day, tokens per model per day, tokens by kind per model (all time), sessions by hour</td><td>Up to yesterday: Claude Code folds each day in afterwards</td><td>No. Read when you open Stats, only if you turn it on; never stored or exported</td></tr>
 </tbody></table></div>
 
@@ -662,7 +663,8 @@ docs_page("privacy/", "Privacy", "What Pulse reads, what it keeps on your Mac, a
           "goals and usage elsewhere. This page lists every field. Draft, 17 October 2026.", """
 <h2 id="mac">On your Mac</h2>
 <p>Pulse reads Claude Code's status line (limits, model, context, session cost estimate, durations, lines changed), and, only if you turn them
-on, Claude Code's statistics file and four background hooks that count subagents per task. A helper drops everything else (prompts, replies,
+on, Claude Code's statistics file, four background hooks that count subagents per task, and Codex's session files (only the
+limit and plan lines; prompts and replies in them are skipped unread). A helper drops everything else (prompts, replies,
 file paths, project names) before anything reaches the app. Readings stay in a local database for 90 days (sessions and tasks 30).
 Delete all removes everything Pulse stored and restores Claude Code's settings.</p>
 
