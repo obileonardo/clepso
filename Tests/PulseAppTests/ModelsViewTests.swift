@@ -37,6 +37,10 @@ struct ModelsViewTests {
         check(5_300_000, level: 13, floor: 5_000_000, next: 10_000_000)
         check(18_200_000, level: 14, floor: 10_000_000, next: 20_000_000)
         #expect(abs(ModelLevel(output: 18_200_000).progress - 0.82) < 1e-9)
+        // The ladder the app's legend and the documentation site both publish (scripts/build-site.py mirrors it).
+        #expect(Array(ModelLevel.targets.prefix(19)) == [1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000, 200_000, 500_000,
+                                                         1_000_000, 2_000_000, 5_000_000, 10_000_000, 20_000_000, 50_000_000,
+                                                         100_000_000, 200_000_000, 500_000_000, 1_000_000_000])
         // More output never means a lower level, and a target always lies above the output.
         var last = 0
         for output in stride(from: Int64(0), through: 100_000_000, by: 77_777) {

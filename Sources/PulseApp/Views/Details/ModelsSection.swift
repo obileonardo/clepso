@@ -236,6 +236,7 @@ struct ModelArena: View {
                                 specialty: ModelSpecialty.of(entry.share.totals, party: summary.models.compactMap(\.totals)))
                 }
             }
+            LevelLegend(models: ranked.compactMap { entry in entry.share.totals.map { (entry.share.name, ModelLevel(output: $0.output)) } })
             Text(summary.range == .allTime ? Copy.Stats.arenaNote : Copy.Stats.arenaRangeNote).font(theme.font(.supporting))
                 .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
         }
@@ -288,13 +289,12 @@ struct FighterCard: View {
                         if let level {
                             // Exactly what the bar shows: output written so far against the next level's target.
                             VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                                HStack(alignment: .firstTextBaseline) {
-                                    Text(Copy.Stats.progressTo(level.level + 1)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                                    Spacer()
-                                    Text(Copy.Stats.outputOf(Formatting.compact(level.output), Formatting.compact(level.next)))
-                                        .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
-                                }
+                                Text(Copy.Stats.progressTo(level.level + 1)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                                 PixelBar(fraction: level.progress, role: ModelStyle.role(index), pattern: .solid, segments: 20)
+                                Text(Copy.Stats.outputOf(Formatting.compact(level.output), Formatting.compact(level.next),
+                                                         toGo: Formatting.compact(level.next - level.output)))
+                                    .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel(Copy.Stats.levelLabel(level.level, output: Formatting.compact(level.output), next: Formatting.compact(level.next)))
@@ -398,6 +398,83 @@ struct ModelLevel: Equatable {
         self.level = reached + 1
         self.floor = reached == 0 ? 0 : Self.targets[reached - 1]
         self.next = reached < Self.targets.count ? Self.targets[reached] : Self.targets[reached - 1]
+    }
+}
+
+/// "How levels work": the ladder of output targets with each model placed on it, what each kind of token is, and how
+/// rank and specialty are worked out. The same rules are published on the documentation site (Metrics page).
+struct LevelLegend: View {
+    let models: [(name: String, level: ModelLevel)]
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    /// Levels 1 to 20, or further when a model has gone past 20.
+    var shown: Int { max(20, (models.map(\.level.level).max() ?? 0) + 1) }
+
+    var body: some View {
+        PixelPanel {
+            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                Text(Copy.Stats.legendTitle).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                    .accessibilityAddTraits(.isHeader)
+                HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
+                    ladder.frame(maxWidth: .infinity, alignment: .topLeading)
+                    definitions.frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+            }
+        }
+    }
+
+    var ladder: some View {
+        let half = (shown + 1) / 2
+        return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            Text(Copy.Stats.ladderTitle).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
+                column(1...half)
+                column((half + 1)...shown)
+            }
+            Text(Copy.Stats.ladderNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    func column(_ levels: ClosedRange<Int>) -> some View {
+        Grid(alignment: .leading, horizontalSpacing: theme.spacing(.standard), verticalSpacing: theme.spacing(.compact)) {
+            ForEach(Array(levels), id: \.self) { level in
+                let here = models.filter { $0.level.level == level }.map(\.name)
+                GridRow {
+                    Text(Copy.Stats.level(level)).font(theme.font(.label)).monospacedDigit()
+                        .foregroundStyle(theme.color(here.isEmpty ? .textSecondary : .accent, scheme))
+                    Text(level == 1 ? "0" : Formatting.compact(ModelLevel.targets[level - 2])).font(theme.font(.label)).monospacedDigit()
+                        .foregroundStyle(theme.color(here.isEmpty ? .textSecondary : .textPrimary, scheme))
+                        .gridColumnAlignment(.trailing)
+                    Text(here.joined(separator: ", ")).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
+                        .lineLimit(1).truncationMode(.tail)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    var definitions: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            Text(Copy.Stats.kindsTitle).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+            ForEach(Copy.Stats.kindDefinitions, id: \.0) { name, meaning, counts in
+                VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
+                    HStack(spacing: theme.spacing(.standard)) {
+                        Text(name.uppercased()).font(theme.font(.label).weight(.semibold)).foregroundStyle(theme.color(.textPrimary, scheme))
+                        Text(counts ? Copy.Stats.countsForLevel : Copy.Stats.notForLevel).font(theme.font(.micro))
+                            .foregroundStyle(theme.color(counts ? .accent : .textSecondary, scheme))
+                    }
+                    Text(meaning).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Text(Copy.Stats.rankRule).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(Copy.Stats.specialtyRule).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 

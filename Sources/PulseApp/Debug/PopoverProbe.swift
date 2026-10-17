@@ -73,12 +73,18 @@ enum PopoverProbe {
             ("stats-overview", .overview, .allTime, .arena), ("stats-overview-30", .overview, .last30, .arena),
             ("stats-overview-7", .overview, .last7, .arena), ("stats-models", .models, .allTime, .chart),
             ("stats-models-30", .models, .last30, .chart), ("stats-arena", .models, .allTime, .arena),
-            ("stats-arena-7", .models, .last7, .arena), ("stats-overview-prev-year", .overview, .allTime, .arena)]
+            ("stats-arena-7", .models, .last7, .arena), ("stats-overview-prev-year", .overview, .allTime, .arena),
+            ("stats-arena-tall", .models, .allTime, .arena)]
         for (name, section, range, view) in pages {
             model.statsYear = name.hasSuffix("prev-year") ? Calendar.current.component(.year, from: model.environment.clock.now()) - 1 : nil
             model.detailsSection = section
             model.statsRange = range
             model.modelsView = view
+            if name.hasSuffix("-tall"), let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }),
+               let screen = window.screen?.visibleFrame {
+                // As tall as the screen allows, so content below the fold is captured too.
+                window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: min(screen.width, 1500), height: screen.height), display: true)
+            }
             try? await Task.sleep(for: .milliseconds(800))
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) {
                 recorder.log(shoot(window, folder, "details-\(name)"))

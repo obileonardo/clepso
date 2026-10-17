@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture · Pulse docs</title><meta name="description" content="How Pulse is put together: processes, data flow, modules and quality gates.">
+<link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+</head><body><div class="site-bar" role="banner"><div class="sb-wrap"><a class="brand" href="/">PULSE<small>docs</small></a><div class="sb-links" role="navigation" aria-label="Site"><ul><li><a href="/">Overview</a></li><li><a href="/progress/">Progress</a></li><li><a href="/metrics/">Metrics</a></li><li><a href="/architecture/" aria-current="page">Architecture</a></li><li><a href="/screens/">Screens</a></li><li><a href="/changelog/">Changelog</a></li><li><a href="/design-system/">Design system</a></li></ul></div></div></div><main><div class="wrap">
+<section class="hero"><h1>Architecture</h1>
+<p class="lede">A native macOS menu bar app (Swift 6, SwiftUI) that reads what Claude Code already reports about itself, on your
+Mac, with no account, no server and no network code.</p></section>
+
+<h2 id="processes">Processes</h2>
+<div class="table-wrap"><table><thead><tr><th>Process</th><th>Role</th></tr></thead><tbody>
+<tr><td><code>Pulse.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it.</td></tr>
+<tr><td><code>pulse-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app.</td></tr>
+<tr><td><code>statusline.sh</code></td><td>The installed command. Runs the helper if the app is there, otherwise your original status line, so removing the app never breaks Claude Code.</td></tr>
+</tbody></table></div>
+
+<h2 id="flow">Data flow</h2>
+<pre>Claude Code ──stdin JSON──► statusline.sh ──exec──► pulse-statusline
+                                                      │  allowlist (ShimProtocol)        │ raw bytes
+                                                      ├──► frame ──► run/agent.sock       ▼
+                                                      │                              /bin/sh -c &lt;original command&gt;
+                                                      └──◄ stdout + exit status ◄─────────┘
+                                                                     │
+                                                                     ▼ (verbatim to Claude Code)
+
+Pulse.app
+  IngestSocket (actor) ──AsyncStream&lt;ShimFrame&gt;──► Ingestor (actor)
+      │ accept, peer checks, rate limit, decode        │ parse, HMAC session id, Observation
+      ▼                                                ▼
+  connector_health                          Store (actor, one transaction per frame)
+                                              insert observation
+                                              reduce (UsageEngine) ──► pool_snapshots, events
+                                              Scheduler.candidates(events) ──► notification_receipts
+                                                      │                              │
+                                   ValueObservation   ▼                              ▼
+                                   OverviewSnapshot ──► @MainActor view models   NotificationDispatcher ──► UNUserNotificationCenter
+                                                          MenuBarExtra popover · provider detail · provenance inspector · settings
+</pre>
+
+<h2 id="modules">Modules</h2>
+<div class="table-wrap"><table><thead><tr><th>Module</th><th>Responsibility</th></tr></thead><tbody>
+<tr><td><code>Domain</code></td><td>Values that carry where they came from and how fresh they are, so a missing number can never show as 0%.</td></tr>
+<tr><td><code>ShimProtocol</code> · <code>StatusLineShim</code></td><td>The frame format and the allowlist; the helper's logic.</td></tr>
+<tr><td><code>ClaudeCodeAdapter</code></td><td>Socket ingest, mapping frames to readings, the settings installer, the statistics-file reader.</td></tr>
+<tr><td><code>UsageEngine</code></td><td>Pure rules: limit states, windows, freshness, the pace estimate.</td></tr>
+<tr><td><code>Storage</code></td><td>SQLite (GRDB): one writer, a ledger of readings, migrations with a backup first, retention.</td></tr>
+<tr><td><code>DesignSystem</code></td><td>Tokens, themes (Phosphor), pixel components, accessibility formatting.</td></tr>
+<tr><td><code>PulseApp</code></td><td>The app: popover, Details window, Stats, settings, onboarding, diagnostics.</td></tr>
+<tr><td><code>SubscriptionCatalog</code></td><td>Plan names, never used to infer usage.</td></tr>
+</tbody></table></div>
+
+<h2 id="principles">Principles</h2>
+<div class="grid two">
+<div class="panel"><h3>Local only</h3><p class="muted">No networking code in the app or helper; a CI gate checks the binaries' linked frameworks.</p></div>
+<div class="panel"><h3>Allowlist at the source</h3><p class="muted">The helper drops everything not on the allowlist before sending, so the app cannot receive what it must not keep.</p></div>
+<div class="panel"><h3>Absent is not zero</h3><p class="muted">A limit the source did not report is shown in words with an empty outlined bar, never as 0%.</p></div>
+<div class="panel"><h3>Reversible</h3><p class="muted">Installing into Claude Code backs up your settings; uninstalling and delete-all restore them byte for byte.</p></div>
+</div>
+
+<h2 id="quality">Quality gates</h2>
+<p>One command, <code>make ci</code>, runs every gate and must pass before each increment is committed:</p>
+<div class="table-wrap"><table><thead><tr><th>Gate</th><th>What it checks</th></tr></thead><tbody>
+<tr><td>Toolchain pinned</td><td>The expected Swift version.</td></tr><tr><td>Strict build</td><td>Warnings are errors; Swift 6 strict concurrency.</td></tr>
+<tr><td>Tests</td><td>The full suite (Swift Testing).</td></tr><tr><td>Helper links no networking</td><td>The helper binary links no networking frameworks.</td></tr>
+<tr><td>No networking code</td><td>No networking APIs in the sources.</td></tr><tr><td>Clock injected</td><td>Logic reads time through an injected clock, so tests control it.</td></tr>
+<tr><td>Design tokens only</td><td>Views use theme tokens, never literal colours or sizes.</td></tr><tr><td>Redaction audit</td><td>Logs and exports contain no fields outside the allowlist.</td></tr>
+<tr><td>Secret scan</td><td>No credentials in the repository.</td></tr><tr><td>App bundle</td><td>Signature, embedded helper, entitlements.</td></tr>
+</tbody></table></div>
+</div></main>
+<footer><div class="wrap">Generated from commit <code>d7bccdf</code> (2026-10-17) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
+</body></html>

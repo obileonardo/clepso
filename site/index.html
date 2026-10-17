@@ -1,5 +1,34 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tokone</title><meta http-equiv="refresh" content="0; url=/design-system/">
-<style>:root{color-scheme:light dark}body{font:16px -apple-system,system-ui,sans-serif;margin:0;padding:48px 16px;background:Canvas;color:CanvasText}</style>
-</head><body><p>Tokone. <a href="/design-system/">Design system</a></p></body></html>
+<title>Overview · Pulse docs</title><meta name="description" content="Technical documentation and progress for Pulse, a macOS menu bar monitor for AI usage limits.">
+<link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+</head><body><div class="site-bar" role="banner"><div class="sb-wrap"><a class="brand" href="/">PULSE<small>docs</small></a><div class="sb-links" role="navigation" aria-label="Site"><ul><li><a href="/" aria-current="page">Overview</a></li><li><a href="/progress/">Progress</a></li><li><a href="/metrics/">Metrics</a></li><li><a href="/architecture/">Architecture</a></li><li><a href="/screens/">Screens</a></li><li><a href="/changelog/">Changelog</a></li><li><a href="/design-system/">Design system</a></li></ul></div></div></div><main><div class="wrap">
+<section class="hero"><h1>Pulse</h1>
+<p class="lede">A macOS menu bar app that shows how much of your Claude Code limits you have used, when they reset and how
+fast you are going, from what Claude Code reports on your own Mac. These pages document how it is built, what every number
+means and where the work stands.</p></section>
+<div class="grid" style="margin-top:28px">
+<div class="panel stat"><b>26/39</b><span>Increments done</span><div class="meter" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i><i class=""></i></div></div>
+<div class="panel stat"><b>11</b><span>Commits</span></div>
+<div class="panel stat"><b>10</b><span>Quality gates per commit</span></div>
+<div class="panel stat"><b>0</b><span>Network calls</span></div>
+</div>
+<h2 id="now">Now and next</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>Status</th><th>Increment</th></tr></thead><tbody><tr><td>1.9</td><td><span class="badge s-todo">Not started</span></td><td>Agents per task</td></tr></tbody></table></div>
+<p style="margin-top:12px"><a href="/progress/">All increments →</a></p>
+<h2 id="explore">Explore</h2>
+<div class="grid">
+<a class="panel card" href="/metrics/"><h3>Metrics</h3><p>Every number defined: tokens, levels, rank, limits, pace, calendars.</p></a>
+<a class="panel card" href="/progress/"><h3>Progress</h3><p>Each increment, how it is built and how it is proven.</p></a>
+<a class="panel card" href="/architecture/"><h3>Architecture</h3><p>Processes, data flow, modules and quality gates.</p></a>
+<a class="panel card" href="/screens/"><h3>Screens</h3><p>The running app, with demo data.</p></a>
+<a class="panel card" href="/design-system/"><h3>Design system</h3><p>Tokens, themes and components, rendered from the Swift code.</p></a>
+<a class="panel card" href="/changelog/"><h3>Changelog</h3><p>Every commit, newest first.</p></a>
+</div>
+<h2 id="look">A look</h2>
+<figure><img src="/screens/img/details-stats-arena.png" alt="Stats › Models arena: a pixel character per model with level and tokens by kind" loading="lazy">
+<figcaption>Stats › Models › Arena, with demo data. <a href="/screens/">More screens →</a></figcaption></figure>
+<h2 id="recent">Recent changes</h2><ul class="log"><li><time datetime="2026-10-17">2026-10-17</time><code>d7bccdf</code><span>Arena levels from output tokens on fixed targets, bar labelled exactly</span></li><li><time datetime="2026-10-17">2026-10-17</time><code>2476304</code><span>1.8 UI refinement: readable text, sidebar navigation, true charts, model arena</span></li><li><time datetime="2026-10-17">2026-10-17</time><code>e24bf5c</code><span>Design system update: Phosphor specimens, app screens, classic set kept</span></li><li><time datetime="2026-10-17">2026-10-17</time><code>2876f81</code><span>1.7e-g: Details window, Stats view, Phosphor redesign rollout</span></li><li><time datetime="2026-10-17">2026-10-17</time><code>7b2c478</code><span>1.7d: opt-in reader for Claude Code&#x27;s statistics file (/stats data)</span></li></ul>
+</div></main>
+<footer><div class="wrap">Generated from commit <code>d7bccdf</code> (2026-10-17) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
+</body></html>

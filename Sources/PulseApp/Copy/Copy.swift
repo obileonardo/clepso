@@ -167,7 +167,21 @@ enum Copy {
         static func level(_ n: Int) -> String { "LV \(n)" }
         static let levelUnknown = "LV —"
         static func progressTo(_ n: Int) -> String { "PROGRESS TO LV \(n)" }
-        static func outputOf(_ output: String, _ next: String) -> String { "\(output) / \(next) output" }
+        static func outputOf(_ output: String, _ next: String, toGo: String) -> String { "\(output) of \(next) output · \(toGo) to go" }
+        static let legendTitle = "HOW LEVELS WORK"
+        static let ladderTitle = "OUTPUT TOKENS NEEDED FOR EACH LEVEL"
+        static let ladderNote = "Targets follow 1, 2, 5 in every power of ten. A model is at the highest level whose target its all-time output has reached; the bar on its card is the way from that target to the next."
+        static let kindsTitle = "WHAT THE TOKENS ARE"
+        static let countsForLevel = "COUNTS FOR LEVEL", notForLevel = "NOT FOR LEVEL"
+        /// (kind, what it is, whether it counts toward a level)
+        static let kindDefinitions: [(String, String, Bool)] = [
+            ("Output", "Text the model wrote: replies, code and tool calls. The model's own work.", true),
+            ("Input", "New text sent to the model that wasn't already cached: your message, tool results, files it read.", false),
+            ("Cache read", "Earlier conversation the model re-reads from the prompt cache on every turn. Usually most tokens; grows with conversation length.", false),
+            ("Cache write", "Conversation stored in the prompt cache so later turns can re-read it cheaply.", false),
+        ]
+        static let rankRule = "Rank: by level, then by output, then by total tokens."
+        static let specialtyRule = "Specialty: the kind of token a model uses most compared with all models together (its share of that kind ÷ everyone's share). Under 1.1× for every kind: All-rounder."
         static func levelLabel(_ level: Int, output: String, next: String) -> String {
             "Level \(level): \(output) output tokens written; level \(level + 1) at \(next)"
         }
@@ -180,7 +194,7 @@ enum Copy {
             times < 1.1 ? "All-rounder" : "\(doing) · \(times < 10 ? String(format: "%.1f", times) : String(Int(times)))× the party"
         }
         static let specialtyHelp = "Its specialty: the token kind this model uses most compared with all models together. All-rounder: no kind stands out."
-        static let arenaNote = "Level comes from output tokens, what a model has written, all time. Each level has a fixed target: 1K, 2K, 5K, 10K, 20K, 50K and so on. Cache reads don't count: they are the conversation being re-read every turn. Cards are ranked by level. Bars show all-time tokens by kind, from Claude Code's statistics file."
+        static let arenaNote = "All figures are all time, from Claude Code's statistics file."
         static let arenaRangeNote = "Levels and ranks use all-time output. Tokens, share and active days are for this range; the bars show all-time tokens by kind, the only breakdown Claude Code records."
         static let toggle = "Read Claude Code's statistics file"
         static let toggleSublabel = "For the Stats tab: dates, counts and model names only"

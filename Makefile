@@ -1,4 +1,4 @@
-.PHONY: ci build test perf design-site clean-ci app
+.PHONY: ci build test perf design-site site clean-ci app
 
 # Every quality gate, one pass/fail summary (docs/ROADMAP.md increment 0.5).
 ci:
@@ -18,13 +18,18 @@ clean-ci:
 	rm -rf .build/ci-logs
 
 # Renders the real SwiftUI components and rebuilds the design-system page (site/ and the docs folder copy).
-DOCS_DESIGN := /Volumes/Elvis Obi - Mac Extended/Tokone/docs/design-system
+DOCS := /Volumes/Elvis Obi - Mac Extended/Tokone/docs
+DOCS_DESIGN := $(DOCS)/design-system
 design-site:
 	swift build --product pulse-design-render
 	rm -rf .build/design-render && .build/debug/pulse-design-render .build/design-render
 	python3 -I scripts/build-design-site.py .build/design-render site design/screens
+	python3 -I scripts/build-site.py site "$(DOCS)" design/screens
 	rm -rf "$(DOCS_DESIGN)" && cp -R site/design-system "$(DOCS_DESIGN)"
 	@echo "Deploy: cd site && vercel deploy --prod --scope obileonardos-projects"
+
+# The documentation website (Overview, Progress, Metrics, Architecture, Screens, Changelog, Design system).
+site: design-site
 
 # The signed Pulse.app bundle (RELEASE_AND_CI §1–2): pinned XcodeGen, then xcodebuild. Output: build/DerivedData/Build/Products/Debug/Pulse.app
 app:
