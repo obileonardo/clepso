@@ -7,7 +7,7 @@
 <p class="lede">How every number in Pulse is defined, where it comes from, and what it does not mean. These rules are the
 code's rules; each section names the file that implements it.</p>
 <ul class="toc"><li><a href="#sources">Sources</a></li><li><a href="#tokens">Tokens</a></li><li><a href="#levels">Levels</a></li>
-<li><a href="#rank">Rank and specialty</a></li><li><a href="#limits">Limits and pace</a></li><li><a href="#session">Session</a></li>
+<li><a href="#rank">Rank and specialty</a></li><li><a href="#agents">Agents per task</a></li><li><a href="#limits">Limits and pace</a></li><li><a href="#session">Session</a></li>
 <li><a href="#calendar">Calendar</a></li><li><a href="#charts">Charts</a></li></ul></section>
 
 <h2 id="sources">Where the numbers come from</h2>
@@ -52,6 +52,22 @@ share of input is 13 times the share across all models. If no kind reaches 1.1×
 Every model mostly reads from cache, so the plain largest kind would say the same thing on every card; the ratio shows how
 each one differs. Source: <code>ModelSpecialty</code>.</p>
 
+<h2 id="agents">Agents per task</h2>
+<p>Optional, off until you turn it on in Settings › Providers. A <strong>task</strong> is one prompt: from the moment you send
+it until Claude stops. Pulse adds four background hooks to Claude Code (prompt submitted, subagent started, subagent stopped,
+Claude stopped) and counts the subagents each task starts, nested ones included.</p>
+<div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>Agents</td><td>Subagents started during the task. Each one counts once, matched by a hashed id, even if its events arrive out of order.</td></tr>
+<tr><td>Types</td><td>Claude Code's built-in types by name (Explore, Plan, General, Guide, Status line). Your own and plugin agents count as Custom; their names are never sent.</td></tr>
+<tr><td>Finished</td><td>Subagents that reported stopping. Background subagents can finish after the task ends.</td></tr>
+<tr><td>Running</td><td>No stop seen yet, and the task started under six hours ago.</td></tr>
+<tr><td>Used agents</td><td>Share of the last 30 days' tasks that started at least one subagent.</td></tr>
+<tr><td>Agents per task</td><td>All subagents in 30 days ÷ all tasks in 30 days, tasks without subagents included.</td></tr>
+</tbody></table></div>
+<p class="muted">Claude Code hands every hook the whole event, your prompt included. The helper keeps only the event name,
+hashed session and agent ids and the type, and drops the rest before anything leaves it. Source: <code>HookFrame</code>,
+<code>Store.record</code>.</p>
+
 <h2 id="limits">Limits and the pace estimate</h2>
 <div class="table-wrap"><table><thead><tr><th>State</th><th>When</th></tr></thead><tbody>
 <tr><td>Available</td><td>Under 80% used</td></tr><tr><td>Approaching limit</td><td>80% or more</td></tr>
@@ -89,5 +105,5 @@ today is an outline marked “no data”. All time shows one calendar year (Janu
 weeks. The scale's top is the first round number at or above the tallest bar whose quarters are also round (for example
 8M for a 6.5M peak). Models differ by colour and fill pattern, never colour alone. Point at a bar for its numbers.</p>
 </div></main>
-<footer><div class="wrap">Generated from commit <code>d7bccdf</code> (2026-10-17) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
+<footer><div class="wrap">Generated from commit <code>0d4d527</code> (2026-10-17) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
 </body></html>

@@ -11,6 +11,7 @@ Mac, with no account, no server and no network code.</p></section>
 <div class="table-wrap"><table><thead><tr><th>Process</th><th>Role</th></tr></thead><tbody>
 <tr><td><code>Pulse.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it.</td></tr>
 <tr><td><code>pulse-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app.</td></tr>
+<tr><td><code>hook.sh</code> (optional)</td><td>Installed only when you turn on agents per task. Claude Code runs it in the background on four events; it runs the helper in hook mode, which sends counts only and always exits silently, so it can never block or change what Claude Code does.</td></tr>
 <tr><td><code>statusline.sh</code></td><td>The installed command. Runs the helper if the app is there, otherwise your original status line, so removing the app never breaks Claude Code.</td></tr>
 </tbody></table></div>
 
@@ -67,5 +68,5 @@ Pulse.app
 <tr><td>Secret scan</td><td>No credentials in the repository.</td></tr><tr><td>App bundle</td><td>Signature, embedded helper, entitlements.</td></tr>
 </tbody></table></div>
 </div></main>
-<footer><div class="wrap">Generated from commit <code>d7bccdf</code> (2026-10-17) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
+<footer><div class="wrap">Generated from commit <code>0d4d527</code> (2026-10-17) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
 </body></html>
