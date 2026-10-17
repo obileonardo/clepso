@@ -105,9 +105,14 @@ struct ThemeTests {
     @Test("The bundled pixel faces register and resolve to their own families, not a fallback")
     func pixelFonts() {
         #expect(PixelFonts.ensureRegistered())
-        for family in [PixelFonts.display, PixelFonts.number, PixelFonts.terminal] {
+        for family in [PixelFonts.number, PixelFonts.terminal] {
             let font = CTFontCreateWithName(family as CFString, 12, nil)
             #expect(CTFontCopyFamilyName(font) as String == family, "\(family) resolved to \(CTFontCopyFamilyName(font))")
+        }
+        // 1.16: Pulse's own faces, by PostScript name; CoreText must not substitute another font.
+        for name in [PixelFonts.display, PixelFonts.body, PixelFonts.bodyMedium, PixelFonts.bodyBold] {
+            let font = CTFontCreateWithName(name as CFString, 12, nil)
+            #expect(CTFontCopyPostScriptName(font) as String == name, "\(name) resolved to \(CTFontCopyPostScriptName(font))")
         }
     }
 

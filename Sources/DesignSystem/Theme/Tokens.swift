@@ -83,15 +83,16 @@ public struct Theme: Sendable {
         if typeface == .pixel {
             PixelFonts.ensureRegistered()
             return switch token {
-            // Silkscreen for figures: its 5 and S differ clearly (in Pixelify Sans "8.5B" read as "8.SB").
-            // Increment 1.8 (founder review): nothing under 12 pt. Pixel faces carry figures, titles and buttons;
-            // captions moved from 8 pt pixel type to a monospaced face at 12 pt or more (`pixelTextStyle`).
-            case .metricHero: .custom(PixelFonts.display, size: 34, relativeTo: .largeTitle)
-            case .metricMedium: .custom(PixelFonts.display, size: 22, relativeTo: .title2)
+            // 1.16: Pulse Pixel for figures, titles and buttons (dotted 0, flagged 1, square-shouldered 5: figures are
+            // never misread; tabular). Sizes are multiples of 5 pt so every font pixel lands on whole Retina pixels.
+            // Increment 1.8 (founder review): nothing under 12 pt; text runs in Pulse Mono at the text-style sizes
+            // (`pixelTextStyle`), and CoreText falls back to the system face for characters Pulse Mono doesn't cover.
+            case .metricHero: .custom(PixelFonts.display, size: 35, relativeTo: .largeTitle)
+            case .metricMedium: .custom(PixelFonts.display, size: 20, relativeTo: .title2)
             case .title: .custom(PixelFonts.display, size: 15, relativeTo: .headline)
-            case .label: .system(Self.pixelTextStyle(.label) ?? .body, design: .monospaced).weight(.medium)
-            case .supporting: .system(Self.pixelTextStyle(.supporting) ?? .callout, design: .monospaced)
-            case .micro: .system(Self.pixelTextStyle(.micro) ?? .callout, design: .monospaced).weight(.semibold)
+            case .label: .custom(PixelFonts.bodyMedium, size: 13, relativeTo: Self.pixelTextStyle(.label) ?? .body)
+            case .supporting: .custom(PixelFonts.body, size: 12, relativeTo: Self.pixelTextStyle(.supporting) ?? .callout)
+            case .micro: .custom(PixelFonts.bodyMedium, size: 12, relativeTo: Self.pixelTextStyle(.micro) ?? .callout)
             }
         }
         return switch token {

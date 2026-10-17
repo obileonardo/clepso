@@ -58,7 +58,9 @@ extension MenuBarIcon {
     /// Pixels drawn inside the ring for each state (x, y on the 16×16 grid).
     static func mark(_ shape: Shape) -> [(Int, Int)] {
         switch shape {
-        case .ring: return [(7, 7), (8, 7), (7, 8), (8, 8)]                                     // a lit core
+        // 1.16: the Pulse mark (design/brand): the beat inside the ring is the live reading.
+        case .ring: return [(3, 8), (4, 8), (5, 4), (5, 5), (5, 6), (5, 7), (5, 8), (6, 3), (7, 4), (7, 5), (7, 6), (7, 7),
+                            (7, 8), (7, 9), (7, 10), (7, 11), (8, 12), (9, 9), (9, 10), (9, 11), (10, 8), (11, 8), (12, 8)]
         case .notch: return (4...9).flatMap { y in [(7, y), (8, y)] } + [(7, 11), (8, 11)]       // "!"
         case .bar: return (4...11).flatMap { x in [(x, 7), (x, 8)] }                              // a bar across
         case .clock: return (4...8).map { (7, $0) } + (8...10).map { ($0, 8) }                    // hands at 3 o'clock
@@ -85,7 +87,7 @@ extension MenuBarIcon {
         _ = PixelFonts.ensureRegistered()
         let on = pixels(shape, staleMark: staleMark)
         let unit = height / 16
-        let font = NSFont(name: PixelFonts.display, size: 11) ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
+        let font = NSFont(name: PixelFonts.display, size: 10) ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
         let label = text.map { NSAttributedString(string: $0, attributes: [.font: font, .foregroundColor: NSColor.black]) }
         let gap: CGFloat = label == nil ? 0 : 4
         let textWidth = ceil(label?.size().width ?? 0)
