@@ -100,7 +100,7 @@ struct GoalsSection: View {
             Toggle(isOn: Binding(get: { value != nil }, set: { set($0 ? fallback : nil) })) {
                 Text(value == nil ? Copy.Goals.off : Copy.Goals.target).font(theme.font(.supporting))
             }
-            .toggleStyle(.switch).tint(theme.color(.accent, scheme))
+            .toggleStyle(PixelToggleStyle())
             if let value {
                 Stepper(value: Binding(get: { value }, set: { set($0) }), in: range, step: step) {
                     Text("\(value)\(unit)").font(theme.font(.title)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))

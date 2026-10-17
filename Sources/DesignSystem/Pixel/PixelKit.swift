@@ -337,3 +337,35 @@ public struct PixelSegmented<Option: Hashable>: View {
         .accessibilityLabel(label)
     }
 }
+
+/// A switch in the pixel style (increment 1.11): a stepped track with a square knob, lit when on, "ON"/"OFF" said in
+/// words beside it so the state never rests on colour or position alone.
+public struct PixelToggleStyle: ToggleStyle {
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var isEnabled
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        let on = configuration.isOn
+        let unit = theme.spacing(.compact) + theme.stroke(.hairline)            // 5 pt pixels
+        return Button { configuration.isOn.toggle() } label: {
+            HStack(spacing: theme.spacing(.standard)) {
+                configuration.label
+                Text(on ? "ON" : "OFF").font(theme.font(.micro)).foregroundStyle(theme.color(on ? .accent : .textSecondary, scheme))
+                    .frame(width: unit * 6, alignment: .trailing)
+                ZStack(alignment: on ? .trailing : .leading) {
+                    PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(on ? .accent : .surfaceMuted, scheme).opacity(on ? 0.35 : 1))
+                    PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(on ? .accent : .separator, scheme), lineWidth: theme.stroke(.hairline))
+                    Rectangle().fill(theme.color(on ? .accent : .textSecondary, scheme))
+                        .frame(width: unit * 2, height: unit * 2).padding(unit / 2)
+                }
+                .frame(width: unit * 5, height: unit * 3)
+            }
+            .contentShape(Rectangle())
+            .opacity(isEnabled ? 1 : 0.4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
+    }
+}

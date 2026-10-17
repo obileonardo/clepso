@@ -10,7 +10,6 @@ public struct DetailsView: View {
     @Bindable var model: AppModel
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
-    @Environment(\.openSettings) private var openSettings
 
     public init(model: AppModel) { self.model = model }
 
@@ -32,8 +31,7 @@ public struct DetailsView: View {
                         case .limits: LimitsSection(model: model, snapshot: snapshot)
                         case .session:
                             SessionSection(snapshot: snapshot, zone: model.environment.timeZone, locale: model.environment.locale) {
-                                model.settingsTab = .providers
-                                openSettings()
+                                model.detailsSection = .settings
                             }
                         case .overview: StatsGate(model: model) { summary, file in OverviewSection(model: model, summary: summary, file: file) }
                         case .models: StatsGate(model: model) { summary, file in ModelsSection(model: model, summary: summary, file: file) }
@@ -87,6 +85,7 @@ enum DetailsMetrics {
     static let sidebarWidth: CGFloat = 200
     static let sideColumn: CGFloat = 260
     static let chartHeight: CGFloat = 200
+    static let settingsColumn: CGFloat = 760
 }
 
 /// Primary navigation: every section one click away, with the selected one lit and marked for VoiceOver.

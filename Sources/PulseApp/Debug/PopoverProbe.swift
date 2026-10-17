@@ -21,7 +21,7 @@ import SwiftUI
 enum PopoverProbe {
     static let signposter = OSSignposter(subsystem: "dev.tokone.pulse", category: "popover")
 
-    static func runIfRequested(model: AppModel, openWindow: () -> Void, openSettings: () -> Void, openDetails: () -> Void) async -> Bool {
+    static func runIfRequested(model: AppModel, openWindow: () -> Void, openDetails: () -> Void) async -> Bool {
         let defaults = UserDefaults.standard
         guard let output = defaults.string(forKey: "PulseProbeOutput") else { return false }
         let folder = URL(fileURLWithPath: output)
@@ -40,30 +40,6 @@ enum PopoverProbe {
         // The driver clicks; wait for it (at most three minutes).
         let done = folder.appendingPathComponent("driver-done")
         for _ in 0..<1800 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(100)) }
-
-        for tab in [AppModel.SettingsTab.general, .notifications, .providers, .plan, .diagnostics] {
-            model.settingsTab = tab
-            openSettings()
-            try? await Task.sleep(for: .milliseconds(700))
-            if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == tabTitle(tab) }) {
-                recorder.log(shoot(window, folder, "settings-\(tab.rawValue)"))
-            } else {
-                recorder.log("ERROR no settings window; visible: " + NSApp.windows.filter(\.isVisible).map(\.title).joined(separator: ", "))
-            }
-        }
-        // The delete-all confirmation, a sheet on the Settings window (opened, captured, cancelled; nothing deleted).
-        model.settingsTab = .diagnostics
-        openSettings()
-        try? await Task.sleep(for: .milliseconds(500))
-        model.confirmingDeleteAll = true
-        try? await Task.sleep(for: .milliseconds(700))
-        if let sheet = NSApp.windows.first(where: { $0.isVisible && $0.title == tabTitle(.diagnostics) })?.attachedSheet {
-            recorder.log(shoot(sheet, folder, "settings-delete-all-sheet"))
-        } else {
-            recorder.log("ERROR no delete-all sheet")
-        }
-        model.confirmingDeleteAll = false
-        try? await Task.sleep(for: .milliseconds(300))
 
         // The Details window, each tab; Stats with the synthetic file the probe's home provides.
         await model.setStatsEnabled(true)
@@ -94,6 +70,19 @@ enum PopoverProbe {
                 recorder.log("ERROR no details window")
             }
         }
+
+        // The delete-all confirmation, a sheet on the Dashboard's Settings page (opened, captured, cancelled; nothing deleted).
+        model.detailsSection = .settings
+        try? await Task.sleep(for: .milliseconds(400))
+        model.confirmingDeleteAll = true
+        try? await Task.sleep(for: .milliseconds(800))
+        if let sheet = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name })?.attachedSheet {
+            recorder.log(shoot(sheet, folder, "settings-delete-all-sheet"))
+        } else {
+            recorder.log("ERROR no delete-all sheet")
+        }
+        model.confirmingDeleteAll = false
+        try? await Task.sleep(for: .milliseconds(300))
 
         openWindow()
         for step in AppModel.OnboardingStep.allCases {

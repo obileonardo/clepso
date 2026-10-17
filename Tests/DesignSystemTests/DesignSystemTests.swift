@@ -205,3 +205,20 @@ struct ReadableTextTests {
     }
 }
 #endif
+
+#if canImport(AppKit)
+@Suite("Pixel menu bar icon (1.11)")
+@MainActor
+struct PixelMenuBarIconTests {
+    @Test("The five states differ by shape alone; stale adds a mark; the image is a template and grows with the text")
+    func shapes() {
+        let sets = MenuBarIcon.Shape.allCases.map { MenuBarIcon.pixels($0, staleMark: false) }
+        #expect(Set(sets).count == MenuBarIcon.Shape.allCases.count)
+        #expect(MenuBarIcon.pixels(.ring, staleMark: true).isStrictSuperset(of: MenuBarIcon.pixels(.ring, staleMark: false)))
+        let bare = MenuBarIcon.pixelImage(.ring, staleMark: false, text: nil)
+        let withText = MenuBarIcon.pixelImage(.notch, staleMark: false, text: "83%")
+        #expect(bare.isTemplate && withText.isTemplate)
+        #expect(bare.size == NSSize(width: 16, height: 16) && withText.size.width > 30 && withText.size.height == 16)
+    }
+}
+#endif

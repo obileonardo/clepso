@@ -11,7 +11,7 @@ struct ProviderDetailView: View {
     let now: Date
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
     @Environment(\.dismiss) private var dismiss
 
     /// Claude's own usage page, opened in the user's browser; Pulse itself makes no request.
@@ -46,10 +46,10 @@ struct ProviderDetailView: View {
             VStack(alignment: .leading, spacing: theme.spacing(.standard)) {          // stacked: the pixel face is wide
                 Button(Copy.Detail.openUsage) { NSWorkspace.shared.open(Self.usageURL) }.buttonStyle(PixelButtonStyle())
                 Button(Copy.Detail.changePlan) {
-                    model.settingsTab = .plan
+                    model.detailsSection = .account
                     dismiss()
                     NSApp.activate(ignoringOtherApps: true)
-                    openSettings()
+                    openWindow(id: PulseScenes.detailsID)
                 }
                 .buttonStyle(PixelButtonStyle())
             }

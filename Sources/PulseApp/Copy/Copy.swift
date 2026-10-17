@@ -90,7 +90,7 @@ enum Copy {
 
     /// Increment 1.7e: the Details window.
     enum Details {
-        static let open = "Details", openStats = "Stats"
+        static let open = "Details", openStats = "Stats", dashboard = "Dashboard"
         static let limits = "Limits", session = "Session", stats = "Stats", you = "You"
         static let now = "NOW"
         static func resets(_ time: String) -> String { "RESETS \(time.uppercased())" }
@@ -288,17 +288,22 @@ enum Copy {
 
     enum SettingsPage {
         static let title = "Settings", subtitle = "How Pulse runs on this Mac"
-        static let general = "GENERAL", claudeCode = "CLAUDE CODE", notifications = "NOTIFICATIONS", data = "DATA"
+        static let general = "GENERAL", claudeCode = "CLAUDE CODE", notifications = "NOTIFICATIONS", data = "YOUR DATA", diagnostics = "DIAGNOSTICS"
+        static let exportSub = "Everything Pulse stores on this Mac, as one JSON file", exportAction = "Export…"
+        static let demoSub = "Sample numbers, clearly marked DEMO; uploads pause"
+        static let deleteSub = "Removes all of Pulse's data and restores Claude Code's settings", deleteAction = "Delete…"
+        static let showLog = "Show log", hideLog = "Hide log"
         static let loginSub = "Start Pulse when you log in"
         static let percentSub = "The highest limit's % next to the icon"
         static let notificationsTitle = "Notifications"
         static let allowed = "Allowed", notAllowed = "Not allowed yet", allow = "Allow…"
         static let connection = "Connection"
-        static let diagnostics = "Diagnostics, export and delete-all", open = "Open…"
+        static let open = "Open…"
     }
 
     /// Increment 1.9: agents per task, from Claude Code hooks (counts only).
     enum Agents {
+        static let lastTaskShort = "Agents, last task"
         static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom", unknown = "Unknown"
         static let title = "AGENTS PER TASK"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"

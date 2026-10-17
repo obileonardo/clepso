@@ -23,10 +23,6 @@ public struct PulseScenes: Scene {
         }
         .menuBarExtraStyle(.window)
 
-        Settings {
-            SettingsView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark).tint(PulseScenes.accent)
-        }
-
         Window(Product.name, id: Self.detailsID) {
             DetailsView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark)
                 .onOpenURL { url in Task { await model.handleOpenURL(url) } }      // the sign-in link returns here (ROADMAP 2.0)
@@ -46,14 +42,11 @@ public struct PulseScenes: Scene {
 struct MenuBarLabel: View {
     let model: AppModel
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         let snapshot = model.snapshot
-        HStack(spacing: 0) {
-            Image(nsImage: MenuBarIcon.image(snapshot.iconShape, staleMark: snapshot.iconStaleMark))
-            if let text = snapshot.iconText { Text(" " + text).monospacedDigit() }
-        }
+        // One template image (pixel ring + the % in the pixel face): the menu bar ignores custom fonts in Text.
+        Image(nsImage: MenuBarIcon.pixelImage(snapshot.iconShape, staleMark: snapshot.iconStaleMark, text: snapshot.iconText))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(snapshot.iconAccessibilityLabel)
         .accessibilityRemoveTraits(.isImage)
@@ -62,7 +55,6 @@ struct MenuBarLabel: View {
             await model.start()
             #if DEBUG
             if await PopoverProbe.runIfRequested(model: model, openWindow: { openWindow(id: PulseScenes.onboardingID) },
-                                                openSettings: { openSettings() },
                                                 openDetails: { openWindow(id: PulseScenes.detailsID) }) { return }
             #endif
             if !model.onboardingComplete {
