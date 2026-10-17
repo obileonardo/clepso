@@ -243,8 +243,10 @@ struct SettingsSection: View {
             .fixedSize(horizontal: false, vertical: true).padding(.bottom, theme.spacing(.standard))
     }
 
-    func toggle(_ value: Bool, _ set: @escaping (Bool) -> Void) -> some View {
-        Toggle("", isOn: Binding(get: { value }, set: set)).labelsHidden().toggleStyle(PixelToggleStyle())
+    /// SwiftUI calls a binding's setter on the main actor; saying so keeps strict concurrency checking quiet and true.
+    func toggle(_ value: Bool, _ set: @escaping @MainActor @Sendable (Bool) -> Void) -> some View {
+        Toggle("", isOn: Binding(get: { value }, set: { new in MainActor.assumeIsolated { set(new) } }))
+            .labelsHidden().toggleStyle(PixelToggleStyle())
     }
 
     func exportData() {

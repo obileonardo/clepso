@@ -231,7 +231,7 @@ struct StackedModelChart: View {
     }
 
     /// 1, 2 or 5 × a power of ten at or above `v`, so the scale reads in round numbers.
-    static func niceCeiling(_ v: Int64) -> Int64 {
+    nonisolated static func niceCeiling(_ v: Int64) -> Int64 {
         guard v > 4 else { return 4 }
         var p: Int64 = 1
         while p * 10 <= v { p *= 10 }
@@ -527,7 +527,7 @@ struct ModelSprite: View {
         .accessibilityHidden(true)
     }
 
-    static func bitmap(_ f: Family) -> [[Character]] {
+    nonisolated static func bitmap(_ f: Family) -> [[Character]] {
         let rows: [String] = switch f {
         case .opus: [   // a wizard with a staff
             ".....aa.....", "....aaaa....", "...aaaaaa...", "..aaaaaaaa..", "....bbbb....", "....bdbd....",

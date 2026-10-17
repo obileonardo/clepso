@@ -59,7 +59,16 @@ check_toolchain() {
     [[ "$swift" == *"$EXPECTED_SWIFT"* ]] || { echo "expected $EXPECTED_SWIFT"; return 1; }
 }
 
-strict_build() { swift build --build-tests -Xswiftc -warnings-as-errors; }
+# -warnings-as-errors does not turn every diagnostic into an error (Swift 6 concurrency warnings got through), so the
+# gate also fails on any "warning:" line the compiler prints.
+strict_build() {
+    local out; out=$(swift build --build-tests -Xswiftc -warnings-as-errors 2>&1); local status=$?
+    printf '%s\n' "$out" | tail -5
+    [ $status -eq 0 ] || return $status
+    if printf '%s\n' "$out" | grep -q "warning:"; then
+        printf '%s\n' "$out" | grep "warning:" | sort -u | head -20; echo "compiler warnings are errors"; return 1
+    fi
+}
 
 all_tests() { swift test; }            # non-zero exit on any failing test
 

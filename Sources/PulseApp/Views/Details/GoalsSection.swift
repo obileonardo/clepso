@@ -7,7 +7,7 @@ struct GoalsSection: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
-    static func title(_ kind: GoalStatus.Kind) -> String {
+    nonisolated static func title(_ kind: GoalStatus.Kind) -> String {
         switch kind {
         case .activeDays: Copy.Goals.activeDays
         case .fiveHourPeak: Copy.Goals.fiveHourPeak
