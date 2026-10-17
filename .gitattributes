@@ -1,0 +1,5 @@
+# Fixture corpora are byte-exact test inputs (CRLF, tabs, BOM on purpose): no line-ending conversion.
+Sources/TestFixtures/Resources/** -text
+
+# Generated output: collapsed in diffs and excluded from language statistics.
+site/** linguist-generated=true
