@@ -338,7 +338,7 @@
     }
   ],
   "demoInstant" : "2026-10-16T14:01:00Z",
-  "generatedAt" : "2026-10-17T17:59:22Z",
+  "generatedAt" : "2026-10-17T19:33:18Z",
   "palette" : [
     {
       "dark" : "#1C1C1E",
@@ -648,7 +648,7 @@
       {
         "caption" : "Available, live",
         "component" : "PixelLimitRow",
-        "height" : 142,
+        "height" : 131,
         "id" : "limit-available",
         "image" : "img/phosphor-limit-available.png",
         "width" : 420
@@ -656,7 +656,7 @@
       {
         "caption" : "Approaching, with a pace estimate",
         "component" : "PixelLimitRow",
-        "height" : 161,
+        "height" : 150,
         "id" : "limit-approaching",
         "image" : "img/phosphor-limit-approaching.png",
         "width" : 420
@@ -664,7 +664,7 @@
       {
         "caption" : "Nearly exhausted",
         "component" : "PixelLimitRow",
-        "height" : 142,
+        "height" : 131,
         "id" : "limit-critical",
         "image" : "img/phosphor-limit-critical.png",
         "width" : 420
@@ -672,7 +672,7 @@
       {
         "caption" : "Limit reached, reset known",
         "component" : "PixelLimitRow",
-        "height" : 142,
+        "height" : 131,
         "id" : "limit-exhausted",
         "image" : "img/phosphor-limit-exhausted.png",
         "width" : 420
@@ -680,7 +680,7 @@
       {
         "caption" : "Reset time passed, no fresh reading",
         "component" : "PixelLimitRow",
-        "height" : 142,
+        "height" : 131,
         "id" : "limit-reset-expected",
         "image" : "img/phosphor-limit-reset-expected.png",
         "width" : 420
@@ -688,7 +688,7 @@
       {
         "caption" : "Stale: dithered bar, last seen",
         "component" : "PixelLimitRow",
-        "height" : 142,
+        "height" : 131,
         "id" : "limit-stale",
         "image" : "img/phosphor-limit-stale.png",
         "width" : 420

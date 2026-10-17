@@ -180,14 +180,19 @@ def parse_themes():
     src = repo / "Sources" / "DesignSystem" / "Theme" / "Tokens.swift"
     text = src.read_text() if src.exists() else ""
     themes = []
-    starts = [(m.start(), m.group(1)) for m in re.finditer(r"public static let (\w+) = Theme\(", text)]
+    # Both spellings: `= Theme(` and the 1.15 helper `= pixel("amber", [`.
+    starts = [(m.start(), m.group(1)) for m in re.finditer(r"public static let (\w+) = (?:Theme\(|pixel\()", text)]
+    # Only the themes a user can choose (Theme.selectable), in that order; retired ones stay out of the guidelines.
+    sel = re.search(r"static let selectable: \[Theme\] = \[([^\]]+)\]", text)
+    selectable = [k.strip().lstrip(".") for k in sel.group(1).split(",")] if sel else None
+    notes = {k: n.strip() for n, k in re.findall(r"/// ([^\n]+)\n    public static let (\w+) = ", text)}
     ends = [m.start() for m in re.finditer(r"\n    (?:public )?static (?:let|func|var) ", text)] + [len(text)]
     for start, key in starts:
         body = text[start:next(x for x in ends if x > start)]
         pairs = {t: (a, b) for t, a, b in re.findall(r"\.(\w+): \(RGB\(0x([0-9A-Fa-f]{6})\), RGB\(0x([0-9A-Fa-f]{6})\)\)", body)}
         singles = {t: (a, a) for t, a in re.findall(r"\.(\w+): RGB\(0x([0-9A-Fa-f]{6})\)", body)}
         pal = pairs or singles
-        if not all(t in pal for t in TOKENS):
+        if not all(t in pal for t in TOKENS) or (selectable and key not in selectable):
             continue
         apps = [("dark", 1), ("light", 0)] if any(a != b for a, b in pal.values()) else [("dark", 1)]
         for appearance, i in apps:
@@ -196,13 +201,13 @@ def parse_themes():
             name = THEME_NAMES.get(key, key.capitalize())
             themes.append({"id": f"{key}-{appearance}" if len(apps) > 1 else key, "key": key,
                            "name": name + (f" · {appearance}" if len(apps) > 1 else ""), "light": light,
-                           "note": THEME_NOTES.get(key, ""), "c": colours})
+                           "note": THEME_NOTES.get(key) or notes.get(key, "").split(": ", 1)[-1], "c": colours, "rank": selectable.index(key) if selectable else 0})
     if not any(t["key"] == "phosphor" for t in themes):
         pal = {p["token"]: p["hex"] for p in design["phosphor"]["palette"]}
         themes.insert(0, {"id": "phosphor-dark", "key": "phosphor", "name": "Phosphor · dark", "light": False, "note": "",
                           "c": {t: pal.get(t, "#FF00FF") for t in TOKENS}})
     order = {"phosphor-dark": 0, "phosphor-light": 1}
-    themes.sort(key=lambda t: (order.get(t["id"], 2), t["key"] != "ember", t["id"]))
+    themes.sort(key=lambda t: (t.get("rank", 0), t["id"].endswith("-light")))
     for t in themes:
         c = t["c"]
         c["onAccent"] = max((c["background"], c["textPrimary"], "#000000", "#FFFFFF"), key=lambda x: contrast(x, c["accent"]))

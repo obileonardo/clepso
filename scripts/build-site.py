@@ -42,8 +42,8 @@ DOC_PAGES = [("metrics/", "Metrics"), ("architecture/", "Architecture"), ("priva
 
 # ------------------------------------------------------------------------------------------------------------ shell
 
-LOGO = ('<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" fill="#060907"/>'
-        '<path d="M2 9h3l2-5 2 9 2-6 1 2h2" fill="none" stroke="#4DFF8F" stroke-width="1.6" stroke-linejoin="miter"/></svg>')
+# The Pulse mark (design/brand): the 12 p symbol on an ink tile, the same drawing as the favicon.
+LOGO = (repo / "design/brand/favicon/favicon.svg").read_text().strip().replace("<svg ", '<svg aria-hidden="true" ', 1)
 
 
 def header(current):
@@ -135,7 +135,7 @@ def page(path, title, description, body, kind="wide"):
     out.write_text(f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)} · Pulse docs</title><meta name="description" content="{e(description)}">
-<meta name="theme-color" content="#060907"><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#060907"><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>document.documentElement.classList.add("js")</script>
 </head><body class="k-{kind}">{header(path)}<main id="main">{body}</main>{footer()}
 <script src="/assets/site.js" defer></script>
@@ -876,9 +876,9 @@ page("", "Overview", "Technical documentation and progress for Pulse, a macOS me
 <section class="hero"><canvas class="hero-canvas" data-dither data-beat data-w="180" data-h="180" aria-hidden="true"></canvas>
 <div class="wrap hero-inner"><p class="eyebrow">Pulse docs · build <b>{e(COMMIT)}</b> · {done}/{total} increments done</p>
 <h1 class="wordmark" data-text="PULSE">PULSE</h1>
-<p class="headline focus-in-later">{words("Your Claude Code limits,")} <span class="w code-voice" style="animation-delay:.3s">//before</span> {words("you hit them.", .36)}</p>
-<p class="lede">A macOS menu bar app that shows how much of your Claude Code limits you have used, when they reset and how fast you
-are going, from what Claude Code reports on your own Mac. These pages document how it is built, what every number means and where the work stands.</p>
+<p class="headline focus-in-later">{words("Your coding-agent limits,")} <span class="w code-voice" style="animation-delay:.3s">//before</span> {words("you hit them.", .36)}</p>
+<p class="lede">A macOS menu bar app that shows how much of your Claude Code and Codex limits you have used, when they reset and how
+fast you are going, from what those agents report on your own Mac. These pages document how it is built, what every number means and where the work stands.</p>
 <button class="searchbar" type="button" data-search-open><span>Search the docs: limits, levels, pace…</span><kbd>⌘K</kbd></button>
 <div class="chips">Popular: <a href="/metrics/#levels">Levels</a><a href="/metrics/#limits">Pace estimate</a><a href="/metrics/#agents">Agents per task</a>
 <a href="/privacy/#upload">What is uploaded</a><a href="/architecture/#flow-at-a-glance">A reading's path</a></div>
@@ -946,8 +946,9 @@ for name in ("three.module.min.js", "three-LICENSE.txt"):
 fonts = repo / "Sources/DesignSystem/Resources/Fonts"
 for name in ("Silkscreen-Regular.ttf", "Silkscreen-Bold.ttf", "Silkscreen-OFL.txt"):
     shutil.copy(fonts / name, assets / "fonts" / name)
-(assets / "favicon.svg").write_text('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#060907"/>'
-                                    '<path d="M2 9h3l2-5 2 9 2-6 1 2h2" fill="none" stroke="#4DFF8F" stroke-width="1.6" stroke-linejoin="miter"/></svg>')
+shutil.copy(repo / "design/brand/favicon/favicon.svg", assets / "favicon.svg")
+for name in ("favicon.ico", "apple-touch-icon.png"):
+    shutil.copy(repo / "design/brand/favicon" / name, site / name)
 
 design_page = site / "design-system" / "index.html"
 if design_page.exists():
@@ -957,7 +958,7 @@ if design_page.exists():
     text = re.sub(r'<div class="site-bar" role="banner">.*?</ul></div></div></div>', "", text, count=1, flags=re.S)
     if "px-head" not in text:
         # Only the shell's own stylesheet: the design page keeps its light and dark themes; its sticky nav sits under the header.
-        text = text.replace("</head>", '<link rel="stylesheet" href="/assets/bar.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'
+        text = text.replace("</head>", '<link rel="stylesheet" href="/assets/bar.css"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
                             '<style>.px-head{background:var(--p-bg)} body > nav{top:var(--p-head)}</style></head>', 1)
         text = re.sub(r"<body([^>]*)>", lambda m: f"<body{m.group(1)}>{header('design-system/')}", text, count=1)
         text = text.replace("</body>", '<script src="/assets/site.js" defer></script></body>', 1)
@@ -969,7 +970,7 @@ if design_page.exists():
 (assets / "search.json").write_text(json.dumps(SEARCH, ensure_ascii=False, separators=(",", ":")))
 
 (site / "404.html").write_text(f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Not found · Pulse docs</title><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<title>Not found · Pulse docs</title><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>document.documentElement.classList.add("js")</script></head><body>{header("404")}
 <main id="main"><div class="wrap lost"><p class="eyebrow">Error 404 · <b>signal lost</b></p><h1 class="wordmark" data-text="404">404</h1>
 <p class="lede">That page doesn't exist. <a href="/">Back to the overview</a>, or press ⌘K to search.</p></div></main>{footer()}
