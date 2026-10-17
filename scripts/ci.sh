@@ -1,9 +1,23 @@
 #!/bin/bash
-# Local quality gate (docs/ROADMAP.md increment 0.5; lanes A and B of docs/RELEASE_AND_CI.md).
-# Every check runs even if an earlier one fails; the summary lists each result and the exit status is
-# non-zero if any failed. Usage: scripts/ci.sh   (or: make ci)
+# Local quality gate. Every check runs even if an earlier one fails; the summary lists each result and the exit
+# status is non-zero if any failed.
+#
+#   scripts/ci.sh                 (make ci)              strict: the maintainer's and official builds
+#   scripts/ci.sh --contributor   (make ci-contributor)  for contributors and hosted CI without the maintainer's setup
+#
+# Strict mode pins the exact toolchain and requires the app to be signed with a real identity, with hardened runtime,
+# and with an accounts project configured (Config/*.local.xcconfig). Contributor mode accepts any Swift 6 toolchain,
+# an ad-hoc signature and no accounts project; every other check is identical.
 set -uo pipefail
 cd "$(dirname "$0")/.."
+
+MODE=strict
+for arg in "$@"; do
+    case "$arg" in
+        --contributor) MODE=contributor ;;
+        *) echo "usage: scripts/ci.sh [--contributor]"; exit 2 ;;
+    esac
+done
 
 EXPECTED_XCODE="Xcode 27.1"
 EXPECTED_SWIFT="Swift version 6.4"
@@ -36,6 +50,11 @@ check_toolchain() {
     xcode=$(xcodebuild -version) || return 1
     swift=$(swift --version 2>&1) || return 1
     echo "$xcode"; echo "$swift"
+    if [ "$MODE" = contributor ]; then
+        [[ "$swift" == *"Swift version 6."* ]] || { echo "a Swift 6 toolchain is required"; return 1; }
+        echo "contributor mode: any Swift 6 toolchain (strict mode pins $EXPECTED_XCODE, $EXPECTED_SWIFT)"
+        return 0
+    fi
     [[ "$xcode" == "$EXPECTED_XCODE"* ]] || { echo "expected $EXPECTED_XCODE"; return 1; }
     [[ "$swift" == *"$EXPECTED_SWIFT"* ]] || { echo "expected $EXPECTED_SWIFT"; return 1; }
 }
@@ -44,7 +63,7 @@ strict_build() { swift build --build-tests -Xswiftc -warnings-as-errors; }
 
 all_tests() { swift test; }            # non-zero exit on any failing test
 
-# The helper Claude Code runs must not be able to reach the network (ADR-002, shim spec §7).
+# The helper Claude Code runs must not be able to reach the network.
 helper_linkage() {
     swift build -c release --product pulse-statusline || return 1
     local bin=".build/release/pulse-statusline"
@@ -59,10 +78,9 @@ helper_linkage() {
     echo "no networking libraries or symbols"
 }
 
-# Source rules from TEST_PLAN.md §1 and RELEASE_AND_CI.md lane B.
+# Optional Pulse accounts make HTTPS calls from the Sync module, and only from there.
 no_networking_code() {
     local hits
-    # ROADMAP 2.0 (DECISIONS C9): Pulse accounts make HTTPS calls from the Sync module, and only from there.
     hits=$(grep -rnE 'URLSession|NWConnection|NWListener|CFSocketCreate|import Network\b' Sources | grep -v '^Sources/Sync/' || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
     hits=$(grep -rln 'import Sync' Sources | grep -vE '^Sources/(PulseApp|Sync)/' || true)
@@ -78,19 +96,20 @@ no_direct_clock() {
     echo "no direct clock reads outside SystemClock"
 }
 
-# DESIGN_SYSTEM.md §7: components and app screens take colour, spacing and type from Theme only, so a restyle can't bypass it.
+# Components and app screens take colour, spacing and type from Theme only, so a restyle can't bypass it.
 design_tokens_only() {
     local hits
     hits=$(grep -rnE 'Color\((red|\.sRGB|white|hue)|Color\.(red|blue|green|orange|yellow|gray|primary|secondary|black|white)|\.padding\([[:space:]]*[0-9]|Font\.system\(size:|Date\(\)' \
         Sources/DesignSystem/Components Sources/DesignSystem/Pixel Sources/PulseApp 2>/dev/null || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
-    # 1.13: icons are pixel glyphs (PixelIcon), never the system's smooth symbols.
+    # Icons are pixel glyphs (PixelIcon), never the system's smooth symbols.
     hits=$(grep -rnE 'Image\(systemName|systemImage:' Sources/DesignSystem Sources/PulseApp 2>/dev/null || true)
     [ -z "$hits" ] || { echo "use PixelIcon / PixelLabel:"; echo "$hits"; return 1; }
     echo "components use Theme tokens and pixel icons only"
 }
 
-# PRIVACY_AND_SECURITY §5: `unsafeReveal` only in Storage and the helper's passthrough; `Redacted` is never Codable.
+# Logging and redaction (docs/PRIVACY_AND_SECURITY.md §5): `unsafeReveal` only in Storage and the helper's passthrough;
+# `Redacted` is never Codable.
 redaction_audit() {
     local hits
     hits=$(grep -rn 'unsafeReveal(' Sources | grep -v '^Sources/Domain/Redacted.swift' \
@@ -103,14 +122,26 @@ redaction_audit() {
 
 secret_scan() {
     local hits
-    hits=$(grep -rnIE 'sk-ant-[A-Za-z0-9_-]{3,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|xox[abp]-[A-Za-z0-9-]{10,}' \
+    hits=$(grep -rnIE 'sk-ant-[A-Za-z0-9_-]{3,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|xox[abp]-[A-Za-z0-9-]{10,}|sb_secret_[A-Za-z0-9_-]{8,}' \
         --exclude-dir=.build --exclude-dir=.git --exclude-dir=.swiftpm . | grep -v 'secret-scan: allow' || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
     echo "no secret-shaped strings"
 }
 
-# RELEASE_AND_CI lanes C/D, local form: the signed bundle builds, embeds the helper under its identifier,
-# carries no sandbox, network or exception entitlements, runs as a menu bar app, and links no networking.
+# Builds from source must never reach the maintainer's accounts project: no Supabase project or publishable key may be
+# committed. Official builds get them from the uncommitted Config/Sync.local.xcconfig. (Tests use example.supabase.co.)
+no_committed_sync_project() {
+    local hits
+    hits=$(git ls-files -z | xargs -0 grep -nIE '[a-z0-9]{20}\.supabase\.co|sb_publishable_[A-Za-z0-9_-]{20,}' 2>/dev/null || true)
+    [ -z "$hits" ] || { echo "accounts project committed:"; echo "$hits" | cut -d: -f1,2; return 1; }
+    hits=$(git ls-files 'Config/*.local.xcconfig')
+    [ -z "$hits" ] || { echo "local configuration committed: $hits"; return 1; }
+    echo "no accounts project in tracked files; Config/*.local.xcconfig untracked"
+}
+
+# The app bundle builds, is signed, embeds the helper under its identifier, carries no sandbox, network or exception
+# entitlements, runs as a menu bar app, ships third-party licences, and its helper links no networking.
+# Strict mode also requires a real signing identity, hardened runtime and a configured accounts project.
 app_bundle() {
     make app >/dev/null || return 1
     local app=build/DerivedData/Build/Products/Debug/Pulse.app
@@ -123,21 +154,37 @@ app_bundle() {
     grep -q '^Identifier=dev.tokone.pulse.statusline$' <<<"$info" || { echo "helper identifier wrong"; return 1; }
     for bin in "$app" "$helper"; do
         info=$(codesign -dv "$bin" 2>&1)
-        grep -q 'flags=.*runtime' <<<"$info" || { echo "no hardened runtime: $bin"; return 1; }
+        if grep -q 'Signature=adhoc' <<<"$info"; then
+            # Xcode does not apply hardened runtime to ad-hoc signatures; only contributor builds may be ad hoc.
+            [ "$MODE" = contributor ] || { echo "ad-hoc signature in strict mode (add Config/Signing.local.xcconfig): $bin"; return 1; }
+        else
+            grep -q 'flags=.*runtime' <<<"$info" || { echo "no hardened runtime: $bin"; return 1; }
+        fi
     done
     local keys
     keys=$(codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -convert json -o - - | python3 -c 'import json,sys; print(" ".join(sorted(json.load(sys.stdin))))')
     [ "$keys" = "com.apple.security.get-task-allow" ] || [ -z "$keys" ] || { echo "unexpected entitlements: $keys"; return 1; }
     [ "$(plutil -extract LSUIElement raw "$app/Contents/Info.plist")" = "true" ] || { echo "LSUIElement not set"; return 1; }
-    # Since ROADMAP 2.0 the app itself uploads (Sync); the helper Claude Code runs must still never touch the network.
+    # The app may upload (optional Sync); the helper Claude Code runs must never touch the network.
     local net
     net=$(nm -u "$helper" 2>/dev/null | grep -E 'URLSession|NSURLConnection|CFHTTP|CFNetwork|_nw_|getaddrinfo|CFStream' || true)
     [ -z "$net" ] || { echo "networking symbols in the helper:"; echo "$net"; return 1; }
     [ "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" = "dev.tokone.pulse" ] || { echo "sign-in URL scheme missing"; return 1; }
-    echo "bundle signed; helper dev.tokone.pulse.statusline without networking; entitlements: ${keys:-none} (get-task-allow is debug-only); sign-in URL scheme"
+    local ack="$app/Contents/Resources/Acknowledgements.txt"
+    grep -q 'Gwendal Rou' "$ack" 2>/dev/null && grep -q 'Permission is hereby granted' "$ack" || { echo "third-party licences missing: $ack"; return 1; }
+    for font in Silkscreen PixelifySans VT323; do
+        [ -f "$app/Contents/Resources/Tokone_DesignSystem.bundle/Contents/Resources/Fonts/$font-OFL.txt" ] || { echo "$font licence missing"; return 1; }
+    done
+    local sync
+    sync=$(plutil -extract PulseSyncHost raw "$app/Contents/Info.plist" 2>/dev/null || true)
+    if [ "$MODE" = strict ]; then
+        [ -n "$sync" ] || { echo "no accounts project in strict mode (add Config/Sync.local.xcconfig)"; return 1; }
+    fi
+    echo "bundle signed ($MODE); helper dev.tokone.pulse.statusline without networking; entitlements: ${keys:-none} (get-task-allow is debug-only);" \
+         "sign-in URL scheme; licences shipped; accounts project: $([ -n "$sync" ] && echo configured || echo none, Sync off)"
 }
 
-echo "Tokone local CI · $(date -u +%Y-%m-%dT%H:%M:%SZ) · $(git rev-parse --short HEAD 2>/dev/null || echo 'no commits')"
+echo "Tokone local CI ($MODE) · $(date -u +%Y-%m-%dT%H:%M:%SZ) · $(git rev-parse --short HEAD 2>/dev/null || echo 'no commits')"
 run "toolchain pinned"              check_toolchain
 run "strict build (warnings=errors)" strict_build
 run "tests"                         all_tests
@@ -147,6 +194,7 @@ run "clock injected"                no_direct_clock
 run "design tokens only"             design_tokens_only
 run "redaction audit"               redaction_audit
 run "secret scan"                   secret_scan
+run "no committed accounts project" no_committed_sync_project
 run "app bundle"                    app_bundle
 
 echo

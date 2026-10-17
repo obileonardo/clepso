@@ -1,8 +1,15 @@
-.PHONY: ci build test perf design-site site clean-ci app backend-test
+.PHONY: ci ci-contributor build test perf design-site site clean-ci app backend-test
 
-# Every quality gate, one pass/fail summary (docs/ROADMAP.md increment 0.5).
+# Optional local settings (gitignored), e.g. DOCS for the site build. Template: Config/local.mk.example.
+-include Config/local.mk
+
+# Every quality gate, one pass/fail summary. Strict: exact toolchain, real signing identity, accounts project configured.
 ci:
 	@scripts/ci.sh
+
+# The same gates for contributors and hosted CI: any Swift 6 toolchain, ad-hoc signing, Sync off.
+ci-contributor:
+	@scripts/ci.sh --contributor
 
 build:
 	swift build --build-tests -Xswiftc -warnings-as-errors
@@ -10,28 +17,29 @@ build:
 test:
 	swift test
 
-# ADR-003 budget, enforced on this Mac: helper overhead ≤ 20 ms p95 over 200 release-build runs.
+# Helper time budget, enforced on the maintainer's Mac: overhead ≤ 20 ms p95 over 200 release-build runs.
 perf:
 	PULSE_PERF=1 swift test -c release --filter OverheadTests 2>&1 | grep -E "OVERHEAD|Test run|✘"
 
 clean-ci:
 	rm -rf .build/ci-logs
 
-# Renders the real SwiftUI components and rebuilds the design-system page (site/ and the docs folder copy).
-DOCS := /Volumes/Elvis Obi - Mac Extended/Tokone/docs
-DOCS_DESIGN := $(DOCS)/design-system
+# Renders the real SwiftUI components and rebuilds the design-system page (site/ and a copy in $(DOCS)).
+# Needs DOCS: the planning documents folder with ROADMAP.md and ARCHITECTURE.md (set it in Config/local.mk).
+DOCS_DESIGN = $(DOCS)/design-system
 design-site:
+	$(if $(strip $(DOCS)),,$(error DOCS is not set: add DOCS = <planning docs folder> to Config/local.mk))
 	swift build --product pulse-design-render
 	rm -rf .build/design-render && .build/debug/pulse-design-render .build/design-render
 	python3 -I scripts/build-design-site.py .build/design-render site design/screens
 	python3 -I scripts/build-site.py site "$(DOCS)" design/screens
 	rm -rf "$(DOCS_DESIGN)" && cp -R site/design-system "$(DOCS_DESIGN)"
-	@echo "Deploy: cd site && vercel deploy --prod --scope obileonardos-projects"
 
 # The documentation website (Overview, Progress, Metrics, Architecture, Screens, Changelog, Design system).
 site: design-site
 
-# The signed Pulse.app bundle (RELEASE_AND_CI §1–2): pinned XcodeGen, then xcodebuild. Output: build/DerivedData/Build/Products/Debug/Pulse.app
+# Pulse.app: pinned XcodeGen, then xcodebuild. Signed ad hoc unless Config/Signing.local.xcconfig names an identity.
+# Output: build/DerivedData/Build/Products/Debug/Pulse.app
 app:
 	scripts/bootstrap.sh
 	.tools/xcodegen/bin/xcodegen --quiet
@@ -39,7 +47,7 @@ app:
 	codesign --verify --deep --strict build/DerivedData/Build/Products/Debug/Pulse.app
 	@echo "Built and verified: build/DerivedData/Build/Products/Debug/Pulse.app"
 
-# Accounts backend (ROADMAP 2.0): starts the local Supabase database and runs the pgTAP isolation tests in its container.
+# Accounts backend: starts the local Supabase database and runs the pgTAP isolation tests in its container.
 # Needs Docker; not part of `make ci`, which must run without it.
 backend-test:
 	cd backend && supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor,realtime,storage-api >/dev/null
