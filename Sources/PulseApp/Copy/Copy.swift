@@ -429,7 +429,28 @@ enum Copy {
             default: ""
             }
         }
-        static let appearance = "Appearance", appearanceSub = "Dark is the original Phosphor look; System follows macOS"
+        static let appearance = "Appearance", appearanceSub = "Light, dark, or follow macOS"
+        /// 1.15: colour themes. Names and one-line intents; every theme has a light and a dark palette.
+        static let theme = "Theme", themeSub = "The colours of the menu bar panel and this window"
+        static func themeName(_ id: String) -> String {
+            switch id {
+            case "amber": "Amber"
+            case "cobalt": "Cobalt"
+            case "orchid": "Orchid"
+            case "graphite": "Graphite"
+            default: "Phosphor"
+            }
+        }
+        static func themeIntent(_ id: String) -> String {
+            switch id {
+            case "amber": "Warm amber CRT"
+            case "cobalt": "Cool ice blue"
+            case "orchid": "Violet and orchid"
+            case "graphite": "Monochrome ink"
+            default: "The original green"
+            }
+        }
+        static let selected = "Selected"
         static let system = "System", light = "Light", dark = "Dark"
         static let loginSub = "Start Pulse when you log in"
         static let percentSub = "The highest limit's % next to the icon"

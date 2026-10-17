@@ -63,6 +63,9 @@ public final class AppModel {
         }
     }
     public private(set) var appearance: Appearance = .dark
+    /// Increment 1.15: the colour theme, by `Theme.name` (Phosphor unless the user picks another).
+    public private(set) var themeName = Theme.phosphor.name
+    public var theme: Theme { Theme.named(themeName) }
     /// Increment 1.10: the name Home greets, and the user's goals (both kept in preferences).
     public private(set) var profileName: String?
     public private(set) var goals = Goals()
@@ -128,6 +131,7 @@ public final class AppModel {
             agentsCounting = Self.hooks(environment).isInstalled
             lastSync = try await store.preference(Pref.lastSync, as: Date.self)
             appearance = try await store.preference(Pref.appearance, as: Appearance.self) ?? .dark
+            themeName = Theme.named(try await store.preference(Pref.theme, as: String.self) ?? Theme.phosphor.name).name
             let chose = try await store.preference(Pref.loginItem, as: Bool.self) ?? false
             loginItemEnabled = chose && environment.loginItem.isEnabled
             plan = try await store.currentPlan()
@@ -391,6 +395,11 @@ public final class AppModel {
     public func setAppearance(_ value: Appearance) async {
         appearance = value
         try? await store?.setPreference(Pref.appearance, value, now: environment.clock.now())
+    }
+
+    public func setTheme(_ name: String) async {
+        themeName = Theme.named(name).name
+        try? await store?.setPreference(Pref.theme, themeName, now: environment.clock.now())
     }
 
     public func setProfileName(_ name: String) async {
@@ -779,6 +788,7 @@ public final class AppModel {
         lastSync = nil
         accountMessage = nil
         appearance = .dark
+        themeName = Theme.phosphor.name
         socketHealth = IngestSocket.Health()
         popoverRoute = .overview
         onboardingStep = .welcome
@@ -804,6 +814,7 @@ public final class AppModel {
         static let goals = "goals.v1"
         static let lastSync = "account.lastSync"
         static let appearance = "general.appearance"
+        static let theme = "general.theme"
     }
 }
 

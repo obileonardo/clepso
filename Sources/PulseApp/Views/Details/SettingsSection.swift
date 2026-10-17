@@ -27,6 +27,10 @@ struct SettingsSection: View {
                                                                            (.light, Copy.SettingsPage.light), (.dark, Copy.SettingsPage.dark)],
                                    selection: Binding(get: { model.appearance }, set: { value in Task { await model.setAppearance(value) } }))
                 }
+                row("paintpalette", Copy.SettingsPage.theme, Copy.SettingsPage.themeSub) { EmptyView() }
+                ThemePicker(selection: model.themeName) { name in Task { await model.setTheme(name) } }
+                    .padding(.leading, theme.spacing(.spacious) * 2.8)            // under the row's text, past its icon
+                    .padding(.bottom, theme.spacing(.standard) + theme.spacing(.compact))
                 row("power", Copy.Settings.launchAtLogin, Copy.SettingsPage.loginSub) {
                     toggle(model.loginItemEnabled) { on in Task { await model.setLoginItem(on) } }
                 }
