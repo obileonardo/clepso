@@ -338,7 +338,7 @@
     }
   ],
   "demoInstant" : "2026-10-16T14:01:00Z",
-  "generatedAt" : "2026-10-17T16:31:19Z",
+  "generatedAt" : "2026-10-17T17:17:30Z",
   "palette" : [
     {
       "dark" : "#1C1C1E",
@@ -908,7 +908,7 @@
       "caption" : "Not connected",
       "component" : "QuotaProgress",
       "dark" : "img/quota-disconnected-dark.png",
-      "height" : 75.5,
+      "height" : 75,
       "id" : "quota-disconnected",
       "light" : "img/quota-disconnected-light.png"
     },
@@ -988,7 +988,7 @@
       "caption" : "Not connected",
       "component" : "ConnectionHealth",
       "dark" : "img/health-not-connected-dark.png",
-      "height" : 45.5,
+      "height" : 45,
       "id" : "health-not-connected",
       "light" : "img/health-not-connected-light.png"
     },

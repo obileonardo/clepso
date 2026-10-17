@@ -466,6 +466,7 @@ refused. The app holds only the project's publishable key; your session is kept 
 # ----------------------------------------------------------------------------------------------------------- screens
 
 CAPTIONS = {
+    "details-home-light": ("Home, light mode", "The same page in Phosphor light: paper, ink and deep green."),
     "details-home": ("Home", "A greeting, the running total, both limits, the latest task, goals at a glance and the last 12 months."),
     "details-card": ("Stats › Card", "The player card: name, first session, plan, milestone stamps, output total, named level; copy, save or share."),
     "details-goals": ("Goals", "Active days a week, the 5-hour peak and the week's finish, each with its state in words and its target."),
