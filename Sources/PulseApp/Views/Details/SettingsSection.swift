@@ -68,6 +68,12 @@ struct SettingsSection: View {
                 }
                 if let message { note(message) }
             }
+            group(Copy.SettingsPage.codex) {
+                row("terminal", Copy.Codex.toggle, codexLine) {
+                    toggle(model.codexEnabled) { on in Task { await model.setCodexEnabled(on) } }
+                        .disabled(!model.codexInstalled && !model.codexEnabled)
+                }
+            }
             group(Copy.SettingsPage.data) {
                 row("square.and.arrow.up", Copy.Export.button, Copy.SettingsPage.exportSub) {
                     Button(Copy.SettingsPage.exportAction) { exportData() }.buttonStyle(PixelButtonStyle())
@@ -192,6 +198,13 @@ struct SettingsSection: View {
         .padding(theme.spacing(.standard))
         .background(theme.color(.surfaceMuted, scheme))
         .padding(.vertical, theme.spacing(.standard))
+    }
+
+    /// What the Codex switch would do, or why it can't.
+    var codexLine: String {
+        if !model.codexInstalled { return Copy.Codex.notFound }
+        if model.codexEnabled && model.snapshot.codex == nil { return Copy.Codex.waiting }
+        return Copy.Codex.toggleSublabel
     }
 
     // MARK: - Building blocks

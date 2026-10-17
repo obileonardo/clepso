@@ -34,6 +34,7 @@ enum PopoverProbe {
         if defaults.bool(forKey: "PulseProbeDemo") { await model.setDemo(true) }
         if defaults.bool(forKey: "PulseProbeLight") { await model.setAppearance(.light) }
         if let theme = defaults.string(forKey: "PulseProbeTheme") { await model.setTheme(theme) }   // 1.15: one colour theme per run
+        if defaults.bool(forKey: "PulseProbeCodex") { await model.setCodexEnabled(true) }           // 3.4: reads the probe home's ~/.codex
         try? await Task.sleep(for: .seconds(1))
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
         recorder.start(button)

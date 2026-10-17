@@ -47,8 +47,9 @@ public struct PopoverView: View {
 
     func inspector(_ snapshot: OverviewSnapshot, _ key: String) -> InspectorView? {
         guard case .inspector(_, let fromDetail) = model.popoverRoute,
-              let row = snapshot.provider?.pools.first(where: { $0.poolKey == key }) else { return nil }
-        return InspectorView(row: row, provider: snapshot.provider, isDemo: snapshot.isDemo, now: snapshot.now,
+              let row = (snapshot.provider?.pools ?? []).first(where: { $0.poolKey == key })
+                ?? snapshot.codex?.pools.first(where: { $0.poolKey == key }) else { return nil }
+        return InspectorView(row: row, provider: key.hasPrefix("codex.") ? nil : snapshot.provider, isDemo: snapshot.isDemo, now: snapshot.now,
                              zone: model.environment.timeZone, locale: model.environment.locale) {
             model.popoverRoute = fromDetail ? .detail : .overview
         }
@@ -128,8 +129,13 @@ public struct PopoverView: View {
                 VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                     LimitCards(model: model, pools: provider.pools, now: snapshot.now, fromDetail: false)
                     if let session = provider.sessions.first { SessionStrip(session: session, agents: snapshot.agents) }
+                    if let codex = snapshot.codex { CodexCards(model: model, section: codex, now: snapshot.now) }
                 }
             }
+        }
+        // Someone who uses only Codex still sees it while Claude Code isn't connected.
+        if snapshot.empty != nil, let codex = snapshot.codex {
+            CodexCards(model: model, section: codex, now: snapshot.now)
         }
     }
 
@@ -200,6 +206,35 @@ enum PopoverMetrics {
     static let width: CGFloat = 580
     /// "Claude Max 5×" → "Max 5×": the card already names the provider.
     static func shortPlan(_ name: String) -> String { name.hasPrefix("Claude ") ? String(name.dropFirst("Claude ".count)) : name }
+}
+
+/// Increment 3.4: Codex's limits under Claude Code's, with the same cards and a one-line label above them.
+struct CodexCards: View {
+    let model: AppModel
+    let section: AgentLimitsSection
+    let now: Date
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            HStack(spacing: theme.spacing(.standard)) {
+                PixelIcon(symbol: "terminal").foregroundStyle(theme.color(.accent, scheme)).accessibilityHidden(true)
+                Text(section.name.uppercased()).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textPrimary, scheme))
+                if let plan = section.plan {
+                    Text(plan.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                }
+                Spacer(minLength: 0)
+                if let model = section.model {
+                    Text(model).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).lineLimit(1)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            LimitCards(model: model, pools: section.pools, now: now, fromDetail: false)
+        }
+        .padding(.top, theme.spacing(.compact))
+    }
 }
 
 /// The limits as equal cards side by side; each opens the inspector for its number.

@@ -416,9 +416,22 @@ enum Copy {
         static let demoNote = "Uploads are paused while demo data is showing."
     }
 
+    /// Increment 3.4: Codex's limits beside Claude Code's (docs/MULTI_AGENT.md).
+    enum Codex {
+        static let name = "Codex"
+        static let toggle = "Read Codex's session files"
+        static let toggleSublabel = "Its 5-hour and weekly limits and plan; prompts and replies are skipped unread"
+        static let notFound = "Codex hasn't written a session on this Mac"
+        static let waiting = "On. Waiting for Codex's next session to report its limits"
+        static let source = "Codex session files"
+        static let model = "Model", plan = "Plan", lastReading = "Last reading"
+        static let factsTitle = "CODEX", factsSub = "Where Codex's numbers come from"
+        static func scope(_ scope: String) -> String { "Codex \(scope)" }
+    }
+
     enum SettingsPage {
         static let title = "Settings", subtitle = "How Pulse runs on this Mac"
-        static let general = "GENERAL", claudeCode = "CLAUDE CODE", notifications = "NOTIFICATIONS", data = "YOUR DATA", diagnostics = "DIAGNOSTICS"
+        static let general = "GENERAL", claudeCode = "CLAUDE CODE", codex = "CODEX", notifications = "NOTIFICATIONS", data = "YOUR DATA", diagnostics = "DIAGNOSTICS"
         static let exportSub = "Everything Pulse stores on this Mac, as one JSON file", exportAction = "Export…"
         static let demoSub = "Sample numbers, clearly marked DEMO; uploads pause"
         static let deleteSub = "Removes all of Pulse's data and restores Claude Code's settings", deleteAction = "Delete…"
@@ -428,6 +441,7 @@ enum Copy {
             case general: "How Pulse looks and starts."
             case notifications: "Alerts when a limit gets close."
             case claudeCode: "What Pulse reads from Claude Code, and what it keeps."
+            case codex: "Codex's own limits, read from its session files on this Mac."
             case data: "Everything Pulse stores is on this Mac."
             case diagnostics: "What Pulse received, for troubleshooting."
             default: ""

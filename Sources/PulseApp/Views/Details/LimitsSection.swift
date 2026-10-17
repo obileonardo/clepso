@@ -31,7 +31,22 @@ struct LimitsSection: View {
                             .fixedSize(horizontal: false, vertical: true).padding(.top, theme.spacing(.standard))
                     }
                 }
-            } else {
+            }
+            if let codex = snapshot.codex {
+                ForEach(codex.pools) { row in
+                    PageSection(Copy.Codex.scope(row.model.scope), resetLine(row)) { limit(row) }
+                }
+                PageSection(Copy.Codex.factsTitle, Copy.Codex.factsSub) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        FactRow(label: Copy.Codex.plan, value: codex.plan?.capitalized ?? Copy.Account.planNotSet)
+                        FactRow(label: Copy.Codex.model, value: codex.model ?? "—")
+                        FactRow(label: Copy.LimitsPage.source, value: Copy.Codex.source)
+                        FactRow(label: Copy.Codex.lastReading, value: codex.lastSeen.map {
+                            Formatting.age(of: $0, now: snapshot.now, zone: model.environment.timeZone, locale: model.environment.locale) } ?? "—")
+                    }
+                }
+            }
+            if (snapshot.provider?.pools.isEmpty ?? true) && snapshot.codex == nil {
                 PageSection(Copy.Details.limits, nil) {
                     Text(Copy.Details.noLimits).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
