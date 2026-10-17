@@ -10,10 +10,13 @@ from fontTools.ttLib import TTFont
 VERSION = "1.000"
 RELEASED = "Sat Oct 17 12:00:00 2026"
 VENDOR = "PULS"
-COPYRIGHT = "Copyright 2026 The Pulse Project Authors"
+# Founder decision (17 Oct 2026): the faces are open (SIL OFL 1.1) with their names reserved; the Pulse logo, name and app
+# icon are not covered (see TRADEMARKS.md).
+COPYRIGHT = 'Copyright 2026 The Pulse Project Authors, with Reserved Font Names "Pulse Pixel" and "Pulse Mono"'
 DESIGNER = "Pulse brand team"
-LICENSE = ("Proprietary brand font of Pulse (working name). Free to use in Pulse products and materials; "
-           "licence for third parties to be decided by the founder.")
+LICENSE = ("This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a "
+           "FAQ at: https://openfontlicense.org")
+LICENSE_URL = "https://openfontlicense.org"
 
 
 def setup_common(fb, *, family, ps, style, weight, ascender, descender, line_gap, cap, x_height, description,
@@ -31,6 +34,7 @@ def setup_common(fb, *, family, ps, style, weight, ascender, descender, line_gap
         "designer": DESIGNER,
         "description": description,
         "licenseDescription": LICENSE,
+        "licenseInfoURL": LICENSE_URL,
     })
     fb.setupHorizontalHeader(ascent=ascender, descent=descender, lineGap=line_gap)
     fs_selection = (1 << 7)                                    # USE_TYPO_METRICS

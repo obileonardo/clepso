@@ -58,13 +58,12 @@ The Pulse name, the Pulse mark and logo, the app icon and the menu bar mark (`de
 `Sources/DesignSystem/Resources/Fonts/PulsePixel-*` and `PulseMono-*`, and copies under `site/design-system/brand/`)
 are original works made for this project.
 
-> **Open owner decision.** The two typefaces embed this licence text in their metadata: "Proprietary brand font of
-> Pulse (working name). Free to use in Pulse products and materials; licence for third parties to be decided by the
-> founder." That conflicts with distributing them under the repository's MIT licence. Before the repository is
-> public, the owner should either license the typeface files openly (for example under the SIL Open Font License or
-> MIT, and update the embedded text) or state here that they are excluded from the MIT grant and on what terms they may
-> be redistributed with the code. The same choice applies to the logo and app icon, which projects often keep as
-> trademarks even when the code is open.
+**Typefaces: open.** Pulse Pixel and Pulse Mono are licensed under the **SIL Open Font License 1.1** with the Reserved
+Font Names "Pulse Pixel" and "Pulse Mono" (`design/brand/fonts/OFL.txt`, shipped in the app as
+`PulseFonts-OFL.txt`). You may use, modify and redistribute them under the OFL; a modified version must be renamed.
+
+**Name, logo and icons: reserved.** The Pulse name, the Pulse mark and logo, the app icon and the menu bar mark are not
+covered by the MIT licence or the OFL. See [TRADEMARKS.md](TRADEMARKS.md).
 
 "Pulse" is a working name; no trademark search has been done.
 

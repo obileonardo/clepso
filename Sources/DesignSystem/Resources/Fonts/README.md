@@ -5,10 +5,11 @@ The OFL permits bundling with software, including commercial use; each font's li
 
 | File | SHA-256 |
 |---|---|
-| PulsePixel-Regular.ttf | `6326fedeac2875b0fadd273d13c34287d4b39de609019560d5a211eca02b8741` |
-| PulseMono-Regular.ttf | `38e74429cf306492f0ed27caff2b217f5a1a594eb3b872846cbecce558270f56` |
-| PulseMono-Medium.ttf | `01d576b699589cdd2016a7e6be9971beda20ccd1b9a62233277147589f1ec584` |
-| PulseMono-Bold.ttf | `28d23316d3e51fb7d14b2248ab4b7f2805a62cea832f37c9c4727edcfc6ff5a2` |
+| PulsePixel-Regular.ttf | `6f8fed09a05b42f1ae59feae20aa0e6feb4189202d0786c5aea70de7f273fe9a` |
+| PulseMono-Regular.ttf | `ec4a58c480150ce02515464fdf7fef2225b11be95f4aca3378d2dfa7286fbaa3` |
+| PulseMono-Medium.ttf | `28d91e64611e62d8f89f28b46fb8cbc9a875981a3bab675a7b0f8373dffe46ae` |
+| PulseMono-Bold.ttf | `c04dbf1ae97dac358656c777628e3c6ed81678e968252781ef8f5f7fac357a7f` |
+| PulseFonts-OFL.txt | `3e0d81bd3740cfe08a8d119ae16cd70b2f836b319e6024ffab8b69b2b83dd58d` |
 | PixelifySans-Variable.ttf | `9ba86cd010a4de309d263ceff8e8044092c9db7efda869620cb9ff1c4389e8a5` |
 | Silkscreen-Bold.ttf | `768476aa712d4f5c3e18d3bce80f980a8bd3f72b7094d22ec5e768df3acfed61` |
 | Silkscreen-Regular.ttf | `c845473330b94c2079ce9af01c51ac8ba2d99c24f4d14c039843bbb8e642ebd8` |
@@ -18,4 +19,4 @@ The OFL permits bundling with software, including commercial use; each font's li
 | VT323-OFL.txt | `27d9af34210253e7ca1251fbace86c6f65b40031d6ce1a75493a1b2093631298` |
 
 Pulse Pixel and Pulse Mono (1.16) are Pulse's own faces, drawn in code by `design/brand/pipeline/build.sh`; original
-drawings, no OFL obligations. Silkscreen, Pixelify Sans and VT323 are still bundled but no longer used by the app.
+drawings, released under the SIL Open Font License 1.1 with Reserved Font Names (PulseFonts-OFL.txt). Silkscreen, Pixelify Sans and VT323 are still bundled but no longer used by the app.

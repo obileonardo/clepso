@@ -119,7 +119,7 @@ available, direct when a limit is near, factual (not apologetic) when data is mi
 - **Name.** "Pulse" is a working name and a crowded word in software; no trademark search has been done. The
   symbol does not depend on the name; the wordmark and the font names do (one constant each in `logo.py` and
   `fontmeta.py`).
-- **Font licence.** The faces are original (no OFL source), so the licence is the founder's choice. They are marked
-  proprietary with free use in Pulse materials. Releasing them under the OFL would be a good-will option.
+- **Font licence.** The faces are original (no OFL source). Founder decision, 17 Oct 2026: released under the SIL OFL
+  1.1 with Reserved Font Names "Pulse Pixel" and "Pulse Mono"; the logo, name and icons stay reserved (TRADEMARKS.md).
 - **Menu bar status family.** The flatline / warning / clock / broken-ring set is a proposal; `MenuBarIcon` in the
   app still draws its own marks.

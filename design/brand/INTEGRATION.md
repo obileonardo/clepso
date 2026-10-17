@@ -21,7 +21,7 @@ they are unambiguous where family names are not. Silkscreen, Pixelify Sans and V
 rows) can be removed once nothing references them; if Pixelify Sans and VT323 are unused today, they can go now.
 
 Add the new files to the checksum table in `Resources/Fonts/README.md` (`shasum -a 256`). Licence line: original
-faces, proprietary to Pulse (see NOTES.md §8); no OFL obligations.
+faces under the SIL OFL 1.1 with Reserved Font Names (`PulseFonts-OFL.txt`; NOTES.md §8).
 
 ## 2. Typography tokens (`Theme.font(_:)`, pixel branch)
 
