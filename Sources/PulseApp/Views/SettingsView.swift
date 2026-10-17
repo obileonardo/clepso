@@ -142,6 +142,8 @@ struct PlanPicker: View {
     let model: AppModel
     var onSaved: (() -> Void)?
     var onCancel: (() -> Void)? = nil
+    /// Onboarding: a quiet "Skip for now" at the left of the action row.
+    var onSkip: (() -> Void)? = nil
     @State private var selection: String = ""
     @State private var confirmed = false
     @State private var loaded = false
@@ -168,8 +170,17 @@ struct PlanPicker: View {
             }
             .toggleStyle(PixelToggleStyle())
             .disabled(entry == nil)
-            HStack(alignment: .center, spacing: theme.spacing(.standard)) {
+            HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
                 PlanPill(planName: entry.map { PopoverMetrics.shortPlan($0.displayName) }, provenance: provenance)
+                if let entry {
+                    Text(Copy.Settings.lastChecked(entry.checkedAt) + (entry.verified ? "" : " · " + Copy.Settings.notVerified))
+                        .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            // One ruled action row: the way out or aside on the left, Save on the right.
+            HStack(spacing: theme.spacing(.standard)) {
+                if let onSkip { Button(Copy.Onboarding.planSkip, action: onSkip).buttonStyle(PixelQuietButtonStyle()) }
                 Spacer()
                 if let onCancel {
                     Button(Copy.DeleteAll.cancel, action: onCancel).keyboardShortcut(.cancelAction).buttonStyle(PixelButtonStyle())
@@ -183,10 +194,8 @@ struct PlanPicker: View {
                 .buttonStyle(PixelButtonStyle(prominent: true))
                 .keyboardShortcut(.defaultAction)
             }
-            if let entry {
-                Text(Copy.Settings.lastChecked(entry.checkedAt) + (entry.verified ? "" : " · " + Copy.Settings.notVerified))
-                    .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-            }
+            .padding(.top, theme.spacing(.standard) + theme.spacing(.compact))
+            .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
         }
         .onAppear {
             guard !loaded else { return }

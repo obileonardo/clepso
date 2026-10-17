@@ -37,8 +37,7 @@ public struct OnboardingView: View {
 
         case .plan:
             title(Copy.Onboarding.planTitle)
-            PlanPicker(model: model) { go(.provider) }
-            footer(leading: { quiet(Copy.Onboarding.planSkip) { go(.provider) } }) { EmptyView() }
+            PlanPicker(model: model, onSaved: { go(.provider) }, onSkip: { go(.provider) })
 
         case .provider:
             if model.preview.claudeDetected {
