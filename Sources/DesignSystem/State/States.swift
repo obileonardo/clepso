@@ -1,17 +1,17 @@
 import Domain
 import Foundation
 
-/// What one metric row can be (UX_SPEC §1.1). Views derive it with `resolve`; callers never choose it.
+/// What one metric row can be. Views derive it with `resolve`; callers never choose it.
 public enum ValueState: String, CaseIterable, Sendable {
     case live, stale, notAvailable, notReportedYet, notConnected, providerError
 }
 
-/// What one allowance pool card can be (UX_SPEC §1.2). Stale is a modifier (`PoolCardModel.isStale`), not a case.
+/// What one allowance pool card can be. Stale is a modifier (`PoolCardModel.isStale`), not a case.
 public enum CardState: String, CaseIterable, Sendable {
     case available, approaching, critical, exhausted, exhaustedNoReset, exhaustedOverage
     case resetExpected, availableAgain, availableAgainUser, quotaNotAvailable, disconnected
 
-    /// From the engine's limit state (DESIGN_SYSTEM §1 mapping table).
+    /// From the engine's limit state (mapping table).
     public init(limit: LimitState, hasResetTime: Bool, connected: Bool, availableAgain: AvailableAgain? = nil) {
         guard connected else { self = .disconnected; return }
         if let availableAgain { self = availableAgain == .verified ? .availableAgain : .availableAgainUser; return }
@@ -29,7 +29,7 @@ public enum CardState: String, CaseIterable, Sendable {
     public enum AvailableAgain: Sendable { case verified, userConfirmed }
 }
 
-/// How the plan label is known (UX_SPEC §1.3, PRD §22.3).
+/// How the plan label is known.
 public enum PlanProvenance: String, CaseIterable, Sendable {
     case providerVerified, userConfirmed, selectedUnverified, notSet
 }
@@ -98,7 +98,7 @@ public struct SessionRowModel: Sendable {
     }
 }
 
-/// DESIGN_SYSTEM §1 and DATA_MODEL §2.2: connection first, then absence reason, then freshness.
+/// DATA_MODEL §2.2: connection first, then absence reason, then freshness.
 public func resolve<T>(_ p: Provenanced<T>, connection: ConnectionState, now: Date, staleAfter: TimeInterval) -> ValueState {
     switch connection {
     case .notConnected, .disconnected: return .notConnected

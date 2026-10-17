@@ -1,7 +1,7 @@
 import Domain
 import SwiftUI
 
-// The first six components (DESIGN_SYSTEM §5), the DEMO badge and the pattern fill.
+// The first six components, the DEMO badge and the pattern fill.
 // Rules (enforced by `make ci`): no literal colours, paddings or font sizes here; values come from `Theme`.
 // Public initializers, labels and accessibility text are locked; layout and styling are the founder's to change.
 
@@ -219,7 +219,7 @@ public struct ProviderCard: View {
     @Environment(\.staleAfter) private var staleAfter
     @Environment(\.locale) private var locale
 
-    /// `onHeader` opens provider detail and `onPool` the provenance inspector (UX_SPEC §3); without them the card is static.
+    /// `onHeader` opens provider detail and `onPool` the provenance inspector; without them the card is static.
     public init(identity: ProviderIdentity, planName: String?, plan: PlanProvenance, pools: [PoolCardModel],
                 session: SessionRowModel?, layout: Layout, now: Date,
                 onHeader: (() -> Void)? = nil, onPool: ((Int) -> Void)? = nil) {

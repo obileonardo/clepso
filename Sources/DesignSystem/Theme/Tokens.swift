@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Layer 1: primitives. The only place raw colour values live (DESIGN_SYSTEM.md §2). The founder may
+// Layer 1: primitives. The only place raw colour values live. The founder may
 // change any value here; `ThemeContrastTests` reports any text token that falls below 4.5:1.
 
 /// An sRGB colour as a 24-bit hex value, so contrast can be computed exactly in tests and on the website.
@@ -26,7 +26,7 @@ public struct RGB: Sendable, Equatable, Codable {
     var color: Color { Color(.sRGB, red: red, green: green, blue: blue, opacity: 1) }
 }
 
-// Layer 2: semantic tokens (PRD §25.2, DESIGN_SYSTEM.md §2).
+// Layer 2: semantic tokens.
 
 public enum ColorToken: String, CaseIterable, Sendable, Codable {
     case background, surfaceElevated, surfaceMuted, separator
@@ -133,7 +133,7 @@ public struct Theme: Sendable {
         radiusValues: [.control: 6, .card: 10, .pill: 999],
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2])
 
-    // Increment 1.7b concept palettes (founder references: Matrix, Tesla Roadster, Hearth's glass, a pixel UI pack).
+    // Increment 1.7b concept palettes (references: Matrix, Tesla Roadster, a frosted-glass UI, a pixel UI pack).
     // Dark in both appearances: the same value is given for light and dark. Contrast is tested like `mac`.
 
     /// Phosphor: near-black glass, phosphor green, Roadster-white type. Increment 1.13 adds its light mode: warm
@@ -243,7 +243,7 @@ public struct Theme: Sendable {
 
 extension EnvironmentValues {
     @Entry public var theme: Theme = .mac
-    /// Stale after 10 minutes (DECISIONS B2).
+    /// Stale after 10 minutes.
     @Entry public var staleAfter: TimeInterval = 600
     /// True for demo or fixture data: every value then carries a DEMO badge.
     @Entry public var isFixtureData: Bool = false

@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import ShimProtocol
 
-/// The status-line helper's run loop (docs/specs/statusline-shim.md §2, §4, §5).
+/// The status-line helper's run loop (ARCHITECTURE §3).
 ///
 /// Order matters: the user's original command starts before any parsing, its stdout is inherited
 /// directly (never buffered or rewritten), and every failure in the frame path falls through to
@@ -206,7 +206,7 @@ public enum StatusLineShim {
 
     // MARK: - Socket
 
-    /// Non-blocking connect and write within the ADR-003 budget. Never reads a reply, never retries.
+    /// Non-blocking connect and write within the ARCHITECTURE §3 budget. Never reads a reply, never retries.
     @discardableResult
     static func send(_ wire: Data, socketPath: String, t0: UInt64) -> Bool {
         var info = stat()

@@ -73,7 +73,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: dev.tokone.pulse.statusline   # <bundle-prefix>.pulse.statusline
         SKIP_INSTALL: YES
         GENERATE_INFOPLIST_FILE: YES        # embedded __info_plist: codesign then uses the bundle id as the identifier,
-        CREATE_INFOPLIST_SECTION_IN_BINARY: YES   # which a code-signing peer check can require (docs/PRIVACY_AND_SECURITY.md §3)
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES   # which a code-signing peer check can require (PRIVACY_AND_SECURITY §3)
     dependencies:
       - package: Tokone
         product: StatusLineShim

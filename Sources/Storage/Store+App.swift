@@ -40,7 +40,7 @@ extension Store {
 
     // MARK: - Ledger reads
 
-    /// One stored reading, as the inspector shows it (UX_SPEC §2.6).
+    /// One stored reading, as the inspector shows it.
     public struct Reading: Sendable, Equatable {
         public let value: MetricValue
         public let observedAt: Date
@@ -96,7 +96,7 @@ extension Store {
         }
     }
 
-    // MARK: - Plan (PLAN_CATALOG §4: user-confirmed or selected; never inferred)
+    // MARK: - Plan (user-confirmed or selected; never inferred)
 
     public struct PlanIdentity: Sendable, Equatable {
         public let catalogID: String

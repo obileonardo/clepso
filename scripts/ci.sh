@@ -108,7 +108,7 @@ design_tokens_only() {
     echo "components use Theme tokens and pixel icons only"
 }
 
-# Logging and redaction (docs/PRIVACY_AND_SECURITY.md §5): `unsafeReveal` only in Storage and the helper's passthrough;
+# Logging and redaction (PRIVACY_AND_SECURITY §5): `unsafeReveal` only in Storage and the helper's passthrough;
 # `Redacted` is never Codable.
 redaction_audit() {
     local hits

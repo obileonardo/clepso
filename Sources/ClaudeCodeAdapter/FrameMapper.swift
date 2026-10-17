@@ -20,7 +20,7 @@ public struct IngestBatch: Sendable, Equatable {
     public var skewFlagged: Bool { abs(clockSkew) > FrameMapper.skewLimit }
     public let scrubCount: Int
     public let unknownTopLevelKeys: Int
-    /// Limit windows under `rate_limits` the helper does not read (DECISIONS C7): a count, never names or values.
+    /// Limit windows under `rate_limits` the helper does not read: a count, never names or values.
     public var unknownRateLimitWindows: Int = 0
 }
 

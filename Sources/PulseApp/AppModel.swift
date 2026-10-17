@@ -38,14 +38,14 @@ public final class AppModel {
     public private(set) var firstRealReadingAt: Date?
     public private(set) var demo = false
     public private(set) var showPercent = true
-    public private(set) var forwardCost = true          // founder decision A5: on by default
+    public private(set) var forwardCost = true          // On by default
     /// Increment 1.7d: reading Claude Code's own statistics file is a second source, so it is off until the user agrees.
     public private(set) var statsEnabled = false
     /// Increment 3.4: read Codex's session files (opt-in) and the latest reading's plan and model.
     public internal(set) var codexEnabled = false
     var codexLatest: CodexReading?
     var codexConnection: UUID?
-    /// ROADMAP 2.0: the Pulse account on this Mac.
+    /// The Pulse account on this Mac.
     public enum AccountState: Equatable, Sendable {
         case signedOut
         case linkSent(email: String)
@@ -242,7 +242,7 @@ public final class AppModel {
         loggedCounters = counters
     }
 
-    /// A real observation arrived: it ends demo mode (UX_SPEC §2.8) and is the first-reading moment of onboarding.
+    /// A real observation arrived: it ends demo mode and is the first-reading moment of onboarding.
     private func didIngest() async {
         let now = environment.clock.now()
         if firstRealReadingAt == nil {
@@ -335,7 +335,7 @@ public final class AppModel {
         try? await store?.setPreference(Pref.onboardingComplete, true, now: environment.clock.now())
     }
 
-    // MARK: - Plan (PLAN_CATALOG §4: chosen by the user, never inferred)
+    // MARK: - Plan (chosen by the user, never inferred)
 
     /// nil entry is "Not sure": the current plan ends and the header reads `Plan not set`.
     public func choosePlan(_ entry: PlanCatalog.Entry?, confirmed: Bool) async {
@@ -347,7 +347,7 @@ public final class AppModel {
         await refresh()
     }
 
-    // MARK: - Claude Code connection (UX_SPEC §2.2, §4 step 4)
+    // MARK: - Claude Code connection
 
     public enum InstallOutcome: Equatable, Sendable {
         case installed(backupPath: String?, keptExisting: Bool)
@@ -445,7 +445,7 @@ public final class AppModel {
                                       sevenDayPace: seven?.pace, now: environment.clock.now(), zone: environment.timeZone)
     }
 
-    // MARK: - Account and sync (ROADMAP 2.0)
+    // MARK: - Account and sync
 
     /// Whether this build can sign in at all. Builds from source carry no accounts project, so Sync stays off.
     public var accountsAvailable: Bool { environment.sync.isAvailable }
@@ -545,7 +545,7 @@ public final class AppModel {
         }
     }
 
-    /// Once an hour while signed in (ACCOUNTS_AND_SYNC S5).
+    /// Once an hour while signed in.
     func syncIfDue() async {
         guard case .signedIn = account else { return }
         let now = environment.clock.now()
@@ -636,7 +636,7 @@ public final class AppModel {
         }
     }
 
-    // MARK: - Login item and notifications (consent first; COMPLIANCE_GATES §4)
+    // MARK: - Login item and notifications (consent first)
 
     /// Called only from the user's own toggle: onboarding's done step or Settings › General.
     public func setLoginItem(_ enabled: Bool) async {

@@ -3,7 +3,7 @@ import Domain
 import Foundation
 import ShimProtocol
 
-/// Token bucket for frames per second (ADR-004: 20/s). Pure; time is passed in.
+/// Token bucket for frames per second (ARCHITECTURE §3: 20/s). Pure; time is passed in.
 public struct TokenBucket: Sendable {
     public let capacity: Double
     public let refillPerSecond: Double
@@ -26,7 +26,7 @@ public struct TokenBucket: Sendable {
     }
 }
 
-/// The app's end of the status-line socket (ADR-004, PRIVACY_AND_SECURITY §3).
+/// The app's end of the status-line socket (ARCHITECTURE §3, PRIVACY_AND_SECURITY §3).
 ///
 /// All mutable state is confined to `queue`, a private serial queue; that is what makes the
 /// `@unchecked Sendable` sound. Frames that pass every check are published on `frames`.
@@ -199,7 +199,7 @@ public actor Ingestor {
         public var unmappable = 0
         public var droppedSessionObservations = 0
         public var skewFlagged = 0
-        /// From the newest frame: how many limit windows Claude Code sent that Pulse does not read (DECISIONS C7).
+        /// From the newest frame: how many limit windows Claude Code sent that Pulse does not read.
         public var unknownRateLimitWindows = 0
         /// Hook events received (agents per task) and hook frames that failed validation.
         public var hookEvents = 0

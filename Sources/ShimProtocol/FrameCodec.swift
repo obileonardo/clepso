@@ -1,6 +1,6 @@
 import Foundation
 
-/// Wire format (statusline-shim.md §6, ADR-004): a 4-byte big-endian length, then UTF-8 JSON of at
+/// Wire format (PRIVACY_AND_SECURITY §4, ARCHITECTURE §3): a 4-byte big-endian length, then UTF-8 JSON of at
 /// most 4096 bytes. One frame per connection.
 public enum FrameCodec {
     public static let maxPayloadBytes = 4096

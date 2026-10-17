@@ -45,7 +45,7 @@ struct AppModelTests {
         #expect(model.diagnostics.entries.contains { $0.code == "ingest.unreadLimitWindows" && $0.text.contains("1 limit(s)") })
     }
 
-    @Test("A real reading ends demo mode (UX_SPEC §2.8)")
+    @Test("A real reading ends demo mode")
     func realReadingEndsDemo() async throws {
         let box = Sandbox(); defer { box.cleanUp() }
         let clock = TestClock()

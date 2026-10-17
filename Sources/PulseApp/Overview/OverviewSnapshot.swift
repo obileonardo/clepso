@@ -4,7 +4,7 @@ import Foundation
 import Storage
 import UsageEngine
 
-/// Everything the menu bar and popover show, computed once per refresh (DESIGN_SYSTEM §9: nothing reads
+/// Everything the menu bar and popover show, computed once per refresh (nothing reads
 /// storage when the popover opens). Pure value; `OverviewProjection.make` is the only producer.
 public struct OverviewSnapshot: Sendable {
     public enum Icon: String, Sendable, CaseIterable { case ok, approaching, exhausted, stale, demo }
@@ -49,7 +49,7 @@ public struct ProviderSection: Sendable {
     public let sessionCount: Int
     public let sourceVersion: String?
     public let lastSeen: Date?
-    /// Limit windows Claude Code sent that Pulse does not read (DECISIONS C7). 0 is the normal case today.
+    /// Limit windows Claude Code sent that Pulse does not read. 0 is the normal case today.
     public let unreadLimitWindows: Int
     /// Increment 1.7e: every session Pulse has seen (30-day retention), newest first, with what Claude Code reports.
     public let sessions: [SessionDetail]
@@ -91,7 +91,7 @@ public struct ModelGroup: Sendable, Identifiable, Equatable {
     public let share: Double
 }
 
-/// One allowance pool with what the provenance inspector needs, prefetched (DESIGN_SYSTEM §9).
+/// One allowance pool with what the provenance inspector needs, prefetched.
 public struct PoolRow: Sendable, Identifiable {
     public var id: String { poolKey }
     public let poolKey: String

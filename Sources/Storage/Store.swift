@@ -3,7 +3,7 @@ import Foundation
 import GRDB
 import UsageEngine
 
-/// The single writer (ADR-005): ledger insert, reduce and snapshot in one transaction per batch
+/// The single writer (ARCHITECTURE §4): ledger insert, reduce and snapshot in one transaction per batch
 /// (ARCHITECTURE §4), snapshot rebuild from the ledger (DATA_MODEL §9), and time ticks.
 public actor Store {
     public struct SessionMeta: Sendable {

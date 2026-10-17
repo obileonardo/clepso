@@ -2,7 +2,7 @@ import ClaudeCodeAdapter
 import Darwin
 import Foundation
 
-// Headless CLI (ARCHITECTURE.md §2). For now: the reversible status-line install, used for the first
+// Headless CLI (ARCHITECTURE §2). For now: the reversible status-line install, used for the first
 // real capture before the app exists. `install` and `uninstall` only preview unless --confirm is given.
 
 let usage = """

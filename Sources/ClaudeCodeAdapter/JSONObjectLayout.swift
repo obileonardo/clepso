@@ -1,7 +1,7 @@
 import Foundation
 
 /// Byte positions of the members of a JSON object, so one member can be edited while every other byte
-/// of the file stays exactly as it was (docs/specs/statusline-shim.md §3 step 4).
+/// of the file stays exactly as it was (PRIVACY_AND_SECURITY §7 step 4).
 ///
 /// Deliberately small: it understands strings with escapes, nesting, a UTF-8 BOM and CRLF, and refuses
 /// anything else (`nil`), in which case the installer falls back to reformatting and says so.

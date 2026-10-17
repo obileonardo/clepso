@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-/// Builds socket frame v1 from raw status-line stdin (docs/specs/statusline-shim.md §2 and §6).
+/// Builds socket frame v1 from raw status-line stdin (ARCHITECTURE §3).
 /// Pure: no I/O, no clock read. The shim supplies `now`, the HMAC key and its own health facts.
 public enum FrameBuilder {
     public static let kind = "claude_code.statusline"
@@ -11,7 +11,7 @@ public enum FrameBuilder {
 
     public struct Options: Sendable {
         public var shimVersion: String
-        public var forwardCost: Bool          // founder decision A5: on by default
+        public var forwardCost: Bool          // On by default
         public var hmacKey: Data?             // 32 bytes from ~/.claude/pulse/session.key
         public var originalPresent: Bool
         public var truncated: Bool
@@ -85,7 +85,7 @@ public enum FrameBuilder {
         }
 
         let unknownTopLevel = top.keys.filter { !Allowlist.documentedTopLevelKeys.contains($0) }.count
-        // DECISIONS C7: a limit Claude Code starts sending under `rate_limits` (a per-model weekly window, say) is
+        // A limit Claude Code starts sending under `rate_limits` (a per-model weekly window, say) is
         // counted so the app can say so; like unknown top-level keys it is never copied and never named.
         var unknownWindows = 0
         if case .value(.object(let windows)) = input.lookup(["rate_limits"]) {

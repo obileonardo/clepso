@@ -136,7 +136,7 @@ struct DeleteAllSheet: View {
     }
 }
 
-/// Plan picker (UX_SPEC §4 step 2, PLAN_CATALOG §4): catalog entries, `Not sure`, and the confirm toggle.
+/// Plan picker: catalog entries, `Not sure`, and the confirm toggle.
 /// The PlanPill preview updates live; nothing is stored until Save.
 struct PlanPicker: View {
     let model: AppModel

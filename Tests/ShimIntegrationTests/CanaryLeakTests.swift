@@ -3,7 +3,7 @@ import Foundation
 import PulseApp
 import Testing
 
-/// Increment 1.5 proof (ROADMAP: "no allowlist-external field in DB, logs or export"). A payload carrying a marked
+/// Increment 1.5 proof ("no allowlist-external field in DB, logs or export"). A payload carrying a marked
 /// value in every field Pulse must never keep goes through the real helper binary into the real app model; the
 /// database file, the export and the diagnostics log are then searched byte for byte for any marker.
 @MainActor

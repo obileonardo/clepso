@@ -1,4 +1,4 @@
--- ROADMAP 2.0 step 1 proof: one user can never read or write another's rows; anonymous callers see nothing;
+-- proof: one user can never read or write another's rows; anonymous callers see nothing;
 -- deleting an account removes every row it owned and nothing else.
 begin;
 create extension if not exists pgtap with schema extensions;

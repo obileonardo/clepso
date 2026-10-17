@@ -6,9 +6,9 @@ the repository: ROADMAP.md tables for progress, ARCHITECTURE.md's data-flow diag
 scripts/ci.sh, the app screenshots in design/screens, Swift source excerpts beside the interactive rules, and the metric
 rules below, which mirror the Swift code they describe (each names its source file).
 
-Design: docs/SITE_REDESIGN.md (the founder's Mobbin picks, 17 Oct 2026). Styles and behaviour live in scripts/site/.
+Styles and behaviour live in scripts/site/.
 
-Curated for a public URL (founder decision, 17 Oct 2026): no DECISIONS, security internals, backend or compliance
+Curated for a public URL: no decision log, security internals, backend or compliance
 plans, results logs or commit bodies.
 
 Usage: python3 -I scripts/build-site.py <site dir> <docs dir> <screens dir>

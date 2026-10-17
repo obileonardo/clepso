@@ -82,7 +82,7 @@ public struct AppEnvironment: Sendable {
     }
 }
 
-// MARK: - Login item (ADR-001, COMPLIANCE_GATES §4: SMAppService only, after in-app consent)
+// MARK: - Login item (ARCHITECTURE §1, SMAppService only, after in-app consent)
 
 public protocol LoginItemControlling: Sendable {
     var isEnabled: Bool { get }
@@ -105,7 +105,7 @@ public struct SystemLoginItem: LoginItemControlling {
     }
 }
 
-// MARK: - Notification permission (UX_SPEC §4 step 6: asked only after a real observation)
+// MARK: - Notification permission (asked only after a real observation)
 
 public enum NotificationAuthorization: String, Sendable { case notDetermined, denied, authorized }
 
@@ -156,7 +156,7 @@ public struct SystemNotifications: NotificationAuthorizing {
 
 /// Removes every Keychain item Pulse owns. Stage A stores none yet: the session key lives in the 0600 file the
 /// helper reads, because the data-protection Keychain (PRIVACY_AND_SECURITY §4) needs the provisioning profile
-/// that arrives with Developer ID signing (DECISIONS A6/A7). The sweep runs anyway so a later build's items go too.
+/// that arrives with Developer ID signing. The sweep runs anyway so a later build's items go too.
 public protocol KeychainCleaning: Sendable {
     func deleteAll()
 }

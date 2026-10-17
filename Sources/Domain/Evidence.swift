@@ -1,6 +1,6 @@
 import Foundation
 
-/// Working product name. Expected to change (DECISIONS C6); every user-visible use reads this constant.
+/// Working product name. Expected to change; every user-visible use reads this constant.
 public enum Product {
     public static let name = "Pulse"
 }

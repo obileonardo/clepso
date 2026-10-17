@@ -3,7 +3,7 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-/// The `MenuBarExtra` window (UX_SPEC §3 depth 1–2): overview, provider detail and the provenance inspector
+/// The `MenuBarExtra` window (depth 1–2): overview, provider detail and the provenance inspector
 /// as pages of one panel, so Escape always steps back one level and focus stays inside the popover.
 ///
 /// 1.15 layout: every page has the same frame. A demo strip on top when the data is demo data; the page's header; its
@@ -303,7 +303,7 @@ struct EmptyCard<Actions: View>: View {
     }
 }
 
-/// One problem line with an optional fix (UX_SPEC §2.5).
+/// One problem line with an optional fix.
 struct Banner: View {
     let text: String
     let action: String?

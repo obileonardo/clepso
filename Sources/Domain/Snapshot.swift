@@ -11,7 +11,7 @@ public enum LimitState: Codable, Sendable, Hashable {
     case resetExpected                    // resetsAt elapsed, no fresh evidence yet
 }
 
-/// Two tiers only (DECISIONS B2). Computed at render from `lastProviderMeasured`, never stored.
+/// Two tiers only. Computed at render from `lastProviderMeasured`, never stored.
 public enum Freshness: Codable, Sendable, Hashable {
     case live
     case stale(age: TimeInterval)

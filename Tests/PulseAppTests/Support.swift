@@ -75,7 +75,7 @@ struct Sandbox {
     }
 }
 
-/// A frame as the helper sends it (shim spec §6), stamped at `at`.
+/// A frame as the helper sends it (PRIVACY_AND_SECURITY §4), stamped at `at`.
 func frameBytes(at: Date, fiveHour: Double = 14, sevenDay: Double = 23.5, session: String = "0123456789abcdef",
                 unreadWindows: Int = 0) throws -> Data {
     let ms = Int64(at.timeIntervalSince1970 * 1000)

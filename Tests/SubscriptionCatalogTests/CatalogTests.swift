@@ -8,7 +8,7 @@ struct CatalogTests {
         #expect(catalog.catalogVersion == "1.0.0")
         #expect(catalog.entries.count == 31)
         #expect(catalog.skipped == 0)
-        // PLAN_CATALOG §6, 22.5(a): Max 5× and Max 20× are separately selectable.
+        // Max 5× and Max 20× are separately selectable.
         let ids = catalog.claudePlans.map(\.id)
         #expect(ids.contains("anthropic.max.5x") && ids.contains("anthropic.max.20x"))
         #expect(!ids.contains("anthropic.api.payg"))

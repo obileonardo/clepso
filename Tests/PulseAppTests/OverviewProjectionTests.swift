@@ -42,7 +42,7 @@ extension MetricValue {
     var isAbsent: Bool { if case .absent = self { true } else { false } }
 }
 
-@Suite("Overview projection: menu bar icon and aggregate line (UX_SPEC §1.4)")
+@Suite("Overview projection: menu bar icon and aggregate line")
 struct OverviewProjectionTests {
     @Test("All available and live: ring, highest percent, 'Reported limits available' (C7: never 'All')")
     func ok() async throws {
@@ -167,7 +167,7 @@ struct OverviewProjectionTests {
         #expect(try await s.snapshot(now: t0 + 11 * 60, installed: false).provider?.pools.first?.model.card == .disconnected)
     }
 
-    @Test("Plan header by provenance (UX_SPEC §1.3)")
+    @Test("Plan header by provenance")
     func planHeader() async throws {
         let s = try Scenario()
         try await s.reading(at: t0, fiveHour: 41, fiveHourReset: t0 + 9000)

@@ -1,7 +1,7 @@
 import Foundation
 
 /// One allowlisted stdin path and how it lands in the frame. This table is
-/// docs/specs/statusline-shim.md §6 as code (founder decision A4); anything not listed is
+/// PRIVACY_AND_SECURITY §4 as code; anything not listed is
 /// never copied, so new or unexpected Claude Code fields are dropped by construction.
 public struct FieldRule: Sendable {
     public enum Kind: Sendable {
@@ -25,7 +25,7 @@ public struct FieldRule: Sendable {
 
 public enum Allowlist {
     static let maxTokens = 9_007_199_254_740_992.0   // 2^53
-    static let percent: ClosedRange<Double> = 0...1000 // overage above 100 tolerated (PRD §9)
+    static let percent: ClosedRange<Double> = 0...1000 // overage above 100 tolerated
 
     /// Scalar fields copied one to one. Rate-limit windows, `current_usage`, `session_id` and the
     /// cost estimate have structural rules and are handled in `FrameBuilder`.
@@ -73,7 +73,7 @@ public enum Allowlist {
     ]
 }
 
-/// Second-layer string scrub (PRIVACY_AND_SECURITY.md §4): drop rather than redact.
+/// Second-layer string scrub (PRIVACY_AND_SECURITY §4): drop rather than redact.
 public enum Scrubber {
     /// The app applies the same rule again to everything it logs or exports.
     public static func isAcceptable(_ string: String, maxLength: Int) -> Bool {

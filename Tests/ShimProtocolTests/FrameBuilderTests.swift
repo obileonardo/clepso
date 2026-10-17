@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import ShimProtocol
 
-// SYNTHETIC inputs from docs/fixtures/README.md (F06, F08). Clock: 2026-10-16T14:00:00Z.
+// SYNTHETIC inputs from FIXTURES (F06, F08). Clock: 2026-10-16T14:00:00Z.
 let fixtureNow = Date(timeIntervalSince1970: 1_792_159_200)
 let testKey = Data(repeating: 7, count: 32)
 
@@ -65,7 +65,7 @@ struct FrameBuilderTests {
         #expect(f.lookup(["health", "unknown_rate_limit_windows"]) == .value(.number(0)), "no rate_limits at all counts 0")
     }
 
-    @Test("DECISIONS C7: an unknown rate-limit window is counted, never copied or named")
+    @Test("An unknown rate-limit window is counted, never copied or named")
     func unknownRateLimitWindow() throws {
         let stdin = f08SessionAStdin.replacingOccurrences(
             of: #""seven_day":{"used_percentage":20,"resets_at":1792330800}}"#,

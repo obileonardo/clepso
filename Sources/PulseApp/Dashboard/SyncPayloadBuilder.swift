@@ -4,7 +4,7 @@ import Storage
 import Sync
 import UsageEngine
 
-/// ROADMAP 2.0: what one upload sends, built from what the app already holds. Pure. Only data the user turned on is
+/// What one upload sends, built from what the app already holds. Pure. Only data the user turned on is
 /// included: the statistics file's rows only when it is on, agents per task only when counting is on.
 enum SyncPayloadBuilder {
     struct Input {

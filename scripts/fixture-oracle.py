@@ -1,5 +1,5 @@
 #!/usr/bin/env python3 -I
-"""Independent oracle for the fixture corpus, increment 1.7 rows (DATA_MODEL §5.1, statusline-shim §6).
+"""Independent oracle for the fixture corpus, increment 1.7 rows (docs/DATA_MODEL.md §5.1, docs/PRIVACY_AND_SECURITY.md §4).
 
 Reads only each fixture's raw stdin and meta.json and applies the spec's rules, so the expectations it writes never
 come from the Swift code they check. Re-running is safe: the 1.7 rows are replaced, and the allowlist move from

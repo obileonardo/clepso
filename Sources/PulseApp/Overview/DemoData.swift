@@ -2,7 +2,7 @@ import Domain
 import Foundation
 import Storage
 
-/// Demo mode (UX_SPEC §2.8, onboarding `demoCta`): a fixed scenario run through the real store and engine,
+/// Demo mode (onboarding `demoCta`): a fixed scenario run through the real store and engine,
 /// so the demo shows exactly what real readings would. Every screen badges it; a real reading ends it.
 /// Increment 1.7: an hour of rising 5-hour usage (history and pace) and a session with every detail.
 enum DemoData {

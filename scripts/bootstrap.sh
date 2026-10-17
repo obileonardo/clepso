@@ -1,5 +1,5 @@
 #!/bin/sh
-# Pinned developer tools (RELEASE_AND_CI §1): exact release, SHA-256 checked, installed under .tools/.
+# Pinned developer tools: exact release, SHA-256 checked, installed under .tools/.
 # No Homebrew or Mint, so every machine generates the project with the same XcodeGen.
 set -eu
 

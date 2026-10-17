@@ -3,7 +3,7 @@ import Darwin
 import Domain
 import Foundation
 
-/// Reversible status-line install into Claude Code's user settings (docs/specs/statusline-shim.md §3).
+/// Reversible status-line install into Claude Code's user settings (PRIVACY_AND_SECURITY §7).
 ///
 /// Only `statusLine.command` changes. The pre-install bytes are backed up first, every settings write is
 /// compare-and-swap plus atomic rename, and the install state is recorded after each step so an
@@ -119,7 +119,7 @@ public struct SettingsInstaller: Sendable {
 
     // MARK: - Validation and preview
 
-    /// Install step 1 (shim spec §3): read the settings file and refuse anything the editor cannot
+    /// Install step 1 (PRIVACY_AND_SECURITY §7): read the settings file and refuse anything the editor cannot
     /// change safely. Writes nothing; `preview()` and `install()` share it so they cannot disagree.
     func readValidated() throws -> (FileOps.Contents?, [String: Any], [String: Any]?, JSONObjectLayout?) {
         let original = try FileOps.readNoFollow(paths.settings)
@@ -150,7 +150,7 @@ public struct SettingsInstaller: Sendable {
         return (original, originalObject, existingStatusLine, layout)
     }
 
-    /// What the consent screen shows before any write (UX_SPEC §2.2): the real file, backup folder and
+    /// What the consent screen shows before any write: the real file, backup folder and
     /// current command, and whether install would refuse. Reads only.
     public struct Preview: Sendable, Equatable {
         public let claudeDetected: Bool

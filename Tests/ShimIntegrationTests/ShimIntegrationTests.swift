@@ -5,7 +5,7 @@ import ShimProtocol
 import ClaudeCodeAdapter
 import Domain
 
-// SYNTHETIC payload from docs/fixtures/README.md F08 session A. The harness pins the helper's clock
+// SYNTHETIC payload from FIXTURES F08 session A. The harness pins the helper's clock
 // to the fixture date (debug builds only), so the fixed reset times never age out of the transport bound.
 let f08Stdin = Data(#"""
 {"cwd":"/fixture/home/projects/app-one","session_id":"fixture-f08-session-a",
@@ -138,7 +138,7 @@ func waitUntil(timeout: Double = 2, _ condition: () -> Bool) throws {
     }
 }
 
-/// ADR-003 budget: shim-added overhead ≤ 20 ms p95, ≤ 50 ms max, measured baseline-relative.
+/// ARCHITECTURE §3 budget: shim-added overhead ≤ 20 ms p95, ≤ 50 ms max, measured baseline-relative.
 /// Opt-in because it spawns 600 processes: `PULSE_PERF=1 swift test -c release --filter Overhead`.
 @Suite("Overhead budget", .serialized, .enabled(if: ProcessInfo.processInfo.environment["PULSE_PERF"] == "1"))
 struct OverheadTests {

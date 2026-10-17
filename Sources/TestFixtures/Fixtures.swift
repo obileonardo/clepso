@@ -1,6 +1,6 @@
 import Foundation
 
-/// The fixture corpus (format: docs/fixtures/README.md in the Tokone docs folder).
+/// The fixture corpus (format: FIXTURES).
 /// `manifest.json` lists every fixture ID, active or deferred to the stage that owns it.
 public enum Fixtures {
     public static let claudeCodeRoot: URL = {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Codex's limits as it records them in its own session files (increment 3.4, docs/MULTI_AGENT.md). Codex writes
+/// Codex's limits as it records them in its own session files (increment 3.4). Codex writes
 /// `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`, one JSON object per line. The files also hold prompts, replies and
 /// paths, so this parser decodes only two line types and skips every other line without decoding it:
 /// - `event_msg` whose payload `type` is `token_count`: rate limits, plan type, session token totals, context window;

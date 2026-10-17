@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-/// Turns a raw status-line capture into a committable fixture (TEST_PLAN.md §12).
+/// Turns a raw status-line capture into a committable fixture.
 ///
 /// The capture is evidence of Claude Code's real payload shape, so the scrubber keeps every key, every
 /// type and every null exactly as captured. It only rewrites string values: paths become placeholders,
@@ -70,7 +70,7 @@ public enum CaptureScrubber {
             .prefix(8).map { String(format: "%02x", $0) }.joined()
     }
 
-    /// Lint applied to anything about to enter the repository (TEST_PLAN.md §12 rule 5).
+    /// Lint applied to anything about to enter the repository.
     public static func lintFindings(_ text: String) -> [String] {
         ["/Users/", "/Volumes/", "@", NSUserName()].filter { !$0.isEmpty && text.contains($0) }
     }

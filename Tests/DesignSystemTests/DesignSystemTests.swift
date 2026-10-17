@@ -35,7 +35,7 @@ struct ThemeTests {
                 }
             }
         }
-        #expect(abs(worst.ratio - 4.71) < 0.01, "DESIGN_SYSTEM.md claims the worst case is 4.71:1; measured \(worst.ratio) for \(worst.what)")
+        #expect(abs(worst.ratio - 4.71) < 0.01, "The design system documents the worst case as 4.71:1; measured \(worst.ratio) for \(worst.what)")
     }
 
     @Test("Every colour token has a light and a dark value; nothing falls back to magenta")
@@ -146,7 +146,7 @@ struct StatusStyleTests {
 
 @Suite("State resolution")
 struct ResolveTests {
-    @Test("Connection first, then the absence reason, then freshness (DESIGN_SYSTEM §1)")
+    @Test("Connection first, then the absence reason, then freshness (DATA_MODEL §2.2)")
     func resolution() {
         #expect(pool(83, card: .approaching).valueState(now: now, staleAfter: 600) == .live)
         #expect(pool(83, card: .approaching, observedMinutesAgo: 10).valueState(now: now, staleAfter: 600) == .stale)

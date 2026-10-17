@@ -88,7 +88,7 @@ extension Decimal {
     }
 }
 
-/// VoiceOver sentences in the UX spec's order: scope, value, source, freshness, status (UX_SPEC §5).
+/// VoiceOver sentences in the UX spec's order: scope, value, source, freshness, status.
 public enum AccessibilityText {
     public static func poolRow(_ model: PoolCardModel, now: Date, staleAfter: TimeInterval, zone: TimeZone, locale: Locale,
                                isDemo: Bool = false) -> String {

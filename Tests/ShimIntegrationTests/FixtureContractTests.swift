@@ -7,7 +7,7 @@ import Domain
 import Storage
 import UsageEngine
 
-/// The spec's field table written out again, test-side (docs/specs/statusline-shim.md §6). It is kept
+/// The spec's field table written out again, test-side (PRIVACY_AND_SECURITY §4). It is kept
 /// separate from `Allowlist` on purpose: the harness compares the real frame with this second
 /// statement, so an omission or addition in the code shows up as a contract failure.
 enum SpecOracle {
@@ -308,7 +308,7 @@ struct FixtureLintTests {
     }
 }
 
-/// One canonical JSON string per observation, in the fixture format (docs/fixtures/README.md §3), so the
+/// One canonical JSON string per observation, in the fixture format (FIXTURES §3), so the
 /// mapper's output and the oracle's list compare as sorted string arrays.
 enum ObservationShape {
     static func canonical(_ o: IncomingObservation, labels: inout [String: String]) -> String {

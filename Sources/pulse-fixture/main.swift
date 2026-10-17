@@ -2,7 +2,7 @@ import Darwin
 import FixtureTools
 import Foundation
 
-// Developer tool for the fixture corpus (TEST_PLAN.md §12). Never shipped in the app.
+// Developer tool for the fixture corpus. Never shipped in the app.
 
 let usage = """
 usage: pulse-fixture listen --socket <path> --out <dir> [--count N]

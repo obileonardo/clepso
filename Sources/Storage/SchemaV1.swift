@@ -1,4 +1,4 @@
-// Generated from docs/DATA_MODEL.md §3 (Tokone docs folder), schema v1. Do not edit by hand;
+// Generated from DATA_MODEL §3, schema v1. Do not edit by hand;
 // change the document and regenerate so the spec and the code cannot drift.
 enum SchemaV1 {
     static let sql = """

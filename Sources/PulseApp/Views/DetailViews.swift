@@ -4,7 +4,7 @@ import Domain
 import Storage
 import SwiftUI
 
-/// Provider detail (UX_SPEC §3 depth 2): every pool with its reset and pace, the session, connection health.
+/// Provider detail (depth 2): every pool with its reset and pace, the session, connection health.
 /// 1.15: a breadcrumb with the plan on one line; the limits as rows of one card; the session card; then one strip of
 /// status chips (connection, sessions, which limits are covered) where a sentence used to be. The page's actions live
 /// in the popover's action bar.
@@ -133,7 +133,7 @@ struct Breadcrumb: View {
     }
 }
 
-/// "Where this number comes from" (UX_SPEC §2.6). Every field is selectable text; nothing is fetched on open.
+/// "Where this number comes from". Every field is selectable text; nothing is fetched on open.
 /// 1.15: the number itself first, then its facts as a ruled table, its freshness rule as a chip, and the last
 /// readings as rows; Copy details is in the action bar.
 struct InspectorView: View {

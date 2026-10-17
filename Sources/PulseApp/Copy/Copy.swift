@@ -1,7 +1,7 @@
 import Domain
 import Foundation
 
-/// Every string the screens show, named after its UX_SPEC §2 key. Seat 7 owns the wording; change it here only.
+/// Every string the screens show, named after its key. Seat 7 owns the wording; change it here only.
 enum Copy {
     static let product = Product.name
 
@@ -373,7 +373,7 @@ enum Copy {
             case .weeklyFinish: return "\(Int(value.rounded()))% at day end"
             }
         }
-        static let note = "Goals stay on this Mac for now. When accounts arrive (ACCOUNTS_AND_SYNC), you'll be able to see them anywhere."
+        static let note = "Goals stay on this Mac for now. When accounts arrive, you'll be able to see them anywhere."
     }
 
     enum Account {
@@ -387,7 +387,7 @@ enum Copy {
         static let year = "YOUR YEAR"
     }
 
-    /// ROADMAP 2.0: Pulse accounts.
+    /// Pulse accounts.
     enum Sync {
         static let title = "PULSE ACCOUNT"
         static let explainer = "Sign in to see your goals and usage on the web (and later on iPhone). Once an hour Pulse uploads daily counts only: messages, sessions and tokens per model per day (when Claude Code stats are on), each day's limit peaks, agents per task (when counting is on), your goals and your name and plan. Never prompts, replies, file paths, project names or session ids. Delete the account at any time and everything on the server goes with it."
@@ -417,7 +417,7 @@ enum Copy {
         static let demoNote = "Uploads are paused while demo data is showing."
     }
 
-    /// Increment 3.4: Codex's limits beside Claude Code's (docs/MULTI_AGENT.md).
+    /// Increment 3.4: Codex's limits beside Claude Code's.
     enum Codex {
         static let name = "Codex"
         static let toggle = "Read Codex's session files"
@@ -535,7 +535,7 @@ enum Copy {
         static let coverage = "5-hour & 7-day only"
         static func unreadShort(_ n: Int) -> String { n == 1 ? "1 limit not read" : "\(n) limits not read" }
         static let moreInfo = "More about which limits Pulse reads"
-        /// DECISIONS C7: say what the source covers, so "available" is never read as "every limit".
+        /// Say what the source covers, so "available" is never read as "every limit".
         static let otherLimits = "Claude Code's status line reports the 5-hour and 7-day limits only. Others, such as a weekly limit for one model, appear in /\u{2060}usage in Claude Code."          // word joiner: never break "/usage" across lines
         static func unreadLimits(_ n: Int) -> String {
             "Claude Code is sending \(n == 1 ? "1 more limit" : "\(n) more limits") that \(product) doesn't read yet. Check /\u{2060}usage in Claude Code."

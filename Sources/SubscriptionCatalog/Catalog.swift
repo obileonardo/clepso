@@ -1,6 +1,6 @@
 import Foundation
 
-/// The bundled plan catalog seed (PLAN_CATALOG §2–§3), decoded for the plan picker.
+/// The bundled plan catalog seed, decoded for the plan picker.
 /// Increment 1.4 reads the bundled copy only; signed downloads and the entitlement graph arrive in 3.1.
 public struct PlanCatalog: Sendable, Equatable {
     public struct Entry: Sendable, Equatable, Identifiable {

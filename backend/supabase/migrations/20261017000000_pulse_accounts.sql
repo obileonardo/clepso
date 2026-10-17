@@ -1,4 +1,4 @@
--- Pulse accounts (ROADMAP 2.0, DECISIONS C9, docs/ACCOUNTS_AND_SYNC.md).
+-- Pulse accounts.
 -- Daily counts only: no prompts, replies, paths, project names or raw session/agent ids exist anywhere here.
 -- Every table is keyed by the signed-in user and readable and writable only by that user (row-level security).
 -- Deleting the account (delete_account) removes the auth user, and every row cascades with it.

@@ -3,7 +3,7 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-/// Onboarding (UX_SPEC §4). Two permission moments only: the settings write at Consent (no OS prompt) and
+/// Onboarding. Two permission moments only: the settings write at Consent (no OS prompt) and
 /// notification authorisation at Alerts, which appears only after a real observation.
 public struct OnboardingView: View {
     let model: AppModel
@@ -100,7 +100,7 @@ public struct OnboardingView: View {
         return Copy.Empty.noProviderTitle
     }
 
-    // MARK: - Consent (UX_SPEC §2.2): real paths and the user's command, verbatim; nothing written before Install.
+    // MARK: - Consent: real paths and the user's command, verbatim; nothing written before Install.
 
     @ViewBuilder var consent: some View {
         let preview = model.preview

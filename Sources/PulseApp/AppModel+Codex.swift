@@ -1,7 +1,7 @@
 import CodexAdapter
 import Foundation
 
-/// Increment 3.4 (docs/MULTI_AGENT.md): Codex's limits from its own session files. Off until the user turns it on;
+/// Increment 3.4: Codex's limits from its own session files. Off until the user turns it on;
 /// then read on every tick (the newest files' tails only, about 50 ms) and stored under Codex's own connection.
 extension AppModel {
     /// Whether Codex has ever written a session on this Mac, for Settings ("Codex found" / "not found").

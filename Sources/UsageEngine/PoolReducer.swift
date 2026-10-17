@@ -2,7 +2,7 @@ import CryptoKit
 import Domain
 import Foundation
 
-/// Thresholds and timings (DECISIONS B1–B5). Defaults are the founder-confirmed values.
+/// Thresholds and timings. Defaults are the founder-confirmed values.
 public struct EngineConfig: Sendable, Equatable {
     public var warning: Decimal = 80
     public var critical: Decimal = 95

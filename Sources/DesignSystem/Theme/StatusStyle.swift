@@ -3,12 +3,12 @@ import Foundation
 /// Non-colour cue drawn on bars and badges, so states survive greyscale and colour blindness.
 public enum FillPattern: String, Sendable, CaseIterable { case solid, hatched, outline, dashed }
 
-/// The single lookup from a state to how it looks and reads (DESIGN_SYSTEM §4). Labels are UX_SPEC copy;
+/// The single lookup from a state to how it looks and reads. Labels are copy;
 /// the founder may change symbols, roles and patterns, never the labels' meaning.
 public struct StatusStyle: Sendable, Equatable {
     public let symbol: String                 // SF Symbol
     public let badge: String?                 // secondary SF Symbol when one shape is shared within a family
-    public let label: String                  // visible text (UX_SPEC)
+    public let label: String                  // visible text
     public let accessibility: String          // the {{status}} fragment of the VoiceOver sentence
     public let role: ColorToken
     public let pattern: FillPattern

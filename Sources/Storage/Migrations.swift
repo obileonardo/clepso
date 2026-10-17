@@ -19,7 +19,7 @@ public enum Migrations {
         return migrator
     }
 
-    /// WAL and foreign keys for the app's single writer (ADR-005). GRDB enables foreign keys by default.
+    /// WAL and foreign keys for the app's single writer (ARCHITECTURE §4). GRDB enables foreign keys by default.
     public static func openPool(at path: String) throws -> DatabasePool {
         let pool = try DatabasePool(path: path)
         try migrator().migrate(pool)

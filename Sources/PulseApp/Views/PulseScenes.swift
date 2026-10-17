@@ -21,7 +21,7 @@ public struct PulseScenes: Scene {
 
         Window(Product.name, id: Self.detailsID) {
             DetailsView(model: model).themed(model)
-                .onOpenURL { url in Task { await model.handleOpenURL(url) } }      // the sign-in link returns here (ROADMAP 2.0)
+                .onOpenURL { url in Task { await model.handleOpenURL(url) } }      // the sign-in link returns here
         }
         .handlesExternalEvents(matching: ["auth-callback"])
         .defaultSize(width: DetailsMetrics.defaultWidth, height: DetailsMetrics.minHeight + 160)

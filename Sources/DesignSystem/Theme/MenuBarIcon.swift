@@ -1,7 +1,7 @@
 #if canImport(AppKit)
 import AppKit
 
-/// The menu bar template images (UX_SPEC §1.4, DESIGN_SYSTEM §4 `icon.*`). Shape carries the meaning and
+/// The menu bar template images (`icon.*`). Shape carries the meaning and
 /// colour is left to the system, so the icon reads the same in a light, dark or tinted menu bar.
 /// The founder may redraw these; the five shapes must stay distinct without colour.
 public enum MenuBarIcon {

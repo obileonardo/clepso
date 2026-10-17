@@ -1,6 +1,6 @@
 import Foundation
 
-/// Everything one upload sends (ACCOUNTS_AND_SYNC §2–§3): daily counts and a profile, shaped like the server's tables.
+/// Everything one upload sends: daily counts and a profile, shaped like the server's tables.
 /// No row has a field for prompts, replies, paths, project names, raw session or agent ids, or per-session cost.
 public struct SyncPayload: Sendable, Equatable {
     public struct Profile: Codable, Sendable, Equatable {

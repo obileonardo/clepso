@@ -1,7 +1,7 @@
 import Foundation
 
 /// A JSON tree that keeps "key absent" and "value null" apart, which Swift optionals cannot.
-/// The status-line payload and the socket frame both need that distinction (statusline-shim.md §6).
+/// The status-line payload and the socket frame both need that distinction (PRIVACY_AND_SECURITY §4).
 public enum JSONValue: Sendable, Equatable {
     case null
     case bool(Bool)
@@ -10,7 +10,7 @@ public enum JSONValue: Sendable, Equatable {
     case array([JSONValue])
     case object([String: JSONValue])
 
-    /// Deepest coding path accepted while decoding stdin (statusline-shim.md §2: depth > 4 is rejected).
+    /// Deepest coding path accepted while decoding stdin (ARCHITECTURE §3: depth > 4 is rejected).
     static let maxDecodeDepth = 4
 }
 

@@ -4,11 +4,11 @@ import Foundation
 import Storage
 import UsageEngine
 
-/// Store state → what the menu bar shows (UX_SPEC §1.2–§1.4). Pure: the clock, zone and locale are passed in.
+/// Store state → what the menu bar shows. Pure: the clock, zone and locale are passed in.
 public enum OverviewProjection {
     /// Display order of the Claude Code pools; unknown keys follow alphabetically.
     static let poolOrder = ["claude-code.rate_limits.five_hour", "claude-code.rate_limits.seven_day", "claude-code.rate_limits.spend_limit"]
-    /// `card.availableAgain` reverts to `card.available` after 60 minutes (UX_SPEC §1.2).
+    /// `card.availableAgain` reverts to `card.available` after 60 minutes.
     static let availableAgainFor: TimeInterval = 60 * 60
 
     static let claudeCode = SourceDescriptor(evidence: .officialLocalTelemetry, displayName: "Claude Code", version: nil)
@@ -226,7 +226,7 @@ public enum OverviewProjection {
         }
     }
 
-    /// UX_SPEC §1.3 provider header, including F15 (metrics live, no plan).
+    /// provider header, including F15 (metrics live, no plan).
     static func header(plan: Store.PlanIdentity?, provenance: PlanProvenance, metricsLive: Bool) -> String {
         guard let plan, provenance != .notSet else {
             return metricsLive ? "Claude Code metrics connected · plan not verified" : "Claude · Plan not set"
@@ -235,7 +235,7 @@ public enum OverviewProjection {
         return "Claude · \(short) · \(StatusStyles.of(provenance).label)"
     }
 
-    // MARK: - Aggregate (UX_SPEC §1.4)
+    // MARK: - Aggregate
 
     /// Precedence: demo > exhausted or reset expected > approaching or nearly exhausted > stale > ok.
     /// Stale adds a clock mark to the shape that is showing.
