@@ -51,6 +51,7 @@ public final class AppModel {
     private var ingestor: Ingestor?
     private var loggedHealth = IngestSocket.Health()
     private var loggedCounters = Ingestor.Counters()
+    private var lastPurge: Date?
     private var tasks: [Task<Void, Never>] = []
     private var generation = 0
 
@@ -86,6 +87,7 @@ public final class AppModel {
             diagnostics.record(.storageFailed(sqliteCode: Store.sqliteCode(of: error)))
             return
         }
+        await purgeIfDue()
         listen()
         let interval = environment.tickInterval
         tasks.append(Task { [weak self] in
@@ -136,8 +138,19 @@ public final class AppModel {
 
     private func tick() async {
         _ = try? await store?.tick(now: environment.clock.now())
+        await purgeIfDue()
         await recordIngestHealth()
         await refresh()
+    }
+
+    /// Retention (PRIVACY_AND_SECURITY §6): at launch, then at most once a day.
+    func purgeIfDue() async {
+        let now = environment.clock.now()
+        if let lastPurge, now.timeIntervalSince(lastPurge) < 86_400 { return }
+        lastPurge = now
+        if let report = try? await store?.purge(now: now), !report.isEmpty {
+            diagnostics.record(.purged(readings: report.readings, sessions: report.sessions))
+        }
     }
 
     /// The Diagnostics tab calls this on open so the counts are current, not up to a tick old.
@@ -492,7 +505,8 @@ struct StoreSink: IngestSink {
 
     func ingest(_ batch: IngestBatch) async {
         let meta = batch.sessionRef.map { Store.SessionMeta(sessionRef: $0, modelID: batch.modelID, modelDisplayName: batch.modelDisplayName) }
-        guard let result = try? await store.ingest(batch.observations, session: meta), result.inserted > 0 else { return }
+        // Refresh even when nothing new was stored: the frame itself proves the connection is live.
+        guard (try? await store.ingest(batch.observations, session: meta)) != nil else { return }
         await didIngest()
     }
 }

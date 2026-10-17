@@ -48,7 +48,7 @@ struct StoreTests {
 
     @Test("A replayed batch is dropped by the dedupe index and changes nothing")
     func dedupe() async throws {
-        let store = try Store.inMemory(now: t0)
+        let store = try Store.inMemory(now: t0, policy: .everyReading)          // exercise the dedupe index itself
         let first = try await store.ingest(batch(session: "A", used: 50, reset: reset, at: 0), session: meta("A"))
         let before = try await store.projectionDump()
         let replay = try await store.ingest(batch(session: "A", used: 50, reset: reset, at: 0, received: 0.1), session: meta("A"))

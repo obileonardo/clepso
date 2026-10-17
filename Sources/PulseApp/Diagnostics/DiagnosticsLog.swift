@@ -23,6 +23,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case loginItem(on: Bool)
     case notifications(status: String)
     case exported(rows: Int, scrubbed: Int)
+    case purged(readings: Int, sessions: Int)
 
     var level: DiagnosticsLog.Entry.Level {
         switch self {
@@ -49,6 +50,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .loginItem: "loginItem.changed"
         case .notifications: "notifications.changed"
         case .exported: "data.exported"
+        case .purged: "data.purged"
         }
     }
 
@@ -74,6 +76,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .loginItem(let on): on ? "Open at login on" : "Open at login off"
         case .notifications(let status): "Notifications: \(status)"
         case let .exported(rows, scrubbed): "Exported \(rows) rows, \(scrubbed) value(s) removed by the scrub"
+        case let .purged(readings, sessions): "Removed \(readings) reading(s) and \(sessions) session(s) past their keep time"
         }
     }
 }

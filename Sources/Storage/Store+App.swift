@@ -195,3 +195,55 @@ extension Store {
         try writer.close()
     }
 }
+
+extension Store {
+    /// One integer from a read-only query; for tests and diagnostics.
+    func count(_ sql: String) throws -> Int {
+        try writer.read { try Int.fetchOne($0, sql: sql) ?? 0 }
+    }
+}
+
+// MARK: - Retention (PRIVACY_AND_SECURITY §6, DATA_MODEL §4 rule 8)
+
+extension Store {
+    public struct Retention: Sendable, Equatable {
+        public var readings: TimeInterval = 90 * 86_400          // pool readings, engine events
+        public var sessions: TimeInterval = 30 * 86_400          // sessions and their readings
+        public var receipts: TimeInterval = 30 * 86_400          // notification receipts
+        public init() {}
+    }
+
+    public struct PurgeReport: Sendable, Equatable {
+        public var readings = 0, sessions = 0, events = 0, receipts = 0
+        public init() {}
+        public var isEmpty: Bool { self == PurgeReport() }
+    }
+
+    /// The only deletes from the ledger. Keyed on arrival time; projections are left as they are (they already hold
+    /// the latest state, which is never older than the newest kept reading).
+    public func purge(now: Date, retention: Retention = Retention()) throws -> PurgeReport {
+        try writer.write { db in
+            var report = PurgeReport()
+            let readingsCutoff = ms(now.addingTimeInterval(-retention.readings))
+            let sessionsCutoff = ms(now.addingTimeInterval(-retention.sessions))
+            try db.execute(sql: "DELETE FROM observations WHERE subject_kind = 'pool' AND received_at < ?", arguments: [readingsCutoff])
+            report.readings = db.changesCount
+            try db.execute(sql: "DELETE FROM observations WHERE subject_kind = 'session' AND received_at < ?", arguments: [sessionsCutoff])
+            report.readings += db.changesCount
+            // A quiet session's snapshot goes at 30 days. The session row itself goes only once no reading points at it:
+            // pool readings keep a link to the session that delivered them, and deleting the row would cascade to
+            // readings that are kept for 90 days.
+            try db.execute(sql: "DELETE FROM session_snapshots WHERE session_id IN (SELECT id FROM sessions WHERE last_seen_at < ?)",
+                           arguments: [sessionsCutoff])
+            try db.execute(sql: """
+                DELETE FROM sessions WHERE last_seen_at < ? AND NOT EXISTS (SELECT 1 FROM observations WHERE observations.session_id = sessions.id)
+                """, arguments: [sessionsCutoff])
+            report.sessions = db.changesCount
+            try db.execute(sql: "DELETE FROM derived_events WHERE occurred_at < ?", arguments: [readingsCutoff])
+            report.events = db.changesCount
+            try db.execute(sql: "DELETE FROM notification_receipts WHERE decided_at < ?", arguments: [ms(now.addingTimeInterval(-retention.receipts))])
+            report.receipts = db.changesCount
+            return report
+        }
+    }
+}

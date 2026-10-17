@@ -21,19 +21,39 @@ public actor Store {
         public let inserted: Int
         public let duplicates: Int
         public let events: [EngineEvent]
+        /// Readings not stored because nothing changed (see `LedgerPolicy`).
+        public var unchanged = 0
+    }
+
+    /// Which readings the ledger keeps (DATA_MODEL §6.4, increment 1.7c). Claude Code refreshes its status line several
+    /// times a minute and most values repeat; storing every repeat grew the database by about 4 MB an hour. A limit is
+    /// stored when its used % or reset time changes, else every `poolHeartbeat`; a session metric when it changes and
+    /// `sessionMinInterval` has passed, else every `sessionHeartbeat`. The reducers only ever see stored rows, so live
+    /// state and a rebuild from the ledger still agree.
+    public struct LedgerPolicy: Sendable, Equatable {
+        public var poolHeartbeat: TimeInterval = 120
+        public var sessionMinInterval: TimeInterval = 60
+        public var sessionHeartbeat: TimeInterval = 120
+        public init() {}
+        /// Store every reading (tests that need each frame in the ledger).
+        public static let everyReading: LedgerPolicy = {
+            var p = LedgerPolicy(); p.poolHeartbeat = 0; p.sessionMinInterval = 0; p.sessionHeartbeat = 0; return p
+        }()
     }
 
     let writer: any DatabaseWriter
     let config: EngineConfig
+    public nonisolated let policy: LedgerPolicy
     public nonisolated let accountID: UUID
     public nonisolated let connectionID: UUID
 
     /// Opens the store on a migrated database and ensures the Stage A account and connection exist:
     /// one labelled account, one Claude Code status-line connection (founder decision).
-    public init(writer: any DatabaseWriter, config: EngineConfig = EngineConfig(), now: Date) throws {
+    public init(writer: any DatabaseWriter, config: EngineConfig = EngineConfig(), policy: LedgerPolicy = LedgerPolicy(), now: Date) throws {
         try Migrations.migrator().migrate(writer)
         self.writer = writer
         self.config = config
+        self.policy = policy
         let ids = try writer.write { db -> (UUID, UUID) in
             if let row = try Row.fetchOne(db, sql: "SELECT id, account_id FROM connections WHERE adapter_id = 'claude-code.statusline' LIMIT 1"),
                let connection = UUID(uuidString: row["id"]), let account = UUID(uuidString: row["account_id"]) {
@@ -51,8 +71,8 @@ public actor Store {
     }
 
     /// A store on a private in-memory database, for tests and previews.
-    public static func inMemory(now: Date, config: EngineConfig = EngineConfig()) throws -> Store {
-        try Store(writer: DatabaseQueue(), config: config, now: now)
+    public static func inMemory(now: Date, config: EngineConfig = EngineConfig(), policy: LedgerPolicy = LedgerPolicy()) throws -> Store {
+        try Store(writer: DatabaseQueue(), config: config, policy: policy, now: now)
     }
 
     // MARK: - Ingest
@@ -67,14 +87,16 @@ public actor Store {
                 sessionID = try upsertSession(db, session, seenAt: first.observedAt)
             }
             var inserted: [IncomingObservation] = []
-            var duplicates = 0
-            for observation in observations {
+            var duplicates = 0, unchanged = 0
+            let keep = try worthKeeping(db, observations, sessionID: sessionID, at: now)
+            for (index, observation) in observations.enumerated() {
                 let poolID: String?
                 switch observation.subject {
                 case .pool(let key): poolID = try poolRow(db, key: key, createdAt: now).id
                 case .session: poolID = nil
                 }
                 if case .session = observation.subject, sessionID == nil { continue }
+                guard keep.contains(index) else { unchanged += 1; continue }
                 try insert(db, observation, poolID: poolID, sessionID: sessionID)
                 if db.changesCount == 1 { inserted.append(observation) } else { duplicates += 1 }
             }
@@ -86,7 +108,71 @@ public actor Store {
                 try reduceSession(db, sessionID: sessionID, ref: ref, observations: inserted)
             }
             try db.execute(sql: "UPDATE connections SET last_event_at = ? WHERE id = ?", arguments: [ms(now), connectionID.uuidString])
-            return IngestResult(inserted: inserted.count, duplicates: duplicates, events: events)
+            return IngestResult(inserted: inserted.count, duplicates: duplicates, events: events, unchanged: unchanged)
+        }
+    }
+
+    /// Indexes of `observations` the `LedgerPolicy` keeps. A pool's used % and reset time are kept or skipped
+    /// together, so the reducer always sees the pair from one frame.
+    func worthKeeping(_ db: Database, _ observations: [IncomingObservation], sessionID: String?, at now: Date) throws -> Set<Int> {
+        var keep = Set<Int>()
+        var poolMembers: [String: [Int]] = [:]
+        for (index, o) in observations.enumerated() {
+            switch o.subject {
+            case .pool(let key): poolMembers[key, default: []].append(index)
+            case .session:
+                guard let sessionID else { continue }
+                let last = try lastStored(db, column: "session_id", id: sessionID, kind: o.kind)
+                if Self.shouldStore(o, last: last, minInterval: policy.sessionMinInterval, heartbeat: policy.sessionHeartbeat) { keep.insert(index) }
+            }
+        }
+        for (key, members) in poolMembers {
+            let poolID = try String.fetchOne(db, sql: "SELECT id FROM allowance_pools WHERE account_id = ? AND provider_pool_key = ?",
+                                             arguments: [accountID.uuidString, key])
+            var store = poolID == nil
+            if let poolID {
+                for index in members where !store {
+                    let last = try lastStored(db, column: "pool_id", id: poolID, kind: observations[index].kind)
+                    store = Self.shouldStore(observations[index], last: last, minInterval: 0, heartbeat: policy.poolHeartbeat)
+                }
+            }
+            if store { keep.formUnion(members) }
+        }
+        return keep
+    }
+
+    /// The newest stored reading of one metric for one subject: its canonical value and time.
+    func lastStored(_ db: Database, column: String, id: String, kind: MetricKind) throws -> (value: String, observedAt: Date)? {
+        try Row.fetchOne(db, sql: """
+            SELECT value_kind, value_text, absence_reason, observed_at FROM observations
+            WHERE \(column) = ? AND metric_kind = ? ORDER BY observed_at DESC LIMIT 1
+            """, arguments: [id, kind.rawValue]).map { row in
+            ("\(row["value_kind"] as String)|\(row["value_text"] as String? ?? "-")|\(row["absence_reason"] as String? ?? "-")", date(row["observed_at"]))
+        }
+    }
+
+    /// Keep it when nothing is stored yet, when it is older than what is stored (history), when the value changed and
+    /// `minInterval` has passed, or when `heartbeat` has passed. A zero heartbeat keeps everything.
+    static func shouldStore(_ o: IncomingObservation, last: (value: String, observedAt: Date)?, minInterval: TimeInterval, heartbeat: TimeInterval) -> Bool {
+        guard let last else { return true }
+        let elapsed = o.observedAt.timeIntervalSince(last.observedAt)
+        if elapsed < 0 || heartbeat == 0 { return true }
+        if elapsed == 0 { return storageText(o.value) != last.value }
+        if elapsed >= heartbeat { return true }
+        return storageText(o.value) != last.value && elapsed >= minInterval
+    }
+
+    /// The same text `lastStored` reads back, for comparing a new value with the stored one.
+    static func storageText(_ value: MetricValue) -> String {
+        switch value {
+        case .percent(let d): "percent|\(d)|-"
+        case .tokens(let n): "tokens|\(n)|-"
+        case .usd(let d): "usd|\(d)|-"
+        case .instant(let date): "instant|\(ms(date))|-"
+        case .count(let n): "count|\(n)|-"
+        case .duration(let milliseconds): "duration|\(milliseconds)|-"
+        case .flag(let b): "flag|\(b ? "1" : "0")|-"
+        case .absent(let reason): "absent|-|\(reason.rawValue)"
         }
     }
 
