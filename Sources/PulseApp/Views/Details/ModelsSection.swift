@@ -231,9 +231,9 @@ struct ModelArena: View {
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: theme.spacing(.spacious), alignment: .top)], alignment: .leading,
                       spacing: theme.spacing(.spacious)) {
-                ForEach(Array(summary.models.enumerated()), id: \.element.id) { i, m in
-                    FighterCard(share: m, index: i, rank: i + 1, daysActive: daysActive(m.model), range: summary.range,
-                                specialty: ModelSpecialty.of(m.totals, party: summary.models.compactMap(\.totals)))
+                ForEach(Array(ranked.enumerated()), id: \.element.share.id) { rank, entry in
+                    FighterCard(share: entry.share, index: entry.index, rank: rank + 1, daysActive: daysActive(entry.share.model), range: summary.range,
+                                specialty: ModelSpecialty.of(entry.share.totals, party: summary.models.compactMap(\.totals)))
                 }
             }
             Text(summary.range == .allTime ? Copy.Stats.arenaNote : Copy.Stats.arenaRangeNote).font(theme.font(.supporting))
@@ -242,6 +242,13 @@ struct ModelArena: View {
     }
 
     func daysActive(_ id: String) -> Int { summary.dailyTokens.filter { ($0.byModel[id] ?? 0) > 0 }.count }
+
+    /// Ranked by level, so the rank and the level never disagree: most output first, then most tokens. `index` is the
+    /// model's place in the chart's legend, which keeps its colour the same in both views.
+    var ranked: [(share: StatsSummary.ModelShare, index: Int)] {
+        summary.models.enumerated().map { (share: $0.element, index: $0.offset) }
+            .sorted { ($0.share.totals?.output ?? -1, $0.share.tokens) > ($1.share.totals?.output ?? -1, $1.share.tokens) }
+    }
 }
 
 struct FighterCard: View {
@@ -254,7 +261,8 @@ struct FighterCard: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
-    var level: (Int, Double) { ModelLevel.of(share.tokens) }
+    /// Nil when Claude Code has no tokens-by-kind record for the model, so its output is unknown.
+    var level: ModelLevel? { share.totals.map { ModelLevel(output: $0.output) } }
 
     var body: some View {
         PixelPanel {
@@ -264,7 +272,8 @@ struct FighterCard: View {
                         ModelSprite(family: ModelSprite.Family(share.model), role: ModelStyle.role(index))
                             .frame(width: theme.spacing(.spacious) * 4.8, height: theme.spacing(.spacious) * 4.8)
                             .background(theme.color(.surfaceMuted, scheme))
-                        Text(Copy.Stats.level(level.0)).font(theme.font(.title)).foregroundStyle(theme.color(ModelStyle.role(index), scheme))
+                        Text(level.map { Copy.Stats.level($0.level) } ?? Copy.Stats.levelUnknown).font(theme.font(.title))
+                            .foregroundStyle(theme.color(ModelStyle.role(index), scheme))
                     }
                     VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                         HStack(alignment: .firstTextBaseline) {
@@ -276,18 +285,24 @@ struct FighterCard: View {
                         Text(specialty.map { Copy.Stats.specialty($0.kind.doing, times: $0.ratio) } ?? Copy.Stats.activityUnknown)
                             .font(theme.font(.label)).foregroundStyle(theme.color(.accent, scheme))
                             .help(Copy.Stats.specialtyHelp)
-                        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                            HStack {
-                                Text(Copy.Stats.xp).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                                Spacer()
-                                Text(Copy.Stats.tokensShare(Formatting.compact(share.tokens), Int((share.share * 100).rounded())))
-                                    .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                        if let level {
+                            // Exactly what the bar shows: output written so far against the next level's target.
+                            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(Copy.Stats.progressTo(level.level + 1)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                                    Spacer()
+                                    Text(Copy.Stats.outputOf(Formatting.compact(level.output), Formatting.compact(level.next)))
+                                        .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                                }
+                                PixelBar(fraction: level.progress, role: ModelStyle.role(index), pattern: .solid, segments: 20)
                             }
-                            PixelBar(fraction: level.1, role: ModelStyle.role(index), pattern: .solid, segments: 20)
-                                .accessibilityLabel(Copy.Stats.xpLabel(level.0, Int((level.1 * 100).rounded())))
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(Copy.Stats.levelLabel(level.level, output: Formatting.compact(level.output), next: Formatting.compact(level.next)))
                         }
-                        Text(Copy.Stats.daysActive(daysActive, range == .allTime)).font(theme.font(.supporting))
-                            .foregroundStyle(theme.color(.textSecondary, scheme))
+                        Text(Copy.Stats.tokensLine(Formatting.compact(share.tokens), Int((share.share * 100).rounded()), days: daysActive,
+                                                   allTime: range == .allTime))
+                            .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 if let t = share.totals, t.total > 0 {
@@ -354,12 +369,35 @@ struct ModelSpecialty: Equatable {
     }
 }
 
-/// Level = how many times the tokens have doubled from a thousand; progress = how far to the next doubling.
-enum ModelLevel {
-    static func of(_ tokens: Int64) -> (Int, Double) {
-        guard tokens > 1000 else { return (1, Double(max(0, tokens)) / 1000) }
-        let doublings = log2(Double(tokens) / 1000)
-        return (Int(doublings) + 1, doublings - doublings.rounded(.down))
+/// A model's level comes from its output tokens (what it wrote, all time). Each level has a fixed target on a
+/// 1-2-5 ladder — 1K, 2K, 5K, 10K, 20K, 50K… — so the next target is always a round, readable number. Cache reads
+/// don't count: they are the conversation being re-read on every turn, not work the model produced.
+struct ModelLevel: Equatable {
+    let output: Int64
+    let level: Int
+    /// Output at which this level began (0 for level 1) and the next level's target.
+    let floor: Int64
+    let next: Int64
+    var progress: Double { next > floor ? Double(output - floor) / Double(next - floor) : 1 }
+
+    /// The targets for level 2, 3, 4… in order.
+    static let targets: [Int64] = {
+        var all: [Int64] = []
+        var decade: Int64 = 1_000
+        while decade <= 1_000_000_000_000_000 {
+            all += [decade, decade * 2, decade * 5]
+            decade *= 10
+        }
+        return all
+    }()
+
+    init(output: Int64) {
+        let output = max(0, output)
+        let reached = Self.targets.prefix { $0 <= output }.count
+        self.output = output
+        self.level = reached + 1
+        self.floor = reached == 0 ? 0 : Self.targets[reached - 1]
+        self.next = reached < Self.targets.count ? Self.targets[reached] : Self.targets[reached - 1]
     }
 }
 

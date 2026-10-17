@@ -21,15 +21,29 @@ struct ModelsViewTests {
         }
     }
 
-    @Test("A level is one more for every doubling of tokens above a thousand; progress is the way to the next")
+    @Test("A level comes from output on fixed 1-2-5 targets; progress is the way from this level's target to the next")
     func levels() {
-        #expect(ModelLevel.of(0) == (1, 0))
-        #expect(ModelLevel.of(500).0 == 1)
-        #expect(ModelLevel.of(2_000).0 == 2)
-        #expect(ModelLevel.of(4_000).0 == 3)
-        let (level, progress) = ModelLevel.of(3_000)
-        #expect(level == 2 && abs(progress - (log2(3.0) - 1)) < 1e-9)
-        #expect(ModelLevel.of(16_500_000_000).0 == 24)
+        func check(_ output: Int64, level: Int, floor: Int64, next: Int64) {
+            let l = ModelLevel(output: output)
+            #expect(l.level == level && l.floor == floor && l.next == next, "\(output) → LV \(l.level), \(l.floor)…\(l.next)")
+        }
+        check(0, level: 1, floor: 0, next: 1_000)
+        check(999, level: 1, floor: 0, next: 1_000)
+        check(1_000, level: 2, floor: 1_000, next: 2_000)
+        check(5_700, level: 4, floor: 5_000, next: 10_000)
+        check(10_100, level: 5, floor: 10_000, next: 20_000)
+        check(309_700, level: 9, floor: 200_000, next: 500_000)
+        check(2_800_000, level: 12, floor: 2_000_000, next: 5_000_000)
+        check(5_300_000, level: 13, floor: 5_000_000, next: 10_000_000)
+        check(18_200_000, level: 14, floor: 10_000_000, next: 20_000_000)
+        #expect(abs(ModelLevel(output: 18_200_000).progress - 0.82) < 1e-9)
+        // More output never means a lower level, and a target always lies above the output.
+        var last = 0
+        for output in stride(from: Int64(0), through: 100_000_000, by: 77_777) {
+            let l = ModelLevel(output: output)
+            #expect(l.level >= last && l.next > output && l.floor <= output)
+            last = l.level
+        }
     }
 
     @Test("Specialty is the kind a model uses most relative to all models, not its largest kind")

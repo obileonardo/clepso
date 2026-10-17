@@ -165,18 +165,23 @@ enum Copy {
         static let noTokens = "no tokens"
         static let noModels = "No model activity in this range yet."
         static func level(_ n: Int) -> String { "LV \(n)" }
-        static let xp = "XP · TOKENS"
-        static func xpLabel(_ level: Int, _ pct: Int) -> String { "Level \(level), \(pct)% of the way to the next level" }
-        static func tokensShare(_ n: String, _ pct: Int) -> String { "\(n) · \(pct)%" }
-        static func daysActive(_ n: Int, _ allTime: Bool) -> String { "Active \(n) day\(n == 1 ? "" : "s")\(allTime ? " in total" : " in this range")" }
+        static let levelUnknown = "LV —"
+        static func progressTo(_ n: Int) -> String { "PROGRESS TO LV \(n)" }
+        static func outputOf(_ output: String, _ next: String) -> String { "\(output) / \(next) output" }
+        static func levelLabel(_ level: Int, output: String, next: String) -> String {
+            "Level \(level): \(output) output tokens written; level \(level + 1) at \(next)"
+        }
+        static func tokensLine(_ n: String, _ pct: Int, days: Int, allTime: Bool) -> String {
+            "\(n) tokens · \(pct)% of all · active \(days) day\(days == 1 ? "" : "s")\(allTime ? "" : " in this range")"
+        }
         static let doingRecall = "Reading from cache", doingStore = "Writing to cache", doingWrite = "Writing output", doingRead = "Reading input"
         static let activityUnknown = "Tokens by kind appear in All time"
         static func specialty(_ doing: String, times: Double) -> String {
             times < 1.1 ? "All-rounder" : "\(doing) · \(times < 10 ? String(format: "%.1f", times) : String(Int(times)))× the party"
         }
         static let specialtyHelp = "Its specialty: the token kind this model uses most compared with all models together. All-rounder: no kind stands out."
-        static let arenaNote = "Level goes up each time a model's tokens double. Bars show its all-time tokens by kind, from Claude Code's statistics file."
-        static let arenaRangeNote = "Level and share are for this range. Claude Code records tokens by kind for all time only, so the bars show all time."
+        static let arenaNote = "Level comes from output tokens, what a model has written, all time. Each level has a fixed target: 1K, 2K, 5K, 10K, 20K, 50K and so on. Cache reads don't count: they are the conversation being re-read every turn. Cards are ranked by level. Bars show all-time tokens by kind, from Claude Code's statistics file."
+        static let arenaRangeNote = "Levels and ranks use all-time output. Tokens, share and active days are for this range; the bars show all-time tokens by kind, the only breakdown Claude Code records."
         static let toggle = "Read Claude Code's statistics file"
         static let toggleSublabel = "For the Stats tab: dates, counts and model names only"
     }
