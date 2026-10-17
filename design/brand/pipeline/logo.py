@@ -420,7 +420,8 @@ def write_favicon(out: Path):
             dr.rectangle([(x + 2) * k, (y + 2) * k, (x + 3) * k - 1, (y + 3) * k - 1], fill=hex_rgba(COLOURS["phosphor"]))
         imgs[s] = img
         img.save(out / f"favicon-{s}.png")
-    imgs[16].save(out / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)], append_images=[imgs[32], imgs[48]])
+    # Base image is the largest so Pillow keeps every size; append_images supplies the exact pixel drawings.
+    imgs[48].save(out / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)], append_images=[imgs[16], imgs[32]])
     # Apple touch icon: full bleed (iOS applies its own mask).
     touch = app_icon_png(1024).crop((100, 100, 924, 924)).resize((180, 180), Image.LANCZOS)
     bg = Image.new("RGBA", (180, 180), hex_rgba("#0A120D"))
