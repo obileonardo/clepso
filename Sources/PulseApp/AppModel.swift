@@ -32,6 +32,9 @@ public final class AppModel {
     public private(set) var demo = false
     public private(set) var showPercent = true
     public private(set) var forwardCost = true          // founder decision A5: on by default
+    /// Increment 1.7d: reading Claude Code's own statistics file is a second source, so it is off until the user agrees.
+    public private(set) var statsEnabled = false
+    public private(set) var stats: Result<ClaudeCodeStats, StatsReader.Problem>?
     public private(set) var started = false
     public var settingsTab: SettingsTab = .general
     /// Navigation lives here so "Connect…" and similar can deep-link, and Escape always has one place to go back to.
@@ -79,6 +82,7 @@ public final class AppModel {
             showPercent = try await store.preference(Pref.showPercent, as: Bool.self) ?? true
             forwardCost = try await store.preference(Pref.forwardCost, as: Bool.self) ?? true
             firstRealReadingAt = try await store.preference(Pref.firstReading, as: Date.self)
+            statsEnabled = try await store.preference(Pref.readStats, as: Bool.self) ?? false
             let chose = try await store.preference(Pref.loginItem, as: Bool.self) ?? false
             loginItemEnabled = chose && environment.loginItem.isEnabled
             plan = try await store.currentPlan()
@@ -373,6 +377,38 @@ public final class AppModel {
         await environment.notifications.sendTest(title: "\(Product.name) test", body: "Notifications are working.")
     }
 
+    // MARK: - Claude Code statistics (increment 1.7d; PRIVACY_AND_SECURITY §4.1)
+
+    /// The user's choice from the Stats view's explainer or Settings › Providers.
+    public func setStatsEnabled(_ on: Bool) async {
+        statsEnabled = on
+        try? await store?.setPreference(Pref.readStats, on, now: environment.clock.now())
+        diagnostics.record(.statsReading(on: on))
+        if on { loadStats() } else { stats = nil }
+    }
+
+    /// Reads the file now (it is small). Nothing from it is stored.
+    public func loadStats() {
+        guard statsEnabled else { stats = nil; return }
+        stats = StatsReader.read(home: environment.home)
+    }
+
+    /// The summary for a range, counting today as active when Pulse itself received readings today.
+    public func statsSummary(_ range: StatsSummary.Range) -> StatsSummary? {
+        guard case .success(let file)? = stats else { return nil }
+        let today = Self.dayLabel(environment.clock.now(), zone: environment.timeZone)
+        let seenToday = snapshot.updatedAt.map { Self.dayLabel($0, zone: environment.timeZone) == today } ?? false
+        return StatsSummary.make(file, range: range, today: today, seenToday: seenToday && !snapshot.isDemo)
+    }
+
+    /// Claude Code labels days by the local calendar.
+    static func dayLabel(_ date: Date, zone: TimeZone) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+
     // MARK: - Export and delete-all (PRIVACY_AND_SECURITY §8)
 
     /// "Export my data…" to a location the user chose in the save panel.
@@ -478,6 +514,8 @@ public final class AppModel {
         demo = false
         showPercent = true
         forwardCost = true
+        statsEnabled = false
+        stats = nil
         socketHealth = IngestSocket.Health()
         popoverRoute = .overview
         onboardingStep = .welcome
@@ -498,6 +536,7 @@ public final class AppModel {
         static let forwardCost = "claudeCode.forwardCost"
         static let firstReading = "onboarding.firstReadingAt"
         static let loginItem = "general.openAtLogin"
+        static let readStats = "claudeCode.readStatsFile"
     }
 }
 
