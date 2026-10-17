@@ -1,9 +1,12 @@
 """Builds the Pulse documentation website around the design-system page.
 
-Pages: Overview, Progress, Metrics, Architecture, Screens, Changelog and the Design system (built by
-build-design-site.py, which runs first; this script adds the site bar to it). Content comes from the repository:
-ROADMAP.md tables for progress, ARCHITECTURE.md's data-flow diagram, git history, the app screenshots in
-design/screens, and the metric rules below, which mirror the Swift code they describe (each names its source file).
+Pages: Overview, Progress, Metrics, Architecture, Privacy, Screens, Changelog and the Design system (built by
+build-design-site.py, which runs first; this script adds the site's header, menu and search to it). Content comes from
+the repository: ROADMAP.md tables for progress, ARCHITECTURE.md's data-flow diagram, git history, the gate list in
+scripts/ci.sh, the app screenshots in design/screens, Swift source excerpts beside the interactive rules, and the metric
+rules below, which mirror the Swift code they describe (each names its source file).
+
+Design: docs/SITE_REDESIGN.md (the founder's Mobbin picks, 17 Oct 2026). Styles and behaviour live in scripts/site/.
 
 Curated for a public URL (founder decision, 17 Oct 2026): no DECISIONS, security internals, backend or compliance
 plans, results logs or commit bodies.
@@ -11,15 +14,18 @@ plans, results logs or commit bodies.
 Usage: python3 -I scripts/build-site.py <site dir> <docs dir> <screens dir>
 """
 import html
+import json
 import re
 import shutil
 import subprocess
 import sys
+import textwrap
 from datetime import date
 from pathlib import Path
 
 site, docs, screens = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
 repo = Path(__file__).resolve().parent.parent
+assets_src = repo / "scripts" / "site"
 e = html.escape
 
 
@@ -29,116 +35,95 @@ def git(*args):
 
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
 
-PAGES = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"),
-         ("screens/", "Screens"), ("privacy/", "Privacy"), ("changelog/", "Changelog"), ("design-system/", "Design system")]
+NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
+MENU = [("Docs", [("", "Overview"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]),
+        ("Project", [("progress/", "Progress"), ("changelog/", "Changelog"), ("screens/", "Screens"), ("design-system/", "Design system")])]
+DOC_PAGES = [("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]
 
-# ---------------------------------------------------------------------------------------------------------- styling
+# ------------------------------------------------------------------------------------------------------------ shell
 
-BAR_CSS = """
-@font-face { font-family: "Silkscreen"; src: url("/assets/fonts/Silkscreen-Regular.ttf") format("truetype"); font-display: swap; }
-@font-face { font-family: "Silkscreen"; font-weight: 700; src: url("/assets/fonts/Silkscreen-Bold.ttf") format("truetype"); font-display: swap; }
-:root { --p-bg:#060907; --p-surface:#0D1410; --p-muted:#16211A; --p-line:#2C4034; --p-text:#EAF7EE; --p-text2:#93B9A0; --p-accent:#4DFF8F;
-  --p-amber:#FFC04D; --p-red:#FF6B5E; --p-pixel:"Silkscreen", ui-monospace, monospace;
-  --p-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace; color-scheme: dark; }
-.site-bar { position: sticky; top: 0; z-index: 50; background: rgba(6,9,7,.92); backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--p-line); font-family: var(--p-mono); }
-.site-bar .sb-wrap { display: flex; align-items: center; gap: 20px; min-height: 56px; }
-.site-bar .brand { font: 700 15px var(--p-pixel); color: var(--p-accent); text-decoration: none; letter-spacing: .06em; white-space: nowrap; }
-.site-bar .brand small { color: var(--p-text2); font-weight: 400; margin-left: 6px; }
-.site-bar .sb-links ul { display: flex; gap: 2px; list-style: none; margin: 0; padding: 0; overflow-x: auto; scrollbar-width: none; }
-.site-bar .sb-links ul::-webkit-scrollbar { display: none; }
-.site-bar li a { display: block; padding: 8px 10px; color: var(--p-text2); text-decoration: none; font-size: 13px; white-space: nowrap;
-  text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid transparent; }
-.site-bar li a:hover { color: var(--p-text); }
-.site-bar li a[aria-current="page"] { color: var(--p-text); border-bottom-color: var(--p-accent); }
-.site-bar .sb-wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
-.site-bar a:focus-visible { outline: 2px solid var(--p-accent); outline-offset: 3px; }
-.site-bar ul { box-sizing: border-box; }
-"""
-
-PAGE_CSS = """
-* { box-sizing: border-box; }
-html, body { margin: 0; background: var(--p-bg); color: var(--p-text); }
-body { font: 15px/1.6 var(--p-mono); -webkit-font-smoothing: antialiased;
-  background-image: repeating-linear-gradient(0deg, rgba(77,255,143,.025) 0 1px, transparent 1px 3px); }
-a { color: var(--p-accent); text-underline-offset: 3px; }
-a:focus-visible, button:focus-visible { outline: 2px solid var(--p-accent); outline-offset: 3px; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
-main { padding: 40px 0 72px; }
-.hero { padding: 24px 0 8px; }
-h1, h2, h3 { font-family: var(--p-pixel); font-weight: 400; letter-spacing: .04em; line-height: 1.25; }
-h1 { font-size: clamp(28px, 5vw, 44px); margin: 0 0 12px; text-transform: uppercase; }
-h2 { font-size: 22px; margin: 56px 0 12px; color: var(--p-accent); text-transform: uppercase; scroll-margin-top: 72px; }
-h3 { font-size: 16px; margin: 32px 0 8px; text-transform: uppercase; scroll-margin-top: 72px; }
-p { margin: 0 0 14px; max-width: 76ch; }
-.lede { color: var(--p-text2); font-size: 16px; max-width: 70ch; }
-.muted { color: var(--p-text2); }
-code { font-family: var(--p-mono); background: var(--p-muted); padding: 1px 5px; border-radius: 2px; font-size: .92em; overflow-wrap: anywhere; }
-td:first-child { white-space: nowrap; }
-.log code { overflow-wrap: normal; }
-pre { background: var(--p-surface); border: 1px solid var(--p-line); padding: 16px; overflow-x: auto; font-size: 12.5px; line-height: 1.45; }
-.panel { background: var(--p-surface); border: 1px solid var(--p-line); padding: 20px; position: relative; }
-.panel::before { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(77,255,143,.08); pointer-events: none; }
-.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-.grid.two { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
-.stat b { display: block; font: 400 30px var(--p-pixel); color: var(--p-text); }
-.stat span { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--p-text2); }
-.card { display: block; text-decoration: none; color: inherit; }
-.card:hover { border-color: var(--p-accent); }
-.card h3 { margin: 0 0 6px; color: var(--p-accent); }
-.card p { margin: 0; color: var(--p-text2); font-size: 14px; }
-.table-wrap { overflow-x: auto; border: 1px solid var(--p-line); }
-table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--p-line); }
-th { font-weight: 600; color: var(--p-text2); text-transform: uppercase; font-size: 11.5px; letter-spacing: .08em; background: var(--p-surface); position: sticky; top: 0; }
-tr:last-child td { border-bottom: 0; }
-td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.narrow { max-width: 760px; }
-.badge { display: inline-block; font: 400 11px var(--p-pixel); padding: 3px 6px 2px; letter-spacing: .06em; white-space: nowrap; }
-.s-done { background: var(--p-accent); color: #06130B; }
-.s-next { background: var(--p-amber); color: #1A1200; }
-.s-todo { border: 1px solid var(--p-line); color: var(--p-text2); }
-.s-wait { border: 1px solid var(--p-amber); color: var(--p-amber); }
-.meter { height: 10px; background: var(--p-muted); display: flex; gap: 2px; padding: 2px; margin: 8px 0 4px; }
-.meter i { flex: 1; background: rgba(77,255,143,.12); }
-.meter i.on { background: var(--p-accent); }
-.counts { color: var(--p-text2); font-size: 13px; }
-.here td { background: rgba(77,255,143,.07); }
-.here td:first-child { box-shadow: inset 3px 0 0 var(--p-accent); }
-.kind { font-weight: 700; }
-.yes { color: var(--p-accent); } .no { color: var(--p-text2); }
-.formula { font-size: 15px; background: var(--p-surface); border-left: 3px solid var(--p-accent); padding: 12px 16px; margin: 0 0 16px; max-width: 76ch; }
-.toc { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 0; list-style: none; margin: 16px 0 0; font-size: 13px; }
-.shots { display: grid; gap: 24px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr)); }
-figure { margin: 0; }
-figure img { width: 100%; height: auto; display: block; border: 1px solid var(--p-line); background: var(--p-surface); }
-figcaption { font-size: 13px; color: var(--p-text2); padding-top: 8px; }
-.log { list-style: none; padding: 0; margin: 0; }
-.log li { display: grid; grid-template-columns: 96px 76px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--p-line); }
-.log time, .log code { color: var(--p-text2); }
-footer { border-top: 1px solid var(--p-line); padding: 24px 0 40px; color: var(--p-text2); font-size: 12.5px; }
-@media (max-width: 640px) { .site-bar .brand small { display: none; } .log li { grid-template-columns: 1fr; gap: 2px; } main { padding-top: 24px; } }
-"""
+LOGO = ('<svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" fill="#060907"/>'
+        '<path d="M2 9h3l2-5 2 9 2-6 1 2h2" fill="none" stroke="#4DFF8F" stroke-width="1.6" stroke-linejoin="miter"/></svg>')
 
 
-def bar(current):
+def header(current):
     here = ' aria-current="page"'
-    items = "".join(f'<li><a href="/{path}"{here if path == current else ""}>{e(name)}</a></li>' for path, name in PAGES)
-    return (f'<div class="site-bar" role="banner"><div class="sb-wrap"><a class="brand" href="/">PULSE<small>docs</small></a>'
-            f'<div class="sb-links" role="navigation" aria-label="Site"><ul>{items}</ul></div></div></div>')
+    pill = "".join(f'<a href="/{p}"{here if p == current else ""}>{e(n)}</a>' for p, n in NAV)
+    return (f'<a class="px-skip" href="#main">Skip to content</a>'
+            f'<header class="px-head"><a class="px-brand" href="/" aria-label="Pulse docs, home">{LOGO}PULSE<small>docs</small></a>'
+            f'<div class="px-pill" role="navigation" aria-label="Main">{pill}</div>'
+            '<div class="px-actions"><button class="px-btn" type="button" data-search-open aria-label="Search the docs (⌘K)">'
+            '<span class="px-label">Search</span><kbd>⌘K</kbd></button>'
+            '<button class="px-btn" type="button" data-menu-open aria-expanded="false" aria-controls="px-menu">'
+            '<span class="px-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="px-label">Menu</span></button></div></header>'
+            + menu(current) + search_dialog())
 
 
-def page(path, title, description, body):
+def menu(current):
+    rows, n = [], 0
+    for group, items in MENU:
+        rows.append(f'<p class="px-menu-group">[ {e(group)} ]</p>')
+        for path, name in items:
+            n += 1
+            cur = ' aria-current="page"' if path == current else ""
+            rows.append(f'<a href="/{path}"{cur}><span>{n:02d}</span><b>{e(name)}</b><i aria-hidden="true">→</i></a>')
+    return (f'<div class="px-menu" id="px-menu" role="dialog" aria-modal="true" aria-label="Site menu" hidden>'
+            f'<div class="px-menu-art"><canvas data-dither data-w="150" data-h="190" aria-hidden="true"></canvas>'
+            f'<p>Pulse · build {e(COMMIT)}</p></div>'
+            f'<div class="px-menu-list">{"".join(rows)}</div>'
+            f'<button class="px-btn px-close" type="button" data-menu-close>Close <kbd>esc</kbd></button></div>')
+
+
+def search_dialog():
+    return ('<div class="px-search" id="px-search" role="dialog" aria-modal="true" aria-label="Search the docs" hidden>'
+            '<div class="px-search-box"><label><span aria-hidden="true">&gt;</span>'
+            '<input type="search" placeholder="Search limits, levels, pace, privacy…" autocomplete="off" spellcheck="false" '
+            'role="combobox" aria-expanded="true" aria-controls="px-results" aria-label="Search"></label>'
+            '<ul id="px-results" role="listbox" aria-label="Results"></ul>'
+            '<p class="px-search-hint">↑ ↓ to move · ↵ to open · esc to close</p></div></div>')
+
+
+def footer():
+    cols = "".join(f'<div><p>{e(group)}</p><ul>' + "".join(f'<li><a href="/{p}">{e(n)}</a></li>' for p, n in items) + "</ul></div>"
+                   for group, items in MENU)
+    return (f'<div class="stripes" aria-hidden="true"></div><footer class="foot"><div class="wrap">'
+            f'<div class="foot-cols"><div><p>Pulse</p><ul><li>A macOS menu bar monitor for Claude Code limits.</li>'
+            f'<li>Pulse is a working name.</li></ul></div>{cols}'
+            f'<div><p>Build</p><ul><li>Commit <code>{e(COMMIT)}</code></li><li>{e(COMMIT_DATE)}</li><li>{len(GATES)} gates per commit</li></ul></div></div>'
+            f'<div class="foot-word" aria-hidden="true"><small>PULSE.wordmark</small><b>PULSE</b><i></i><i></i><i></i><i></i></div>'
+            f'<div class="foot-base"><span>Generated by <code>scripts/build-site.py</code> from the repository.</span>'
+            f'<a href="#main">Back to top ↑</a></div></div></footer>')
+
+
+SEARCH = []
+
+
+def page(path, title, description, body, kind="wide"):
     out = site / path / "index.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)} · Pulse docs</title><meta name="description" content="{e(description)}">
-<link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-</head><body>{bar(path)}<main><div class="wrap">{body}</div></main>
-<footer><div class="wrap">Generated from commit <code>{COMMIT}</code> ({COMMIT_DATE}) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
+<meta name="theme-color" content="#060907"><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<script>document.documentElement.classList.add("js")</script>
+</head><body class="k-{kind}">{header(path)}<main id="main">{body}</main>{footer()}
+<script src="/assets/site.js" defer></script>
 </body></html>
 """)
+    index(path, title, description, body)
+
+
+def strip(fragment):
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", fragment))).strip()
+
+
+def index(path, title, description, body):
+    """Search entries: the page, then every h2 with an id and the text under it."""
+    SEARCH.append({"t": title, "p": "Page", "u": f"/{path}", "x": description, "top": True})
+    parts = re.split(r'(<h2 id="[^"]+"[^>]*>.*?</h2>)', body, flags=re.S)
+    for i in range(1, len(parts), 2):
+        anchor = re.search(r'id="([^"]+)"', parts[i]).group(1)
+        SEARCH.append({"t": strip(parts[i]), "p": title, "u": f"/{path}#{anchor}", "x": strip(parts[i + 1])[:240]})
 
 
 def inline(text):
@@ -149,6 +134,10 @@ def inline(text):
     return re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", text)
 
 
+def plain(text):
+    return re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text).replace("`", "").replace("**", "")
+
+
 def compact(n):
     for size, suffix in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
         if n >= size:
@@ -157,10 +146,69 @@ def compact(n):
     return str(int(n))
 
 
+def slug(text):
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def excerpt(rel, start, end, keep_end=True):
+    """A verbatim slice of a Swift file, from the line containing `start` to the line containing `end`.
+    Fails the build if either marker is gone, so a page can never show code that no longer exists."""
+    lines = (repo / rel).read_text().splitlines()
+    a = next(i for i, l in enumerate(lines) if start in l)
+    b = next(i for i in range(a, len(lines)) if end in lines[i])
+    return textwrap.dedent("\n".join(lines[a:b + (1 if keep_end else 0)]))
+
+
+def sources(*files):
+    items = "".join(f"<li><code>{e(f)}</code></li>" for f in files)
+    return f'<details class="sources" open><summary>Relevant source files</summary><ul>{items}</ul></details>'
+
+
+def docs_page(path, title, description, lede, body):
+    """Three columns (Mintlify): page tree, the article, and On this page with a reading ruler."""
+    heads = re.findall(r'<h2 id="([^"]+)"[^>]*>(.*?)</h2>', body, re.S)
+    tree = []
+    for p, n in DOC_PAGES:
+        cur = p == path
+        sub = "".join(f'<li><a href="#{a}">{strip(t)}</a></li>' for a, t in heads) if cur else ""
+        tree.append(f'<li><a href="/{p}"{" aria-current=page" if cur else ""}>{e(n)}</a>{f"<ul>{sub}</ul>" if sub else ""}</li>')
+    project = "".join(f'<li><a href="/{p}">{e(n)}</a></li>' for p, n in MENU[1][1])
+    toc = "".join(f'<li><a href="#{a}">{strip(t)}</a></li>' for a, t in heads)
+    mobile = "".join(f'<li><a href="#{a}">{i:02d} {strip(t)}</a></li>' for i, (a, t) in enumerate(heads, 1))
+    page(path, title, description, f"""
+<div class="docs">
+<aside class="tree" aria-label="Documentation pages"><p>[ Docs ]</p><ul>{"".join(tree)}</ul><p>[ Project ]</p><ul>{project}</ul></aside>
+<article class="article">
+<header class="doc-head"><p class="eyebrow">Docs / <b>{e(title)}</b></p><h1>{e(title)}</h1><p class="lede">{lede}</p>
+<div class="doc-tools"><button class="tool" type="button" data-copy-page>Copy page</button><button class="tool" type="button" data-copy-link>Copy link</button>
+<button class="tool" type="button" data-search-open>Search ⌘K</button></div></header>
+<details class="mobile-tree"><summary>On this page</summary><ul>{mobile}</ul></details>
+{body}
+</article>
+<aside class="toc" aria-label="On this page"><p>On this page</p><div class="toc-list"><span class="ruler" aria-hidden="true"><i></i></span><ol>{toc}</ol></div><p class="toc-pct" aria-hidden="true"></p></aside>
+</div>""", kind="docs")
+
+
+GATES = re.findall(r'^run "([^"]+)"', (repo / "scripts" / "ci.sh").read_text(), re.M)
+GATE_NOTES = {
+    "toolchain pinned": "The expected Swift version.",
+    "strict build (warnings=errors)": "Warnings are errors; Swift 6 strict concurrency.",
+    "tests": "The full suite (Swift Testing).",
+    "helper links no networking": "The helper binary links no networking frameworks.",
+    "networking only in Sync": "Networking APIs appear only in the Sync module, and only the app imports it.",
+    "clock injected": "Logic reads time through an injected clock, so tests control it.",
+    "design tokens only": "Views use theme tokens and pixel glyphs, never literal colours, sizes or system symbols.",
+    "redaction audit": "Logs and exports contain no fields outside the allowlist.",
+    "secret scan": "No credentials in the repository.",
+    "app bundle": "Signature, embedded helper, entitlements, URL scheme.",
+}
+TESTS = sum(p.read_text().count("@Test") for p in (repo / "Tests").rglob("*.swift"))
+
 # ------------------------------------------------------------------------------------------------- roadmap progress
 
 STATUS = {"✓": ("done", "Done"), "✔": ("done", "Done"), "▶": ("next", "In progress"), "○": ("todo", "Not started"),
           "⏸": ("wait", "Waiting")}
+PLANNED = ("todo", "Planned")
 
 
 def roadmap_sections():
@@ -188,17 +236,7 @@ def status_of(cell):
 
 
 def badge(status):
-    return f'<span class="badge s-{status[0]}">{e(status[1])}</span>' if status else '<span class="badge s-todo">Planned</span>'
-
-
-sections = roadmap_sections()
-all_rows = [(t, h, r) for t, h, rows in sections for r in rows]
-counted = [status_of(r[h.index("Status")]) for t, h, r in all_rows if "Status" in h]
-done = sum(1 for s in counted if s and s[0] == "done")
-planned_later = sum(len(rows) for t, h, rows in sections if "Status" not in h)
-total = len(counted) + planned_later
-current = [r for t, h, r in all_rows if "Status" in h and status_of(r[h.index("Status")]) and status_of(r[h.index("Status")])[0] == "next"]
-upcoming = [r for t, h, r in all_rows if "Status" in h and status_of(r[h.index("Status")]) and status_of(r[h.index("Status")])[0] == "todo"]
+    return f'<span class="badge s-{status[0]}">{e(status[1])}</span>'
 
 
 def meter(n, of, cells=24):
@@ -206,46 +244,148 @@ def meter(n, of, cells=24):
     return '<div class="meter" aria-hidden="true">' + "".join(f'<i class="{"on" if i < lit else ""}"></i>' for i in range(cells)) + "</div>"
 
 
-progress_html = []
-for title, header, rows in sections:
-    keep = [i for i, h in enumerate(header) if h != "Founder input"]
-    has_status = "Status" in header
-    if has_status:
-        statuses = [status_of(r[header.index("Status")]) for r in rows]
-        n_done = sum(1 for s in statuses if s and s[0] == "done")
-        summary = f'{meter(n_done, len(rows))}<p class="counts">{n_done} of {len(rows)} done</p>'
-    else:
-        summary = '<p class="counts">Sequenced; detail is written when the milestone before it closes.</p>'
-    head = "".join(f"<th scope=\"col\">{e(header[i])}</th>" for i in keep)
-    body_rows = []
+def short(title):
+    head = re.sub(r"\s*\(.*\)$", "", title)
+    if head.startswith("M2 to M4"):
+        return "M2–M4", head
+    return head.split(":")[0].split(" ")[0], head
+
+
+sections = roadmap_sections()
+MILESTONES = []      # [{"key", "name", "rows": [inc]}]
+INCS = []            # every increment in build order
+for title, header_, rows in sections:
+    key, name = short(title)
+    col = {h: i for i, h in enumerate(header_)}
+    ms = {"key": key, "name": name, "title": title, "header": header_, "rows": []}
     for r in rows:
+        get = lambda h: r[col[h]] if h in col and col[h] < len(r) else ""
+        inc = {"num": r[0], "title": get("Increment"), "how": get("How it is built") or get("Build approach in one line"),
+               "proof": get("Proof it works"), "status": status_of(get("Status")) if "Status" in col else PLANNED,
+               "ms": key, "row": r}
+        inc["status"] = inc["status"] or PLANNED
+        ms["rows"].append(inc)
+        INCS.append(inc)
+    MILESTONES.append(ms)
+
+done = sum(1 for i in INCS if i["status"][0] == "done")
+total = len(INCS)
+in_progress = [i for i in INCS if i["status"][0] == "next"]
+waiting = [i for i in INCS if i["status"][0] == "wait"]
+now_index = INCS.index(in_progress[0]) if in_progress else done
+
+
+def inc_id(inc):
+    return "inc-" + slug(inc["num"])
+
+
+def status_board(compact_rows=False):
+    """One bar per increment, a row per milestone (Stripe Status)."""
+    rows = []
+    for ms in MILESTONES:
+        n_done = sum(1 for i in ms["rows"] if i["status"][0] == "done")
+        bars = "".join(f'<a class="{i["status"][0] if i["status"] != PLANNED else "todo"}" href="/progress/#{inc_id(i)}" '
+                       f'title="{e(i["num"])} · {e(plain(i["title"]))} · {e(i["status"][1])}" aria-label="{e(i["num"])} {e(plain(i["title"]))}: {e(i["status"][1])}"></a>'
+                       for i in ms["rows"])
+        label = f'{n_done} of {len(ms["rows"])} done' if n_done or ms["rows"][0]["status"] != PLANNED else "Sequenced"
+        rows.append(f'<div class="status-row"><span>{e(ms["name"])}</span><div class="bars">{bars}</div><em>{label}</em></div>')
+    pct = round(100 * done / total)
+    return (f'<div class="status rv"><div class="status-top"><b>{done} of {total} increments done · {pct}%</b><div class="legend">'
+            '<span><i class="c-green"></i>Done</span><span><i class="c-amber"></i>In progress</span>'
+            '<span><i style="box-shadow:inset 0 0 0 2px var(--p-amber)"></i>Waiting</span><span><i style="background:var(--p-muted);box-shadow:inset 0 0 0 1px var(--p-line)"></i>Not started</span></div></div>'
+            + "".join(rows) + "</div>")
+
+
+def timeline(select=None):
+    """Dot timeline across every increment in build order (Grok, SpaceXAI, V7)."""
+    select = select if select is not None else now_index
+    parts, last = [], None
+    for k, inc in enumerate(INCS):
+        if inc["ms"] != last:
+            parts.append(f'<span class="tl-mark" aria-hidden="true"><span>{e(inc["ms"])}</span></span>')
+            last = inc["ms"]
+        s = inc["status"]
+        cls = "todo" if s == PLANNED else s[0]
+        parts.append(f'<button class="tl-dot {cls}" type="button" aria-pressed="{"true" if k == select else "false"}" '
+                     f'aria-label="{e(inc["num"])} {e(plain(inc["title"]))}, {e(s[1])}" data-n="{e(inc["num"])}" data-t="{e(plain(inc["title"]))}" '
+                     f'data-p="{e(plain(inc["how"]))}" data-s="{cls}" data-sl="{e(s[1])}"><i></i></button>')
+    first = INCS[select]
+    return (f'<div class="tl rv"><div class="tl-track"><div class="tl-line">{"".join(parts)}</div></div>'
+            f'<div class="tl-card" aria-live="polite"><b>{e(first["num"])}</b><div><h3>{e(plain(first["title"]))}</h3><p>{e(plain(first["how"]))}</p></div></div>'
+            '<div class="tl-nav"><button class="tool" type="button" data-tl="-1">← Previous</button><button class="tool" type="button" data-tl="1">Next →</button>'
+            '<span class="counts" style="align-self:center;margin-left:8px">Arrow keys move along the line.</span></div></div>')
+
+
+# ---------------------------------------------------------------------------------------------------------- progress
+
+lanes = []
+start = 0
+for ms in MILESTONES:
+    n = len(ms["rows"])
+    n_done = sum(1 for i in ms["rows"] if i["status"][0] == "done")
+    row = len(lanes) + 1
+    lanes.append(f'<div class="lane-name" style="grid-row:{row};grid-column:1" title="{e(ms["name"])}">{e(ms["name"])}</div>'
+                 f'<div class="lane-bar" style="grid-row:{row};grid-column:{start + 2} / span {n}"><i style="width:{100 * n_done / n:.1f}%"></i>'
+                 f'<span>{n_done}/{n}</span></div>')
+    start += n
+now_left = f"calc(170px + (100% - 170px) * {(now_index + 0.5) / total:.4f})"
+lanes_html = (f'<div class="lanes rv"><div class="lanes-grid" style="--n:{total}">{"".join(lanes)}'
+              f'<div class="now" style="left:{now_left}" aria-hidden="true"><span>NOW</span></div></div></div>')
+
+tabs, panels = [], []
+for k, (key, label, test) in enumerate([("done", "Done", lambda s: s[0] == "done"), ("now", "In progress", lambda s: s[0] in ("next", "wait")),
+                                        ("next", "Next", lambda s: s[0] == "todo")]):
+    cards = []
+    for ms in MILESTONES:
+        items = [i for i in ms["rows"] if test(i["status"])]
+        if not items:
+            continue
+        lis = "".join(f'<li><b>{e(i["num"])}</b><span>{e(plain(i["title"]))}</span></li>' for i in items)
+        cards.append(f'<article class="phase"><header><b>{e(ms["name"])}</b><em>{len(items)} of {len(ms["rows"])}</em></header><ul>{lis}</ul></article>')
+    count = sum(1 for i in INCS if test(i["status"]))
+    tabs.append(f'<button role="tab" id="tab-{key}" aria-controls="panel-{key}" aria-selected="{"true" if key == "now" else "false"}" type="button">{label} · {count}</button>')
+    panels.append(f'<div class="phases" role="tabpanel" id="panel-{key}" aria-labelledby="tab-{key}"{"" if key == "now" else " hidden"}>{"".join(cards)}</div>')
+
+details = []
+for ms in MILESTONES:
+    header_ = ms["header"]
+    keep = [i for i, h in enumerate(header_) if h != "Founder input"]
+    has_status = "Status" in header_
+    n_done = sum(1 for i in ms["rows"] if i["status"][0] == "done")
+    head = "".join(f'<th scope="col">{e(header_[i])}</th>' for i in keep)
+    if not has_status:
+        head = head.replace("</th>", '</th><th scope="col">Status</th>', 1)
+    body_rows = []
+    for inc in ms["rows"]:
+        r = inc["row"]
         cells = []
         for i in keep:
-            if header[i] == "Status":
-                cells.append(f"<td>{badge(status_of(r[i]))}</td>")
-            else:
-                cells.append(f"<td>{inline(r[i]) if i < len(r) else ''}</td>")
+            cells.append(f"<td>{badge(inc['status'])}</td>" if header_[i] == "Status" else f"<td>{inline(r[i]) if i < len(r) else ''}</td>")
         if not has_status:
-            cells.insert(1, f"<td>{badge(None)}</td>")
-        body_rows.append("<tr>" + "".join(cells) + "</tr>")
-    if not has_status:
-        head = head.replace("</th>", "</th><th scope=\"col\">Status</th>", 1)
-    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
-    progress_html.append(f'<h2 id="{slug}">{e(title)}</h2>{summary}'
-                         f'<div class="table-wrap"><table><thead><tr>{head}</tr></thead><tbody>{"".join(body_rows)}</tbody></table></div>')
+            cells.insert(1, f"<td>{badge(PLANNED)}</td>")
+        body_rows.append(f'<tr id="{inc_id(inc)}">' + "".join(cells) + "</tr>")
+    is_open = any(i["status"][0] in ("next", "wait") for i in ms["rows"])
+    summary = f"{n_done} of {len(ms['rows'])} done" if has_status else "Sequenced; detail is written when the milestone before it closes"
+    details.append(f'<details class="milestone"{" open" if is_open else ""}><summary><div><h3>{e(ms["name"])}</h3><span class="counts">{summary}</span></div>'
+                   f'{meter(n_done, len(ms["rows"])) if has_status else "<span></span>"}</summary>'
+                   f'<div class="table-wrap"><table><thead><tr>{head}</tr></thead><tbody>{"".join(body_rows)}</tbody></table></div></details>')
 
 roadmap_text = (docs / "ROADMAP.md").read_text()
 roadmap_map = re.search(r"## 2\. The map\s+```text\n(.*?)```", roadmap_text, re.S)
 
 page("progress/", "Progress", "Every increment of Pulse with its status, how it is built and how it is proven.", f"""
-<section class="hero"><h1>Progress</h1>
-<p class="lede">Every increment, in build order, straight from the project roadmap. Each one names how it is built and the
-evidence that proves it works; an increment is done only when that proof exists.</p>
-{meter(done, total)}<p class="counts">{done} of {total} increments done · status key:
-{badge(STATUS["✓"])} {badge(STATUS["▶"])} {badge(STATUS["○"])} {badge(STATUS["⏸"])}</p></section>
-<h2 id="map">The map</h2><pre>{e(roadmap_map.group(1)) if roadmap_map else ""}</pre>
-{"".join(progress_html)}
-""")
+<div class="wrap">
+<section class="section" style="padding-top:40px"><p class="eyebrow">Project / <b>Progress</b></p>
+<h1>Progress <span class="code-voice">// {done}/{total}</span></h1>
+<p class="lede">Every increment, in build order, straight from the project roadmap. Each one names how it is built and the evidence
+that proves it works; an increment is done only when that proof exists.</p></section>
+<h2 id="board">Every increment</h2>{status_board()}
+<h2 id="lanes">Milestones</h2><p class="muted">Each lane spans its increments in build order; the fill is the share done.</p>{lanes_html}
+<h2 id="path">Path of progress</h2>{timeline()}
+<h2 id="phases">By status</h2><div class="tabs" role="tablist" aria-label="Increments by status">{"".join(tabs)}</div>{"".join(panels)}
+<h2 id="detail">In detail</h2><p class="muted">Open a milestone for how each increment is built and the proof it works.</p>{"".join(details)}
+<h2 id="map">The map</h2><div class="map"><pre>{e(roadmap_map.group(1)) if roadmap_map else ""}</pre></div>
+</div>""")
 
 # ----------------------------------------------------------------------------------------------------------- metrics
 
@@ -270,14 +410,34 @@ ex_out = 18_200_000
 ex_lv, ex_floor, ex_next = level_of(ex_out)
 ex_pct = round(100 * (ex_out - ex_floor) / (ex_next - ex_floor))
 
-page("metrics/", "Metrics", "How Pulse defines every number it shows: limits, pace, tokens, levels, specialty, calendars and charts.", f"""
-<section class="hero"><h1>Metrics</h1>
-<p class="lede">How every number in Pulse is defined, where it comes from, and what it does not mean. These rules are the
-code's rules; each section names the file that implements it.</p>
-<ul class="toc"><li><a href="#sources">Sources</a></li><li><a href="#tokens">Tokens</a></li><li><a href="#levels">Levels</a></li>
-<li><a href="#rank">Rank and specialty</a></li><li><a href="#agents">Agents per task</a></li><li><a href="#limits">Limits and pace</a></li><li><a href="#session">Session</a></li>
-<li><a href="#calendar">Calendar</a></li><li><a href="#charts">Charts</a></li></ul></section>
+LEVEL_SRC = "Sources/PulseApp/Views/Details/ModelsSection.swift"
+LIMIT_SRC = "Sources/UsageEngine/PoolReducer.swift"
+PACE_SRC = "Sources/UsageEngine/Pace.swift"
+level_code = excerpt(LEVEL_SRC, "static let targets: [Int64]", "self.next = reached")
+limit_code = excerpt(LIMIT_SRC, "static func classify(", "return .available")
+pace_code = excerpt(PACE_SRC, "guard slope > flatSlope", "return .reachesLimit(at: hit)")
 
+
+def play(kind, title, demo, code, src):
+    return (f'<div class="play" data-play="{kind}"><div class="play-demo"><b>{e(title)}</b>{demo}</div>'
+            f'<pre class="play-code" data-nocopy><code>// {e(src)}\n{e(code)}</code></pre></div>')
+
+
+LIMIT_DEMO = ('<label><span>Used <output>40%</output></span><input type="range" min="0" max="100" value="40" aria-label="Percent of the limit used"></label>'
+              '<div class="pmeter" aria-hidden="true"></div><p class="play-out ok" aria-live="polite">Available</p><p class="play-note"></p>')
+LEVEL_DEMO = ('<label><span>All-time output tokens</span><input type="number" min="0" step="1000" value="18200000" inputmode="numeric" aria-label="Output tokens"></label>'
+              '<div class="mini-btns"><button class="tool" type="button" data-set="850">850</button><button class="tool" type="button" data-set="1200000">1.2M</button>'
+              '<button class="tool" type="button" data-set="18200000">18.2M</button><button class="tool" type="button" data-set="740000000">740M</button></div>'
+              '<p class="play-out ok" aria-live="polite">LV 14</p><div class="pmeter" aria-hidden="true"></div><p class="play-note"></p>')
+PACE_DEMO = ('<label><span>Used now <output></output></span><input type="range" min="0" max="100" value="55" aria-label="Percent used now"></label>'
+             '<label><span>Rising by <output></output></span><input type="range" min="0" max="40" step="0.5" value="12" aria-label="Points per hour"></label>'
+             '<label><span>Readings span <output></output></span><input type="range" min="0" max="240" step="5" value="60" aria-label="Minutes of readings"></label>'
+             '<label><span>Reset in <output></output></span><input type="range" min="0" max="300" step="5" value="150" aria-label="Minutes until the reset, 0 for unknown"></label>'
+             '<p class="play-out" aria-live="polite"></p><p class="play-note"></p>')
+
+docs_page("metrics/", "Metrics", "How Pulse defines every number it shows: limits, pace, tokens, levels, specialty, calendars and charts.",
+          "How every number in Pulse is defined, where it comes from, and what it does not mean. These rules are the code's rules: "
+          "each section names the files that implement it, and the three playgrounds run the same rules beside the code.", f"""
 <h2 id="sources">Where the numbers come from</h2>
 <div class="table-wrap"><table><thead><tr><th>Source</th><th>What it gives</th><th>How fresh</th><th>Kept by Pulse</th></tr></thead><tbody>
 <tr><td>Claude Code status line</td><td>5-hour and 7-day usage with reset times, current model, context window, session cost estimate, durations, lines changed, prompt-cache counts</td><td>Every status refresh while Claude Code runs</td><td>Yes, on this Mac only, after an allowlist removes everything else (paths, prompts, ids)</td></tr>
@@ -297,6 +457,7 @@ code's rules; each section names the file that implements it.</p>
 <h2 id="levels">Levels</h2>
 <p class="formula">Level = 1 + the number of targets the model's all-time output has reached.<br>
 Targets: 1K, 2K, 5K, 10K, 20K, 50K, 100K … (1, 2, 5 in every power of ten).</p>
+{play("level", "Try it: output to level", LEVEL_DEMO, level_code, LEVEL_SRC)}
 <p>Why output: it is what the model produced. Total tokens are dominated by cache reads, so a long conversation would
 level a model up without it doing more. Why fixed 1-2-5 targets: every next target is a round number you can read, and
 each level asks for 2 to 2.5 times the output of the one before, so levels keep meaning something at any scale.</p>
@@ -308,9 +469,9 @@ with {compact(ex_next - ex_out)} to go.</p>
 <h3>The ladder</h3>
 <div class="table-wrap narrow"><table><thead><tr><th>Level</th><th class="num">Output reached</th><th class="num">Next level at</th><th class="num">Output in this level</th></tr></thead>
 <tbody>{"".join(ladder_rows)}</tbody></table></div>
-<p class="muted">The ladder continues the same way past LV 25. Source: <code>ModelLevel</code> in <code>Sources/PulseApp/Views/Details/ModelsSection.swift</code>;
-the app shows the same table under “How levels work” in Stats › Models › Arena. On 30-day and 7-day ranges, levels still
-use all-time output, because Claude Code records tokens by kind for all time only.</p>
+<p class="muted">The ladder continues the same way past LV 25. The app shows the same table under “How levels work” in Stats › Models › Arena.
+On 30-day and 7-day ranges, levels still use all-time output, because Claude Code records tokens by kind for all time only.</p>
+{sources(LEVEL_SRC)}
 
 <h2 id="rank">Rank and specialty</h2>
 <p><strong>Rank</strong>: by level, then by output, then by total tokens. A higher rank never has a lower level.</p>
@@ -318,10 +479,11 @@ use all-time output, because Claude Code records tokens by kind for all time onl
 <p>The specialty is the kind with the highest ratio, shown as, for example, “Reading input · 13× the party”: that model's
 share of input is 13 times the share across all models. If no kind reaches 1.1×, the model is an <strong>All-rounder</strong>.
 Every model mostly reads from cache, so the plain largest kind would say the same thing on every card; the ratio shows how
-each one differs. Source: <code>ModelSpecialty</code>.</p>
+each one differs.</p>
+{sources(LEVEL_SRC + " (ModelSpecialty)")}
 
 <h2 id="agents">Agents per task</h2>
-<p>Optional, off until you turn it on in Settings › Providers. A <strong>task</strong> is one prompt: from the moment you send
+<p>Optional, off until you turn it on in Settings. A <strong>task</strong> is one prompt: from the moment you send
 it until Claude stops. Pulse adds four background hooks to Claude Code (prompt submitted, subagent started, subagent stopped,
 Claude stopped) and counts the subagents each task starts, nested ones included.</p>
 <div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
@@ -332,9 +494,9 @@ Claude stopped) and counts the subagents each task starts, nested ones included.
 <tr><td>Used agents</td><td>Share of the last 30 days' tasks that started at least one subagent.</td></tr>
 <tr><td>Agents per task</td><td>All subagents in 30 days ÷ all tasks in 30 days, tasks without subagents included.</td></tr>
 </tbody></table></div>
-<p class="muted">Claude Code hands every hook the whole event, your prompt included. The helper keeps only the event name,
-hashed session and agent ids and the type, and drops the rest before anything leaves it. Source: <code>HookFrame</code>,
-<code>Store.record</code>.</p>
+<div class="callout"><p>Claude Code hands every hook the whole event, your prompt included. The helper keeps only the event name,
+hashed session and agent ids and the type, and drops the rest before anything leaves it.</p></div>
+{sources("Sources/ShimProtocol/HookFrame.swift", "Sources/Storage/Store+Agents.swift")}
 
 <h2 id="limits">Limits and the pace estimate</h2>
 <div class="table-wrap"><table><thead><tr><th>State</th><th>When</th></tr></thead><tbody>
@@ -343,14 +505,17 @@ hashed session and agent ids and the type, and drops the rest before anything le
 <tr><td>Reset expected</td><td>The reset time has passed but no fresh reading has confirmed it. Pulse never says “ready” without one.</td></tr>
 <tr><td>Stale</td><td>No reading recently; the last value is shown as “last seen” with its age.</td></tr>
 </tbody></table></div>
-<p class="muted">A state clears only after usage drops 3 points below its threshold, so it does not flicker. Source: <code>EngineConfig</code> in <code>Sources/UsageEngine/PoolReducer.swift</code>.</p>
+<p>A state clears only after usage drops 3 points below its threshold, so it does not flicker.</p>
+{play("limit", "Try it: drag the usage up and back down", LIMIT_DEMO, limit_code, LIMIT_SRC)}
 <p><strong>Pace estimate</strong> (always labelled “Estimate”): a straight line fitted by least squares through recent readings in
 the current window: the last 90 minutes for the 5-hour limit, the last 24 hours for the 7-day limit. It needs at least 3
-readings over at least 10 minutes. Below 0.5 points per hour usage counts as flat (“not rising”). It never looks further ahead
+readings over at least 10 minutes. At or below 0.5 points per hour usage counts as flat (“not rising”). It never looks further ahead
 than 8 times the history it rests on, so an hour of readings cannot predict two days. If the window resets before the line
-reaches 100%, it says roughly how much will be used by the reset. Source: <code>PaceEstimate</code> in <code>Sources/UsageEngine/Pace.swift</code>.</p>
+reaches 100%, it says roughly how much will be used by the reset.</p>
+{play("pace", "Try it: a steady rise through the readings", PACE_DEMO, pace_code, PACE_SRC)}
 <p>The Limits chart spans the limit's own window, from reset minus its length to the reset. The hatched span before the first
 reading is time Pulse was not yet watching.</p>
+{sources(LIMIT_SRC + " (EngineConfig, classify)", PACE_SRC)}
 
 <h2 id="session">Session figures</h2>
 <div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
@@ -366,7 +531,8 @@ reading is time Pulse was not yet watching.</p>
 <p>Each square is a day. Shading is by messages that day, in quarters of your active days: the quietest quarter is the
 faintest green, the busiest quarter the brightest. A day with no messages is dark; a day before your first session or after
 today is an outline marked “no data”. All time shows one calendar year (January to December) with a year switcher;
-30 days shows a month calendar; 7 days shows a column per day. Source: <code>StatsCalendar</code> and <code>StatsSummary</code>.</p>
+30 days shows a month calendar; 7 days shows a column per day.</p>
+{sources("Sources/PulseApp (StatsCalendar, StatsSummary)")}
 
 <h2 id="charts">Charts</h2>
 <p>Tokens per day are stacked by model on a real date axis: days with nothing stay on the axis. Past 120 days the bars become
@@ -379,60 +545,90 @@ weeks. The scale's top is the first round number at or above the tallest bar who
 arch = (docs / "ARCHITECTURE.md").read_text()
 flow = re.search(r"## 6\. Data flow\s+```text\n(.*?)```", arch, re.S)
 
-page("architecture/", "Architecture", "How Pulse is put together: processes, data flow, modules and quality gates.", f"""
-<section class="hero"><h1>Architecture</h1>
-<p class="lede">A native macOS menu bar app (Swift 6, SwiftUI) that reads what Claude Code already reports about itself, on your
-Mac, with no account, no server and no network code.</p></section>
+STEPS = [
+    ("Claude Code", "Status line", "Runs your status line command on every refresh and hands it a JSON description of the session."),
+    ("Helper", "statusline.sh · pulse-statusline", "Passes the input to your own status line unchanged, keeps only allowlisted fields, sends them on."),
+    ("Ingest", "Socket · Ingestor", "Local socket, peer checks and a rate limit; each frame becomes readings with source and freshness."),
+    ("Store", "SQLite · UsageEngine", "One transaction per frame: insert the reading, work out each limit's state, keep the history."),
+    ("Show", "Menu bar · Dashboard", "Renders snapshots it is handed and never computes a state itself."),
+    ("Sync", "Optional, if you sign in", "Uploads daily counts once an hour; the only module allowed to use the network."),
+]
+
+
+def explode():
+    plates = "".join(f'<div class="plate{" cloud" if i == len(STEPS) else ""}" style="--z:{i - 3.5}" data-step="{i}"><span>{i:02d} {e(name)}</span></div>'
+                     for i, (name, _, _) in enumerate(STEPS, 1))
+    steps = "".join(f'<li data-step="{i}" tabindex="0"><b>{i:02d}</b><div><strong>{e(name)} · {e(sub)}</strong><span>{e(note)}</span></div></li>'
+                    for i, (name, sub, note) in enumerate(STEPS, 1))
+    return (f'<div class="explode rv"><ol class="steps" aria-label="How a reading travels">{steps}</ol>'
+            f'<div class="stack" aria-hidden="true">{plates}<span class="giant-word">FLOW</span></div></div>')
+
+
+PIXEL = {  # 8×8 pixel icons for the principles (Teak's hairline grid)
+    "local": ["...##...", "..####..", ".######.", "########", ".#....#.", ".#.##.#.", ".#.##.#.", ".######."],
+    "allow": ["########", "########", ".######.", "..####..", "...##...", "...##...", "...##...", "...#...."],
+    "absent": ["........", "########", "#......#", "#......#", "########", "........", "#.#.#.#.", "........"],
+    "undo": ["..####..", ".#....#.", "#......#", "#...#...", "#...##..", "#...###.", ".#..##..", "..#.#..."],
+}
+
+
+def pixel_icon(name, colour="#4DFF8F"):
+    rects = "".join(f'<rect x="{x}" y="{y}" width="1" height="1"/>' for y, row in enumerate(PIXEL[name]) for x, c in enumerate(row) if c == "#")
+    return f'<svg viewBox="0 0 8 8" fill="{colour}" aria-hidden="true" shape-rendering="crispEdges">{rects}</svg>'
+
+
+gate_rows = "".join(f"<tr><td>{e(g[:1].upper() + g[1:])}</td><td>{e(GATE_NOTES.get(g, ''))}</td></tr>" for g in GATES)
+
+docs_page("architecture/", "Architecture", "How Pulse is put together: processes, data flow, modules and quality gates.",
+          "A native macOS menu bar app (Swift 6, SwiftUI) that reads what Claude Code already reports about itself, on your Mac. "
+          "It works fully without an account; signing in is optional and uploads daily counts only (see <a href=\"/privacy/\">Privacy</a>).", f"""
+<h2 id="flow-at-a-glance">A reading's path</h2>
+<p>Six layers, bottom to top. Point at a step to light its layer.</p>
+{explode()}
 
 <h2 id="processes">Processes</h2>
 <div class="table-wrap"><table><thead><tr><th>Process</th><th>Role</th></tr></thead><tbody>
-<tr><td><code>Pulse.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it.</td></tr>
-<tr><td><code>pulse-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app.</td></tr>
+<tr><td><code>Pulse.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it. If you sign in, it uploads daily counts once an hour.</td></tr>
+<tr><td><code>pulse-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app. It links no networking at all.</td></tr>
 <tr><td><code>hook.sh</code> (optional)</td><td>Installed only when you turn on agents per task. Claude Code runs it in the background on four events; it runs the helper in hook mode, which sends counts only and always exits silently, so it can never block or change what Claude Code does.</td></tr>
 <tr><td><code>statusline.sh</code></td><td>The installed command. Runs the helper if the app is there, otherwise your original status line, so removing the app never breaks Claude Code.</td></tr>
 </tbody></table></div>
 
-<h2 id="flow">Data flow</h2>
+<h2 id="flow">Data flow on the Mac</h2>
 <pre>{e(flow.group(1)) if flow else ""}</pre>
 
 <h2 id="modules">Modules</h2>
 <div class="table-wrap"><table><thead><tr><th>Module</th><th>Responsibility</th></tr></thead><tbody>
 <tr><td><code>Domain</code></td><td>Values that carry where they came from and how fresh they are, so a missing number can never show as 0%.</td></tr>
 <tr><td><code>ShimProtocol</code> · <code>StatusLineShim</code></td><td>The frame format and the allowlist; the helper's logic.</td></tr>
-<tr><td><code>ClaudeCodeAdapter</code></td><td>Socket ingest, mapping frames to readings, the settings installer, the statistics-file reader.</td></tr>
+<tr><td><code>ClaudeCodeAdapter</code></td><td>Socket ingest, mapping frames to readings, the settings and hooks installers, the statistics-file reader.</td></tr>
 <tr><td><code>UsageEngine</code></td><td>Pure rules: limit states, windows, freshness, the pace estimate.</td></tr>
 <tr><td><code>Storage</code></td><td>SQLite (GRDB): one writer, a ledger of readings, migrations with a backup first, retention.</td></tr>
-<tr><td><code>DesignSystem</code></td><td>Tokens, themes (Phosphor), pixel components, accessibility formatting.</td></tr>
-<tr><td><code>PulseApp</code></td><td>The app: popover, Details window, Stats, settings, onboarding, diagnostics.</td></tr>
+<tr><td><code>Sync</code></td><td>Optional sign-in by email link and the hourly upload of daily counts. The only module that may use the network, and only the app imports it.</td></tr>
+<tr><td><code>DesignSystem</code></td><td>Tokens, themes (Phosphor dark and light), pixel glyphs and components, accessibility formatting.</td></tr>
+<tr><td><code>PulseApp</code></td><td>The app: menu bar panel, Dashboard (Home, Limits, Session, Stats, Goals, Account, Settings), onboarding, diagnostics.</td></tr>
 <tr><td><code>SubscriptionCatalog</code></td><td>Plan names, never used to infer usage.</td></tr>
 </tbody></table></div>
 
 <h2 id="principles">Principles</h2>
-<div class="grid two">
-<div class="panel"><h3>Local only</h3><p class="muted">No networking code in the app or helper; a CI gate checks the binaries' linked frameworks.</p></div>
-<div class="panel"><h3>Allowlist at the source</h3><p class="muted">The helper drops everything not on the allowlist before sending, so the app cannot receive what it must not keep.</p></div>
-<div class="panel"><h3>Absent is not zero</h3><p class="muted">A limit the source did not report is shown in words with an empty outlined bar, never as 0%.</p></div>
-<div class="panel"><h3>Reversible</h3><p class="muted">Installing into Claude Code backs up your settings; uninstalling and delete-all restore them byte for byte.</p></div>
+<div class="hair principles">
+<div class="principle">{pixel_icon("local")}<h3>Local first</h3><p>Everything works on your Mac without an account. Network code lives only in Sync, used only after you sign in.</p></div>
+<div class="principle">{pixel_icon("allow", "#FFC04D")}<h3>Allowlist at the source</h3><p>The helper drops everything not on the allowlist before sending, so the app cannot receive what it must not keep.</p></div>
+<div class="principle">{pixel_icon("absent", "#F3F1E7")}<h3>Absent is not zero</h3><p>A limit the source did not report is shown in words with an empty outlined bar, never as 0%.</p></div>
+<div class="principle">{pixel_icon("undo", "#FF6B5E")}<h3>Reversible</h3><p>Installing into Claude Code backs up your settings; uninstalling and delete-all restore them byte for byte.</p></div>
 </div>
 
 <h2 id="quality">Quality gates</h2>
-<p>One command, <code>make ci</code>, runs every gate and must pass before each increment is committed:</p>
-<div class="table-wrap"><table><thead><tr><th>Gate</th><th>What it checks</th></tr></thead><tbody>
-<tr><td>Toolchain pinned</td><td>The expected Swift version.</td></tr><tr><td>Strict build</td><td>Warnings are errors; Swift 6 strict concurrency.</td></tr>
-<tr><td>Tests</td><td>The full suite (Swift Testing).</td></tr><tr><td>Helper links no networking</td><td>The helper binary links no networking frameworks.</td></tr>
-<tr><td>No networking code</td><td>No networking APIs in the sources.</td></tr><tr><td>Clock injected</td><td>Logic reads time through an injected clock, so tests control it.</td></tr>
-<tr><td>Design tokens only</td><td>Views use theme tokens, never literal colours or sizes.</td></tr><tr><td>Redaction audit</td><td>Logs and exports contain no fields outside the allowlist.</td></tr>
-<tr><td>Secret scan</td><td>No credentials in the repository.</td></tr><tr><td>App bundle</td><td>Signature, embedded helper, entitlements.</td></tr>
-</tbody></table></div>
+<p>One command, <code>make ci</code>, runs every gate and must pass before each increment is committed. The list below is read from <code>scripts/ci.sh</code>.</p>
+<div class="table-wrap"><table><thead><tr><th>Gate</th><th>What it checks</th></tr></thead><tbody>{gate_rows}</tbody></table></div>
+{sources("scripts/ci.sh", "docs/ARCHITECTURE.md")}
 """)
 
 # ----------------------------------------------------------------------------------------------------------- privacy
 
-page("privacy/", "Privacy", "What Pulse reads, what it keeps on your Mac, and what it uploads if you sign in.", """
-<section class="hero"><h1>Privacy</h1>
-<p class="lede">Pulse works fully on your Mac without an account. If you choose to sign in, it uploads daily counts so you can see your
-goals and usage elsewhere. This page lists every field. Draft, 17 October 2026.</p></section>
-
+docs_page("privacy/", "Privacy", "What Pulse reads, what it keeps on your Mac, and what it uploads if you sign in.",
+          "Pulse works fully on your Mac without an account. If you choose to sign in, it uploads daily counts so you can see your "
+          "goals and usage elsewhere. This page lists every field. Draft, 17 October 2026.", """
 <h2 id="mac">On your Mac</h2>
 <p>Pulse reads Claude Code's status line (limits, model, context, session cost estimate, durations, lines changed), and, only if you turn them
 on, Claude Code's statistics file and four background hooks that count subagents per task. A helper drops everything else (prompts, replies,
@@ -450,8 +646,8 @@ Delete all removes everything Pulse stored and restores Claude Code's settings.<
 <tr><td>Agents per day</td><td>Day, tasks, subagents, subagents by built-in type (custom agents as "custom")</td><td>Counting agents is on</td></tr>
 <tr><td>Goals</td><td>Goal kind and target; each day's value and whether it was met</td><td>Always</td></tr>
 </tbody></table></div>
-<p><strong>Never uploaded:</strong> prompts, replies, file or folder paths, project or repository names, transcript locations, session or agent
-ids, per-session cost, your Claude account details or anything about other apps.</p>
+<div class="callout"><p><strong>Never uploaded:</strong> prompts, replies, file or folder paths, project or repository names, transcript locations, session or agent
+ids, per-session cost, your Claude account details or anything about other apps.</p></div>
 
 <h2 id="account">Your account</h2>
 <p>Sign-in is by email link (Apple, Google and GitHub to follow). Your email is held by the sign-in service to send links; it is not stored
@@ -465,97 +661,251 @@ refused. The app holds only the project's publishable key; your session is kept 
 
 # ----------------------------------------------------------------------------------------------------------- screens
 
-CAPTIONS = {
-    "details-home-light": ("Home, light mode", "The same page in Phosphor light: paper, ink and deep green."),
-    "details-home": ("Home", "A greeting, the running total, both limits, the latest task, goals at a glance and the last 12 months."),
-    "details-card": ("Stats › Card", "The player card: name, first session, plan, milestone stamps, output total, named level; copy, save or share."),
-    "details-goals": ("Goals", "Active days a week, the 5-hour peak and the week's finish, each with its state in words and its target."),
-    "details-account": ("Account", "Your year, your profile and plan, and where sign-in will go."),
-    "details-settings": ("Settings", "Settings in the window, as rows with a line of explanation each."),
-    "popover-overview": ("Menu bar popover", "Limits with state, reset and pace estimate; the current session; links to Details and Stats."),
-    "popover-detail": ("Provider detail", "Plan, both limits and the session in more depth."),
-    "popover-inspector": ("Provenance inspector", "Where a number came from and how fresh it is."),
-    "details-limits": ("Details › Limits", "Each limit over its own window: scale, threshold bands, NOW, the span before readings, the pace estimate."),
-    "details-session": ("Details › Session", "The current session in full, recent sessions, and sessions by model."),
-    "details-stats-overview": ("Stats › Overview, all time", "A January–December activity calendar with a year switcher, tiles, hours and tokens by kind."),
-    "details-stats-overview-30": ("Stats › Overview, 30 days", "A month calendar with message counts beside tokens per day."),
-    "details-stats-overview-7": ("Stats › Overview, 7 days", "A column per day: messages, sessions and tokens."),
-    "details-stats-models": ("Stats › Models, chart", "Tokens per week stacked by model on a real date axis."),
-    "details-stats-arena": ("Stats › Models, arena", "A pixel character per model: level from output, specialty, tokens by kind."),
-    "details-stats-arena-tall": ("Stats › Models, how levels work", "The level ladder with each model placed on it, and what each kind of token means."),
-    "onboarding-3-consent": ("Onboarding consent", "What Pulse reads and keeps, before anything is installed."),
-    "settings-diagnostics": ("Settings › Diagnostics", "Redacted log, export and delete-all."),
-    "settings-delete-all-sheet": ("Delete all", "Removes Pulse's data and restores Claude Code's settings."),
-}
+GROUPS = [
+    ("Menu bar", {
+        "popover-overview": ("Menu bar panel", "Both limits side by side with state, reset and pace estimate; the current session; one Dashboard button."),
+        "popover-detail": ("Provider detail", "Plan, both limits and the session in more depth."),
+        "popover-inspector": ("Provenance inspector", "Where a number came from and how fresh it is."),
+    }),
+    ("Dashboard", {
+        "details-home": ("Home", "A greeting, the running total, both limits, the latest task, goals at a glance and the last 12 months."),
+        "details-home-light": ("Home, light mode", "The same page in Phosphor light: paper, ink and deep green."),
+        "details-limits": ("Limits", "Each limit over its own window: scale, threshold bands, NOW, the span before readings, the pace estimate."),
+        "details-session": ("Session", "The current session in full, agents per task, recent sessions, and sessions by model."),
+        "details-goals": ("Goals", "Active days a week, the 5-hour peak and the week's finish, each with its state in words and its target."),
+        "details-account": ("Account", "Profile, plan, sign in by email link (Apple, Google and GitHub being set up), your year and the danger zone."),
+        "details-settings": ("Settings", "Settings in the window, as rows with a line of explanation each."),
+    }),
+    ("Stats", {
+        "details-stats-overview": ("Overview, all time", "A January–December activity calendar with a year switcher, tiles, hours and tokens by kind."),
+        "details-stats-overview-30": ("Overview, 30 days", "A month calendar with message counts beside tokens per day."),
+        "details-stats-overview-7": ("Overview, 7 days", "A column per day: messages, sessions and tokens."),
+        "details-stats-models": ("Models, chart", "Tokens per week stacked by model on a real date axis."),
+        "details-stats-arena": ("Models, arena", "A pixel character per model: level from output, specialty, tokens by kind."),
+        "details-stats-arena-tall": ("Models, how levels work", "The level ladder with each model placed on it, and what each kind of token means."),
+        "details-card": ("Card", "The player card: name, first session, plan, milestone stamps, output total, named level; copy, save or share."),
+    }),
+    ("Setup and safety", {
+        "onboarding-3-consent": ("Onboarding consent", "What Pulse reads and keeps, before anything is installed."),
+        "settings-diagnostics": ("Diagnostics", "Redacted log, export and delete-all."),
+        "settings-delete-all-sheet": ("Delete all", "Removes Pulse's data and restores Claude Code's settings."),
+    }),
+]
 (site / "screens" / "img").mkdir(parents=True, exist_ok=True)
-figures = []
-for name in CAPTIONS:
-    src = screens / f"{name}.png"
-    if not src.exists():
-        continue
-    shutil.copy(src, site / "screens" / "img" / src.name)
-    title, note = CAPTIONS[name]
-    figures.append(f'<figure><a href="img/{src.name}"><img src="img/{src.name}" alt="{e(title)}: {e(note)}" loading="lazy"></a>'
-                   f'<figcaption><strong>{e(title)}</strong>. {e(note)}</figcaption></figure>')
+figures, dock, stage_panels, shot_count = [], [], [], 0
+for gi, (group, shots) in enumerate(GROUPS):
+    buttons = []
+    for name, (title, note) in shots.items():
+        src = screens / f"{name}.png"
+        if not src.exists():
+            continue
+        shutil.copy(src, site / "screens" / "img" / src.name)
+        shot_count += 1
+        url = f"img/{src.name}"
+        alt = f"{title}: {note}"
+        figures.append(f'<figure><a href="{url}"><img src="{url}" alt="{e(alt)}" loading="lazy"></a>'
+                       f'<figcaption><strong>{e(group)} › {e(title)}</strong>. {e(note)}</figcaption></figure>')
+        buttons.append(f'<button type="button" aria-pressed="false" data-src="{url}" data-alt="{e(alt)}" data-title="{e(group)} › {e(title)}" data-note="{e(note)}">'
+                       f'<img src="{url}" alt="" loading="lazy"><span>{e(title)}</span></button>')
+    if buttons:
+        key = slug(group)
+        dock.append(f'<button role="tab" class="px-btn" id="dock-{key}" aria-controls="thumbs-{key}" aria-selected="{"true" if gi == 1 else "false"}" type="button">{e(group)}</button>')
+        stage_panels.append(f'<div class="thumbs" role="tabpanel" id="thumbs-{key}" aria-labelledby="dock-{key}"{"" if gi == 1 else " hidden"}>{"".join(buttons)}</div>')
 
 page("screens/", "Screens", "Screenshots of the running Pulse app with demo data.", f"""
-<section class="hero"><h1>Screens</h1>
+<div class="wrap">
+<section class="section" style="padding-top:40px"><p class="eyebrow">Project / <b>Screens</b></p>
+<h1>Screens <span class="code-voice">// demo data</span></h1>
 <p class="lede">The running app, captured by its own debug probe with demo data and a synthetic statistics file. Nothing here is
-a real account. Select a screen to open it full size.</p></section>
-<div class="shots">{"".join(figures)}</div>
-""")
+a real account. Pick a group in the dock, then a screen below; select the large image to open it full size.</p></section>
+<div class="halftone rv"><div class="stage">
+<div class="dock"><div role="tablist" aria-label="Screen groups">{"".join(dock)}</div></div>
+<figure class="stage-main"><a href="#" target="_blank" rel="noopener"><img src="" alt=""></a><figcaption></figcaption></figure>
+{"".join(stage_panels)}
+</div><div class="shots">{"".join(figures)}</div></div>
+</div>""")
 
 # --------------------------------------------------------------------------------------------------------- changelog
 
 log = [line.split("\t", 2) for line in git("log", "--pretty=%ad\t%h\t%s", "--date=short").splitlines()]
-items = "".join(f'<li><time datetime="{e(d)}">{e(d)}</time><code>{e(h)}</code><span>{e(s)}</span></li>' for d, h, s in log)
+
+
+def tag_of(subject):
+    m = re.match(r"(\d+\.\d+[a-z]?(?:[-–]\w+)?)", subject)
+    if m:
+        return "increment", m.group(1)
+    for prefix, kind, label in (("Site", "site", "Site"), ("Milestone", "milestone", "Milestone"), ("Design", "design", "Design"),
+                                ("Level", "design", "Design"), ("Arena", "design", "Design")):
+        if subject.startswith(prefix):
+            return kind, label
+    return "milestone", subject.split(":")[0][:10]
+
+
+def nice_date(d):
+    y, m, dd = map(int, d.split("-"))
+    return date(y, m, dd).strftime("%-d %b %Y")
+
+
+days_html, by_day = [], {}
+for d, h, s in log:
+    by_day.setdefault(d, []).append((h, s))
+for d, entries in by_day.items():
+    lis = []
+    for h, s in entries:
+        kind, label = tag_of(s)
+        lis.append(f'<li data-tag="{kind}" data-text="{e(s.lower())} {e(label.lower())} {h}"><span class="tag t-{kind}">{e(label)}</span>'
+                   f'<span>{e(s)}</span><code>{e(h)}</code></li>')
+    days_html.append(f'<section class="day"><h2 id="d-{d}"><time datetime="{d}">{nice_date(d)}</time></h2><ul class="entries">{"".join(lis)}</ul></section>')
+
+latest_inc = next(((h, s) for d, h, s in log if tag_of(s)[0] == "increment"), None)
+kinds = [("", "All"), ("increment", "Increments"), ("site", "Site"), ("design", "Design"), ("milestone", "Milestones and decisions")]
+chips = "".join(f'<button class="chip" type="button" data-tag="{k}" aria-pressed="{"true" if not k else "false"}">{e(n)}</button>' for k, n in kinds)
+gates_list = "".join(f"<span>{e(g)}</span>" for g in GATES)
+
 page("changelog/", "Changelog", "Every commit to Pulse, newest first.", f"""
-<section class="hero"><h1>Changelog</h1>
-<p class="lede">Every commit, newest first. Each one passed all {10} quality gates before it was pushed.</p></section>
-<ul class="log">{items}</ul>
-""")
+<div class="wrap" data-changelog>
+<section class="section" style="padding-top:40px"><p class="eyebrow">Project / <b>Changelog</b></p>
+<h1>Changelog <span class="code-voice">// {len(log)} commits</span></h1>
+<p class="lede">Every commit, newest first. Each one passed all {len(GATES)} quality gates before it was pushed.</p></section>
+{f'<div class="release rv"><div><p class="eyebrow">Latest increment · <b>{e(latest_inc[0])}</b></p><h3>{e(latest_inc[1])}</h3><p>Passed every gate:</p></div><div class="gates">{gates_list}</div></div>' if latest_inc else ""}
+<div class="filters"><input type="search" placeholder="Search the changelog" aria-label="Search the changelog">{chips}</div>
+{"".join(days_html)}
+<p class="none" hidden>No commit matches. Clear the search or pick All.</p>
+</div>""")
+for d, h, s in log:
+    SEARCH.append({"t": s, "p": "Changelog", "u": f"/changelog/#d-{d}", "x": f"{h} · {d}"})
+for inc in INCS:
+    SEARCH.append({"t": f'{inc["num"]} {plain(inc["title"])}', "p": f'Progress · {inc["status"][1]}', "u": f"/progress/#{inc_id(inc)}",
+                   "x": plain(inc["how"])[:200]})
 
 # ---------------------------------------------------------------------------------------------------------- overview
 
-now_rows = "".join(f"<tr><td>{inline(r[0])}</td><td>{badge(status_of(r[1]))}</td><td>{inline(r[2])}</td></tr>"
-                   for r in (current + upcoming)[:4])
-recent = "".join(f'<li><time datetime="{e(d)}">{e(d)}</time><code>{e(h)}</code><span>{e(s)}</span></li>' for d, h, s in log[:5])
-hero_shot = "details-stats-arena" if (screens / "details-stats-arena.png").exists() else "popover-overview"
-page("", "Overview", "Technical documentation and progress for Pulse, a macOS menu bar monitor for AI usage limits.", f"""
-<section class="hero"><h1>Pulse</h1>
-<p class="lede">A macOS menu bar app that shows how much of your Claude Code limits you have used, when they reset and how
-fast you are going, from what Claude Code reports on your own Mac. These pages document how it is built, what every number
-means and where the work stands.</p></section>
-<div class="grid" style="margin-top:28px">
-<div class="panel stat"><b>{done}/{total}</b><span>Increments done</span>{meter(done, total)}</div>
-<div class="panel stat"><b>{len(log)}</b><span>Commits</span></div>
-<div class="panel stat"><b>10</b><span>Quality gates per commit</span></div>
-<div class="panel stat"><b>0</b><span>Network calls</span></div>
+
+def words(text, start=0.0, step=0.06):
+    out = []
+    for i, w in enumerate(text.split(" ")):
+        out.append(f'<span class="w" style="animation-delay:{start + i * step:.2f}s">{w}</span>')
+    return " ".join(out)
+
+
+MARQUEE = [["LIMITS", "green"], ["5-HOUR", "out"], ["PACE", "amber"], ["7-DAY", "cream"], ["LEVELS", "rust"], ["ABSENT ≠ 0", "out"],
+           ["GOALS", "green"], ["AGENTS", "amber"]]
+MARQUEE2 = [["LOCAL FIRST", "cream"], ["ALLOWLIST", "out"], ["STREAKS", "rust"], ["CALENDAR", "green"], ["DELETE ALL", "out"],
+            ["ESTIMATE", "amber"], ["ARENA", "cream"]]
+
+
+def marquee_row(items):
+    blocks = "".join(f'<b class="c-{c}">{e(w)}</b>' for w, c in items)
+    return f'<div class="marquee-row">{blocks}<span class="dup" style="display:contents">{blocks}</span></div>'
+
+
+inc_dots = "".join(f'<i class="{"on" if i["status"][0] == "done" else "next" if i["status"][0] == "next" else "wait" if i["status"][0] == "wait" else ""}" title="{e(i["num"])}"></i>' for i in INCS)
+bubbles = "".join('<div><span>' + "".join(f'<i class="{"on" if i["status"][0] == "done" else "next" if i["status"][0] in ("next", "wait") else ""}"></i>' for i in ms["rows"])
+                  + f'</span><small>{e(ms["key"])}</small></div>' for ms in MILESTONES)
+recent = "".join(f'<li><span class="tag t-{tag_of(s)[0]}">{e(tag_of(s)[1])}</span><span>{e(s)}</span><code>{e(h)}</code></li>' for d, h, s in log[:6])
+
+
+def wire(kind):
+    """Small wireframe drawings for the entry cards (Attio)."""
+    body = {
+        "metrics": '<rect class="wf" x="20" y="20" width="280" height="100"/><rect class="wf-f" x="40" y="80" width="20" height="30"/><rect class="wf-f" x="70" y="60" width="20" height="50"/>'
+                   '<rect class="wf-s" x="100" y="40" width="20" height="70"/><rect class="wf-f" x="130" y="70" width="20" height="40"/>'
+                   '<path class="wf-s" d="M180 100 h20 v-10 h20 v-15 h20 v-20 h20 v-25 h20"/><text class="wf-t" x="182" y="40">LV 14</text>',
+        "architecture": '<rect class="wf" x="40" y="22" width="120" height="26"/><rect class="wf" x="60" y="56" width="120" height="26"/><rect class="wf-s" x="80" y="90" width="120" height="26"/>'
+                        '<path class="wf" d="M200 35 h60 v68 h-60"/><circle class="wf-a" cx="260" cy="70" r="3"/><text class="wf-t" x="88" y="107">STORE</text>',
+        "privacy": '<rect class="wf" x="110" y="20" width="100" height="100"/><path class="wf-s" d="M140 70 v-14 a20 20 0 0 1 40 0 v14"/><rect class="wf-f" x="130" y="70" width="60" height="38"/>'
+                   '<path class="wf" d="M30 40 h60 M30 60 h50 M30 80 h60 M230 40 h60 M240 60 h50 M230 80 h60"/>',
+        "progress": '<path class="wf" d="M20 30 h280 M20 60 h280 M20 90 h280"/><rect class="wf-f" x="20" y="22" width="120" height="16"/><rect class="wf-f" x="140" y="52" width="80" height="16"/>'
+                    '<rect class="wf" x="220" y="82" width="70" height="16"/><path class="wf-s" d="M200 14 v110"/><text class="wf-t" x="204" y="20">NOW</text>',
+        "screens": '<rect class="wf" x="30" y="24" width="170" height="96"/><rect class="wf-s" x="120" y="44" width="170" height="80"/><circle class="wf-a" cx="132" cy="54" r="3"/>'
+                   '<rect class="wf-f" x="132" y="66" width="60" height="8"/><rect class="wf-f" x="132" y="80" width="140" height="30"/>',
+        "design": '<rect class="wf-f" x="30" y="30" width="40" height="40"/><rect class="wf-a" x="80" y="30" width="40" height="40"/><rect class="wf" x="130" y="30" width="40" height="40"/>'
+                  '<text class="wf-t" x="190" y="50" style="font-size:22px">Aa</text><path class="wf" d="M30 90 h260 M30 104 h200"/>',
+    }[kind]
+    return f'<svg viewBox="0 0 320 140" aria-hidden="true" preserveAspectRatio="xMidYMid meet">{body}</svg>'
+
+
+ENTRIES = [("metrics/", "metrics", "Metrics", "Every number defined, with three playgrounds that run the app's rules."),
+           ("architecture/", "architecture", "Architecture", "Processes, the path of a reading, modules and quality gates."),
+           ("privacy/", "privacy", "Privacy", "What stays on your Mac, and every field uploaded if you sign in."),
+           ("progress/", "progress", "Progress", "Each increment, how it is built and how it is proven."),
+           ("screens/", "screens", "Screens", "The running app, with demo data."),
+           ("design-system/", "design", "Design system", "Tokens, themes and components, rendered from the Swift code.")]
+entries = "".join(f'<a class="entry" href="/{p}">{wire(k)}<div><h3>{e(t)}</h3><p>{e(d)}</p></div></a>' for p, k, t, d in ENTRIES)
+boot_lines = json.dumps(["PULSE DOCUMENTATION SYSTEM", f"BUILD {COMMIT} · {COMMIT_DATE}", f"{done}/{total} INCREMENTS · {len(GATES)} GATES",
+                         "READING CLAUDE CODE STATUS LINE … OK"])
+hero_shot = "popover-overview" if (screens / "popover-overview.png").exists() else None
+home_shot = "details-stats-arena" if (screens / "details-stats-arena.png").exists() else None
+
+page("", "Overview", "Technical documentation and progress for Pulse, a macOS menu bar monitor for Claude Code usage limits.", f"""
+<div class="boot" aria-hidden="true" data-lines='{e(boot_lines)}'><div class="boot-screen"><div class="boot-logo">PULSE</div>
+<div class="boot-lines"></div><div class="boot-bar">{"<i></i>" * 20}</div><div class="boot-skip">Click or press any key to skip</div></div></div>
+<section class="hero"><canvas class="hero-canvas" data-dither data-beat data-w="180" data-h="180" aria-hidden="true"></canvas>
+<div class="wrap hero-inner"><p class="eyebrow">Pulse docs · build <b>{e(COMMIT)}</b> · {done}/{total} increments done</p>
+<h1 class="wordmark" data-text="PULSE">PULSE</h1>
+<p class="headline focus-in-later">{words("Your Claude Code limits,")} <span class="w code-voice" style="animation-delay:.3s">//before</span> {words("you hit them.", .36)}</p>
+<p class="lede">A macOS menu bar app that shows how much of your Claude Code limits you have used, when they reset and how fast you
+are going, from what Claude Code reports on your own Mac. These pages document how it is built, what every number means and where the work stands.</p>
+<button class="searchbar" type="button" data-search-open><span>Search the docs: limits, levels, pace…</span><kbd>⌘K</kbd></button>
+<div class="chips">Popular: <a href="/metrics/#levels">Levels</a><a href="/metrics/#limits">Pace estimate</a><a href="/metrics/#agents">Agents per task</a>
+<a href="/privacy/#upload">What is uploaded</a><a href="/architecture/#flow-at-a-glance">A reading's path</a></div>
+<div class="hero-foot"><span>01 · Menu bar monitor for macOS</span><span>Scroll ↓</span></div></div></section>
+
+<div class="marquee" aria-hidden="true">{marquee_row(MARQUEE)}{marquee_row(MARQUEE2)}</div>
+
+<div class="wrap">
+<section class="section"><div class="section-head rv"><div><span class="idx">01 / AT A GLANCE</span><h2 id="glance">The build, in numbers</h2></div>
+<p>Counted from the roadmap, the git history, the test suite and the CI script each time this site is generated.</p></div>
+<div class="bento rv">
+<div class="tile big"><span>Increments done</span><div class="dots" style="--cols:13">{inc_dots}</div><b>{done}<span style="font-size:.4em;letter-spacing:0;text-transform:none">/{total}</span></b></div>
+<div class="tile ink"><b>{len(log)}</b><span>Commits, each through every gate</span></div>
+<div class="tile"><b>{TESTS}</b><span>Swift tests</span></div>
+<div class="tile"><b>{len(GATES)}</b><span>Quality gates per commit</span></div>
+<div class="tile amber"><b>0</b><span>Prompts, replies or paths ever uploaded</span></div>
+<div class="tile full"><span>Increments by milestone</span><div class="bubbles">{bubbles}</div></div>
+</div></section>
+
+<section class="section"><div class="section-head rv"><div><span class="idx">02 / STATUS</span><h2 id="status">Every increment</h2></div>
+<p>One bar per increment, like a status page: green is done, amber is in progress, outlined is waiting on a go.</p></div>
+{status_board()}</section>
+
+<section class="section"><div class="section-head rv"><div><span class="idx">03 / THE APP</span><h2 id="app">What it looks like</h2></div>
+<p>The menu bar panel and the arena, from the running app with demo data. <a href="/screens/">All screens →</a></p></div>
+<div class="halftone rv" style="display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));align-items:start">
+{f'<figure style="margin:0"><img src="/screens/img/{hero_shot}.png" alt="Menu bar panel: both limits with state, reset and pace estimate, and the current session" loading="lazy" style="width:100%;display:block"></figure>' if hero_shot else ""}
+{f'<figure style="margin:0"><img src="/screens/img/{home_shot}.png" alt="Stats › Models arena: a pixel character per model with level and tokens by kind" loading="lazy" style="width:100%;display:block;border:1px solid var(--p-line)"></figure>' if home_shot else ""}
+</div></section>
+
+<section class="section"><div class="section-head rv"><div><span class="idx">04 / TRY THE RULES</span><h2 id="try">Drag it past 80%</h2></div>
+<p>The same rule the app runs to name a limit's state, next to its Swift source. Level and pace playgrounds are on <a href="/metrics/#levels">Metrics</a>.</p></div>
+<div class="rv">{play("limit", "Limit state, with hysteresis", LIMIT_DEMO, limit_code, LIMIT_SRC)}</div></section>
+
+<section class="section"><div class="section-head rv"><div><span class="idx">05 / HOW IT READS</span><h2 id="reads">A reading's path</h2></div>
+<p>From Claude Code's status line to the menu bar, all on your Mac. The sixth layer runs only if you sign in.</p></div>
+{explode()}</section>
+
+<section class="section"><div class="section-head rv"><div><span class="idx">06 / PATH OF PROGRESS</span><h2 id="path">Step through the build</h2></div>
+<p>Every increment in order. The highlighted one is in progress now; pick any dot for what it does.</p></div>
+{timeline()}</section>
+
+<section class="section"><div class="section-head rv"><div><span class="idx">07 / READ</span><h2 id="explore">The docs</h2></div>
+<p>Or press <kbd style="font:12px var(--p-mono);border:1px solid var(--p-line);padding:1px 6px">⌘K</kbd> anywhere to search.</p></div>
+<div class="hair rv">{entries}</div></section>
+
+<section class="section"><div class="section-head rv"><div><span class="idx">08 / RECENT</span><h2 id="recent">Recent changes</h2></div>
+<p><a href="/changelog/">Full changelog →</a></p></div>
+<ul class="entries rv">{recent}</ul></section>
 </div>
-<h2 id="now">Now and next</h2>
-<div class="table-wrap"><table><thead><tr><th>#</th><th>Status</th><th>Increment</th></tr></thead><tbody>{now_rows}</tbody></table></div>
-<p style="margin-top:12px"><a href="/progress/">All increments →</a></p>
-<h2 id="explore">Explore</h2>
-<div class="grid">
-<a class="panel card" href="/metrics/"><h3>Metrics</h3><p>Every number defined: tokens, levels, rank, limits, pace, calendars.</p></a>
-<a class="panel card" href="/progress/"><h3>Progress</h3><p>Each increment, how it is built and how it is proven.</p></a>
-<a class="panel card" href="/architecture/"><h3>Architecture</h3><p>Processes, data flow, modules and quality gates.</p></a>
-<a class="panel card" href="/screens/"><h3>Screens</h3><p>The running app, with demo data.</p></a>
-<a class="panel card" href="/design-system/"><h3>Design system</h3><p>Tokens, themes and components, rendered from the Swift code.</p></a>
-<a class="panel card" href="/changelog/"><h3>Changelog</h3><p>Every commit, newest first.</p></a>
-</div>
-<h2 id="look">A look</h2>
-<figure><img src="/screens/img/{hero_shot}.png" alt="Stats › Models arena: a pixel character per model with level and tokens by kind" loading="lazy">
-<figcaption>Stats › Models › Arena, with demo data. <a href="/screens/">More screens →</a></figcaption></figure>
-<h2 id="recent">Recent changes</h2><ul class="log">{recent}</ul>
-""")
+""", kind="home")
 
 # ------------------------------------------------------------------------------------------- shared assets and design
 
 assets = site / "assets"
 (assets / "fonts").mkdir(parents=True, exist_ok=True)
-(assets / "bar.css").write_text(BAR_CSS)
-(assets / "site.css").write_text(BAR_CSS + PAGE_CSS)
+shell_css = (assets_src / "shell.css").read_text()
+(assets / "bar.css").write_text(shell_css)
+(assets / "site.css").write_text(shell_css + (assets_src / "page.css").read_text())
+shutil.copy(assets_src / "site.js", assets / "site.js")
 fonts = repo / "Sources/DesignSystem/Resources/Fonts"
 for name in ("Silkscreen-Regular.ttf", "Silkscreen-Bold.ttf", "Silkscreen-OFL.txt"):
     shutil.copy(fonts / name, assets / "fonts" / name)
@@ -565,15 +915,28 @@ for name in ("Silkscreen-Regular.ttf", "Silkscreen-Bold.ttf", "Silkscreen-OFL.tx
 design_page = site / "design-system" / "index.html"
 if design_page.exists():
     text = design_page.read_text()
-    if "site-bar" not in text:
-        # Only the bar's own stylesheet: the design page keeps its light and dark themes; its sticky nav sits under the bar.
+    # A page left by an earlier build may still carry the old bar; take it out before adding the header.
+    text = re.sub(r'<link rel="stylesheet" href="/assets/bar.css">.*?</style>', "", text, count=1, flags=re.S)
+    text = re.sub(r'<div class="site-bar" role="banner">.*?</ul></div></div></div>', "", text, count=1, flags=re.S)
+    if "px-head" not in text:
+        # Only the shell's own stylesheet: the design page keeps its light and dark themes; its sticky nav sits under the header.
         text = text.replace("</head>", '<link rel="stylesheet" href="/assets/bar.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">'
-                            '<style>.site-bar ~ nav{top:57px}</style></head>', 1)
-        text = re.sub(r"<body([^>]*)>", lambda m: f"<body{m.group(1)}>{bar('design-system/')}", text, count=1)
+                            '<style>.px-head{background:var(--p-bg)} body > nav{top:var(--p-head)}</style></head>', 1)
+        text = re.sub(r"<body([^>]*)>", lambda m: f"<body{m.group(1)}>{header('design-system/')}", text, count=1)
+        text = text.replace("</body>", '<script src="/assets/site.js" defer></script></body>', 1)
         design_page.write_text(text)
+    SEARCH.append({"t": "Design system", "p": "Page", "u": "/design-system/", "x": "Tokens, themes and components, rendered from the Swift code.", "top": True})
+    for anchor, title in re.findall(r'<h2[^>]*id="([^"]+)"[^>]*>(.*?)</h2>', text, re.S):
+        SEARCH.append({"t": strip(title), "p": "Design system", "u": f"/design-system/#{anchor}", "x": ""})
+
+(assets / "search.json").write_text(json.dumps(SEARCH, ensure_ascii=False, separators=(",", ":")))
 
 (site / "404.html").write_text(f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Not found · Pulse docs</title><link rel="stylesheet" href="/assets/site.css"></head><body>{bar("")}
-<main><div class="wrap"><h1>Not found</h1><p class="lede">That page doesn't exist. <a href="/">Back to the overview</a>.</p></div></main></body></html>
+<title>Not found · Pulse docs</title><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<script>document.documentElement.classList.add("js")</script></head><body>{header("404")}
+<main id="main"><div class="wrap lost"><p class="eyebrow">Error 404 · <b>signal lost</b></p><h1 class="wordmark" data-text="404">404</h1>
+<p class="lede">That page doesn't exist. <a href="/">Back to the overview</a>, or press ⌘K to search.</p></div></main>{footer()}
+<script src="/assets/site.js" defer></script></body></html>
 """)
-print(f"site: {len(PAGES)} pages, {len(figures)} screens, {done}/{total} increments done, commit {COMMIT}")
+print(f"site: {len(NAV) + 3} pages, {shot_count} screens, {done}/{total} increments done, {TESTS} tests, {len(GATES)} gates, "
+      f"{len(SEARCH)} search entries, commit {COMMIT}")

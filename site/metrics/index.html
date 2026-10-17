@@ -1,14 +1,16 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Metrics · Pulse docs</title><meta name="description" content="How Pulse defines every number it shows: limits, pace, tokens, levels, specialty, calendars and charts.">
-<link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-</head><body><div class="site-bar" role="banner"><div class="sb-wrap"><a class="brand" href="/">PULSE<small>docs</small></a><div class="sb-links" role="navigation" aria-label="Site"><ul><li><a href="/">Overview</a></li><li><a href="/progress/">Progress</a></li><li><a href="/metrics/" aria-current="page">Metrics</a></li><li><a href="/architecture/">Architecture</a></li><li><a href="/screens/">Screens</a></li><li><a href="/privacy/">Privacy</a></li><li><a href="/changelog/">Changelog</a></li><li><a href="/design-system/">Design system</a></li></ul></div></div></div><main><div class="wrap">
-<section class="hero"><h1>Metrics</h1>
-<p class="lede">How every number in Pulse is defined, where it comes from, and what it does not mean. These rules are the
-code's rules; each section names the file that implements it.</p>
-<ul class="toc"><li><a href="#sources">Sources</a></li><li><a href="#tokens">Tokens</a></li><li><a href="#levels">Levels</a></li>
-<li><a href="#rank">Rank and specialty</a></li><li><a href="#agents">Agents per task</a></li><li><a href="#limits">Limits and pace</a></li><li><a href="#session">Session</a></li>
-<li><a href="#calendar">Calendar</a></li><li><a href="#charts">Charts</a></li></ul></section>
+<meta name="theme-color" content="#060907"><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<script>document.documentElement.classList.add("js")</script>
+</head><body class="k-docs"><a class="px-skip" href="#main">Skip to content</a><header class="px-head"><a class="px-brand" href="/" aria-label="Pulse docs, home"><svg viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" fill="#060907"/><path d="M2 9h3l2-5 2 9 2-6 1 2h2" fill="none" stroke="#4DFF8F" stroke-width="1.6" stroke-linejoin="miter"/></svg>PULSE<small>docs</small></a><div class="px-pill" role="navigation" aria-label="Main"><a href="/">Overview</a><a href="/progress/">Progress</a><a href="/metrics/" aria-current="page">Metrics</a><a href="/architecture/">Architecture</a><a href="/changelog/">Changelog</a></div><div class="px-actions"><button class="px-btn" type="button" data-search-open aria-label="Search the docs (⌘K)"><span class="px-label">Search</span><kbd>⌘K</kbd></button><button class="px-btn" type="button" data-menu-open aria-expanded="false" aria-controls="px-menu"><span class="px-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="px-label">Menu</span></button></div></header><div class="px-menu" id="px-menu" role="dialog" aria-modal="true" aria-label="Site menu" hidden><div class="px-menu-art"><canvas data-dither data-w="150" data-h="190" aria-hidden="true"></canvas><p>Pulse · build 2154a42</p></div><div class="px-menu-list"><p class="px-menu-group">[ Docs ]</p><a href="/"><span>01</span><b>Overview</b><i aria-hidden="true">→</i></a><a href="/metrics/" aria-current="page"><span>02</span><b>Metrics</b><i aria-hidden="true">→</i></a><a href="/architecture/"><span>03</span><b>Architecture</b><i aria-hidden="true">→</i></a><a href="/privacy/"><span>04</span><b>Privacy</b><i aria-hidden="true">→</i></a><p class="px-menu-group">[ Project ]</p><a href="/progress/"><span>05</span><b>Progress</b><i aria-hidden="true">→</i></a><a href="/changelog/"><span>06</span><b>Changelog</b><i aria-hidden="true">→</i></a><a href="/screens/"><span>07</span><b>Screens</b><i aria-hidden="true">→</i></a><a href="/design-system/"><span>08</span><b>Design system</b><i aria-hidden="true">→</i></a></div><button class="px-btn px-close" type="button" data-menu-close>Close <kbd>esc</kbd></button></div><div class="px-search" id="px-search" role="dialog" aria-modal="true" aria-label="Search the docs" hidden><div class="px-search-box"><label><span aria-hidden="true">&gt;</span><input type="search" placeholder="Search limits, levels, pace, privacy…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="px-results" aria-label="Search"></label><ul id="px-results" role="listbox" aria-label="Results"></ul><p class="px-search-hint">↑ ↓ to move · ↵ to open · esc to close</p></div></div><main id="main">
+<div class="docs">
+<aside class="tree" aria-label="Documentation pages"><p>[ Docs ]</p><ul><li><a href="/metrics/" aria-current=page>Metrics</a><ul><li><a href="#sources">Where the numbers come from</a></li><li><a href="#tokens">What the tokens are</a></li><li><a href="#levels">Levels</a></li><li><a href="#rank">Rank and specialty</a></li><li><a href="#agents">Agents per task</a></li><li><a href="#limits">Limits and the pace estimate</a></li><li><a href="#session">Session figures</a></li><li><a href="#calendar">Activity calendar</a></li><li><a href="#charts">Charts</a></li></ul></li><li><a href="/architecture/">Architecture</a></li><li><a href="/privacy/">Privacy</a></li></ul><p>[ Project ]</p><ul><li><a href="/progress/">Progress</a></li><li><a href="/changelog/">Changelog</a></li><li><a href="/screens/">Screens</a></li><li><a href="/design-system/">Design system</a></li></ul></aside>
+<article class="article">
+<header class="doc-head"><p class="eyebrow">Docs / <b>Metrics</b></p><h1>Metrics</h1><p class="lede">How every number in Pulse is defined, where it comes from, and what it does not mean. These rules are the code's rules: each section names the files that implement it, and the three playgrounds run the same rules beside the code.</p>
+<div class="doc-tools"><button class="tool" type="button" data-copy-page>Copy page</button><button class="tool" type="button" data-copy-link>Copy link</button>
+<button class="tool" type="button" data-search-open>Search ⌘K</button></div></header>
+<details class="mobile-tree"><summary>On this page</summary><ul><li><a href="#sources">01 Where the numbers come from</a></li><li><a href="#tokens">02 What the tokens are</a></li><li><a href="#levels">03 Levels</a></li><li><a href="#rank">04 Rank and specialty</a></li><li><a href="#agents">05 Agents per task</a></li><li><a href="#limits">06 Limits and the pace estimate</a></li><li><a href="#session">07 Session figures</a></li><li><a href="#calendar">08 Activity calendar</a></li><li><a href="#charts">09 Charts</a></li></ul></details>
 
 <h2 id="sources">Where the numbers come from</h2>
 <div class="table-wrap"><table><thead><tr><th>Source</th><th>What it gives</th><th>How fresh</th><th>Kept by Pulse</th></tr></thead><tbody>
@@ -29,6 +31,24 @@ code's rules; each section names the file that implements it.</p>
 <h2 id="levels">Levels</h2>
 <p class="formula">Level = 1 + the number of targets the model's all-time output has reached.<br>
 Targets: 1K, 2K, 5K, 10K, 20K, 50K, 100K … (1, 2, 5 in every power of ten).</p>
+<div class="play" data-play="level"><div class="play-demo"><b>Try it: output to level</b><label><span>All-time output tokens</span><input type="number" min="0" step="1000" value="18200000" inputmode="numeric" aria-label="Output tokens"></label><div class="mini-btns"><button class="tool" type="button" data-set="850">850</button><button class="tool" type="button" data-set="1200000">1.2M</button><button class="tool" type="button" data-set="18200000">18.2M</button><button class="tool" type="button" data-set="740000000">740M</button></div><p class="play-out ok" aria-live="polite">LV 14</p><div class="pmeter" aria-hidden="true"></div><p class="play-note"></p></div><pre class="play-code" data-nocopy><code>// Sources/PulseApp/Views/Details/ModelsSection.swift
+static let targets: [Int64] = {
+    var all: [Int64] = []
+    var decade: Int64 = 1_000
+    while decade &lt;= 1_000_000_000_000_000 {
+        all += [decade, decade * 2, decade * 5]
+        decade *= 10
+    }
+    return all
+}()
+
+init(output: Int64) {
+    let output = max(0, output)
+    let reached = Self.targets.prefix { $0 &lt;= output }.count
+    self.output = output
+    self.level = reached + 1
+    self.floor = reached == 0 ? 0 : Self.targets[reached - 1]
+    self.next = reached &lt; Self.targets.count ? Self.targets[reached] : Self.targets[reached - 1]</code></pre></div>
 <p>Why output: it is what the model produced. Total tokens are dominated by cache reads, so a long conversation would
 level a model up without it doing more. Why fixed 1-2-5 targets: every next target is a round number you can read, and
 each level asks for 2 to 2.5 times the output of the one before, so levels keep meaning something at any scale.</p>
@@ -40,9 +60,9 @@ with 1.8M to go.</p>
 <h3>The ladder</h3>
 <div class="table-wrap narrow"><table><thead><tr><th>Level</th><th class="num">Output reached</th><th class="num">Next level at</th><th class="num">Output in this level</th></tr></thead>
 <tbody><tr><td>LV 1</td><td class="num">0</td><td class="num">1K</td><td class="num">1K</td></tr><tr><td>LV 2</td><td class="num">1K</td><td class="num">2K</td><td class="num">1K</td></tr><tr><td>LV 3</td><td class="num">2K</td><td class="num">5K</td><td class="num">3K</td></tr><tr><td>LV 4</td><td class="num">5K</td><td class="num">10K</td><td class="num">5K</td></tr><tr><td>LV 5</td><td class="num">10K</td><td class="num">20K</td><td class="num">10K</td></tr><tr><td>LV 6</td><td class="num">20K</td><td class="num">50K</td><td class="num">30K</td></tr><tr><td>LV 7</td><td class="num">50K</td><td class="num">100K</td><td class="num">50K</td></tr><tr><td>LV 8</td><td class="num">100K</td><td class="num">200K</td><td class="num">100K</td></tr><tr><td>LV 9</td><td class="num">200K</td><td class="num">500K</td><td class="num">300K</td></tr><tr><td>LV 10</td><td class="num">500K</td><td class="num">1M</td><td class="num">500K</td></tr><tr><td>LV 11</td><td class="num">1M</td><td class="num">2M</td><td class="num">1M</td></tr><tr><td>LV 12</td><td class="num">2M</td><td class="num">5M</td><td class="num">3M</td></tr><tr><td>LV 13</td><td class="num">5M</td><td class="num">10M</td><td class="num">5M</td></tr><tr class="here"><td>LV 14</td><td class="num">10M</td><td class="num">20M</td><td class="num">10M</td></tr><tr><td>LV 15</td><td class="num">20M</td><td class="num">50M</td><td class="num">30M</td></tr><tr><td>LV 16</td><td class="num">50M</td><td class="num">100M</td><td class="num">50M</td></tr><tr><td>LV 17</td><td class="num">100M</td><td class="num">200M</td><td class="num">100M</td></tr><tr><td>LV 18</td><td class="num">200M</td><td class="num">500M</td><td class="num">300M</td></tr><tr><td>LV 19</td><td class="num">500M</td><td class="num">1B</td><td class="num">500M</td></tr><tr><td>LV 20</td><td class="num">1B</td><td class="num">2B</td><td class="num">1B</td></tr><tr><td>LV 21</td><td class="num">2B</td><td class="num">5B</td><td class="num">3B</td></tr><tr><td>LV 22</td><td class="num">5B</td><td class="num">10B</td><td class="num">5B</td></tr><tr><td>LV 23</td><td class="num">10B</td><td class="num">20B</td><td class="num">10B</td></tr><tr><td>LV 24</td><td class="num">20B</td><td class="num">50B</td><td class="num">30B</td></tr><tr><td>LV 25</td><td class="num">50B</td><td class="num">100B</td><td class="num">50B</td></tr></tbody></table></div>
-<p class="muted">The ladder continues the same way past LV 25. Source: <code>ModelLevel</code> in <code>Sources/PulseApp/Views/Details/ModelsSection.swift</code>;
-the app shows the same table under “How levels work” in Stats › Models › Arena. On 30-day and 7-day ranges, levels still
-use all-time output, because Claude Code records tokens by kind for all time only.</p>
+<p class="muted">The ladder continues the same way past LV 25. The app shows the same table under “How levels work” in Stats › Models › Arena.
+On 30-day and 7-day ranges, levels still use all-time output, because Claude Code records tokens by kind for all time only.</p>
+<details class="sources" open><summary>Relevant source files</summary><ul><li><code>Sources/PulseApp/Views/Details/ModelsSection.swift</code></li></ul></details>
 
 <h2 id="rank">Rank and specialty</h2>
 <p><strong>Rank</strong>: by level, then by output, then by total tokens. A higher rank never has a lower level.</p>
@@ -50,10 +70,11 @@ use all-time output, because Claude Code records tokens by kind for all time onl
 <p>The specialty is the kind with the highest ratio, shown as, for example, “Reading input · 13× the party”: that model's
 share of input is 13 times the share across all models. If no kind reaches 1.1×, the model is an <strong>All-rounder</strong>.
 Every model mostly reads from cache, so the plain largest kind would say the same thing on every card; the ratio shows how
-each one differs. Source: <code>ModelSpecialty</code>.</p>
+each one differs.</p>
+<details class="sources" open><summary>Relevant source files</summary><ul><li><code>Sources/PulseApp/Views/Details/ModelsSection.swift (ModelSpecialty)</code></li></ul></details>
 
 <h2 id="agents">Agents per task</h2>
-<p>Optional, off until you turn it on in Settings › Providers. A <strong>task</strong> is one prompt: from the moment you send
+<p>Optional, off until you turn it on in Settings. A <strong>task</strong> is one prompt: from the moment you send
 it until Claude stops. Pulse adds four background hooks to Claude Code (prompt submitted, subagent started, subagent stopped,
 Claude stopped) and counts the subagents each task starts, nested ones included.</p>
 <div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
@@ -64,9 +85,9 @@ Claude stopped) and counts the subagents each task starts, nested ones included.
 <tr><td>Used agents</td><td>Share of the last 30 days' tasks that started at least one subagent.</td></tr>
 <tr><td>Agents per task</td><td>All subagents in 30 days ÷ all tasks in 30 days, tasks without subagents included.</td></tr>
 </tbody></table></div>
-<p class="muted">Claude Code hands every hook the whole event, your prompt included. The helper keeps only the event name,
-hashed session and agent ids and the type, and drops the rest before anything leaves it. Source: <code>HookFrame</code>,
-<code>Store.record</code>.</p>
+<div class="callout"><p>Claude Code hands every hook the whole event, your prompt included. The helper keeps only the event name,
+hashed session and agent ids and the type, and drops the rest before anything leaves it.</p></div>
+<details class="sources" open><summary>Relevant source files</summary><ul><li><code>Sources/ShimProtocol/HookFrame.swift</code></li><li><code>Sources/Storage/Store+Agents.swift</code></li></ul></details>
 
 <h2 id="limits">Limits and the pace estimate</h2>
 <div class="table-wrap"><table><thead><tr><th>State</th><th>When</th></tr></thead><tbody>
@@ -75,14 +96,36 @@ hashed session and agent ids and the type, and drops the rest before anything le
 <tr><td>Reset expected</td><td>The reset time has passed but no fresh reading has confirmed it. Pulse never says “ready” without one.</td></tr>
 <tr><td>Stale</td><td>No reading recently; the last value is shown as “last seen” with its age.</td></tr>
 </tbody></table></div>
-<p class="muted">A state clears only after usage drops 3 points below its threshold, so it does not flicker. Source: <code>EngineConfig</code> in <code>Sources/UsageEngine/PoolReducer.swift</code>.</p>
+<p>A state clears only after usage drops 3 points below its threshold, so it does not flicker.</p>
+<div class="play" data-play="limit"><div class="play-demo"><b>Try it: drag the usage up and back down</b><label><span>Used <output>40%</output></span><input type="range" min="0" max="100" value="40" aria-label="Percent of the limit used"></label><div class="pmeter" aria-hidden="true"></div><p class="play-out ok" aria-live="polite">Available</p><p class="play-note"></p></div><pre class="play-code" data-nocopy><code>// Sources/UsageEngine/PoolReducer.swift
+static func classify(_ used: Decimal, previous: LimitState, config: EngineConfig) -&gt; LimitState {
+    if used &gt;= config.exhausted { return .exhausted }
+    if used &gt;= config.critical { return .approaching(.critical) }
+    if previous == .approaching(.critical), used &gt; config.critical - config.hysteresis { return .approaching(.critical) }
+    if used &gt;= config.warning { return .approaching(.warning) }
+    if case .approaching = previous, used &gt; config.warning - config.hysteresis { return .approaching(.warning) }
+    return .available</code></pre></div>
 <p><strong>Pace estimate</strong> (always labelled “Estimate”): a straight line fitted by least squares through recent readings in
 the current window: the last 90 minutes for the 5-hour limit, the last 24 hours for the 7-day limit. It needs at least 3
-readings over at least 10 minutes. Below 0.5 points per hour usage counts as flat (“not rising”). It never looks further ahead
+readings over at least 10 minutes. At or below 0.5 points per hour usage counts as flat (“not rising”). It never looks further ahead
 than 8 times the history it rests on, so an hour of readings cannot predict two days. If the window resets before the line
-reaches 100%, it says roughly how much will be used by the reset. Source: <code>PaceEstimate</code> in <code>Sources/UsageEngine/Pace.swift</code>.</p>
+reaches 100%, it says roughly how much will be used by the reset.</p>
+<div class="play" data-play="pace"><div class="play-demo"><b>Try it: a steady rise through the readings</b><label><span>Used now <output></output></span><input type="range" min="0" max="100" value="55" aria-label="Percent used now"></label><label><span>Rising by <output></output></span><input type="range" min="0" max="40" step="0.5" value="12" aria-label="Points per hour"></label><label><span>Readings span <output></output></span><input type="range" min="0" max="240" step="5" value="60" aria-label="Minutes of readings"></label><label><span>Reset in <output></output></span><input type="range" min="0" max="300" step="5" value="150" aria-label="Minutes until the reset, 0 for unknown"></label><p class="play-out" aria-live="polite"></p><p class="play-note"></p></div><pre class="play-code" data-nocopy><code>// Sources/UsageEngine/Pace.swift
+guard slope &gt; flatSlope else { return .notRising }
+
+let hoursToLimit = (100 - latest.usedPct) / slope
+let hit = latest.at.addingTimeInterval(hoursToLimit * 3600)
+let span = latest.at.timeIntervalSince(first.at)
+let horizon = min(hit, resetsAt.flatMap { $0 &gt; now ? $0 : nil } ?? hit).timeIntervalSince(latest.at)
+guard horizon &lt;= span * maxLookAhead else { return .notEnoughData }
+if let resetsAt, resetsAt &gt; now, hit &gt;= resetsAt {
+    let projected = latest.usedPct + slope * resetsAt.timeIntervalSince(latest.at) / 3600
+    return .belowAtReset(projectedPct: min(projected, 100))
+}
+return .reachesLimit(at: hit)</code></pre></div>
 <p>The Limits chart spans the limit's own window, from reset minus its length to the reset. The hatched span before the first
 reading is time Pulse was not yet watching.</p>
+<details class="sources" open><summary>Relevant source files</summary><ul><li><code>Sources/UsageEngine/PoolReducer.swift (EngineConfig, classify)</code></li><li><code>Sources/UsageEngine/Pace.swift</code></li></ul></details>
 
 <h2 id="session">Session figures</h2>
 <div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
@@ -98,12 +141,16 @@ reading is time Pulse was not yet watching.</p>
 <p>Each square is a day. Shading is by messages that day, in quarters of your active days: the quietest quarter is the
 faintest green, the busiest quarter the brightest. A day with no messages is dark; a day before your first session or after
 today is an outline marked “no data”. All time shows one calendar year (January to December) with a year switcher;
-30 days shows a month calendar; 7 days shows a column per day. Source: <code>StatsCalendar</code> and <code>StatsSummary</code>.</p>
+30 days shows a month calendar; 7 days shows a column per day.</p>
+<details class="sources" open><summary>Relevant source files</summary><ul><li><code>Sources/PulseApp (StatsCalendar, StatsSummary)</code></li></ul></details>
 
 <h2 id="charts">Charts</h2>
 <p>Tokens per day are stacked by model on a real date axis: days with nothing stay on the axis. Past 120 days the bars become
 weeks. The scale's top is the first round number at or above the tallest bar whose quarters are also round (for example
 8M for a 6.5M peak). Models differ by colour and fill pattern, never colour alone. Point at a bar for its numbers.</p>
-</div></main>
-<footer><div class="wrap">Generated from commit <code>28ea8f4</code> (2026-10-17) by <code>scripts/build-site.py</code>. Pulse is a working name.</div></footer>
+
+</article>
+<aside class="toc" aria-label="On this page"><p>On this page</p><div class="toc-list"><span class="ruler" aria-hidden="true"><i></i></span><ol><li><a href="#sources">Where the numbers come from</a></li><li><a href="#tokens">What the tokens are</a></li><li><a href="#levels">Levels</a></li><li><a href="#rank">Rank and specialty</a></li><li><a href="#agents">Agents per task</a></li><li><a href="#limits">Limits and the pace estimate</a></li><li><a href="#session">Session figures</a></li><li><a href="#calendar">Activity calendar</a></li><li><a href="#charts">Charts</a></li></ol></div><p class="toc-pct" aria-hidden="true"></p></aside>
+</div></main><div class="stripes" aria-hidden="true"></div><footer class="foot"><div class="wrap"><div class="foot-cols"><div><p>Pulse</p><ul><li>A macOS menu bar monitor for Claude Code limits.</li><li>Pulse is a working name.</li></ul></div><div><p>Docs</p><ul><li><a href="/">Overview</a></li><li><a href="/metrics/">Metrics</a></li><li><a href="/architecture/">Architecture</a></li><li><a href="/privacy/">Privacy</a></li></ul></div><div><p>Project</p><ul><li><a href="/progress/">Progress</a></li><li><a href="/changelog/">Changelog</a></li><li><a href="/screens/">Screens</a></li><li><a href="/design-system/">Design system</a></li></ul></div><div><p>Build</p><ul><li>Commit <code>2154a42</code></li><li>2026-10-17</li><li>10 gates per commit</li></ul></div></div><div class="foot-word" aria-hidden="true"><small>PULSE.wordmark</small><b>PULSE</b><i></i><i></i><i></i><i></i></div><div class="foot-base"><span>Generated by <code>scripts/build-site.py</code> from the repository.</span><a href="#main">Back to top ↑</a></div></div></footer>
+<script src="/assets/site.js" defer></script>
 </body></html>
