@@ -1,0 +1,4 @@
+# Copy to Config/local.mk (gitignored) for local Make settings.
+
+# The planning documents folder read by `make site` (needs ROADMAP.md and ARCHITECTURE.md).
+# DOCS = /path/to/planning/docs

@@ -1,21 +1,26 @@
-# Generates Pulse.xcodeproj (gitignored). Package.swift stays the source of truth for all code (RELEASE_AND_CI §1).
+# Generates Pulse.xcodeproj (gitignored). Package.swift stays the source of truth for all code.
 # Run: scripts/bootstrap.sh && .tools/xcodegen/bin/xcodegen   (or: make app)
 name: Pulse
 options:
-  bundleIdPrefix: dev.tokone          # placeholder until DECISIONS A7 names the real prefix
+  bundleIdPrefix: dev.tokone          # placeholder until the final bundle identifier prefix is chosen
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
+# Signing and the optional accounts project come from Config/Pulse.xcconfig, which includes the uncommitted
+# Config/*.local.xcconfig files when they exist. Without them: ad-hoc signing and Sync off.
+configFiles:
+  Debug: Config/Pulse.xcconfig
+  Release: Config/Pulse.xcconfig
 settings:
   base:
     SWIFT_VERSION: "6.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
     GCC_TREAT_WARNINGS_AS_ERRORS: YES
-    DEVELOPMENT_TEAM: DD8UY75RZT       # the Apple Development certificate's team; Developer ID comes with DECISIONS A6
+    DEVELOPMENT_TEAM: $(PULSE_DEVELOPMENT_TEAM)          # empty unless Config/Signing.local.xcconfig sets it
     CODE_SIGN_STYLE: Manual
-    CODE_SIGN_IDENTITY: Apple Development
-    ENABLE_HARDENED_RUNTIME: YES       # COMPLIANCE_GATES §4 item 2, on every target
+    CODE_SIGN_IDENTITY: $(PULSE_CODE_SIGN_IDENTITY)      # "-" (ad hoc) unless Config/Signing.local.xcconfig sets it
+    ENABLE_HARDENED_RUNTIME: YES       # on every target
     MARKETING_VERSION: 0.1.0
     CURRENT_PROJECT_VERSION: 1
 packages:
@@ -35,12 +40,14 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true              # menu bar only: no Dock icon, no main menu
         LSApplicationCategoryType: public.app-category.developer-tools
-        CFBundleURLTypes:              # ROADMAP 2.0: the sign-in link returns to dev.tokone.pulse://auth-callback
+        CFBundleURLTypes:              # optional accounts: the sign-in link returns to dev.tokone.pulse://auth-callback
           - CFBundleURLName: dev.tokone.pulse.auth
             CFBundleURLSchemes: [dev.tokone.pulse]
+        PulseSyncHost: $(PULSE_SYNC_HOST)                        # empty in builds from source: Sync stays off
+        PulseSyncPublishableKey: $(PULSE_SYNC_PUBLISHABLE_KEY)
     entitlements:
       path: App/PulseMac/PulseMac.entitlements
-      properties: {}                   # empty: no sandbox (ADR-002), no network, no exceptions (RELEASE_AND_CI §5)
+      properties: {}                   # empty: no sandbox (Pulse edits ~/.claude), no network entitlement, no exceptions
     settings:
       base:
         PRODUCT_NAME: Pulse
@@ -66,7 +73,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: dev.tokone.pulse.statusline   # <bundle-prefix>.pulse.statusline
         SKIP_INSTALL: YES
         GENERATE_INFOPLIST_FILE: YES        # embedded __info_plist: codesign then uses the bundle id as the identifier,
-        CREATE_INFOPLIST_SECTION_IN_BINARY: YES   # which the app's peer check will require (PRIVACY_AND_SECURITY §3)
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES   # which a code-signing peer check can require (docs/PRIVACY_AND_SECURITY.md §3)
     dependencies:
       - package: Tokone
         product: StatusLineShim

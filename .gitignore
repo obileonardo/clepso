@@ -8,3 +8,29 @@ site/.vercel/
 build/
 App/PulseMac/Info.plist
 App/PulseMac/PulseMac.entitlements
+
+# Local build configuration: signing identity and the accounts project (Config/*.example are the templates)
+Config/*.local.xcconfig
+*.local.xcconfig
+Config/local.mk
+
+# Secrets and signing material must never be committed
+.env
+.env.*
+!.env.example
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+*.pem
+*.key
+
+# Local data: databases, exports and logs
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+Pulse export *.json
+*.log
