@@ -5,9 +5,12 @@ import OSLog
 import ServiceManagement
 import SwiftUI
 
-/// Verification harness, debug builds only (DESIGN_SYSTEM §9: popover open ≤ 200 ms p95, trigger to first frame).
+/// Verification harness, debug builds only (popover open ≤ 200 ms p95, trigger to first frame), and the source of the
+/// screenshots in design/screens.
 ///
-/// Launched with `-PulseProbeOutput <dir> -PulseMeasurePopover N`, the app reports the system uptime at which the
+/// Launched with `-PulseProbeOutput <dir>` (plus `-PulseProbeDemo YES`, and optionally `-PulseProbeLight YES`,
+/// `-PulseProbeTheme <name>`, `-PulseProbeName <name>`), then driven by `swift scripts/probe-popover.swift <dir> N`,
+/// which times N opens. The app reports the system uptime at which the
 /// window server makes its popover window visible (and emits an OSSignposter event there). Clicks come from
 /// `scripts/probe-popover.swift`, which posts real mouse events and notes the uptime of each click: since macOS 14
 /// only a real click lets a menu bar app activate, so in-process clicks cannot open the popover, and the status
@@ -31,10 +34,12 @@ enum PopoverProbe {
             recorder.finish()
             NSApp.terminate(nil)
         }
+        // Screenshots never show the Mac account's name: a neutral profile name unless the run names one.
+        await model.setProfileName(defaults.string(forKey: "PulseProbeName") ?? "Sam")
         if defaults.bool(forKey: "PulseProbeDemo") { await model.setDemo(true) }
         if defaults.bool(forKey: "PulseProbeLight") { await model.setAppearance(.light) }
-        if let theme = defaults.string(forKey: "PulseProbeTheme") { await model.setTheme(theme) }   // 1.15: one colour theme per run
-        if defaults.bool(forKey: "PulseProbeCodex") { await model.setCodexEnabled(true) }           // 3.4: reads the probe home's ~/.codex
+        if let theme = defaults.string(forKey: "PulseProbeTheme") { await model.setTheme(theme) }   // one colour theme per run
+        if defaults.bool(forKey: "PulseProbeCodex") { await model.setCodexEnabled(true) }           // reads the probe home's ~/.codex
         try? await Task.sleep(for: .seconds(1))
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
         recorder.start(button)
@@ -44,7 +49,7 @@ enum PopoverProbe {
         let done = folder.appendingPathComponent("driver-done")
         for _ in 0..<1800 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(100)) }
 
-        // The Details window, each tab; Stats with the synthetic file the probe's home provides.
+        // The Details window, each tab; Stats from the probe home's file (synthetic: scripts/probe-home.py).
         await model.setStatsEnabled(true)
         openDetails()
         let pages: [(String, AppModel.DetailsSection, StatsSummary.Range, AppModel.ModelsView)] = [
