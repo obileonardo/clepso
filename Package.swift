@@ -39,6 +39,8 @@ let package = Package(
         .target(name: "Storage", dependencies: ["Domain", "UsageEngine", .product(name: "GRDB", package: "GRDB.swift")]),
         // Claude Code adapter: reversible settings install (statusline-shim.md §3); listener and ingest arrive in 1.1.
         .target(name: "ClaudeCodeAdapter", dependencies: ["Domain", "ShimProtocol"]),
+        // Increment 3.4: Codex limits from its own session files (docs/MULTI_AGENT.md).
+        .target(name: "CodexAdapter", dependencies: ["Domain"]),
         // Headless CLI: reversible install/uninstall now; replay, status and export later (ARCHITECTURE §2).
         .executableTarget(name: "pulse", dependencies: ["ClaudeCodeAdapter"]),
         // The bundled plan catalog seed (PLAN_CATALOG.md); signed downloads arrive in 3.1.
@@ -61,6 +63,7 @@ let package = Package(
         .testTarget(name: "UsageEngineTests", dependencies: ["UsageEngine", "Domain"]),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem", "Domain"]),
         .testTarget(name: "StorageTests", dependencies: ["Storage", "Domain", "UsageEngine"]),
+        .testTarget(name: "CodexAdapterTests", dependencies: ["CodexAdapter", "Domain"]),
         .testTarget(name: "ClaudeCodeAdapterTests", dependencies: ["ClaudeCodeAdapter", "Domain", "ShimProtocol", "TestFixtures"]),
         .testTarget(name: "FixtureToolsTests", dependencies: ["FixtureTools"]),
         .testTarget(name: "SubscriptionCatalogTests", dependencies: ["SubscriptionCatalog"]),

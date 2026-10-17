@@ -70,6 +70,21 @@ public actor Store {
         connectionID = ids.1
     }
 
+    /// The connection for another agent's adapter (increment 3.4), created with its own account on first use.
+    /// Claude Code's is `connectionID`.
+    public func connection(adapterID: String, providerID: String, label: String, now: Date) throws -> UUID {
+        try writer.write { db in
+            if let id = try String.fetchOne(db, sql: "SELECT id FROM connections WHERE adapter_id = ? LIMIT 1", arguments: [adapterID]),
+               let uuid = UUID(uuidString: id) { return uuid }
+            let account = UUID(), connection = UUID()
+            try db.execute(sql: "INSERT INTO accounts (id, provider_id, kind, label, created_at) VALUES (?, ?, 'personalSubscription', ?, ?)",
+                           arguments: [account.uuidString, providerID, label, ms(now)])
+            try db.execute(sql: "INSERT INTO connections (id, account_id, adapter_id, state) VALUES (?, ?, ?, 'connected')",
+                           arguments: [connection.uuidString, account.uuidString, adapterID])
+            return connection
+        }
+    }
+
     /// A store on a private in-memory database, for tests and previews.
     public static func inMemory(now: Date, config: EngineConfig = EngineConfig(), policy: LedgerPolicy = LedgerPolicy()) throws -> Store {
         try Store(writer: DatabaseQueue(), config: config, policy: policy, now: now)
@@ -79,9 +94,10 @@ public actor Store {
 
     /// The clock is the batch's own arrival time (`receivedAt`), the same value the ledger records, so live
     /// processing and a rebuild can never disagree about time or order.
-    public func ingest(_ observations: [IncomingObservation], session: SessionMeta?) throws -> IngestResult {
+    public func ingest(_ observations: [IncomingObservation], session: SessionMeta?, connection: UUID? = nil) throws -> IngestResult {
         guard let now = observations.map(\.receivedAt).max() else { return IngestResult(inserted: 0, duplicates: 0, events: []) }
         return try writer.write { db in
+            let owner = try self.owner(db, connection: connection ?? connectionID)
             var sessionID: String?
             if let session, let first = observations.first {
                 sessionID = try upsertSession(db, session, seenAt: first.observedAt)
@@ -92,22 +108,22 @@ public actor Store {
             for (index, observation) in observations.enumerated() {
                 let poolID: String?
                 switch observation.subject {
-                case .pool(let key): poolID = try poolRow(db, key: key, createdAt: now).id
+                case .pool(let key): poolID = try poolRow(db, key: key, owner: owner, createdAt: now).id
                 case .session: poolID = nil
                 }
                 if case .session = observation.subject, sessionID == nil { continue }
                 guard keep.contains(index) else { unchanged += 1; continue }
-                try insert(db, observation, poolID: poolID, sessionID: sessionID)
+                try insert(db, observation, poolID: poolID, sessionID: sessionID, owner: owner)
                 if db.changesCount == 1 { inserted.append(observation) } else { duplicates += 1 }
             }
             var events: [EngineEvent] = []
             for (key, update) in Self.poolUpdates(inserted) {
-                events += try reducePool(db, key: key, update: update, now: now)
+                events += try reducePool(db, key: key, update: update, owner: owner, now: now)
             }
             if let sessionID, let ref = session?.sessionRef {
                 try reduceSession(db, sessionID: sessionID, ref: ref, observations: inserted)
             }
-            try db.execute(sql: "UPDATE connections SET last_event_at = ? WHERE id = ?", arguments: [ms(now), connectionID.uuidString])
+            try db.execute(sql: "UPDATE connections SET last_event_at = ? WHERE id = ?", arguments: [ms(now), owner.connection])
             return IngestResult(inserted: inserted.count, duplicates: duplicates, events: events, unchanged: unchanged)
         }
     }
@@ -127,8 +143,7 @@ public actor Store {
             }
         }
         for (key, members) in poolMembers {
-            let poolID = try String.fetchOne(db, sql: "SELECT id FROM allowance_pools WHERE account_id = ? AND provider_pool_key = ?",
-                                             arguments: [accountID.uuidString, key])
+            let poolID = try String.fetchOne(db, sql: "SELECT id FROM allowance_pools WHERE provider_pool_key = ?", arguments: [key])
             var store = poolID == nil
             if let poolID {
                 for index in members where !store {
@@ -256,31 +271,41 @@ public actor Store {
 
     // MARK: - Pools and sessions
 
-    struct PoolRow { let id: String; let key: String; let overageEvidence: Bool }
+    struct PoolRow { let id: String; let key: String; let overageEvidence: Bool; let accountID: String }
+    /// The account and connection a batch arrived through (increment 3.4: one per agent).
+    struct Owner { let account: String; let connection: String }
 
-    func pools(_ db: Database) throws -> [PoolRow] {
-        try Row.fetchAll(db, sql: "SELECT id, provider_pool_key, overage_evidence FROM allowance_pools WHERE account_id = ? ORDER BY provider_pool_key",
-                         arguments: [accountID.uuidString])
-            .map { PoolRow(id: $0["id"], key: $0["provider_pool_key"], overageEvidence: ($0["overage_evidence"] as String?) != nil) }
+    func owner(_ db: Database, connection: UUID) throws -> Owner {
+        guard let account = try String.fetchOne(db, sql: "SELECT account_id FROM connections WHERE id = ?", arguments: [connection.uuidString]) else {
+            throw StoreError.unknownConnection
+        }
+        return Owner(account: account, connection: connection.uuidString)
     }
 
-    func poolRow(_ db: Database, key: String, createdAt: Date) throws -> PoolRow {
-        if let row = try Row.fetchOne(db, sql: "SELECT id, overage_evidence FROM allowance_pools WHERE account_id = ? AND provider_pool_key = ?",
-                                      arguments: [accountID.uuidString, key]) {
-            return PoolRow(id: row["id"], key: key, overageEvidence: (row["overage_evidence"] as String?) != nil)
+    func pools(_ db: Database) throws -> [PoolRow] {
+        try Row.fetchAll(db, sql: "SELECT id, provider_pool_key, overage_evidence, account_id FROM allowance_pools ORDER BY provider_pool_key")
+            .map { PoolRow(id: $0["id"], key: $0["provider_pool_key"], overageEvidence: ($0["overage_evidence"] as String?) != nil, accountID: $0["account_id"]) }
+    }
+
+    func poolRow(_ db: Database, key: String, owner: Owner, createdAt: Date) throws -> PoolRow {
+        if let row = try Row.fetchOne(db, sql: "SELECT id, overage_evidence, account_id FROM allowance_pools WHERE provider_pool_key = ?", arguments: [key]) {
+            return PoolRow(id: row["id"], key: key, overageEvidence: (row["overage_evidence"] as String?) != nil, accountID: row["account_id"])
         }
         let id = UUID().uuidString
         let (name, funding): (String, PoolFunding) = switch key {
         case "claude-code.rate_limits.five_hour": ("5-hour", .includedSubscription)
         case "claude-code.rate_limits.seven_day": ("7-day", .includedSubscription)
         case "claude-code.rate_limits.spend_limit": ("Spend limit", .apiPayAsYouGo)
+        case "codex.rate_limits.five_hour": ("5-hour", .includedSubscription)
+        case "codex.rate_limits.seven_day": ("Weekly", .includedSubscription)
         default: (key, .unknown)
         }
+        let product = key.split(separator: ".").first.map(String.init) ?? "unknown"
         try db.execute(sql: """
             INSERT INTO allowance_pools (id, account_id, provider_pool_key, name, funding, window_type, eligible_products, created_at)
-            VALUES (?, ?, ?, ?, ?, 'unknown', '["claude-code"]', ?)
-            """, arguments: [id, accountID.uuidString, key, name, funding.rawValue, ms(createdAt)])
-        return PoolRow(id: id, key: key, overageEvidence: false)
+            VALUES (?, ?, ?, ?, ?, 'unknown', ?, ?)
+            """, arguments: [id, owner.account, key, name, funding.rawValue, Self.encode([product]), ms(createdAt)])
+        return PoolRow(id: id, key: key, overageEvidence: false, accountID: owner.account)
     }
 
     func upsertSession(_ db: Database, _ meta: SessionMeta, seenAt: Date) throws -> String {
@@ -303,7 +328,7 @@ public actor Store {
 
     // MARK: - Ledger rows
 
-    func insert(_ db: Database, _ o: IncomingObservation, poolID: String?, sessionID: String?) throws {
+    func insert(_ db: Database, _ o: IncomingObservation, poolID: String?, sessionID: String?, owner: Owner) throws {
         let (kind, text, absence): (String, String?, String?) = switch o.value {
         case .percent(let d): ("percent", "\(d)", nil)
         case .tokens(let n): ("tokens", String(n), nil)
@@ -319,7 +344,7 @@ public actor Store {
             INSERT OR IGNORE INTO observations (id, account_id, connection_id, pool_id, session_id, subject_kind, model_id, metric_kind,
               value_kind, value_text, absence_reason, observed_at, received_at, evidence, quality, source_version, dedupe_key)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, arguments: [UUID().uuidString, accountID.uuidString, connectionID.uuidString, poolID, sessionID, subjectKind, o.modelID,
+            """, arguments: [UUID().uuidString, owner.account, owner.connection, poolID, sessionID, subjectKind, o.modelID,
                              o.kind.rawValue, kind, text, absence, ms(o.observedAt), ms(o.receivedAt), o.evidence.rawValue,
                              o.quality.rawValue, o.sourceVersion, o.dedupeKey])
     }
@@ -377,8 +402,8 @@ public actor Store {
         return keys.sorted().map { ($0, PoolUpdate(used: used[$0], reset: reset[$0])) }
     }
 
-    func reducePool(_ db: Database, key: String, update: PoolUpdate, now: Date) throws -> [EngineEvent] {
-        let pool = try poolRow(db, key: key, createdAt: now)
+    func reducePool(_ db: Database, key: String, update: PoolUpdate, owner: Owner, now: Date) throws -> [EngineEvent] {
+        let pool = try poolRow(db, key: key, owner: owner, createdAt: now)
         let state = try loadPoolState(db, poolID: pool.id) ?? PoolState(poolKey: key)
         let reduction = PoolReducer.reduce(state, update, now: now, overageEvidence: pool.overageEvidence, config: config)
         try save(db, pool: pool, state: reduction.state, closed: reduction.closedWindows, events: reduction.events)
@@ -408,16 +433,16 @@ public actor Store {
         try db.execute(sql: """
             INSERT OR REPLACE INTO pool_snapshots (pool_id, account_id, window_id, snapshot_json, state, last_provider_measured, last_seen, version)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, arguments: [pool.id, accountID.uuidString, state.window?.id.uuidString, Self.encode(state), state.limit.label,
+            """, arguments: [pool.id, pool.accountID, state.window?.id.uuidString, Self.encode(state), state.limit.label,
                              state.lastProviderMeasured.map(ms), state.lastSeen.map(ms), state.version])
         for event in events {
             let windowText = event.windowID?.uuidString ?? "-"
-            let dedupe = [accountID.uuidString, pool.id, windowText, event.kind.rawValue, event.level?.rawValue ?? "-"].joined(separator: "|")
+            let dedupe = [pool.accountID, pool.id, windowText, event.kind.rawValue, event.level?.rawValue ?? "-"].joined(separator: "|")
             let id = derivedUUID("event|\(dedupe)|\(ms(event.occurredAt))")
             try db.execute(sql: """
                 INSERT OR IGNORE INTO derived_events (id, kind, account_id, pool_id, window_id, level, occurred_at, dedupe_key, payload_json)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, arguments: [id.uuidString, event.kind.rawValue, accountID.uuidString, pool.id, event.windowID?.uuidString,
+                """, arguments: [id.uuidString, event.kind.rawValue, pool.accountID, pool.id, event.windowID?.uuidString,
                                  event.level?.rawValue, ms(event.occurredAt), dedupe, Self.encode(event)])
         }
     }
@@ -435,3 +460,8 @@ public actor Store {
 
 func ms(_ date: Date) -> Int64 { Int64((date.timeIntervalSince1970 * 1000).rounded()) }
 func date(_ ms: Int64) -> Date { Date(timeIntervalSince1970: Double(ms) / 1000) }
+
+public enum StoreError: Error, Equatable {
+    /// `ingest(_:session:connection:)` was given a connection the store never created.
+    case unknownConnection
+}

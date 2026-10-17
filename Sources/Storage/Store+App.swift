@@ -55,9 +55,9 @@ extension Store {
         try writer.read { db in
             try Row.fetchAll(db, sql: """
                 SELECT o.*, a.provider_pool_key, NULL AS provider_session_key FROM observations o JOIN allowance_pools a ON a.id = o.pool_id
-                WHERE a.account_id = ? AND a.provider_pool_key = ? AND o.metric_kind = ?
+                WHERE a.provider_pool_key = ? AND o.metric_kind = ?
                 ORDER BY o.observed_at DESC, o.received_at DESC, o.rowid DESC LIMIT ?
-                """, arguments: [accountID.uuidString, poolKey, kind.rawValue, limit])
+                """, arguments: [poolKey, kind.rawValue, limit])
             .compactMap { row in
                 Self.decode(row).map { Reading(value: $0.value, observedAt: $0.observedAt, receivedAt: $0.receivedAt,
                                                  evidence: $0.evidence, quality: $0.quality, sourceVersion: $0.sourceVersion) }
@@ -260,9 +260,9 @@ extension Store {
         try writer.read { db in
             try Row.fetchAll(db, sql: """
                 SELECT o.observed_at, o.value_text FROM observations o JOIN allowance_pools a ON a.id = o.pool_id
-                WHERE a.account_id = ? AND a.provider_pool_key = ? AND o.metric_kind = 'quotaUsedPct' AND o.value_kind = 'percent'
+                WHERE a.provider_pool_key = ? AND o.metric_kind = 'quotaUsedPct' AND o.value_kind = 'percent'
                   AND o.observed_at >= ? ORDER BY o.observed_at
-                """, arguments: [accountID.uuidString, poolKey, ms(since)])
+                """, arguments: [poolKey, ms(since)])
             .compactMap { row in
                 (row["value_text"] as String?).flatMap(Double.init).map { UsagePoint(at: date(row["observed_at"]), usedPct: $0) }
             }
