@@ -338,7 +338,7 @@
     }
   ],
   "demoInstant" : "2026-10-16T14:01:00Z",
-  "generatedAt" : "2026-10-17T19:33:18Z",
+  "generatedAt" : "2026-10-17T20:49:44Z",
   "palette" : [
     {
       "dark" : "#1C1C1E",
@@ -562,7 +562,7 @@
     ],
     "fonts" : [
       {
-        "family" : "Silkscreen",
+        "family" : "PulsePixel-Regular",
         "licence" : "SIL OFL 1.1",
         "use" : "figures, labels, buttons, tabs"
       },
@@ -648,7 +648,7 @@
       {
         "caption" : "Available, live",
         "component" : "PixelLimitRow",
-        "height" : 131,
+        "height" : 130,
         "id" : "limit-available",
         "image" : "img/phosphor-limit-available.png",
         "width" : 420
@@ -656,7 +656,7 @@
       {
         "caption" : "Approaching, with a pace estimate",
         "component" : "PixelLimitRow",
-        "height" : 150,
+        "height" : 149,
         "id" : "limit-approaching",
         "image" : "img/phosphor-limit-approaching.png",
         "width" : 420
@@ -664,7 +664,7 @@
       {
         "caption" : "Nearly exhausted",
         "component" : "PixelLimitRow",
-        "height" : 131,
+        "height" : 130,
         "id" : "limit-critical",
         "image" : "img/phosphor-limit-critical.png",
         "width" : 420
@@ -672,7 +672,7 @@
       {
         "caption" : "Limit reached, reset known",
         "component" : "PixelLimitRow",
-        "height" : 131,
+        "height" : 130,
         "id" : "limit-exhausted",
         "image" : "img/phosphor-limit-exhausted.png",
         "width" : 420
@@ -680,7 +680,7 @@
       {
         "caption" : "Reset time passed, no fresh reading",
         "component" : "PixelLimitRow",
-        "height" : 131,
+        "height" : 130,
         "id" : "limit-reset-expected",
         "image" : "img/phosphor-limit-reset-expected.png",
         "width" : 420
@@ -688,7 +688,7 @@
       {
         "caption" : "Stale: dithered bar, last seen",
         "component" : "PixelLimitRow",
-        "height" : 131,
+        "height" : 130,
         "id" : "limit-stale",
         "image" : "img/phosphor-limit-stale.png",
         "width" : 420
@@ -696,7 +696,7 @@
       {
         "caption" : "Not reported (F06): words, empty outlined bar, never 0%",
         "component" : "PixelLimitRow",
-        "height" : 98,
+        "height" : 97,
         "id" : "limit-not-available",
         "image" : "img/phosphor-limit-not-available.png",
         "width" : 420
@@ -712,7 +712,7 @@
       {
         "caption" : "Prominent, normal and disabled; the bevel swaps when pressed",
         "component" : "PixelButtonStyle",
-        "height" : 71,
+        "height" : 70,
         "id" : "buttons",
         "image" : "img/phosphor-buttons.png",
         "width" : 420
@@ -720,7 +720,7 @@
       {
         "caption" : "Selected tab lit, others recessed",
         "component" : "PixelTabs",
-        "height" : 71,
+        "height" : 70,
         "id" : "tabs",
         "image" : "img/phosphor-tabs.png",
         "width" : 420
@@ -728,7 +728,7 @@
       {
         "caption" : "Value over a pixel caption",
         "component" : "PixelStat",
-        "height" : 76,
+        "height" : 75,
         "id" : "stats",
         "image" : "img/phosphor-stats.png",
         "width" : 420
@@ -752,7 +752,7 @@
       {
         "caption" : "Stepped corners, outer frame, inner rule (glass in the app)",
         "component" : "PixelPanel",
-        "height" : 91,
+        "height" : 90,
         "id" : "panel",
         "image" : "img/phosphor-panel.png",
         "width" : 420
@@ -760,7 +760,7 @@
       {
         "caption" : "Silkscreen for figures and labels, monospaced system face for sentences",
         "component" : "Typography",
-        "height" : 186,
+        "height" : 178,
         "id" : "type",
         "image" : "img/phosphor-type.png",
         "width" : 420

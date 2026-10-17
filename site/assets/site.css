@@ -1,5 +1,5 @@
 /* Site shell: header, menu and search. Self-contained and scoped to .px-* so it can sit on the design-system page,
-   which has its own styles. See docs/SITE_REDESIGN.md for where each part comes from. */
+   which has its own styles. */
 /* Pulse Pixel (display) and Pulse Mono (text): the project's own faces, design/brand/fonts. */
 @font-face { font-family: "Pulse Pixel"; src: url("/design-system/brand/fonts/PulsePixel-Regular.woff2") format("woff2"); font-display: swap; }
 @font-face { font-family: "Pulse Pixel"; font-weight: 700; src: url("/design-system/brand/fonts/PulsePixel-Regular.woff2") format("woff2"); font-display: swap; }
