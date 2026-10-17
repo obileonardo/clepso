@@ -170,7 +170,70 @@ public struct Theme: Sendable {
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2],
         typeface: .pixel, name: "ember")
 
-    public static let all: [Theme] = [.mac, .phosphor, .ember]
+    // 1.15 colour themes (founder: "right now it's just green"). Each is a complete pixel theme with Phosphor's type,
+    // spacing and shapes, so only colour changes; each has a light and a dark palette at the same 4.5:1 floor for every
+    // text colour on every surface (and for background-coloured text on an accent fill). Status colours keep their
+    // meaning across themes (green available, amber approaching, red reached) and never carry a state alone.
+
+    /// Amber: a warm amber CRT. Gold accent; "approaching" is a distinct orange so it never reads as the accent.
+    public static let amber = pixel("amber", [
+        .background: (RGB(0xF6F0E4), RGB(0x0C0803)), .surfaceElevated: (RGB(0xFCF9F2), RGB(0x17110A)),
+        .surfaceMuted: (RGB(0xEBDFC9), RGB(0x241A0F)), .separator: (RGB(0xC4AE88), RGB(0x4D3A22)),
+        .textPrimary: (RGB(0x2A1C0B), RGB(0xFFF2DE)), .textSecondary: (RGB(0x5C4830), RGB(0xCDB08A)),
+        .accent: (RGB(0x8A5000), RGB(0xFFB547)),
+        .statusSuccess: (RGB(0x2E6A14), RGB(0x9EDC78)), .statusAttention: (RGB(0x9E3D00), RGB(0xFF8F45)),
+        .statusBlocked: (RGB(0xAE2219), RGB(0xFF6E61)), .statusStale: (RGB(0x5F5446), RGB(0xBBA78E)),
+        .statusUnknown: (RGB(0x625749), RGB(0xB6A48F)),
+    ])
+
+    /// Cobalt: cool ice-blue on deep navy glass; mint for "available" so it stays apart from the blue accent.
+    public static let cobalt = pixel("cobalt", [
+        .background: (RGB(0xEEF2F8), RGB(0x050910)), .surfaceElevated: (RGB(0xFAFBFE), RGB(0x0B1322)),
+        .surfaceMuted: (RGB(0xDCE3EF), RGB(0x141F33)), .separator: (RGB(0xA8B5CB), RGB(0x2B3D5C)),
+        .textPrimary: (RGB(0x0B1526), RGB(0xE9F1FF)), .textSecondary: (RGB(0x3E4D66), RGB(0x98ACD0)),
+        .accent: (RGB(0x1650BE), RGB(0x6DB8FF)),
+        .statusSuccess: (RGB(0x0B6B4D), RGB(0x4FE0B0)), .statusAttention: (RGB(0x885000), RGB(0xFFC95A)),
+        .statusBlocked: (RGB(0xB01F2D), RGB(0xFF7C88)), .statusStale: (RGB(0x515C6F), RGB(0x9CA8BE)),
+        .statusUnknown: (RGB(0x545E6F), RGB(0x99A4B8)),
+    ])
+
+    /// Orchid: violet glass with an orchid-magenta accent, synthwave without the neon glare.
+    public static let orchid = pixel("orchid", [
+        .background: (RGB(0xF6F1F9), RGB(0x0B0712)), .surfaceElevated: (RGB(0xFDFBFE), RGB(0x150E22)),
+        .surfaceMuted: (RGB(0xE9DFF1), RGB(0x221734)), .separator: (RGB(0xC0AED2), RGB(0x412E5E)),
+        .textPrimary: (RGB(0x1C1027), RGB(0xF7EEFF)), .textSecondary: (RGB(0x53426A), RGB(0xBDA7DA)),
+        .accent: (RGB(0x8619AD), RGB(0xDA8CFF)),
+        .statusSuccess: (RGB(0x116A44), RGB(0x5EE3A6)), .statusAttention: (RGB(0x8A4C00), RGB(0xFFC75E)),
+        .statusBlocked: (RGB(0xAD1C48), RGB(0xFF7299)), .statusStale: (RGB(0x5C5367), RGB(0xAC9FBB)),
+        .statusUnknown: (RGB(0x5E5569), RGB(0xAA9EB8)),
+    ])
+
+    /// Graphite: monochrome, ink and paper; the accent is the type colour itself, so only states carry hue.
+    public static let graphite = pixel("graphite", [
+        .background: (RGB(0xF2F2F0), RGB(0x0A0A0B)), .surfaceElevated: (RGB(0xFCFCFB), RGB(0x141416)),
+        .surfaceMuted: (RGB(0xE2E2DF), RGB(0x1F1F22)), .separator: (RGB(0xB4B4AF), RGB(0x3B3B41)),
+        .textPrimary: (RGB(0x121214), RGB(0xF2F2F3)), .textSecondary: (RGB(0x4B4B53), RGB(0xA6A6AE)),
+        .accent: (RGB(0x1E1E22), RGB(0xE4E4E9)),
+        .statusSuccess: (RGB(0x186E3E), RGB(0x6FD69A)), .statusAttention: (RGB(0x885000), RGB(0xF0B85A)),
+        .statusBlocked: (RGB(0xB1251D), RGB(0xFF7C72)), .statusStale: (RGB(0x58585F), RGB(0x9E9EA6)),
+        .statusUnknown: (RGB(0x5B5B62), RGB(0x9C9CA4)),
+    ])
+
+    /// The user-selectable themes, Phosphor first (the default).
+    public static let selectable: [Theme] = [.phosphor, .amber, .cobalt, .orchid, .graphite]
+
+    public static let all: [Theme] = [.mac, .phosphor, .ember, .amber, .cobalt, .orchid, .graphite]
+
+    /// A theme by its `name`; unknown names (an older or newer preference) fall back to Phosphor.
+    public static func named(_ name: String) -> Theme { selectable.first { $0.name == name } ?? .phosphor }
+
+    /// A pixel theme sharing Phosphor's type, spacing, radii and strokes.
+    static func pixel(_ name: String, _ palette: [ColorToken: (light: RGB, dark: RGB)]) -> Theme {
+        var theme = Theme.phosphor
+        theme.palette = palette
+        theme.name = name
+        return theme
+    }
 
     static func dark(_ colors: [ColorToken: RGB]) -> [ColorToken: (light: RGB, dark: RGB)] {
         colors.mapValues { ($0, $0) }
