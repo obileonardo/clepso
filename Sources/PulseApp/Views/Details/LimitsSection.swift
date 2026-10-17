@@ -111,6 +111,19 @@ enum PaceText {
         case .atLimit: nil
         }
     }
+
+    /// The card form (1.15): one short line, still marked as an estimate.
+    @MainActor
+    static func short(_ pace: PaceEstimate, model: AppModel) -> String? {
+        switch pace {
+        case .reachesLimit(let at):
+            Copy.Pace.reachesShort(Formatting.resetTime(at, now: model.environment.clock.now(), zone: model.environment.timeZone,
+                                                        locale: model.environment.locale))
+        case .belowAtReset(let pct): Copy.Pace.byResetShort(Formatting.percent(Decimal(pct.rounded())))
+        case .notRising: Copy.Pace.notRisingShort
+        case .notEnoughData, .atLimit: nil
+        }
+    }
 }
 
 /// One limit's window, start to reset: a 0–100% scale, threshold bands at 80% and 95%, the readings as a filled step

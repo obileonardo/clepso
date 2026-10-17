@@ -5,6 +5,10 @@ import SwiftUI
 
 /// The `MenuBarExtra` window (UX_SPEC §3 depth 1–2): overview, provider detail and the provenance inspector
 /// as pages of one panel, so Escape always steps back one level and focus stays inside the popover.
+///
+/// 1.15 layout: every page has the same frame. A demo strip on top when the data is demo data; the page's header; its
+/// content in cards on one grid; and one action bar at the bottom: DASHBOARD (the only primary), the page's own actions
+/// as secondary buttons of one height, then QUIT as a quiet action at the far end.
 public struct PopoverView: View {
     let model: AppModel
     @Environment(\.theme) private var theme
@@ -17,6 +21,7 @@ public struct PopoverView: View {
     public var body: some View {
         let snapshot = model.snapshot
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+            if snapshot.isDemo { demoStrip }
             switch model.popoverRoute {
             case .overview:
                 header(snapshot)
@@ -25,51 +30,72 @@ public struct PopoverView: View {
             case .detail:
                 if let provider = snapshot.provider { ProviderDetailView(model: model, provider: provider, now: snapshot.now) }
                 else { header(snapshot); overview(snapshot) }
-            case .inspector(let key, let fromDetail):
-                if let row = snapshot.provider?.pools.first(where: { $0.poolKey == key }) {
-                    InspectorView(row: row, provider: snapshot.provider, isDemo: snapshot.isDemo, now: snapshot.now,
-                                  zone: model.environment.timeZone, locale: model.environment.locale) {
-                        model.popoverRoute = fromDetail ? .detail : .overview
-                    }
-                } else { header(snapshot); overview(snapshot) }
+            case .inspector(let key, _):
+                if let inspector = inspector(snapshot, key) { inspector } else { header(snapshot); overview(snapshot) }
             }
-            footer(snapshot)
+            actionBar(snapshot)
         }
         .padding(theme.spacing(.windowPadding))
         .frame(width: PopoverMetrics.width, alignment: .topLeading)
         .background(theme.color(.background, scheme))
         .overlay(PixelScanlines())
-        .environment(\.isFixtureData, snapshot.isDemo)
+        // The demo strip marks the whole panel, so rows and titles don't repeat the DEMO tag.
+        .environment(\.isFixtureData, false)
         .environment(\.displayTimeZone, model.environment.timeZone)
         .onExitCommand { back() }
     }
 
-    // MARK: - Overview
+    func inspector(_ snapshot: OverviewSnapshot, _ key: String) -> InspectorView? {
+        guard case .inspector(_, let fromDetail) = model.popoverRoute,
+              let row = snapshot.provider?.pools.first(where: { $0.poolKey == key }) else { return nil }
+        return InspectorView(row: row, provider: snapshot.provider, isDemo: snapshot.isDemo, now: snapshot.now,
+                             zone: model.environment.timeZone, locale: model.environment.locale) {
+            model.popoverRoute = fromDetail ? .detail : .overview
+        }
+    }
 
-    /// One line: name, provider and plan (opens provider detail), and freshness. The aggregate line is the icon's
-    /// accessibility label and the help text, so it isn't repeated here.
+    // MARK: - Chrome
+
+    /// One thin line instead of a DEMO tag on every title, with the way out beside it.
+    var demoStrip: some View {
+        HStack(spacing: theme.spacing(.standard)) {
+            Text("DEMO").font(theme.font(.micro).weight(.bold)).foregroundStyle(theme.color(.background, scheme))
+                .padding(.horizontal, theme.spacing(.compact) * 1.5)
+                .background(PixelRect(step: theme.stroke(.hairline)).fill(theme.color(.accent, scheme)))
+                .accessibilityHidden(true)
+            Text(Copy.Demo.strip).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme)).lineLimit(1)
+            Spacer(minLength: theme.spacing(.standard))
+            Button(Copy.Demo.exitShort) { Task { await model.setDemo(false) } }
+                .buttonStyle(PixelQuietButtonStyle())
+                .accessibilityLabel(Copy.Demo.exit)
+        }
+        .padding(.leading, theme.spacing(.standard))
+        .padding(.vertical, theme.spacing(.compact) / 2)
+        .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceMuted, scheme)))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Copy.Demo.header)
+    }
+
+    /// Title on the left; the provider and its plan on the right as one button into provider detail. The aggregate
+    /// line is the icon's accessibility label and help text, so it isn't repeated here.
     func header(_ snapshot: OverviewSnapshot) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
-            DemoTag()
+        HStack(alignment: .center, spacing: theme.spacing(.standard)) {
             Text(Copy.Header.title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                .fixedSize().accessibilityAddTraits(.isHeader)
+            Spacer(minLength: theme.spacing(.standard))
             if let provider = snapshot.provider {
                 Button { model.popoverRoute = .detail } label: {
-                    HStack(spacing: theme.spacing(.compact)) {
-                        Text("· " + provider.identity.wordmark).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    HStack(spacing: theme.spacing(.standard)) {
+                        Text(provider.identity.wordmark.uppercased()).font(theme.font(.micro)).tracking(1)
+                            .foregroundStyle(theme.color(.textPrimary, scheme)).fixedSize()
                         PlanPill(planName: provider.planName.map(PopoverMetrics.shortPlan), provenance: provider.plan).fixedSize()
-                        PixelIcon(symbol: "chevron.right").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                            .accessibilityHidden(true)
+                        PixelIcon(.chevronRight).foregroundStyle(theme.color(.textSecondary, scheme)).accessibilityHidden(true)
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(provider.header)
                 .accessibilityHint("Shows provider details")
-            }
-            Spacer(minLength: theme.spacing(.standard))
-            if let updated = snapshot.updatedAt {
-                Text(Copy.Header.updated(Formatting.age(of: updated, now: snapshot.now, zone: model.environment.timeZone,
-                                                        locale: model.environment.locale)).uppercased())
-                    .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).lineLimit(1)
             }
         }
         .accessibilityElement(children: .contain)
@@ -89,60 +115,60 @@ public struct PopoverView: View {
     @ViewBuilder func overview(_ snapshot: OverviewSnapshot) -> some View {
         switch snapshot.empty {
         case .notConnected:
-            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                Text(Copy.Empty.noProviderTitle).font(theme.font(.label).weight(.semibold))
-                Text(Copy.Empty.noProviderBody).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                HStack {
-                    Button(Copy.Empty.noProviderCTA) { openOnboarding(at: .provider) }.buttonStyle(PixelButtonStyle(prominent: true))
-                    Button(Copy.Onboarding.firstReadingDemo) { Task { await model.setDemo(true) } }.buttonStyle(PixelButtonStyle())
-                }
+            EmptyCard(glyph: .link, title: Copy.Empty.noProviderTitle, message: Copy.Empty.noProviderBody) {
+                Button(Copy.Empty.noProviderCTA) { openOnboarding(at: .provider) }.buttonStyle(PixelButtonStyle(prominent: true))
+                Button(Copy.Onboarding.firstReadingDemo) { Task { await model.setDemo(true) } }.buttonStyle(PixelButtonStyle())
             }
         case .waitingForFirstReading:
-            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                Text(Copy.Onboarding.firstReadingWaiting).font(theme.font(.supporting)).fixedSize(horizontal: false, vertical: true)
+            EmptyCard(glyph: .clock, title: nil, message: Copy.Onboarding.firstReadingWaiting) {
                 Button(Copy.Onboarding.firstReadingDemo) { Task { await model.setDemo(true) } }.buttonStyle(PixelButtonStyle())
             }
         case nil:
             if let provider = snapshot.provider {
-                // The header's DEMO tag marks the whole panel; rows don't repeat it.
-                VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                    // Limits side by side: the panel grows sideways instead of downwards.
-                    HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                        ForEach(provider.pools) { row in
-                            Button { model.popoverRoute = .inspector(poolKey: row.poolKey, fromDetail: false) } label: {
-                                PixelLimitRow(model: row.model, now: snapshot.now, pace: PaceText.make(row.pace, model: model))
-                                    .padding(theme.spacing(.standard) + theme.spacing(.compact))
-                                    .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceElevated, scheme)))
-                                    .overlay(PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(.separator, scheme), lineWidth: theme.stroke(.hairline)))
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .frame(maxWidth: .infinity, alignment: .top)
-                            .accessibilityHint("Shows where this number comes from")
-                        }
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                    LimitCards(model: model, pools: provider.pools, now: snapshot.now, fromDetail: false)
                     if let session = provider.sessions.first { SessionStrip(session: session, agents: snapshot.agents) }
                 }
-                .environment(\.isFixtureData, false)
             }
         }
     }
 
-    // MARK: - Footer and navigation
+    // MARK: - Action bar and navigation
 
-    /// DASHBOARD opens the window, where settings, notifications and stats live; QUIT is the only other action here.
-    func footer(_ snapshot: OverviewSnapshot) -> some View {
+    /// One row, one height: DASHBOARD is the page's primary action, the page's own actions are secondary, freshness or
+    /// nothing fills the middle, and QUIT sits quietly at the end.
+    func actionBar(_ snapshot: OverviewSnapshot) -> some View {
         HStack(spacing: theme.spacing(.standard)) {
-            Button(Copy.Details.dashboard) { openDashboard(.home) }.buttonStyle(PixelButtonStyle(prominent: true))
-            if snapshot.isDemo {
-                Button(Copy.Demo.exit) { Task { await model.setDemo(false) } }.buttonStyle(PixelButtonStyle())
+            Button { openDashboard(.home) } label: { PixelLabel(Copy.Details.dashboard, glyph: .grid) }
+                .buttonStyle(PixelButtonStyle(prominent: true)).fixedSize()
+            switch model.popoverRoute {
+            case .overview:
+                EmptyView()
+            case .detail:
+                Button { NSWorkspace.shared.open(ProviderDetailView.usageURL) } label: { PixelLabel(Copy.Detail.openUsageShort, glyph: .external) }
+                    .buttonStyle(PixelButtonStyle()).fixedSize()
+                    .help(Copy.Detail.openUsage)
+                    .accessibilityLabel(Copy.Detail.openUsage)
+                Button(Copy.Detail.changePlan) { openDashboard(.account) }.buttonStyle(PixelButtonStyle()).fixedSize()
+            case .inspector(let key, _):
+                if let inspector = inspector(snapshot, key) {
+                    Button(Copy.Inspector.copy) {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(inspector.details, forType: .string)
+                    }
+                    .buttonStyle(PixelButtonStyle()).fixedSize()
+                }
             }
-            Spacer()
-            Button(Copy.Footer.quit) { NSApp.terminate(nil) }
-                .buttonStyle(.borderless).font(theme.font(.micro)).textCase(.uppercase)
-                .foregroundStyle(theme.color(.textSecondary, scheme))
+            Spacer(minLength: 0)
+            if model.popoverRoute == .overview, let updated = snapshot.updatedAt {
+                Text(Copy.Header.updated(Formatting.age(of: updated, now: snapshot.now, zone: model.environment.timeZone,
+                                                        locale: model.environment.locale)).uppercased())
+                    .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).lineLimit(1)
+            }
+            Button(Copy.Footer.quit) { NSApp.terminate(nil) }.buttonStyle(PixelQuietButtonStyle()).fixedSize()
         }
+        .padding(.top, theme.spacing(.standard) + theme.spacing(.compact))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
     }
 
     /// Opens the Dashboard window on a section.
@@ -176,6 +202,72 @@ enum PopoverMetrics {
     static func shortPlan(_ name: String) -> String { name.hasPrefix("Claude ") ? String(name.dropFirst("Claude ".count)) : name }
 }
 
+/// The limits as equal cards side by side; each opens the inspector for its number.
+struct LimitCards: View {
+    let model: AppModel
+    let pools: [PoolRow]
+    let now: Date
+    let fromDetail: Bool
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: theme.spacing(.standard)) {
+            ForEach(pools) { row in
+                Button { model.popoverRoute = .inspector(poolKey: row.poolKey, fromDetail: fromDetail) } label: {
+                    PixelLimitRow(model: row.model, now: now, pace: PaceText.short(row.pace, model: model))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .pulseCard()
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows where this number comes from")
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)          // equal heights: each card stretches to the taller one
+    }
+}
+
+/// The popover's card: elevated fill and a hairline pixel frame, with one inner padding everywhere.
+struct PulseCard: ViewModifier {
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View {
+        let px = theme.stroke(.hairline) * 2
+        content
+            .padding(theme.spacing(.windowPadding))
+            .background(PixelRect(step: px).fill(theme.color(.surfaceElevated, scheme)))
+            .overlay(PixelRect(step: px).strokeBorder(theme.color(.separator, scheme), lineWidth: theme.stroke(.hairline)))
+    }
+}
+
+extension View {
+    func pulseCard() -> some View { modifier(PulseCard()) }
+}
+
+/// An empty or waiting state: an icon, at most a title and a line, and its buttons in one row.
+struct EmptyCard<Actions: View>: View {
+    let glyph: PixelGlyph
+    let title: String?
+    let message: String
+    @ViewBuilder let actions: () -> Actions
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: theme.spacing(.windowPadding)) {
+            PixelIcon(glyph, size: 24).foregroundStyle(theme.color(.accent, scheme)).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                if let title { Text(title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme)) }
+                Text(message).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: theme.spacing(.standard)) { actions() }.padding(.top, theme.spacing(.compact))
+            }
+            Spacer(minLength: 0)
+        }
+        .pulseCard()
+    }
+}
+
 /// One problem line with an optional fix (UX_SPEC §2.5).
 struct Banner: View {
     let text: String
@@ -184,19 +276,23 @@ struct Banner: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
-            PixelIcon(symbol: "exclamationmark.triangle").foregroundStyle(theme.color(.statusBlocked, scheme)).accessibilityHidden(true)
-            Text(text).font(theme.font(.supporting)).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            if let action { Button(action, action: perform) }
+        let px = theme.stroke(.hairline) * 2
+        HStack(alignment: .center, spacing: theme.spacing(.standard)) {
+            PixelIcon(.warning).foregroundStyle(theme.color(.statusBlocked, scheme)).accessibilityHidden(true)
+            Text(text).font(theme.font(.supporting)).foregroundStyle(theme.color(.textPrimary, scheme)).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: theme.spacing(.standard))
+            if let action { Button(action, action: perform).buttonStyle(PixelButtonStyle()) }
         }
-        .padding(theme.spacing(.standard))
-        .background(RoundedRectangle(cornerRadius: theme.radius(.control)).fill(theme.color(.surfaceMuted, scheme)))
+        .padding(.horizontal, theme.spacing(.windowPadding))
+        .padding(.vertical, theme.spacing(.standard))
+        .background(PixelRect(step: px).fill(theme.color(.surfaceMuted, scheme)))
+        .overlay(PixelRect(step: px).strokeBorder(theme.color(.statusBlocked, scheme), lineWidth: theme.stroke(.hairline)))
         .accessibilityElement(children: .combine)
     }
 }
 
-/// The newest session in one glance: model, context, cost estimate, cache hits, lines and API time.
+/// The newest session in one glance: the model and its context on top, then four figures on an even grid
+/// (cost estimate, cache hits, lines, API time) and, when counted, the last task's agents.
 struct SessionStrip: View {
     let session: SessionDetail
     var agents: AgentsSummary? = nil
@@ -204,35 +300,39 @@ struct SessionStrip: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            HStack(spacing: theme.spacing(.standard)) {
-                Text((session.modelName ?? Copy.Details.unknownModel).uppercased()).font(theme.font(.title))
-                    .foregroundStyle(theme.color(.background, scheme)).lineLimit(1).fixedSize()
-                    .padding(.horizontal, theme.spacing(.compact) * 1.5).padding(.vertical, theme.spacing(.compact) / 2)
-                    .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.accent, scheme)))
-                if let pct = session.contextPct {
-                    PixelBar(fraction: NSDecimalNumber(decimal: pct).doubleValue / 100, role: .accent, pattern: .solid, segments: 24)
-                    Text(Copy.Details.contextShort(Formatting.percent(pct))).font(theme.font(.supporting)).lineLimit(1).fixedSize()
-                        .foregroundStyle(theme.color(.textSecondary, scheme))
-                } else {
-                    Spacer()
-                }
+        VStack(alignment: .leading, spacing: theme.spacing(.standard) + theme.spacing(.compact)) {
+            HStack(alignment: .center, spacing: theme.spacing(.standard)) {
+                ModelChip(name: session.modelName)
+                Spacer(minLength: theme.spacing(.standard))
+                Text(Copy.Details.context).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
+                Text(session.contextPct.map(Formatting.percent) ?? "—").font(theme.font(.title)).monospacedDigit()
+                    .foregroundStyle(theme.color(.textPrimary, scheme))
             }
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                PixelStat(session.costUSD.map { $0.formatted(.currency(code: "USD").locale(Locale(identifier: "en_US"))) } ?? "—", Copy.Details.costEstimate)
-                PixelStat(session.cacheHitPct.map(Formatting.percent) ?? "—", Copy.Details.cacheHits)
-                PixelStat(session.linesAdded.map { "+" + Formatting.compact($0) } ?? "—", Copy.Details.lines)
-                PixelStat(session.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime)
+            PixelBar(fraction: session.contextPct.map { NSDecimalNumber(decimal: $0).doubleValue / 100 }, role: .accent,
+                     pattern: session.contextPct == nil ? .outline : .solid, segments: 32)
+            HStack(alignment: .top, spacing: 0) {
+                stat(session.costUSD.map { $0.formatted(.currency(code: "USD").locale(Locale(identifier: "en_US"))) } ?? "—", Copy.Details.costEstimate, first: true)
+                stat(session.cacheHitPct.map(Formatting.percent) ?? "—", Copy.Details.cacheHits)
+                stat(session.linesAdded.map { "+" + Formatting.compact($0) } ?? "—", Copy.Details.lines)
+                stat(session.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime)
                 if let latest = agents?.latest {
-                    PixelStat("\(latest.agents)", Copy.Agents.lastTaskShort)
+                    stat("\(latest.agents)", Copy.Agents.statShort)
                         .help(Copy.Agents.strip(latest.agents, latest.byType.map { "\($0.name) \($0.count)" }.joined(separator: ", ")))
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(theme.spacing(.standard) + theme.spacing(.compact))
-        .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.surfaceElevated, scheme)))
-        .overlay(PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(.separator, scheme), lineWidth: theme.stroke(.hairline)))
+        .pulseCard()
         .accessibilityElement(children: .combine)
+    }
+
+    /// One figure in its column; columns after the first are set off by a hairline.
+    func stat(_ value: String, _ label: String, first: Bool = false) -> some View {
+        PixelStat(value, label)
+            .padding(.leading, first ? 0 : theme.spacing(.standard) + theme.spacing(.compact))
+            .frame(maxHeight: .infinity, alignment: .top)
+            .overlay(alignment: .leading) {
+                if !first { Rectangle().fill(theme.color(.separator, scheme)).frame(width: theme.stroke(.hairline)).accessibilityHidden(true) }
+            }
     }
 }

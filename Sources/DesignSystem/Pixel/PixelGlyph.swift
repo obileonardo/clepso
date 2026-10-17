@@ -52,6 +52,7 @@ public struct PixelLabel: View {
     let glyph: PixelGlyph
     @Environment(\.theme) private var theme
     public init(_ title: String, symbol: String) { self.title = title; self.glyph = PixelGlyph(symbol: symbol) }
+    public init(_ title: String, glyph: PixelGlyph) { self.title = title; self.glyph = glyph }
     public var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
             PixelIcon(glyph).alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.bottom] - 1 }

@@ -463,6 +463,7 @@ enum Copy {
     /// Increment 1.9: agents per task, from Claude Code hooks (counts only).
     enum Agents {
         static let lastTaskShort = "Agents, last task"
+        static let statShort = "Agents"
         static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom", unknown = "Unknown"
         static let title = "AGENTS PER TASK", titleShort = "Agents per task"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
@@ -498,6 +499,10 @@ enum Copy {
         static func byReset(_ pct: String) -> String { "Estimate: about \(pct) used by the reset" }
         static let notRising = "Estimate: not rising right now"
         static let notEnough = "Estimate: needs a few more readings"
+        /// 1.15: the same estimates in a card's one-line form; still always marked as an estimate.
+        static func reachesShort(_ time: String) -> String { "Est. 100% by \(time)" }
+        static func byResetShort(_ pct: String) -> String { "Est. \(pct) at reset" }
+        static let notRisingShort = "Est. not rising"
         static let atLimit = "At the limit"
     }
 
@@ -505,6 +510,12 @@ enum Copy {
         static let openUsage = "Open usage in Claude"
         static let changePlan = "Change plan…"
         static func sessions(_ n: Int) -> String { n == 1 ? "1 Claude Code session" : "\(n) Claude Code sessions" }
+        /// 1.15: the detail page's compact status strip and action bar.
+        static func sessionsShort(_ n: Int) -> String { n == 1 ? "1 session" : "\(n) sessions" }
+        static let openUsageShort = "Usage"
+        static let coverage = "5-hour & 7-day only"
+        static func unreadShort(_ n: Int) -> String { n == 1 ? "1 limit not read" : "\(n) limits not read" }
+        static let moreInfo = "More about which limits Pulse reads"
         /// DECISIONS C7: say what the source covers, so "available" is never read as "every limit".
         static let otherLimits = "Claude Code's status line reports the 5-hour and 7-day limits only. Others, such as a weekly limit for one model, appear in /\u{2060}usage in Claude Code."          // word joiner: never break "/usage" across lines
         static func unreadLimits(_ n: Int) -> String {
@@ -571,5 +582,6 @@ enum Copy {
     enum Demo {
         static let header = "Demo data · not your account"
         static let exit = "Stop showing demo data"
+        static let strip = "Sample data · not your account", exitShort = "Exit demo"
     }
 }

@@ -35,7 +35,9 @@ public struct PixelLimitRow: View {
                 if let used = model.used.value, state == .live || state == .stale {
                     Text(String(Formatting.percent(used).dropLast())).font(theme.font(.metricHero)).monospacedDigit()
                         .foregroundStyle(theme.color(.textPrimary, scheme))
+                        .padding(.vertical, -theme.spacing(.compact) * 1.5)
                     Text("%").font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        .padding(.vertical, -theme.spacing(.compact) * 1.5)       // 1.15: the pixel face's tall line box, trimmed
                 } else {
                     Text(StatusStyles.of(state).label.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.statusUnknown, scheme))
                 }
@@ -367,5 +369,35 @@ public struct PixelToggleStyle: ToggleStyle {
         }
         .buttonStyle(.plain)
         .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
+    }
+}
+
+/// 1.15: the quiet tier under `PixelButtonStyle`: no frame, small capitals in the secondary colour, brightening on hover
+/// and press. For actions that should be reachable but never compete (Quit, Exit demo, Show more).
+public struct PixelQuietButtonStyle: ButtonStyle {
+    public init() {}
+    public func makeBody(configuration: Configuration) -> some View { QuietBody(configuration: configuration) }
+
+    struct QuietBody: View {
+        let configuration: ButtonStyleConfiguration
+        @State private var hovering = false
+        @Environment(\.theme) private var theme
+        @Environment(\.colorScheme) private var scheme
+        @Environment(\.isEnabled) private var enabled
+
+        var body: some View {
+            let px = theme.stroke(.hairline) * 2
+            configuration.label
+                .font(theme.font(.micro))
+                .textCase(.uppercase)
+                .tracking(1)
+                .foregroundStyle(theme.color(hovering || configuration.isPressed ? .textPrimary : .textSecondary, scheme))
+                .padding(.horizontal, theme.spacing(.standard))
+                .padding(.vertical, theme.spacing(.compact) + px)
+                .background(PixelRect(step: px).fill(theme.color(.surfaceMuted, scheme).opacity(hovering ? 1 : 0)))
+                .opacity(enabled ? 1 : 0.45)
+                .contentShape(Rectangle())
+                .onHover { hovering = $0 }
+        }
     }
 }

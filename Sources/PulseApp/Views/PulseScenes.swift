@@ -38,7 +38,18 @@ public struct PulseScenes: Scene {
 struct ThemedRoot: ViewModifier {
     let model: AppModel
     func body(content: Content) -> some View {
-        content.modifier(Tint(theme: model.theme)).environment(\.theme, model.theme).preferredColorScheme(model.appearance.colorScheme)
+        content.modifier(Tint(theme: model.theme)).environment(\.theme, model.theme)
+            .modifier(Scheme(forced: model.appearance.colorScheme))
+            .preferredColorScheme(model.appearance.colorScheme)
+    }
+
+    /// `preferredColorScheme` never reaches the menu bar panel (it follows the menu bar), so a chosen Light or Dark is
+    /// also set in the environment, which is what every token and native control reads.
+    struct Scheme: ViewModifier {
+        let forced: ColorScheme?
+        func body(content: Content) -> some View {
+            if let forced { content.environment(\.colorScheme, forced) } else { content }
+        }
     }
 
     struct Tint: ViewModifier {
