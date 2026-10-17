@@ -183,7 +183,7 @@ struct LimitMeterRow: View {
         let role: ColorToken = switch row.model.card {
         case .approaching: .statusAttention
         case .critical, .exhausted, .exhaustedNoReset, .exhaustedOverage: .statusBlocked
-        default: .accent
+        default: StatusStyles.of(row.model.card).role        // 1.15: the same state colour as the popover in every theme
         }
         VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
             HStack(alignment: .firstTextBaseline) {
