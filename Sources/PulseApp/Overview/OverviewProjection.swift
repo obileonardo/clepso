@@ -53,7 +53,7 @@ public enum OverviewProjection {
             identity: .claudeCode, planName: input.plan?.displayName, plan: plan,
             header: header(plan: input.plan, provenance: plan, metricsLive: anyLive),
             pools: rows, session: session(input, now: now), sessionCount: input.sessionSummaries.count,
-            sourceVersion: input.sourceVersion, lastSeen: lastSeen)
+            sourceVersion: input.sourceVersion, lastSeen: lastSeen, unreadLimitWindows: input.unreadLimitWindows)
 
         let (icon, staleMark, text, line) = aggregate(rows.map(\.model), input: input, empty: empty, lastSeen: lastSeen,
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
@@ -176,6 +176,7 @@ public enum OverviewProjection {
         guard !live.isEmpty else { return (.stale, false, nil, age.map { "Last seen \($0)" } ?? "Not connected") }
         let allAvailable = cards.allSatisfy { [.available, .availableAgain, .availableAgainUser].contains($0.card) }
         let updated = age.map { " · updated \($0)" } ?? ""
-        return (.ok, false, highest, (allAvailable ? "All limits available" : "Account quota not available") + updated)
+        // C7: only the limits Claude Code reports are known; /usage can show others (a per-model weekly limit).
+        return (.ok, false, highest, (allAvailable ? "Reported limits available" : "Account quota not available") + updated)
     }
 }

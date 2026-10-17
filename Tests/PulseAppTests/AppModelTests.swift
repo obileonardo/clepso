@@ -31,6 +31,20 @@ struct AppModelTests {
         #expect((attributes[.posixPermissions] as? Int) == 0o600)
     }
 
+    @Test("C7: a frame reporting an unread limit window reaches the detail view and the diagnostics log")
+    func unreadLimitWindows() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let clock = TestClock()
+        let model = box.model(clock: clock)
+        await model.start(); defer { model.stop() }
+        #expect(send(model.environment.socketPath, try frameBytes(at: clock.now(), unreadWindows: 1)))
+        #expect(await eventually { model.snapshot.provider != nil })
+        await model.refreshIngestHealth()
+        await model.refresh()
+        #expect(model.snapshot.provider?.unreadLimitWindows == 1)
+        #expect(model.diagnostics.entries.contains { $0.code == "ingest.unreadLimitWindows" && $0.text.contains("1 limit(s)") })
+    }
+
     @Test("A real reading ends demo mode (UX_SPEC §2.8)")
     func realReadingEndsDemo() async throws {
         let box = Sandbox(); defer { box.cleanUp() }

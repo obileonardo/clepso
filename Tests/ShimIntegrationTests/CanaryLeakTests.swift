@@ -42,7 +42,8 @@ struct CanaryLeakTests {
                              "current_usage": {"input_tokens": 2, "output_tokens": 30, "cache_read_input_tokens": 409000,
                                                "cache_creation_input_tokens": 100, "note": "canary-usage-note"}},
           "rate_limits": {"five_hour": {"used_percentage": 41, "resets_at": \(nowSeconds + 9000), "label": "canary-label"},
-                          "seven_day": {"used_percentage": 12, "resets_at": \(nowSeconds + 400_000)}},
+                          "seven_day": {"used_percentage": 12, "resets_at": \(nowSeconds + 400_000)},
+                          "seven_day_canary": {"used_percentage": 77, "resets_at": \(nowSeconds + 400_000), "name": "canary-window"}},
           "cost": {"total_cost_usd": 0.12, "total_duration_ms": 987654321, "total_api_duration_ms": 987654321,
                    "total_lines_added": 424242, "total_lines_removed": 424242},
           "email": "canary@example.com", "aws": "\(fakeAWS)"

@@ -92,6 +92,11 @@ enum Copy {
         static let openUsage = "Open usage in Claude"
         static let changePlan = "Change plan…"
         static func sessions(_ n: Int) -> String { n == 1 ? "1 Claude Code session" : "\(n) Claude Code sessions" }
+        /// DECISIONS C7: say what the source covers, so "available" is never read as "every limit".
+        static let otherLimits = "Claude Code's status line reports the 5-hour and 7-day limits only. Others, such as a weekly limit for one model, appear in /\u{2060}usage in Claude Code."          // word joiner: never break "/usage" across lines
+        static func unreadLimits(_ n: Int) -> String {
+            "Claude Code is sending \(n == 1 ? "1 more limit" : "\(n) more limits") that \(product) doesn't read yet. Check /\u{2060}usage in Claude Code."
+        }
     }
 
     enum Footer {

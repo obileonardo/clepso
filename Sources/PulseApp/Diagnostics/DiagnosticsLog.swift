@@ -13,6 +13,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case socketFailed(errno: Int32?)
     case ingestRejected(otherUser: Int, malformed: Int, oversize: Int, rateLimited: Int, unmappable: Int)
     case clockSkew(frames: Int)
+    case unreadLimitWindows(count: Int)
     case storageFailed(sqliteCode: Int32?)
     case installed(keptExisting: Bool, backupFingerprint: String?)
     case installRefused(reason: String)               // an `InstallError` case name
@@ -26,7 +27,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     var level: DiagnosticsLog.Entry.Level {
         switch self {
         case .socketFailed, .storageFailed, .installRefused: .error
-        case .ingestRejected, .clockSkew: .warning
+        case .ingestRejected, .clockSkew, .unreadLimitWindows: .warning
         default: .info
         }
     }
@@ -38,6 +39,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .socketFailed: "socket.failed"
         case .ingestRejected: "ingest.rejected"
         case .clockSkew: "ingest.clockSkew"
+        case .unreadLimitWindows: "ingest.unreadLimitWindows"
         case .storageFailed: "storage.failed"
         case .installed: "claudeCode.installed"
         case .installRefused: "claudeCode.installRefused"
@@ -60,6 +62,8 @@ public enum DiagnosticEvent: Sendable, Equatable {
             "Updates set aside: \(otherUser) from another user, \(malformed) malformed, \(oversize) too large, "
                 + "\(rateLimited) over the rate limit, \(unmappable) unreadable"
         case .clockSkew(let n): "\(n) update(s) had a clock more than 5 minutes off"
+        case .unreadLimitWindows(let n): n == 0 ? "Claude Code no longer sends limits Pulse can't read"
+            : "Claude Code sends \(n) limit(s) Pulse doesn't read yet; see the usage screen in Claude Code"
         case .storageFailed(let code): "Data file error" + (code.map { " (SQLite \($0))" } ?? "")
         case let .installed(kept, backup):
             "Connected to Claude Code" + (kept ? ", your status line still runs first" : "") + (backup.map { ", backup \($0)" } ?? "")

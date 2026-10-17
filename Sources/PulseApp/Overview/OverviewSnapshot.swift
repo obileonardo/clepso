@@ -45,6 +45,8 @@ public struct ProviderSection: Sendable {
     public let sessionCount: Int
     public let sourceVersion: String?
     public let lastSeen: Date?
+    /// Limit windows Claude Code sent that Pulse does not read (DECISIONS C7). 0 is the normal case today.
+    public let unreadLimitWindows: Int
 }
 
 /// One allowance pool with what the provenance inspector needs, prefetched (DESIGN_SYSTEM §9).
@@ -69,5 +71,6 @@ public struct OverviewInput: Sendable {
     public var lastEventAt: Date?
     public var showPercent = true
     public var isDemo = false
+    public var unreadLimitWindows = 0
     public init() {}
 }

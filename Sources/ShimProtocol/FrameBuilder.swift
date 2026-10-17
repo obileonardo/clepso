@@ -85,10 +85,17 @@ public enum FrameBuilder {
         }
 
         let unknownTopLevel = top.keys.filter { !Allowlist.documentedTopLevelKeys.contains($0) }.count
+        // DECISIONS C7: a limit Claude Code starts sending under `rate_limits` (a per-model weekly window, say) is
+        // counted so the app can say so; like unknown top-level keys it is never copied and never named.
+        var unknownWindows = 0
+        if case .value(.object(let windows)) = input.lookup(["rate_limits"]) {
+            unknownWindows = windows.keys.filter { !Allowlist.rateLimitWindows.contains($0) }.count
+        }
         var health: [String: JSONValue] = [
             "stdin_bytes": .number(Double(stdin.count)),
             "truncated": .bool(options.truncated),
             "unknown_top_level_keys": .number(Double(unknownTopLevel)),
+            "unknown_rate_limit_windows": .number(Double(unknownWindows)),
             "scrub_count": .number(Double(scrubCount)),
             "deadline_parse": .bool(false),
             "original_present": .bool(options.originalPresent),

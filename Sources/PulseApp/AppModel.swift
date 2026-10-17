@@ -156,6 +156,9 @@ public final class AppModel {
             diagnostics.record(.ingestRejected(otherUser: rejected.0, malformed: rejected.1, oversize: rejected.2,
                                                rateLimited: rejected.3, unmappable: rejected.4))
         }
+        if counters.unknownRateLimitWindows != loggedCounters.unknownRateLimitWindows {
+            diagnostics.record(.unreadLimitWindows(count: counters.unknownRateLimitWindows))
+        }
         if counters.skewFlagged > loggedCounters.skewFlagged {
             diagnostics.record(.clockSkew(frames: counters.skewFlagged - loggedCounters.skewFlagged))
         }
@@ -187,6 +190,7 @@ public final class AppModel {
             } else {
                 input = try await Self.read(store)
                 input.installed = Self.installer(environment, forwardCost: forwardCost).isInstalled
+                input.unreadLimitWindows = await ingestor?.counters.unknownRateLimitWindows ?? 0
             }
         } catch {
             problem = .storage("\(error)")

@@ -20,6 +20,8 @@ public struct IngestBatch: Sendable, Equatable {
     public var skewFlagged: Bool { abs(clockSkew) > FrameMapper.skewLimit }
     public let scrubCount: Int
     public let unknownTopLevelKeys: Int
+    /// Limit windows under `rate_limits` the helper does not read (DECISIONS C7): a count, never names or values.
+    public var unknownRateLimitWindows: Int = 0
 }
 
 /// Frame v1 → observations, exactly per DATA_MODEL §5.1. Pure: no I/O, no clock read.
@@ -102,7 +104,8 @@ public enum FrameMapper {
                            modelDisplayName: string(frame.lookup(["model", "display_name"])), sourceVersion: sourceVersion,
                            observedAt: observedAt, receivedAt: receivedAt, observations: observations,
                            droppedSessionObservations: dropped, clockSkew: receivedAt.timeIntervalSince(observedAt),
-                           scrubCount: count("scrub_count"), unknownTopLevelKeys: count("unknown_top_level_keys"))
+                           scrubCount: count("scrub_count"), unknownTopLevelKeys: count("unknown_top_level_keys"),
+                           unknownRateLimitWindows: count("unknown_rate_limit_windows"))
     }
 
     // MARK: - Value rules (§5.1): number → value, null → providerNull, missing → nil (row decides)

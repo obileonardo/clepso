@@ -28,6 +28,10 @@ struct ProviderDetailView: View {
             ProviderCard(identity: provider.identity, planName: provider.planName.map(PopoverMetrics.shortPlan), plan: provider.plan,
                          pools: provider.pools.map(\.model), session: provider.session, layout: .expanded, now: now,
                          onPool: { index in model.popoverRoute = .inspector(poolKey: provider.pools[index].poolKey, fromDetail: true) })
+            Label(provider.unreadLimitWindows > 0 ? Copy.Detail.unreadLimits(provider.unreadLimitWindows) : Copy.Detail.otherLimits,
+                  systemImage: provider.unreadLimitWindows > 0 ? "exclamationmark.circle" : "info.circle")
+                .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
             Text(provider.sessionCount == 0 ? Copy.Empty.noSessions : Copy.Detail.sessions(provider.sessionCount))
                 .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
             HStack(spacing: theme.spacing(.standard)) {

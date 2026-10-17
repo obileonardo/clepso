@@ -193,6 +193,8 @@ public actor Ingestor {
         public var unmappable = 0
         public var droppedSessionObservations = 0
         public var skewFlagged = 0
+        /// From the newest frame: how many limit windows Claude Code sent that Pulse does not read (DECISIONS C7).
+        public var unknownRateLimitWindows = 0
         public init() {}
     }
 
@@ -220,6 +222,7 @@ public actor Ingestor {
         counters.batches += 1
         counters.droppedSessionObservations += batch.droppedSessionObservations
         if batch.skewFlagged { counters.skewFlagged += 1 }
+        counters.unknownRateLimitWindows = batch.unknownRateLimitWindows
         await sink.ingest(batch)
     }
 }

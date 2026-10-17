@@ -44,15 +44,16 @@ extension MetricValue {
 
 @Suite("Overview projection: menu bar icon and aggregate line (UX_SPEC §1.4)")
 struct OverviewProjectionTests {
-    @Test("All available and live: ring, highest percent, 'All limits available'")
+    @Test("All available and live: ring, highest percent, 'Reported limits available' (C7: never 'All')")
     func ok() async throws {
         let s = try Scenario()
         try await s.reading(at: t0, fiveHour: 41, fiveHourReset: t0 + 9000, sevenDay: 21, sevenDayReset: t0 + 400_000)
         let snap = try await s.snapshot(now: t0 + 60)
         #expect(snap.icon == .ok && !snap.iconStaleMark && snap.iconShape == .ring)
         #expect(snap.iconText == "41%")
-        #expect(snap.aggregateLine == "All limits available · updated 1m ago")
-        #expect(snap.iconAccessibilityLabel == "Pulse: All limits available · updated 1m ago")
+        #expect(snap.aggregateLine == "Reported limits available · updated 1m ago")
+        #expect(snap.iconAccessibilityLabel == "Pulse: Reported limits available · updated 1m ago")
+        #expect(snap.provider?.unreadLimitWindows == 0)
         #expect(snap.provider?.pools.map(\.model.scope) == ["5-hour", "7-day"])
         #expect(snap.provider?.pools.first?.providerField == "rate_limits.five_hour.used_percentage")
         // F15: metrics live, no plan chosen.

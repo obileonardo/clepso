@@ -62,6 +62,21 @@ struct FrameBuilderTests {
         #expect(f.lookup(["prompt_cache", "hit_ratio"]) == .value(.number(0.73)))
         #expect(f.lookup(["health", "scrub_count"]) == .value(.number(0)))
         #expect(f.lookup(["health", "unknown_top_level_keys"]) == .value(.number(0)))
+        #expect(f.lookup(["health", "unknown_rate_limit_windows"]) == .value(.number(0)), "no rate_limits at all counts 0")
+    }
+
+    @Test("DECISIONS C7: an unknown rate-limit window is counted, never copied or named")
+    func unknownRateLimitWindow() throws {
+        let stdin = f08SessionAStdin.replacingOccurrences(
+            of: #""seven_day":{"used_percentage":20,"resets_at":1792330800}}"#,
+            with: #""seven_day":{"used_percentage":20,"resets_at":1792330800},"seven_day_fable":{"used_percentage":36,"resets_at":1792330800}}"#)
+        #expect(stdin != f08SessionAStdin)
+        let f = try frame(stdin)
+        #expect(f.lookup(["health", "unknown_rate_limit_windows"]) == .value(.number(1)))
+        #expect(f.lookup(["rate_limits", "seven_day", "used_pct"]) == .value(.number(20)))
+        let text = try payloadText(f)
+        #expect(!text.contains("fable") && !text.contains("36"), "\(text)")
+        #expect(try frame(f08SessionAStdin).lookup(["health", "unknown_rate_limit_windows"]) == .value(.number(0)))
     }
 
     @Test("Never-forward fields and raw session id do not appear anywhere in the frame bytes")
