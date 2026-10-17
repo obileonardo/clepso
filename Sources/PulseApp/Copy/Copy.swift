@@ -88,6 +88,15 @@ enum Copy {
         }
     }
 
+    /// Increment 1.7c: always says "Estimate", never a promise.
+    enum Pace {
+        static func reaches(_ time: String) -> String { "Estimate: at this pace, 100% around \(time)" }
+        static func byReset(_ pct: String) -> String { "Estimate: about \(pct) used by the reset" }
+        static let notRising = "Estimate: not rising right now"
+        static let notEnough = "Estimate: needs a few more readings"
+        static let atLimit = "At the limit"
+    }
+
     enum Detail {
         static let openUsage = "Open usage in Claude"
         static let changePlan = "Change plan…"

@@ -31,7 +31,7 @@ struct Scenario {
 
     func snapshot(now: Date, installed: Bool = true, demo: Bool = false) async throws -> OverviewSnapshot {
         _ = try await store.tick(now: now)
-        var input = try await AppModel.read(store)
+        var input = try await AppModel.read(store, now: now)
         input.installed = installed
         input.isDemo = demo
         return OverviewProjection.make(input, now: now, staleAfter: 600, zone: utc, locale: enUS)
@@ -177,6 +177,19 @@ struct OverviewProjectionTests {
         #expect(try await s.snapshot(now: t0 + 60).provider?.header == "Claude · Pro · Selected · not verified")
         try await s.store.setPlan(catalogID: nil, displayName: nil, evidence: .userSelectedUnverified, now: t0 + 2)   // "Not sure"
         #expect(try await s.snapshot(now: t0 + 20 * 60).provider?.header == "Claude · Plan not set", "no plan and nothing live")
+    }
+
+    @Test("1.7c: history reaches the row and a rising 5-hour pool gets an estimate")
+    func historyAndPace() async throws {
+        let s = try Scenario()
+        for (i, used) in [10, 14, 18, 22, 26].enumerated() {                    // +4 points every 5 minutes = 48 per hour
+            try await s.reading(at: t0 + Double(i) * 300, fiveHour: Decimal(used), fiveHourReset: t0 + 5 * 3600)
+        }
+        let snap = try await s.snapshot(now: t0 + 1200)
+        let row = try #require(snap.provider?.pools.first)
+        #expect(row.history.map(\.usedPct) == [10, 14, 18, 22, 26])
+        guard case .reachesLimit(let at) = row.pace else { Issue.record("\(row.pace)"); return }
+        #expect(abs(at.timeIntervalSince(t0 + 1200) - (74.0 / 48) * 3600) < 120)
     }
 
     @Test("Inspector data is prefetched: newest three readings, newest first")

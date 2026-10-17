@@ -247,3 +247,21 @@ extension Store {
         }
     }
 }
+
+// MARK: - History (increment 1.7c)
+
+extension Store {
+    /// Measured used % for one pool since `since`, oldest first. Absences are not points.
+    public func usageHistory(poolKey: String, since: Date) throws -> [UsagePoint] {
+        try writer.read { db in
+            try Row.fetchAll(db, sql: """
+                SELECT o.observed_at, o.value_text FROM observations o JOIN allowance_pools a ON a.id = o.pool_id
+                WHERE a.account_id = ? AND a.provider_pool_key = ? AND o.metric_kind = 'quotaUsedPct' AND o.value_kind = 'percent'
+                  AND o.observed_at >= ? ORDER BY o.observed_at
+                """, arguments: [accountID.uuidString, poolKey, ms(since)])
+            .compactMap { row in
+                (row["value_text"] as String?).flatMap(Double.init).map { UsagePoint(at: date(row["observed_at"]), usedPct: $0) }
+            }
+        }
+    }
+}

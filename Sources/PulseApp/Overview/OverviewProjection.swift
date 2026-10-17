@@ -42,7 +42,10 @@ public enum OverviewProjection {
         let rows = ordered.map { state in
             PoolRow(poolKey: state.poolKey, providerField: providerField(of: state.poolKey),
                     model: card(state, source: source, connection: connection, now: now),
-                    receivedAt: state.latest?.receivedAt, recent: input.recent[state.poolKey] ?? [])
+                    receivedAt: state.latest?.receivedAt, recent: input.recent[state.poolKey] ?? [],
+                    history: input.history[state.poolKey] ?? [],
+                    pace: PaceEstimate.estimate(input.history[state.poolKey] ?? [], windowOpenedAt: state.window?.openedAt,
+                                                resetsAt: state.resetsAt, now: now, lookback: paceLookback(state.poolKey)))
         }
         let lastSeen = ([input.lastEventAt] + input.pools.map(\.lastSeen)).compactMap { $0 }.max()
 
@@ -62,6 +65,11 @@ public enum OverviewProjection {
     }
 
     static func rank(_ key: String) -> Int { poolOrder.firstIndex(of: key) ?? poolOrder.count }
+
+    /// How far back the pace line looks: recent enough to follow a change of pace, long enough to be steady.
+    static func paceLookback(_ poolKey: String) -> TimeInterval {
+        window(of: poolKey) == "five_hour" ? 90 * 60 : 24 * 3600
+    }
 
     // MARK: - Cards
 

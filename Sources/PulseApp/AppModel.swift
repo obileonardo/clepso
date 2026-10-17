@@ -201,7 +201,7 @@ public final class AppModel {
             if demo {
                 input = try await DemoData.input(now: now)
             } else {
-                input = try await Self.read(store)
+                input = try await Self.read(store, now: now)
                 input.installed = Self.installer(environment, forwardCost: forwardCost).isInstalled
                 input.unreadLimitWindows = await ingestor?.counters.unknownRateLimitWindows ?? 0
             }
@@ -218,9 +218,12 @@ public final class AppModel {
     }
 
     /// One read of everything the screens need, so opening the popover never touches storage.
-    static func read(_ store: Store) async throws -> OverviewInput {
+    static func read(_ store: Store, now: Date) async throws -> OverviewInput {
         var input = OverviewInput()
         input.pools = try await store.poolStates()
+        for pool in input.pools {
+            input.history[pool.poolKey] = try await store.usageHistory(poolKey: pool.poolKey, since: now.addingTimeInterval(-7 * 86_400))
+        }
         input.sessions = try await store.sessionStates()
         input.sessionSummaries = try await store.sessionSummaries(limit: 20)
         for pool in input.pools {

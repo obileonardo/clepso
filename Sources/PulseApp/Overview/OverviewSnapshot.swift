@@ -57,6 +57,10 @@ public struct PoolRow: Sendable, Identifiable {
     public let model: PoolCardModel
     public let receivedAt: Date?
     public let recent: [Store.Reading]
+    /// Measured used % over the last 7 days, oldest first (thinned by the ledger policy).
+    public let history: [UsagePoint]
+    /// Always shown as an estimate (increment 1.7c).
+    public let pace: PaceEstimate
 }
 
 /// What the projection reads. The app model fills it from the store; tests and demo mode build it directly.
@@ -72,5 +76,6 @@ public struct OverviewInput: Sendable {
     public var showPercent = true
     public var isDemo = false
     public var unreadLimitWindows = 0
+    public var history: [String: [UsagePoint]] = [:]
     public init() {}
 }

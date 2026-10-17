@@ -25,7 +25,7 @@ enum DemoData {
             observation(session, .contextTokens, .tokens(82_000)),
             observation(session, .contextWindowSize, .tokens(200_000)),
         ], session: Store.SessionMeta(sessionRef: "demo", modelID: "demo-model", modelDisplayName: "Demo model"))
-        var input = try await AppModel.read(store)
+        var input = try await AppModel.read(store, now: now)
         input.isDemo = true
         return input
     }
