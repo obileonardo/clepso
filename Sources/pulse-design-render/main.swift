@@ -180,6 +180,8 @@ try MainActor.assumeIsolated {
         "stroke": StrokeToken.allCases.map { ["token": $0.rawValue, "points": theme.stroke($0)] },
         "styles": styleRows(),
         "specimens": specimenRows,
+        "phosphor": try renderPhosphor(images: images, now: now, used: { used($0, minutesAgo: $1, absence: $2) },
+                                       pool: { pool($0, $1, $2, reset: $3) }),
     ]
     let data = try JSONSerialization.data(withJSONObject: design, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
     try data.write(to: output.appendingPathComponent("design.json"))

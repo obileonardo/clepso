@@ -3,7 +3,8 @@
 Input: a folder written by `pulse-design-render` (design.json + img/). Output: <site>/design-system/ with
 index.html, design.json and img/, plus <site>/index.html and <site>/vercel.json. Everything on the page
 comes from the Swift code: rendered component images, exported tokens and computed contrast ratios.
-Usage: python3 -I scripts/build-design-site.py <render dir> <site dir>
+Usage: python3 -I scripts/build-design-site.py <render dir> <site dir> [screens dir]
+The optional screens dir holds screenshots of the running app (demo data) captured by the debug probe.
 """
 import html
 import json
@@ -12,12 +13,15 @@ import sys
 from pathlib import Path
 
 render, site = Path(sys.argv[1]), Path(sys.argv[2])
+screens_dir = Path(sys.argv[3]) if len(sys.argv) > 3 else None
 design = json.loads((render / "design.json").read_text())
 out = site / "design-system"
 if out.exists():
     shutil.rmtree(out)
 out.mkdir(parents=True)
 shutil.copytree(render / "img", out / "img")
+if screens_dir:
+    shutil.copytree(screens_dir, out / "img" / "screens")
 shutil.copy(render / "design.json", out / "design.json")
 e = html.escape
 
@@ -83,6 +87,55 @@ def token_list(key, unit):
     return "".join(f'<li><code>{e(t["token"])}</code><span>{t["points"]:g} {unit}</span></li>' for t in design[key])
 
 typography = "".join(f'<li><code>{e(t["token"])}</code><span>{e(t["style"])}</span></li>' for t in design["typography"])
+
+# Increment 1.7: the Phosphor pixel layer (the app's current look) and screenshots of the running app.
+ph = design["phosphor"]
+PH_NOTES = {
+    "PixelLimitRow": "One allowance pool in the pixel style. Same status words, freshness, reset line and VoiceOver sentence as QuotaProgress (tested); the optional pace line always says “Estimate”.",
+    "PixelBar": "The segmented bar. Stale values are dithered and missing values draw only an outline, so meaning never rests on colour.",
+    "PixelButtonStyle": "Bevelled pixel buttons: a lit top edge and a shaded bottom edge that swap when pressed.",
+    "PixelTabs": "Tabs in the pixel-pack manner, used in the Details window and Stats.",
+    "PixelStat": "A value over a small pixel caption, for the session strip and Stats.",
+    "PixelLineChart": "History drawn as steps snapped to a pixel grid, with dotted 80/95/100 guides, NOW, and the dashed pace projection. VoiceOver reads a sentence instead of the drawing.",
+    "PixelHeatmap": "Activity like Claude Code's /stats: one column per week, Monday on top, four levels plus empty.",
+    "PixelPanel": "The frame every pixel screen sits in: stepped corners, an outer frame and an inner rule; glass behind it in the app.",
+    "Typography": "Silkscreen for figures and labels (its 5 and S differ clearly), a monospaced system face for sentences so they stay readable.",
+}
+ph_order = list(dict.fromkeys(s["component"] for s in ph["specimens"]))
+ph_sections = []
+for component in ph_order:
+    cards = "".join(
+        f'<figure class="specimen ph"><img src="{e(s["image"])}" alt="{e(component + ": " + s["caption"])}" loading="lazy">'
+        f'<figcaption><span>{e(s["caption"])}</span><code>{e(s["id"])}</code></figcaption></figure>'
+        for s in ph["specimens"] if s["component"] == component)
+    ph_sections.append(f'<section class="component" id="ph-{component.lower()}"><h3>{component}</h3>'
+                       f'<p class="note">{e(PH_NOTES.get(component, ""))}</p><div class="grid">{cards}</div></section>')
+ph_palette = "".join(
+    f'<div class="token"><div class="chips"><span style="background:{p["hex"]}"></span></div>'
+    f'<div><code>{e(p["token"])}</code><div class="muted">{p["hex"]}{" · text" if p["isText"] else ""}</div></div></div>'
+    for p in ph["palette"])
+ph_worst = min(ph["contrast"], key=lambda c: c["ratio"])
+ph_rows = ""
+for t in dict.fromkeys(c["text"] for c in ph["contrast"]):
+    cells = ""
+    for s in surfaces:
+        c = next(c for c in ph["contrast"] if c["text"] == t and c["surface"] == s)
+        cells += (f'<td class="ratio{" worst" if c is ph_worst else ""}">{c["ratio"]:.2f}'
+                  f'<span class="{"ok" if c["passesAA"] else "fail"}">{"AA" if c["passesAA"] else "fail"}</span></td>')
+    ph_rows += f"<tr><td><code>{e(t)}</code></td>{cells}</tr>"
+ph_contrast = (f'<table class="contrast"><thead><tr><th>Text token</th>{"".join(f"<th>{s}</th>" for s in surfaces)}</tr></thead>'
+               f'<tbody>{ph_rows}</tbody></table>')
+ph_passed = sum(c["passesAA"] for c in ph["contrast"])
+ph_fonts = "".join(f'<li><code>{e(f["family"])}</code><span>{e(f["use"])} · {e(f["licence"])}</span></li>' for f in ph["fonts"])
+SCREENS = [("popover-overview", "Menu bar popover"), ("popover-detail", "Provider detail"), ("popover-inspector", "Where this number comes from"),
+           ("details-limits", "Details · Limits: history and pace"), ("details-session", "Details · Session"),
+           ("details-stats-overview", "Details · Stats overview"), ("details-stats-models", "Details · Stats models"),
+           ("onboarding-3-consent", "Onboarding · consent"), ("settings-diagnostics", "Settings · Diagnostics"),
+           ("settings-delete-all-sheet", "Delete all, confirmation")]
+screens = ""
+if screens_dir:
+    screens = "".join(f'<figure class="specimen ph"><img src="img/screens/{n}.png" alt="{e(c)}" loading="lazy"><figcaption><span>{e(c)}</span></figcaption></figure>'
+                      for n, c in SCREENS if (screens_dir / f"{n}.png").exists())
 passed = sum(c["passesAA"] for c in design["contrast"])
 
 page = f"""<!doctype html>
@@ -136,6 +189,8 @@ section.block {{ padding: 44px 0; border-bottom: 1px solid var(--line); }}
 .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; align-items: start; }}
 .specimen {{ margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }}
 .specimen img {{ display: block; width: 100%; height: auto; }}
+.specimen.ph {{ background: #060907; }}
+.screens {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; align-items: start; }}
 figcaption {{ display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13px; }}
 .v-dark {{ display: none !important; }}
 :root[data-theme="dark"] .v-light {{ display: none !important; }}
@@ -181,22 +236,36 @@ footer {{ padding: 36px 0 60px; color: var(--text2); font-size: 13px; }}
 <header><div class="wrap">
   <div class="eyebrow">Tokone · AI capacity monitor</div>
   <h1>Design system</h1>
-  <p class="lede">The tokens, status styles and SwiftUI components behind the menu bar app. Every image below is the real component,
-  rendered from the Swift code by <code>pulse-design-render</code>, in light and dark. The page switches with your system setting, or with the toggle.</p>
+  <p class="lede">The tokens, status styles and SwiftUI components behind the menu bar app. The app's current look is <b>Phosphor</b>:
+  dark glass, phosphor green and pixel elements (founder decision, 17 Oct 2026). Every image below is the real component or the running app,
+  rendered from the Swift code; the classic system theme that preceded it is kept further down.</p>
   <div class="meta">
     <span class="tag demo">All values are demo data</span>
-    <span class="tag"><strong>{len(design["specimens"])}</strong> component states</span>
+    <span class="tag"><strong>{len(ph["specimens"])}</strong> Phosphor specimens</span>
+    <span class="tag"><strong>{ph_passed}/{len(ph["contrast"])}</strong> Phosphor contrast checks pass AA</span>
+    <span class="tag"><strong>{len(design["specimens"])}</strong> classic component states</span>
     <span class="tag"><strong>{passed}/{len(design["contrast"])}</strong> text contrast checks pass WCAG AA</span>
     <span class="tag">Worst contrast <strong>{worst["ratio"]:.2f}:1</strong></span>
     <span class="tag">Rendered {e(design["generatedAt"][:10])}</span>
   </div>
 </div></header>
 <nav><div class="wrap">
-  <a href="#principles">Principles</a><a href="#components">Components</a><a href="#states">Status styles</a>
+  <a href="#screens">Screens</a><a href="#phosphor">Phosphor</a><a href="#principles">Principles</a><a href="#components">Classic components</a><a href="#states">Status styles</a>
   <a href="#color">Colour</a><a href="#contrast">Contrast</a><a href="#scales">Type and spacing</a>
   <button type="button" id="theme" aria-label="Switch light or dark">Light / dark</button>
 </div></nav>
 <main class="wrap">
+<section class="block" id="screens">
+  <div class="section-head"><h2>Screens</h2><p>The running app in demo data, captured by the debug probe from the signed bundle: the popover, the Details window, onboarding and Settings.</p></div>
+  <div class="screens">{screens}</div>
+</section>
+<section class="block" id="phosphor">
+  <div class="section-head"><h2>Phosphor</h2><p>The pixel layer (increment 1.7). Inspired by the Matrix, the Tesla Roadster's interface, Hearth's glass and a pixel UI pack used only as a style reference; every shape is drawn in code on a pixel grid, so it stays sharp and scales with text size. Dark in both appearances.</p></div>
+  {''.join(ph_sections)}
+  <section class="component"><h3>Phosphor colour</h3><p class="note">One value per token: the look is dark in both appearances.</p><div class="tokens">{ph_palette}</div></section>
+  <section class="component"><h3>Phosphor contrast</h3><p class="note">Every text token on every surface, from the values the app uses; the outlined cell is the worst case ({ph_worst["ratio"]:.2f}:1).</p>{ph_contrast}</section>
+  <section class="component"><h3>Fonts</h3><p class="note">Bundled under the SIL Open Font License 1.1, pinned to a Google Fonts commit with checksums (Resources/Fonts/README.md).</p><div class="scales"><ul>{ph_fonts}</ul></div></section>
+</section>
 <section class="block" id="principles">
   <div class="section-head"><h2>Principles</h2><p>What every component has to guarantee, whatever it looks like.</p></div>
   <div class="principles">
@@ -207,7 +276,7 @@ footer {{ padding: 36px 0 60px; color: var(--text2); font-size: 13px; }}
   </div>
 </section>
 <section class="block" id="components">
-  <div class="section-head"><h2>Components</h2><p>The first six components (PRD §25.2), each in every state the engine can produce.</p></div>
+  <div class="section-head"><h2>Classic components</h2><p>The first six components (PRD §25.2) in the classic system theme, each in every state the engine can produce. Still in the code; the pixel components reuse their wording and accessibility text.</p></div>
   {''.join(sections)}
 </section>
 <section class="block" id="states">

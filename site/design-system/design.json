@@ -338,7 +338,7 @@
     }
   ],
   "demoInstant" : "2026-10-16T14:01:00Z",
-  "generatedAt" : "2026-10-16T23:42:42Z",
+  "generatedAt" : "2026-10-17T14:20:28Z",
   "palette" : [
     {
       "dark" : "#1C1C1E",
@@ -413,6 +413,360 @@
       "token" : "statusUnknown"
     }
   ],
+  "phosphor" : {
+    "contrast" : [
+      {
+        "passesAA" : true,
+        "ratio" : 18.129999999999999,
+        "surface" : "background",
+        "text" : "textPrimary"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 16.93,
+        "surface" : "surfaceElevated",
+        "text" : "textPrimary"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 15.029999999999999,
+        "surface" : "surfaceMuted",
+        "text" : "textPrimary"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 9.2300000000000004,
+        "surface" : "background",
+        "text" : "textSecondary"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 8.6099999999999994,
+        "surface" : "surfaceElevated",
+        "text" : "textSecondary"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 7.6500000000000004,
+        "surface" : "surfaceMuted",
+        "text" : "textSecondary"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 15.26,
+        "surface" : "background",
+        "text" : "accent"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 14.24,
+        "surface" : "surfaceElevated",
+        "text" : "accent"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 12.65,
+        "surface" : "surfaceMuted",
+        "text" : "accent"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 15.26,
+        "surface" : "background",
+        "text" : "statusSuccess"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 14.24,
+        "surface" : "surfaceElevated",
+        "text" : "statusSuccess"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 12.65,
+        "surface" : "surfaceMuted",
+        "text" : "statusSuccess"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 12.289999999999999,
+        "surface" : "background",
+        "text" : "statusAttention"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 11.470000000000001,
+        "surface" : "surfaceElevated",
+        "text" : "statusAttention"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 10.18,
+        "surface" : "surfaceMuted",
+        "text" : "statusAttention"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 7.1600000000000001,
+        "surface" : "background",
+        "text" : "statusBlocked"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 6.6799999999999997,
+        "surface" : "surfaceElevated",
+        "text" : "statusBlocked"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 5.9299999999999997,
+        "surface" : "surfaceMuted",
+        "text" : "statusBlocked"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 8.5999999999999996,
+        "surface" : "background",
+        "text" : "statusStale"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 8.0299999999999994,
+        "surface" : "surfaceElevated",
+        "text" : "statusStale"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 7.1299999999999999,
+        "surface" : "surfaceMuted",
+        "text" : "statusStale"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 7.96,
+        "surface" : "background",
+        "text" : "statusUnknown"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 7.4299999999999997,
+        "surface" : "surfaceElevated",
+        "text" : "statusUnknown"
+      },
+      {
+        "passesAA" : true,
+        "ratio" : 6.5999999999999996,
+        "surface" : "surfaceMuted",
+        "text" : "statusUnknown"
+      }
+    ],
+    "fonts" : [
+      {
+        "family" : "Silkscreen",
+        "licence" : "SIL OFL 1.1",
+        "use" : "figures, labels, buttons, tabs"
+      },
+      {
+        "family" : "Pixelify Sans",
+        "licence" : "SIL OFL 1.1",
+        "use" : "bundled; replaced for figures (its 5 read as S)"
+      },
+      {
+        "family" : "VT323",
+        "licence" : "SIL OFL 1.1",
+        "use" : "bundled for terminal details"
+      },
+      {
+        "family" : "SF Mono (system)",
+        "licence" : "system",
+        "use" : "sentences, for legibility"
+      }
+    ],
+    "palette" : [
+      {
+        "hex" : "#060907",
+        "isText" : false,
+        "token" : "background"
+      },
+      {
+        "hex" : "#0D1410",
+        "isText" : false,
+        "token" : "surfaceElevated"
+      },
+      {
+        "hex" : "#16211A",
+        "isText" : false,
+        "token" : "surfaceMuted"
+      },
+      {
+        "hex" : "#2C4034",
+        "isText" : false,
+        "token" : "separator"
+      },
+      {
+        "hex" : "#EAF7EE",
+        "isText" : true,
+        "token" : "textPrimary"
+      },
+      {
+        "hex" : "#93B9A0",
+        "isText" : true,
+        "token" : "textSecondary"
+      },
+      {
+        "hex" : "#4DFF8F",
+        "isText" : true,
+        "token" : "accent"
+      },
+      {
+        "hex" : "#4DFF8F",
+        "isText" : true,
+        "token" : "statusSuccess"
+      },
+      {
+        "hex" : "#FFC04D",
+        "isText" : true,
+        "token" : "statusAttention"
+      },
+      {
+        "hex" : "#FF6B5E",
+        "isText" : true,
+        "token" : "statusBlocked"
+      },
+      {
+        "hex" : "#9AAFA2",
+        "isText" : true,
+        "token" : "statusStale"
+      },
+      {
+        "hex" : "#98A79E",
+        "isText" : true,
+        "token" : "statusUnknown"
+      }
+    ],
+    "specimens" : [
+      {
+        "caption" : "Available, live",
+        "component" : "PixelLimitRow",
+        "height" : 125,
+        "id" : "limit-available",
+        "image" : "img/phosphor-limit-available.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Approaching, with a pace estimate",
+        "component" : "PixelLimitRow",
+        "height" : 142,
+        "id" : "limit-approaching",
+        "image" : "img/phosphor-limit-approaching.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Nearly exhausted",
+        "component" : "PixelLimitRow",
+        "height" : 125,
+        "id" : "limit-critical",
+        "image" : "img/phosphor-limit-critical.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Limit reached, reset known",
+        "component" : "PixelLimitRow",
+        "height" : 125,
+        "id" : "limit-exhausted",
+        "image" : "img/phosphor-limit-exhausted.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Reset time passed, no fresh reading",
+        "component" : "PixelLimitRow",
+        "height" : 125,
+        "id" : "limit-reset-expected",
+        "image" : "img/phosphor-limit-reset-expected.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Stale: dithered bar, last seen",
+        "component" : "PixelLimitRow",
+        "height" : 125,
+        "id" : "limit-stale",
+        "image" : "img/phosphor-limit-stale.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Not reported (F06): words, empty outlined bar, never 0%",
+        "component" : "PixelLimitRow",
+        "height" : 85,
+        "id" : "limit-not-available",
+        "image" : "img/phosphor-limit-not-available.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Solid, dithered (stale) and outlined (no value): the non-colour cues",
+        "component" : "PixelBar",
+        "height" : 104,
+        "id" : "bars",
+        "image" : "img/phosphor-bars.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Prominent, normal and disabled; the bevel swaps when pressed",
+        "component" : "PixelButtonStyle",
+        "height" : 60,
+        "id" : "buttons",
+        "image" : "img/phosphor-buttons.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Selected tab lit, others recessed",
+        "component" : "PixelTabs",
+        "height" : 60,
+        "id" : "tabs",
+        "image" : "img/phosphor-tabs.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Value over a pixel caption",
+        "component" : "PixelStat",
+        "height" : 58,
+        "id" : "stats",
+        "image" : "img/phosphor-stats.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Usage history: steps on a pixel grid, 80/95/100 guides, NOW, dashed pace",
+        "component" : "PixelLineChart",
+        "height" : 172,
+        "id" : "chart",
+        "image" : "img/phosphor-chart.png",
+        "width" : 640
+      },
+      {
+        "caption" : "Activity like /stats: Monday on top, four levels, Less → More",
+        "component" : "PixelHeatmap",
+        "height" : 194,
+        "id" : "heatmap",
+        "image" : "img/phosphor-heatmap.png",
+        "width" : 640
+      },
+      {
+        "caption" : "Stepped corners, outer frame, inner rule (glass in the app)",
+        "component" : "PixelPanel",
+        "height" : 72,
+        "id" : "panel",
+        "image" : "img/phosphor-panel.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Silkscreen for figures and labels, monospaced system face for sentences",
+        "component" : "Typography",
+        "height" : 159,
+        "id" : "type",
+        "image" : "img/phosphor-type.png",
+        "width" : 420
+      }
+    ]
+  },
   "radius" : [
     {
       "points" : 6,

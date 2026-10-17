@@ -22,7 +22,7 @@ DOCS_DESIGN := /Volumes/Elvis Obi - Mac Extended/Tokone/docs/design-system
 design-site:
 	swift build --product pulse-design-render
 	rm -rf .build/design-render && .build/debug/pulse-design-render .build/design-render
-	python3 -I scripts/build-design-site.py .build/design-render site
+	python3 -I scripts/build-design-site.py .build/design-render site design/screens
 	rm -rf "$(DOCS_DESIGN)" && cp -R site/design-system "$(DOCS_DESIGN)"
 	@echo "Deploy: cd site && vercel deploy --prod --scope obileonardos-projects"
 
