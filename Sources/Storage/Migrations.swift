@@ -12,6 +12,10 @@ public enum Migrations {
         migrator.registerMigration("v2_value_kinds_count_duration_flag") { db in
             try db.execute(sql: SchemaV2.observationsRebuild)
         }
+        // Increment 1.9: agents per task (two new tables; nothing existing changes).
+        migrator.registerMigration("v3_agent_tasks") { db in
+            try db.execute(sql: SchemaV3.agentTasks)
+        }
         return migrator
     }
 

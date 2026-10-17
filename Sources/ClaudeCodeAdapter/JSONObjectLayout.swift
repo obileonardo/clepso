@@ -161,3 +161,74 @@ struct JSONObjectLayout {
         }
     }
 }
+
+/// Byte positions of a JSON array's elements (increment 1.9: adding and removing one hook entry), with the same
+/// guarantee as `JSONObjectLayout`: every byte outside the edit stays as it was.
+struct JSONArrayLayout {
+    struct Element {
+        let start: Int
+        let end: Int               // exclusive
+    }
+
+    let bytes: [UInt8]
+    let openBracket: Int
+    let closeBracket: Int
+    let elements: [Element]
+
+    /// Parses the array starting at `index` (after leading whitespace) and leaves `index` past its `]`.
+    static func parse(_ bytes: [UInt8], at index: inout Int) -> JSONArrayLayout? {
+        JSONObjectLayout.skipWhitespace(bytes, &index)
+        guard index < bytes.count, bytes[index] == UInt8(ascii: "[") else { return nil }
+        let open = index
+        index += 1
+        var elements: [Element] = []
+        JSONObjectLayout.skipWhitespace(bytes, &index)
+        if index < bytes.count, bytes[index] == UInt8(ascii: "]") {
+            index += 1
+            return JSONArrayLayout(bytes: bytes, openBracket: open, closeBracket: index - 1, elements: [])
+        }
+        while true {
+            JSONObjectLayout.skipWhitespace(bytes, &index)
+            let start = index
+            guard let end = JSONObjectLayout.skipValue(bytes, from: index) else { return nil }
+            elements.append(Element(start: start, end: end))
+            index = end
+            JSONObjectLayout.skipWhitespace(bytes, &index)
+            guard index < bytes.count else { return nil }
+            if bytes[index] == UInt8(ascii: ",") { index += 1; continue }
+            guard bytes[index] == UInt8(ascii: "]") else { return nil }
+            index += 1
+            return JSONArrayLayout(bytes: bytes, openBracket: open, closeBracket: index - 1, elements: elements)
+        }
+    }
+
+    /// Whitespace before the first element on its line, or nil when elements share the bracket's line.
+    var elementIndent: String? {
+        guard let first = elements.first else { return nil }
+        var i = first.start - 1
+        while i > openBracket, bytes[i] == 0x20 || bytes[i] == 0x09 { i -= 1 }
+        guard i > openBracket, bytes[i] == 0x0A else { return nil }
+        return String(decoding: bytes[(i + 1)..<first.start], as: UTF8.self)
+    }
+
+    /// Appends `value` as the last element, on its own line when the array already puts elements on lines.
+    func appendingElement(_ value: [UInt8], newline: String) -> [UInt8] {
+        guard let last = elements.last else {
+            return Array(bytes[...openBracket]) + value + Array(bytes[closeBracket...])
+        }
+        let separator = elementIndent.map { ",\(newline)\($0)" } ?? ", "
+        return Array(bytes[..<last.end]) + Array(separator.utf8) + value + Array(bytes[last.end...])
+    }
+
+    /// Removes one element together with exactly one adjoining comma, leaving valid JSON.
+    func removingElement(at position: Int) -> [UInt8] {
+        let element = elements[position]
+        if position + 1 < elements.count {
+            return Array(bytes[..<element.start]) + Array(bytes[elements[position + 1].start...])
+        }
+        if position > 0 {
+            return Array(bytes[..<elements[position - 1].end]) + Array(bytes[element.end...])
+        }
+        return Array(bytes[...openBracket]) + Array(bytes[closeBracket...])
+    }
+}

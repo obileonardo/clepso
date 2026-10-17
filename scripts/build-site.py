@@ -275,7 +275,7 @@ page("metrics/", "Metrics", "How Pulse defines every number it shows: limits, pa
 <p class="lede">How every number in Pulse is defined, where it comes from, and what it does not mean. These rules are the
 code's rules; each section names the file that implements it.</p>
 <ul class="toc"><li><a href="#sources">Sources</a></li><li><a href="#tokens">Tokens</a></li><li><a href="#levels">Levels</a></li>
-<li><a href="#rank">Rank and specialty</a></li><li><a href="#limits">Limits and pace</a></li><li><a href="#session">Session</a></li>
+<li><a href="#rank">Rank and specialty</a></li><li><a href="#agents">Agents per task</a></li><li><a href="#limits">Limits and pace</a></li><li><a href="#session">Session</a></li>
 <li><a href="#calendar">Calendar</a></li><li><a href="#charts">Charts</a></li></ul></section>
 
 <h2 id="sources">Where the numbers come from</h2>
@@ -319,6 +319,22 @@ use all-time output, because Claude Code records tokens by kind for all time onl
 share of input is 13 times the share across all models. If no kind reaches 1.1×, the model is an <strong>All-rounder</strong>.
 Every model mostly reads from cache, so the plain largest kind would say the same thing on every card; the ratio shows how
 each one differs. Source: <code>ModelSpecialty</code>.</p>
+
+<h2 id="agents">Agents per task</h2>
+<p>Optional, off until you turn it on in Settings › Providers. A <strong>task</strong> is one prompt: from the moment you send
+it until Claude stops. Pulse adds four background hooks to Claude Code (prompt submitted, subagent started, subagent stopped,
+Claude stopped) and counts the subagents each task starts, nested ones included.</p>
+<div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
+<tr><td>Agents</td><td>Subagents started during the task. Each one counts once, matched by a hashed id, even if its events arrive out of order.</td></tr>
+<tr><td>Types</td><td>Claude Code's built-in types by name (Explore, Plan, General, Guide, Status line). Your own and plugin agents count as Custom; their names are never sent.</td></tr>
+<tr><td>Finished</td><td>Subagents that reported stopping. Background subagents can finish after the task ends.</td></tr>
+<tr><td>Running</td><td>No stop seen yet, and the task started under six hours ago.</td></tr>
+<tr><td>Used agents</td><td>Share of the last 30 days' tasks that started at least one subagent.</td></tr>
+<tr><td>Agents per task</td><td>All subagents in 30 days ÷ all tasks in 30 days, tasks without subagents included.</td></tr>
+</tbody></table></div>
+<p class="muted">Claude Code hands every hook the whole event, your prompt included. The helper keeps only the event name,
+hashed session and agent ids and the type, and drops the rest before anything leaves it. Source: <code>HookFrame</code>,
+<code>Store.record</code>.</p>
 
 <h2 id="limits">Limits and the pace estimate</h2>
 <div class="table-wrap"><table><thead><tr><th>State</th><th>When</th></tr></thead><tbody>
@@ -372,6 +388,7 @@ Mac, with no account, no server and no network code.</p></section>
 <div class="table-wrap"><table><thead><tr><th>Process</th><th>Role</th></tr></thead><tbody>
 <tr><td><code>Pulse.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it.</td></tr>
 <tr><td><code>pulse-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app.</td></tr>
+<tr><td><code>hook.sh</code> (optional)</td><td>Installed only when you turn on agents per task. Claude Code runs it in the background on four events; it runs the helper in hook mode, which sends counts only and always exits silently, so it can never block or change what Claude Code does.</td></tr>
 <tr><td><code>statusline.sh</code></td><td>The installed command. Runs the helper if the app is there, otherwise your original status line, so removing the app never breaks Claude Code.</td></tr>
 </tbody></table></div>
 

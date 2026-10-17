@@ -62,7 +62,36 @@ public enum OverviewProjection {
         let (icon, staleMark, text, line) = aggregate(rows.map(\.model), input: input, empty: empty, lastSeen: lastSeen,
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
         return OverviewSnapshot(now: now, isDemo: input.isDemo, icon: icon, iconStaleMark: staleMark, iconText: text,
-                                aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty)
+                                aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty,
+                                agents: input.agentsTracking ? agents(input.agentTasks, now: now) : nil)
+    }
+
+    static let agentTypeOrder = ["Explore", "Plan", "general-purpose", "claude-code-guide", "statusline-setup", "custom", "unknown"]
+
+    /// Display names for the stored types.
+    static func agentTypeName(_ type: String) -> String {
+        switch type {
+        case "general-purpose": Copy.Agents.general
+        case "claude-code-guide": Copy.Agents.guide
+        case "statusline-setup": Copy.Agents.statusLine
+        case "custom": Copy.Agents.custom
+        case "unknown": Copy.Agents.unknown
+        default: type
+        }
+    }
+
+    /// A task with no stop for 6 hours is treated as finished (Claude Code was closed mid-task).
+    static func agents(_ tasks: [Store.AgentTask], now: Date) -> AgentsSummary {
+        let mapped = tasks.sorted { $0.startedAt > $1.startedAt }.map { t in
+            AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
+                               running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
+                               agents: t.agents, finished: t.finished,
+                               byType: agentTypeOrder.compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
+        }
+        let month = mapped.filter { now.timeIntervalSince($0.startedAt) <= 30 * 86_400 }
+        return AgentsSummary(latest: mapped.first, recent: Array(mapped.prefix(8)), tasks: month.count,
+                             tasksWithAgents: month.filter { $0.agents > 0 }.count, totalAgents: month.map(\.agents).reduce(0, +),
+                             mostInOneTask: month.map(\.agents).max() ?? 0)
     }
 
     static func rank(_ key: String) -> Int { poolOrder.firstIndex(of: key) ?? poolOrder.count }

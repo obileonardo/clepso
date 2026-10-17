@@ -40,7 +40,23 @@ enum DemoData {
                 o(session, .cacheWarm, .flag(true)),
             ], session: meta)
         }
+        // Agents per task: four prompts in the last hour, the latest still running.
+        let plan: [(Double, Double?, [String])] = [(-55, -41, ["Explore", "Explore", "Plan"]), (-38, -30, []),
+                                                   (-27, -12, ["general-purpose", "Explore", "custom", "Explore", "Plan"]), (-6, nil, ["Explore", "Plan"])]
+        for (i, task) in plan.enumerated() {
+            let start = now.addingTimeInterval(task.0 * 60)
+            try await store.record(.init(kind: .promptSubmitted, sessionRef: "demo", agentRef: nil, agentType: nil, at: start))
+            for (j, type) in task.2.enumerated() {
+                let ref = "demo-\(i)-\(j)"
+                try await store.record(.init(kind: .subagentStarted, sessionRef: "demo", agentRef: ref, agentType: type, at: start.addingTimeInterval(Double(20 + j * 15))))
+                if task.1 != nil || j == 0 {
+                    try await store.record(.init(kind: .subagentStopped, sessionRef: "demo", agentRef: ref, agentType: type, at: start.addingTimeInterval(Double(200 + j * 40))))
+                }
+            }
+            if let end = task.1 { try await store.record(.init(kind: .stopped, sessionRef: "demo", agentRef: nil, agentType: nil, at: now.addingTimeInterval(end * 60))) }
+        }
         var input = try await AppModel.read(store, now: now)
+        input.agentsTracking = true
         input.isDemo = true
         return input
     }

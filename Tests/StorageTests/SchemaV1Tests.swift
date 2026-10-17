@@ -38,7 +38,8 @@ struct SchemaV1Tests {
                              "pool_snapshots", "session_snapshots", "derived_events", "notification_receipts",
                              "alert_suppressions", "subscription_identities", "plan_catalog_versions", "entitlements",
                              "entitlement_pool_links", "reset_schedules", "calendar_sync_receipts", "connector_health",
-                             "preferences", "devices", "sync_cursors"]
+                             "preferences", "devices", "sync_cursors",
+                             "agent_tasks", "agent_runs"]                // migration v3 (increment 1.9)
         #expect(names == expected)
     }
 

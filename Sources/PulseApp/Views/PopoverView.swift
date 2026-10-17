@@ -117,7 +117,7 @@ public struct PopoverView: View {
                             .buttonStyle(.plain)
                             .accessibilityHint("Shows where this number comes from")
                         }
-                        if let session = provider.sessions.first { SessionStrip(session: session) }
+                        if let session = provider.sessions.first { SessionStrip(session: session, agents: snapshot.agents) }
                     }
                     .environment(\.isFixtureData, false)
                     HStack(spacing: theme.spacing(.standard)) {
@@ -208,6 +208,7 @@ struct Banner: View {
 /// The newest session in one glance: model, context, cost estimate, cache hits, lines and API time.
 struct SessionStrip: View {
     let session: SessionDetail
+    var agents: AgentsSummary? = nil
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
@@ -238,6 +239,11 @@ struct SessionStrip: View {
                 }
             }
             .fixedSize(horizontal: false, vertical: true)          // full-size figures; never squeezed to fit the popover
+            if let latest = agents?.latest {
+                Text(Copy.Agents.strip(latest.agents, latest.byType.map { "\($0.name) \($0.count)" }.joined(separator: ", ")))
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .accessibilityElement(children: .combine)
     }

@@ -7,6 +7,7 @@ struct SessionSection: View {
     let snapshot: OverviewSnapshot
     let zone: TimeZone
     let locale: Locale
+    var openProviders: () -> Void = {}
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
@@ -19,11 +20,19 @@ struct SessionSection: View {
                         .frame(maxHeight: .infinity, alignment: .top)
                 }
                 .fixedSize(horizontal: false, vertical: true)
+                agents
                 if let groups = snapshot.provider?.models, !groups.isEmpty { byModel(groups) }
             }
         } else {
-            Text(Copy.Empty.noSessions).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                Text(Copy.Empty.noSessions).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                agents
+            }
         }
+    }
+
+    var agents: some View {
+        AgentsPanel(summary: snapshot.agents, now: snapshot.now, zone: zone, locale: locale, openProviders: openProviders)
     }
 
     func currentCard(_ s: SessionDetail) -> some View {

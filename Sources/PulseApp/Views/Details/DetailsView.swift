@@ -10,6 +10,7 @@ public struct DetailsView: View {
     @Bindable var model: AppModel
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.openSettings) private var openSettings
 
     public init(model: AppModel) { self.model = model }
 
@@ -24,7 +25,11 @@ public struct DetailsView: View {
                     Group {
                         switch model.detailsSection {
                         case .limits: LimitsSection(model: model, snapshot: snapshot)
-                        case .session: SessionSection(snapshot: snapshot, zone: model.environment.timeZone, locale: model.environment.locale)
+                        case .session:
+                            SessionSection(snapshot: snapshot, zone: model.environment.timeZone, locale: model.environment.locale) {
+                                model.settingsTab = .providers
+                                openSettings()
+                            }
                         case .overview: StatsGate(model: model) { summary, file in OverviewSection(model: model, summary: summary, file: file) }
                         case .models: StatsGate(model: model) { summary, file in ModelsSection(model: model, summary: summary, file: file) }
                         }

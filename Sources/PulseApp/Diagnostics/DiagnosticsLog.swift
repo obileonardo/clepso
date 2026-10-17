@@ -25,6 +25,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case exported(rows: Int, scrubbed: Int)
     case purged(readings: Int, sessions: Int)
     case statsReading(on: Bool)
+    case agentsCounting(outcome: String)              // a `HooksInstaller` outcome or error case name
 
     var level: DiagnosticsLog.Entry.Level {
         switch self {
@@ -53,6 +54,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .exported: "data.exported"
         case .purged: "data.purged"
         case .statsReading: "stats.reading"
+        case .agentsCounting: "agents.hooks"
         }
     }
 
@@ -80,6 +82,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case let .exported(rows, scrubbed): "Exported \(rows) rows, \(scrubbed) value(s) removed by the scrub"
         case let .purged(readings, sessions): "Removed \(readings) reading(s) and \(sessions) session(s) past their keep time"
         case .statsReading(let on): on ? "Reading Claude Code's statistics file: on" : "Reading Claude Code's statistics file: off"
+        case .agentsCounting(let outcome): "Agents per task hooks: \(outcome)"
         }
     }
 }

@@ -39,7 +39,8 @@ public enum FrameCodec {
         }
         guard case .object = frame else { throw DecodeError.notObject }
         guard frame["v"] == .number(Double(FrameBuilder.version)) else { throw DecodeError.wrongVersion }
-        guard frame["kind"] == .string(FrameBuilder.kind) else { throw DecodeError.wrongKind }
+        // Status-line frames and, since increment 1.9, hook frames (agents per task) share the socket and the header.
+        guard frame["kind"] == .string(FrameBuilder.kind) || frame["kind"] == .string(HookFrame.kind) else { throw DecodeError.wrongKind }
         return frame
     }
 }

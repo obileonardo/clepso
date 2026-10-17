@@ -19,6 +19,8 @@ public struct OverviewSnapshot: Sendable {
     public let updatedAt: Date?
     public let provider: ProviderSection?
     public let empty: Empty?
+    /// Agents per task (increment 1.9); nil while the hooks aren't installed.
+    public let agents: AgentsSummary?
 
     /// AT-07: the product name, then the aggregate line.
     public var iconAccessibilityLabel: String { "\(Product.name): \(aggregateLine)" }
@@ -115,5 +117,32 @@ public struct OverviewInput: Sendable {
     public var isDemo = false
     public var unreadLimitWindows = 0
     public var history: [String: [UsagePoint]] = [:]
+    public var agentsTracking = false
+    public var agentTasks: [Store.AgentTask] = []
     public init() {}
+}
+
+/// Agents per task (increment 1.9): the latest task, recent ones, and 30-day totals. Counts only.
+public struct AgentsSummary: Sendable, Equatable {
+    public struct Task: Sendable, Equatable, Identifiable {
+        public let id: String
+        public let startedAt: Date
+        public let endedAt: Date?
+        public let running: Bool                 // no stop seen yet and recent
+        public let agents: Int
+        public let finished: Int
+        /// Display order: Explore, Plan, General, other built-ins, Custom, Unknown; zero counts left out.
+        public let byType: [(name: String, count: Int)]
+        public static func == (a: Task, b: Task) -> Bool {
+            a.id == b.id && a.startedAt == b.startedAt && a.endedAt == b.endedAt && a.running == b.running && a.agents == b.agents
+                && a.finished == b.finished && a.byType.map(\.name) == b.byType.map(\.name) && a.byType.map(\.count) == b.byType.map(\.count)
+        }
+    }
+    public let latest: Task?
+    public let recent: [Task]                    // newest first, at most 8
+    public let tasks: Int                        // in the last 30 days
+    public let tasksWithAgents: Int
+    public let totalAgents: Int
+    public let mostInOneTask: Int
+    public var averagePerTask: Double { tasks > 0 ? Double(totalAgents) / Double(tasks) : 0 }
 }

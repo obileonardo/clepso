@@ -200,6 +200,37 @@ enum Copy {
         static let toggleSublabel = "For the Stats tab: dates, counts and model names only"
     }
 
+    /// Increment 1.9: agents per task, from Claude Code hooks (counts only).
+    enum Agents {
+        static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom", unknown = "Unknown"
+        static let title = "AGENTS PER TASK"
+        static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
+        static func count(_ n: Int) -> String { n == 1 ? "1 agent" : "\(n) agents" }
+        static let none = "No subagents"
+        static let running = "Running", taskLabel = "A task is one prompt: from sending it until Claude stops."
+        static func finished(_ done: Int, of total: Int) -> String { "\(done) of \(total) finished" }
+        static let tasks = "Tasks", withAgents = "Used agents", average = "Agents per task", most = "Most in one task"
+        static let noTasks = "No tasks yet. Send Claude Code a prompt; it appears here when Claude starts working on it."
+        static let missedPrompt = "Started before Pulse saw the prompt"
+        static let offTitle = "COUNT AGENTS PER TASK?"
+        static let offBody = "Pulse can count how many subagents Claude Code starts for each prompt, by type (Explore, Plan, General; your own agents as Custom). It adds four background hooks to Claude Code's settings, with a backup first. The hooks send only the event, hashed ids and the type, never your prompts, replies or file names. Turn it on in Settings › Providers."
+        static let openSettings = "Open Settings…"
+        static func strip(_ n: Int, _ types: String) -> String { n == 0 ? "Last task: no subagents" : "Last task: \(n == 1 ? "1 agent" : "\(n) agents") · \(types)" }
+        static let toggle = "Count subagents per task"
+        static let toggleSublabel = "Adds four background hooks to Claude Code's settings; counts and types only"
+        static let needsConnection = "Connect Claude Code first"
+        static let confirmTitle = "Add hooks to Claude Code?"
+        static func confirmBody(_ file: String) -> String {
+            "\(Product.name) adds one entry under UserPromptSubmit, SubagentStart, SubagentStop and Stop in \(file), after your own hooks, which stay as they are. A backup is made first, and turning this off takes the entries out again. Each entry is:"
+        }
+        static let add = "Add hooks", cancel = "Cancel"
+        static let added = "Hooks added. New prompts are counted from now on."
+        static let removedExact = "Hooks removed. Claude Code's settings are byte-for-byte as before."
+        static let removedEntries = "Hooks removed. Your other changes to Claude Code's settings were kept."
+        static let alreadyGone = "The hooks were already gone from Claude Code's settings."
+        static func failed(_ reason: String) -> String { "Couldn't change Claude Code's settings: \(reason). Nothing was changed." }
+    }
+
     /// Increment 1.7c: always says "Estimate", never a promise.
     enum Pace {
         static func reaches(_ time: String) -> String { "Estimate: at this pace, 100% around \(time)" }

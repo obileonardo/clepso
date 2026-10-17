@@ -68,6 +68,36 @@ public enum StatusLineShim {
         return 0
     }
 
+    // MARK: - Hook mode (increment 1.9)
+
+    /// One Claude Code hook event: read stdin to the end (so Claude Code never sees a broken pipe), send the
+    /// allowlisted frame, and exit 0 with nothing on stdout or stderr. A hook's output can change what Claude Code
+    /// does (exit 2 blocks; stdout can become context), so this path has no other outcome, whatever happens.
+    public static func hookMain(environment: [String: String] = ProcessInfo.processInfo.environment) -> Int32 {
+        signal(SIGPIPE, SIG_IGN)
+        let (stdin, truncated) = readStdin(ceiling: HookFrame.maxParsedStdinBytes)
+        if truncated { drainStdin() }
+        guard !truncated, let config = environment["HOME"].flatMap({ loadConfig(home: $0) }) else { return 0 }
+        let key = config.hmacKeyFile.flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
+        if case .frame(let frame) = HookFrame.build(stdin: stdin, now: wallClock(environment), shimVersion: version,
+                                                    hmacKey: key?.count == 32 ? key : nil),
+           let wire = try? FrameCodec.encode(frame) {
+            _ = send(wire, socketPath: config.socket, t0: now())        // the connect and write budget starts once parsed
+        }
+        return 0
+    }
+
+    /// Reads and discards whatever is left on stdin.
+    static func drainStdin() {
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+        while true {
+            let n = read(STDIN_FILENO, &buffer, buffer.count)
+            if n > 0 { continue }
+            if n < 0 && errno == EINTR { continue }
+            return
+        }
+    }
+
     // MARK: - Config and stdin
 
     static func loadConfig(home: String) -> Config? {

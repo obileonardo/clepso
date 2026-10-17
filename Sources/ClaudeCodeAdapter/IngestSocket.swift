@@ -184,6 +184,12 @@ public final class IngestSocket: @unchecked Sendable {
 /// Where mapped batches go: the store in increment 1.2, a collector in tests.
 public protocol IngestSink: Sendable {
     func ingest(_ batch: IngestBatch) async
+    /// A hook event (agents per task, increment 1.9). `at` is when it happened: the helper's time when plausible.
+    func ingest(hook: HookFrame.Decoded, at: Date) async
+}
+
+extension IngestSink {
+    public func ingest(hook: HookFrame.Decoded, at: Date) async {}
 }
 
 /// Consumes received frames, maps them (DATA_MODEL §5.1) and hands each batch to the sink.
@@ -195,6 +201,9 @@ public actor Ingestor {
         public var skewFlagged = 0
         /// From the newest frame: how many limit windows Claude Code sent that Pulse does not read (DECISIONS C7).
         public var unknownRateLimitWindows = 0
+        /// Hook events received (agents per task) and hook frames that failed validation.
+        public var hookEvents = 0
+        public var unreadableHooks = 0
         public init() {}
     }
 
@@ -215,6 +224,14 @@ public actor Ingestor {
     }
 
     public func ingest(_ received: IngestSocket.ReceivedFrame) async {
+        if received.frame["kind"] == .string(HookFrame.kind) {
+            guard let hook = HookFrame.decode(received.frame) else { counters.unreadableHooks += 1; return }
+            counters.hookEvents += 1
+            // The helper's clock orders events that arrive together; one far from arrival time is not trusted.
+            let at = abs(hook.emittedAt.timeIntervalSince(received.receivedAt)) <= 300 ? hook.emittedAt : received.receivedAt
+            await sink.ingest(hook: hook, at: at)
+            return
+        }
         guard let batch = FrameMapper.map(received.frame, connectionID: connectionID, receivedAt: received.receivedAt) else {
             counters.unmappable += 1
             return

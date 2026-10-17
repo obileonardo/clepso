@@ -75,6 +75,8 @@ struct ProvidersTab: View {
     let model: AppModel
     @State private var confirmRemove = false
     @State private var removeResult: String?
+    @State private var confirmAgents = false
+    @State private var agentsResult: String?
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -99,9 +101,24 @@ struct ProvidersTab: View {
                     Text(Copy.Stats.toggle)
                     Text(Copy.Stats.toggleSublabel)
                 }
+                // Increment 1.9: writes Claude Code's settings, so turning it on asks first and shows the exact entry.
+                Toggle(isOn: Binding(get: { model.agentsCounting }, set: { on in
+                    if on { confirmAgents = true } else { Task { agentsResult = Self.message(await model.setAgentsCounting(false)) } }
+                })) {
+                    Text(Copy.Agents.toggle)
+                    Text(model.preview.installed || model.agentsCounting ? Copy.Agents.toggleSublabel : Copy.Agents.needsConnection)
+                }
+                .disabled(!model.preview.installed && !model.agentsCounting)
+                if let agentsResult { Text(agentsResult).foregroundStyle(.secondary) }
             }
         }
         .formStyle(.grouped)
+        .sheet(isPresented: $confirmAgents) {
+            AgentsConsentSheet(model: model) { outcome in
+                confirmAgents = false
+                if let outcome { agentsResult = Self.message(outcome) }
+            }
+        }
         .confirmationDialog(Copy.Settings.remove, isPresented: $confirmRemove) {
             Button("Remove", role: .destructive) {
                 Task {
@@ -115,6 +132,16 @@ struct ProvidersTab: View {
             }
         } message: {
             Text(Copy.Explainer.restoreExact + " " + Copy.Explainer.restoreSurgical)
+        }
+    }
+
+    static func message(_ outcome: AppModel.AgentsOutcome) -> String {
+        switch outcome {
+        case .added: Copy.Agents.added
+        case .removedExactly: Copy.Agents.removedExact
+        case .removedEntries: Copy.Agents.removedEntries
+        case .alreadyGone: Copy.Agents.alreadyGone
+        case .failed(let reason): Copy.Agents.failed(reason)
         }
     }
 
@@ -194,6 +221,41 @@ struct DiagnosticsTab: View {
             case .failure(let failure): failure.reason
             }
         }
+    }
+}
+
+/// Agents per task consent (increment 1.9): names the file and shows the exact entry before anything is written.
+/// Cancel is the default button.
+struct AgentsConsentSheet: View {
+    let model: AppModel
+    let done: (AppModel.AgentsOutcome?) -> Void
+    @State private var working = false
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let preview = model.agentsPreview
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            Text(Copy.Agents.confirmTitle).font(theme.font(.title))
+            Text(Copy.Agents.confirmBody(preview.file)).font(theme.font(.label)).fixedSize(horizontal: false, vertical: true)
+            Text(preview.entry).font(theme.font(.supporting)).textSelection(.enabled)
+                .padding(theme.spacing(.standard)).frame(maxWidth: .infinity, alignment: .leading)
+                .background(theme.color(.surfaceMuted, scheme))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(Copy.Agents.offBody).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button(Copy.Agents.cancel) { done(nil) }.keyboardShortcut(.cancelAction)
+                Button(Copy.Agents.add) {
+                    working = true
+                    Task { done(await model.setAgentsCounting(true)) }
+                }
+                .disabled(working)
+            }
+        }
+        .padding(theme.spacing(.spacious))
+        .frame(width: SettingsMetrics.sheetWidth)
     }
 }
 

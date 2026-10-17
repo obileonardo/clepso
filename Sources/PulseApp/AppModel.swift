@@ -6,6 +6,7 @@ import enum Domain.Product
 import struct Domain.Redacted
 import Foundation
 import Observation
+import enum ShimProtocol.HookFrame
 import Storage
 import SubscriptionCatalog
 import UsageEngine
@@ -37,6 +38,8 @@ public final class AppModel {
     public private(set) var forwardCost = true          // founder decision A5: on by default
     /// Increment 1.7d: reading Claude Code's own statistics file is a second source, so it is off until the user agrees.
     public private(set) var statsEnabled = false
+    /// Agents per task: the hooks are in Claude Code's settings (read from Pulse's install record).
+    public private(set) var agentsCounting = false
     public private(set) var stats: Result<ClaudeCodeStats, StatsReader.Problem>?
     public private(set) var started = false
     public var settingsTab: SettingsTab = .general
@@ -101,6 +104,7 @@ public final class AppModel {
             return
         }
         await purgeIfDue()
+        if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
         listen()
         let interval = environment.tickInterval
         tasks.append(Task { [weak self] in
@@ -216,6 +220,8 @@ public final class AppModel {
             } else {
                 input = try await Self.read(store, now: now)
                 input.installed = Self.installer(environment, forwardCost: forwardCost).isInstalled
+                input.agentsTracking = Self.hooks(environment).isInstalled
+                agentsCounting = input.agentsTracking
                 input.unreadLimitWindows = await ingestor?.counters.unknownRateLimitWindows ?? 0
             }
         } catch {
@@ -245,6 +251,7 @@ public final class AppModel {
         input.plan = try await store.currentPlan()
         input.sourceVersion = try await store.latestSourceVersion()
         input.lastEventAt = try await store.lastEventAt()
+        input.agentTasks = try await store.agentTasks(limit: 500)
         return input
     }
 
@@ -323,6 +330,8 @@ public final class AppModel {
     public func uninstall() async -> RemoveOutcome {
         defer { refreshPreview() }
         do {
+            // The hooks call the helper through Pulse's folder, so they come out before it goes.
+            if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
             let outcome = try Self.installer(environment, forwardCost: forwardCost).uninstall()
             diagnostics.record(.removed(outcome: Self.caseName(outcome)))
             await refresh()
@@ -340,6 +349,58 @@ public final class AppModel {
     /// An enum value's case name without its payload, which can hold a path.
     static func caseName(_ value: Any) -> String {
         Mirror(reflecting: value).children.first?.label ?? String(describing: value)
+    }
+
+    // MARK: - Agents per task (increment 1.9)
+
+    public enum AgentsOutcome: Equatable, Sendable { case added, removedExactly, removedEntries, alreadyGone, failed(reason: String) }
+
+
+    /// Settings › Providers › "Count subagents per task", after its confirmation for turning on.
+    public func setAgentsCounting(_ on: Bool) async -> AgentsOutcome {
+        let hooks = Self.hooks(environment)
+        defer {
+            agentsCounting = hooks.isInstalled
+            Task { await refresh() }
+        }
+        do {
+            if on {
+                try hooks.install()
+                diagnostics.record(.agentsCounting(outcome: "added"))
+                return .added
+            }
+            let outcome = try hooks.uninstall()
+            diagnostics.record(.agentsCounting(outcome: Self.caseName(outcome)))
+            return switch outcome {
+            case .restoredExactly: .removedExactly
+            case .removedEntries: .removedEntries
+            case .notInstalled, .entriesAlreadyGone: .alreadyGone
+            }
+        } catch {
+            diagnostics.record(.agentsCounting(outcome: "refused " + Self.caseName(error)))
+            return .failed(reason: Self.hooksReason(error))
+        }
+    }
+
+    public var agentsPreview: (file: String, entry: String) {
+        let hooks = Self.hooks(environment)
+        return (hooks.paths.settings.path, hooks.previewEntry)
+    }
+
+    static func hooks(_ environment: AppEnvironment) -> HooksInstaller {
+        HooksInstaller(paths: .init(home: environment.home), shimPath: environment.shimPath, now: { [clock = environment.clock] in clock.now() })
+    }
+
+    static func hooksReason(_ error: Error) -> String {
+        switch error as? HooksInstaller.InstallError {
+        case .connectionNotInstalled: Copy.Agents.needsConnection
+        case .unsupportedExistingHooks: "its hooks section has a shape Pulse can't edit safely"
+        case .settingsInvalidJSON: "settings.json isn't valid JSON"
+        case .settingsChangedDuringInstall: "settings.json changed while Pulse was writing; try again"
+        case .alreadyInstalled: "the hooks are already there"
+        case .verificationFailed: "the result didn't check out, so it was put back"
+        default: "\(error)"
+        }
     }
 
     static func installer(_ environment: AppEnvironment, forwardCost: Bool) -> SettingsInstaller {
@@ -450,7 +511,7 @@ public final class AppModel {
         return ["All stored readings, sessions, plan and preferences (\(environment.databaseURL.lastPathComponent))",
                 "The diagnostics log",
                 "Pending and delivered \(Product.name) notifications",
-                "\(Product.name)'s status line in Claude Code: your settings are restored from the backup",
+                "\(Product.name)'s status line and hooks in Claude Code: your settings are restored from the backup",
                 "\(paths.pulseDir.path): the helper's settings and session key",
                 "\(Product.name) Keychain items"]
     }
@@ -474,6 +535,7 @@ public final class AppModel {
             return DeleteReport(failure: Copy.DeleteAll.restoreFailed(paths.backupsDir.path))
         }
         do {
+            if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
             _ = try installer.uninstall()
         } catch {
             listen()
@@ -558,6 +620,18 @@ struct StoreSink: IngestSink {
         let meta = batch.sessionRef.map { Store.SessionMeta(sessionRef: $0, modelID: batch.modelID, modelDisplayName: batch.modelDisplayName) }
         // Refresh even when nothing new was stored: the frame itself proves the connection is live.
         guard (try? await store.ingest(batch.observations, session: meta)) != nil else { return }
+        await didIngest()
+    }
+
+    func ingest(hook: HookFrame.Decoded, at: Date) async {
+        let kind: Store.AgentEvent.Kind = switch hook.event {
+        case .promptSubmitted: .promptSubmitted
+        case .subagentStarted: .subagentStarted
+        case .subagentStopped: .subagentStopped
+        case .stopped: .stopped
+        }
+        guard (try? await store.record(.init(kind: kind, sessionRef: hook.sessionRef, agentRef: hook.agentRef, agentType: hook.agentType, at: at))) != nil
+        else { return }
         await didIngest()
     }
 }

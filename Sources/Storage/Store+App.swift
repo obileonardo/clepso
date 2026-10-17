@@ -160,7 +160,8 @@ public enum ExportValue: Sendable, Equatable {
 
 extension Store {
     /// §8 step 2: exactly these tables, nothing else.
-    public static let exportTables = ["accounts", "observations", "pool_snapshots", "sessions", "notification_receipts", "preferences"]
+    public static let exportTables = ["accounts", "observations", "pool_snapshots", "sessions", "notification_receipts", "preferences",
+                                      "agent_tasks", "agent_runs"]
     /// Internal bookkeeping with no meaning to the user (a content hash used for dedupe).
     static let exportExcludedColumns: [String: Set<String>] = ["observations": ["dedupe_key"]]
 
@@ -214,7 +215,7 @@ extension Store {
     }
 
     public struct PurgeReport: Sendable, Equatable {
-        public var readings = 0, sessions = 0, events = 0, receipts = 0
+        public var readings = 0, sessions = 0, events = 0, receipts = 0, tasks = 0
         public init() {}
         public var isEmpty: Bool { self == PurgeReport() }
     }
@@ -243,6 +244,9 @@ extension Store {
             report.events = db.changesCount
             try db.execute(sql: "DELETE FROM notification_receipts WHERE decided_at < ?", arguments: [ms(now.addingTimeInterval(-retention.receipts))])
             report.receipts = db.changesCount
+            // Agents per task follow sessions: 30 days. Runs go with their task.
+            try db.execute(sql: "DELETE FROM agent_tasks WHERE started_at < ?", arguments: [sessionsCutoff])
+            report.tasks = db.changesCount
             return report
         }
     }
