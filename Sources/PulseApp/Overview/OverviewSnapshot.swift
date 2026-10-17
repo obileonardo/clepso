@@ -47,6 +47,40 @@ public struct ProviderSection: Sendable {
     public let lastSeen: Date?
     /// Limit windows Claude Code sent that Pulse does not read (DECISIONS C7). 0 is the normal case today.
     public let unreadLimitWindows: Int
+    /// Increment 1.7e: every session Pulse has seen (30-day retention), newest first, with what Claude Code reports.
+    public let sessions: [SessionDetail]
+    /// Sessions grouped by their main model: an approximation (Claude Code's background models count under it).
+    public let models: [ModelGroup]
+}
+
+/// One Claude Code session as its status line reports it: cumulative for the session, as of `lastSeen`.
+public struct SessionDetail: Sendable, Identifiable, Equatable {
+    public let id: String                       // the hashed session reference
+    public let modelName: String?
+    public let lastSeen: Date?
+    public let contextPct: Decimal?
+    public let tokensIn: Int64?                 // context_window.total_input_tokens
+    public let tokensOut: Int64?
+    public let contextWindow: Int64?
+    public let costUSD: Decimal?                // Claude Code's estimate at list price, not a bill
+    public let wallMs: Int64?
+    public let apiMs: Int64?
+    public let linesAdded: Int64?
+    public let linesRemoved: Int64?
+    public let cacheHitPct: Decimal?
+    public let cacheRequests: Int64?
+    public let cacheMisses: Int64?
+    public let cacheWarm: Bool?
+}
+
+public struct ModelGroup: Sendable, Identifiable, Equatable {
+    public var id: String { name }
+    public let name: String
+    public let sessions: Int
+    public let tokens: Int64                    // in + out
+    public let costUSD: Decimal
+    public let linesAdded: Int64
+    public let share: Double                    // of all sessions' tokens
 }
 
 /// One allowance pool with what the provenance inspector needs, prefetched (DESIGN_SYSTEM §9).

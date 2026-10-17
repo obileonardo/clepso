@@ -75,7 +75,8 @@ public struct PixelBar: View {
                     }
                 } else {
                     context.fill(Path(cell), with: .color(color))
-                    context.fill(Path(CGRect(x: cell.minX, y: cell.minY, width: cell.width, height: px)), with: .color(.white.opacity(0.35)))
+                    context.fill(Path(CGRect(x: cell.minX, y: cell.minY, width: cell.width, height: px)),
+                                 with: .color(theme.color(.textPrimary, scheme).opacity(0.35)))
                 }
             }
             if fraction == nil || pattern == .outline || pattern == .dashed {
@@ -141,8 +142,14 @@ public struct PixelButtonStyle: ButtonStyle {
                 .padding(.horizontal, theme.spacing(.windowPadding))
                 .padding(.vertical, theme.spacing(.compact) + px)
                 .background(PixelRect(step: px).fill(face))
-                .overlay(alignment: .top) { Rectangle().fill(.white.opacity(pressed ? 0.05 : 0.30)).frame(height: px).padding(.horizontal, px * 2).padding(.top, px) }
-                .overlay(alignment: .bottom) { Rectangle().fill(.black.opacity(pressed ? 0.05 : 0.45)).frame(height: px).padding(.horizontal, px * 2).padding(.bottom, px) }
+                .overlay(alignment: .top) {
+                    Rectangle().fill(theme.color(.textPrimary, scheme).opacity(pressed ? 0.05 : 0.30)).frame(height: px)
+                        .padding(.horizontal, px * 2).padding(.top, px)
+                }
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(theme.color(.background, scheme).opacity(pressed ? 0.05 : 0.55)).frame(height: px)
+                        .padding(.horizontal, px * 2).padding(.bottom, px)
+                }
                 .overlay(PixelRect(step: px).strokeBorder(theme.color(.separator, scheme), lineWidth: px))
                 .offset(y: pressed ? px / 2 : 0)
                 .opacity(enabled ? 1 : 0.45)

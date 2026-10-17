@@ -42,6 +42,25 @@ public enum Formatting {
         return format(date, "MMM d", zone: zone, locale: locale)
     }
 
+    /// "16.5B", "27.7M", "193.2K", "940" (increment 1.7): how /stats writes token counts.
+    public static func compact(_ value: Int64) -> String {
+        let n = Double(value), units: [(Double, String)] = [(1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")]
+        for (size, unit) in units where abs(n) >= size {
+            let scaled = (n / size * 10).rounded() / 10
+            return (scaled == scaled.rounded() ? String(Int(scaled)) : String(format: "%.1f", scaled)) + unit
+        }
+        return String(value)
+    }
+
+    /// "7d 19h 35m", "2h 0m", "4m 12s", "38s": elapsed time as Claude Code's /stats and /usage write it.
+    public static func duration(milliseconds ms: Int64) -> String {
+        let s = max(0, ms / 1000), d = s / 86_400, h = s % 86_400 / 3600, m = s % 3600 / 60, sec = s % 60
+        if d > 0 { return "\(d)d \(h)h \(m)m" }
+        if h > 0 { return "\(h)h \(m)m" }
+        if m > 0 { return "\(m)m \(sec)s" }
+        return "\(sec)s"
+    }
+
     /// "in 2h 15m", "in 3 days"; nil once the time has passed.
     public static func countdown(to date: Date, now: Date) -> String? {
         let seconds = date.timeIntervalSince(now)

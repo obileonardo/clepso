@@ -23,6 +23,9 @@ public enum PaceEstimate: Sendable, Equatable {
     public static let minSpan: TimeInterval = 10 * 60
     /// Below this slope (percentage points per hour) usage is treated as flat.
     public static let flatSlope = 0.5
+    /// The estimate never looks further ahead than this many times the history it rests on (an hour of readings
+    /// cannot speak for the next two days).
+    public static let maxLookAhead = 8.0
 
     /// `points` in any order; only those after `windowOpenedAt` and within `lookback` of `now` count, so a reset
     /// inside the period never bends the line.
@@ -44,6 +47,9 @@ public enum PaceEstimate: Sendable, Equatable {
 
         let hoursToLimit = (100 - latest.usedPct) / slope
         let hit = latest.at.addingTimeInterval(hoursToLimit * 3600)
+        let span = latest.at.timeIntervalSince(first.at)
+        let horizon = min(hit, resetsAt.flatMap { $0 > now ? $0 : nil } ?? hit).timeIntervalSince(latest.at)
+        guard horizon <= span * maxLookAhead else { return .notEnoughData }
         if let resetsAt, resetsAt > now, hit >= resetsAt {
             let projected = latest.usedPct + slope * resetsAt.timeIntervalSince(latest.at) / 3600
             return .belowAtReset(projectedPct: min(projected, 100))

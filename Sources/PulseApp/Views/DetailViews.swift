@@ -25,23 +25,33 @@ struct ProviderDetailView: View {
                 Text(provider.header).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
                     .fixedSize(horizontal: false, vertical: true)
             }
-            ProviderCard(identity: provider.identity, planName: provider.planName.map(PopoverMetrics.shortPlan), plan: provider.plan,
-                         pools: provider.pools.map(\.model), session: provider.session, layout: .expanded, now: now,
-                         onPool: { index in model.popoverRoute = .inspector(poolKey: provider.pools[index].poolKey, fromDetail: true) })
+            ForEach(provider.pools) { row in
+                Button { model.popoverRoute = .inspector(poolKey: row.poolKey, fromDetail: true) } label: {
+                    PixelLimitRow(model: row.model, now: now, pace: PaceText.make(row.pace, model: model)).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Shows where this number comes from")
+            }
+            if let session = provider.sessions.first { SessionStrip(session: session) }
+            if let first = provider.pools.first {
+                ConnectionHealth(source: first.model.source, lastSeen: provider.lastSeen,
+                                 state: first.model.valueState(now: now, staleAfter: Freshness.localTelemetryTTL), now: now)
+            }
             Label(provider.unreadLimitWindows > 0 ? Copy.Detail.unreadLimits(provider.unreadLimitWindows) : Copy.Detail.otherLimits,
                   systemImage: provider.unreadLimitWindows > 0 ? "exclamationmark.circle" : "info.circle")
                 .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                 .fixedSize(horizontal: false, vertical: true)
             Text(provider.sessionCount == 0 ? Copy.Empty.noSessions : Copy.Detail.sessions(provider.sessionCount))
                 .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-            HStack(spacing: theme.spacing(.standard)) {
-                Button(Copy.Detail.openUsage) { NSWorkspace.shared.open(Self.usageURL) }
+            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {          // stacked: the pixel face is wide
+                Button(Copy.Detail.openUsage) { NSWorkspace.shared.open(Self.usageURL) }.buttonStyle(PixelButtonStyle())
                 Button(Copy.Detail.changePlan) {
                     model.settingsTab = .plan
                     dismiss()
                     NSApp.activate(ignoringOtherApps: true)
                     openSettings()
                 }
+                .buttonStyle(PixelButtonStyle())
             }
         }
     }
@@ -64,7 +74,8 @@ struct InspectorView: View {
             BackButton(title: Copy.Header.title, action: back)
             HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
                 DemoTag()
-                Text(Copy.Inspector.title).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Text(Copy.Inspector.title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: theme.spacing(.spacious), verticalSpacing: theme.spacing(.compact)) {
                 ForEach(fields, id: \.0) { label, value in
@@ -87,6 +98,7 @@ struct InspectorView: View {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(details, forType: .string)
             }
+            .buttonStyle(PixelButtonStyle())
         }
     }
 

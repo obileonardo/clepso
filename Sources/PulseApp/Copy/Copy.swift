@@ -88,6 +88,54 @@ enum Copy {
         }
     }
 
+    /// Increment 1.7e: the Details window.
+    enum Details {
+        static let open = "Details", openStats = "Stats"
+        static let limits = "Limits", session = "Session", stats = "Stats"
+        static let now = "NOW"
+        static func resets(_ time: String) -> String { "RESETS \(time.uppercased())" }
+        static let noLimits = "No limits reported yet. They appear after your next Claude Code message."
+        static func noHistory(_ scope: String) -> String { "\(scope) usage history: no readings yet" }
+        static func historySummary(scope: String, from: Int, to: Int, readings: Int) -> String {
+            "\(scope) usage history: from \(from) to \(to) percent over \(readings) readings"
+        }
+        static let unknownModel = "Unknown model"
+        static let context = "CONTEXT"
+        static let tokensIn = "Tokens in", tokensOut = "Tokens out", costEstimate = "Cost est.", cacheHits = "Cache hits"
+        static let apiTime = "API time", wallTime = "Wall time", lines = "Lines +/−", cacheState = "Cache"
+        static let warm = "Warm", cold = "Cold"
+        static let costNote = "Cost is Claude Code's estimate at API list price for this session. It is not your bill and not your plan's usage."
+        static let byModel = "BY MODEL · LAST 30 DAYS"
+        static func groupLine(sessions: Int, tokens: String, cost: String, share: Int) -> String {
+            "\(sessions) session\(sessions == 1 ? "" : "s") · \(tokens) tokens · \(cost) est. · \(share)%"
+        }
+        static let byModelNote = "Grouped by each session's main model. Claude Code also uses smaller models in the background; those count under the main one. For exact per-model figures, see Stats."
+    }
+
+    /// Increment 1.7f: Stats from Claude Code's own statistics file.
+    enum Stats {
+        static let explainerTitle = "SHOW YOUR CLAUDE CODE STATS?"
+        static let explainerBody = "Claude Code keeps a statistics file for /stats (~/.claude/stats-cache.json). \(product) can read it to show your activity, streaks and tokens per model. It reads only dates, counts and model names; never session ids, prompts or paths. Nothing from it is stored or exported. You can turn this off in Settings › Providers."
+        static let enable = "Show my stats"
+        static let missing = "Claude Code's statistics file wasn't found. It appears after Claude Code has computed /stats at least once."
+        static let unreadable = "Claude Code's statistics file couldn't be read. Its format may have changed."
+        static let overview = "Overview", models = "Models"
+        static let allTime = "All time", last30 = "30 days", last7 = "7 days"
+        static let favorite = "Favorite model", totalTokens = "Total tokens", sessions = "Sessions", longestSession = "Longest session"
+        static let activeDays = "Active days", currentStreak = "Current streak", longestStreak = "Longest streak", mostActive = "Most active day"
+        static let tokensPerDay = "TOKENS PER DAY"
+        static func through(_ day: String) -> String {
+            "From Claude Code's statistics file, which covers days up to \(day). Today's tokens appear tomorrow; today counts as active when \(product) has seen Claude Code today."
+        }
+        static func heatmapSummary(active: Int, of days: Int) -> String { "Activity: \(active) active days of \(days)" }
+        static func chartSummary(days: Int, models: Int) -> String { "Tokens per day for \(models) models over \(days) days" }
+        static func modelBreakdown(input: String, output: String, read: String, write: String) -> String {
+            "In \(input) · Out \(output) · Cache \(read) read · \(write) write"
+        }
+        static let toggle = "Read Claude Code's statistics file"
+        static let toggleSublabel = "For the Stats tab: dates, counts and model names only"
+    }
+
     /// Increment 1.7c: always says "Estimate", never a promise.
     enum Pace {
         static func reaches(_ time: String) -> String { "Estimate: at this pace, 100% around \(time)" }

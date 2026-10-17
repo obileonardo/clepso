@@ -45,6 +45,19 @@ struct ThemeTests {
         }
     }
 
+    @Test("Compact counts and durations read like Claude Code's /stats")
+    func compactAndDuration() {
+        #expect(Formatting.compact(16_500_000_000) == "16.5B")
+        #expect(Formatting.compact(27_700_000) == "27.7M")
+        #expect(Formatting.compact(193_200) == "193.2K")
+        #expect(Formatting.compact(2_000_000) == "2M")
+        #expect(Formatting.compact(940) == "940")
+        #expect(Formatting.duration(milliseconds: 675_300_000) == "7d 19h 35m")
+        #expect(Formatting.duration(milliseconds: 7_254_000) == "2h 0m")
+        #expect(Formatting.duration(milliseconds: 252_000) == "4m 12s")
+        #expect(Formatting.duration(milliseconds: 38_400) == "38s")
+    }
+
     @Test("1.7b concept palettes: every text token reaches 4.5:1 on every surface")
     func conceptContrast() {
         for theme in [Theme.phosphor, .ember] {

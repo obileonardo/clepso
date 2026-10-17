@@ -6,6 +6,9 @@ import SwiftUI
 /// The app's scenes; the Xcode app target's `@main` only creates the model and returns these.
 public struct PulseScenes: Scene {
     public static let onboardingID = "onboarding"
+    public static let detailsID = "details"
+    /// Native controls (toggles, pickers) take the Phosphor accent.
+    static let accent = Theme.phosphor.color(.accent, .dark)
     let model: AppModel
 
     public init(model: AppModel) { self.model = model }
@@ -13,18 +16,24 @@ public struct PulseScenes: Scene {
     public var body: some Scene {
         MenuBarExtra {
             PopoverView(model: model)
-                .environment(\.theme, .mac)
+                .environment(\.theme, .phosphor)
+                .preferredColorScheme(.dark)
         } label: {
             MenuBarLabel(model: model)
         }
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView(model: model).environment(\.theme, .mac)
+            SettingsView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark).tint(PulseScenes.accent)
         }
 
+        Window(Product.name, id: Self.detailsID) {
+            DetailsView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark)
+        }
+        .defaultSize(width: DetailsMetrics.minWidth, height: DetailsMetrics.minHeight + 120)
+
         Window("Welcome to \(Product.name)", id: Self.onboardingID) {
-            OnboardingView(model: model).environment(\.theme, .mac)
+            OnboardingView(model: model).environment(\.theme, .phosphor).preferredColorScheme(.dark).tint(PulseScenes.accent)
         }
         .windowResizability(.contentSize)
     }
@@ -51,7 +60,8 @@ struct MenuBarLabel: View {
             await model.start()
             #if DEBUG
             if await PopoverProbe.runIfRequested(model: model, openWindow: { openWindow(id: PulseScenes.onboardingID) },
-                                                openSettings: { openSettings() }) { return }
+                                                openSettings: { openSettings() },
+                                                openDetails: { openWindow(id: PulseScenes.detailsID) }) { return }
             #endif
             if !model.onboardingComplete {
                 NSApp.activate(ignoringOtherApps: true)

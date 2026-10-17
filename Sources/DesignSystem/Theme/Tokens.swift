@@ -73,8 +73,9 @@ public struct Theme: Sendable {
         if typeface == .pixel {
             PixelFonts.ensureRegistered()
             return switch token {
-            case .metricHero: .custom(PixelFonts.number, size: 34, relativeTo: .largeTitle)
-            case .metricMedium: .custom(PixelFonts.number, size: 22, relativeTo: .title2)
+            // Silkscreen for figures: its 5 and S differ clearly (in Pixelify Sans "8.5B" read as "8.SB").
+            case .metricHero: .custom(PixelFonts.display, size: 30, relativeTo: .largeTitle)
+            case .metricMedium: .custom(PixelFonts.display, size: 19, relativeTo: .title2)
             case .title: .custom(PixelFonts.display, size: 13, relativeTo: .headline)
             case .label: .system(.subheadline, design: .monospaced)
             case .supporting: .system(.footnote, design: .monospaced)

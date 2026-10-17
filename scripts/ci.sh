@@ -79,7 +79,7 @@ no_direct_clock() {
 design_tokens_only() {
     local hits
     hits=$(grep -rnE 'Color\((red|\.sRGB|white|hue)|Color\.(red|blue|green|orange|yellow|gray|primary|secondary|black|white)|\.padding\([[:space:]]*[0-9]|Font\.system\(size:|Date\(\)' \
-        Sources/DesignSystem/Components Sources/PulseApp 2>/dev/null || true)
+        Sources/DesignSystem/Components Sources/DesignSystem/Pixel Sources/PulseApp 2>/dev/null || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
     echo "components use Theme tokens only"
 }

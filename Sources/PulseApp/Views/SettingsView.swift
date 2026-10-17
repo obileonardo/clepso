@@ -95,6 +95,10 @@ struct ProvidersTab: View {
                     Text(Copy.Settings.forwardCost)
                     Text(Copy.Settings.forwardCostSublabel)
                 }
+                Toggle(isOn: Binding(get: { model.statsEnabled }, set: { on in Task { await model.setStatsEnabled(on) } })) {
+                    Text(Copy.Stats.toggle)
+                    Text(Copy.Stats.toggleSublabel)
+                }
             }
         }
         .formStyle(.grouped)

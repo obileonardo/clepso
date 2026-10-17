@@ -71,7 +71,7 @@ public struct OnboardingView: View {
                     Button(Copy.Onboarding.alertsEnable) { Task { await model.requestNotifications(); go(.done) } }
                     Button(Copy.Onboarding.alertsSkip) { go(.done) }      // equal weight: both bordered, neither default
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(PixelButtonStyle())
             } else {
                 Color.clear.frame(height: 0).onAppear { go(.done) }
             }
@@ -116,7 +116,7 @@ public struct OnboardingView: View {
             Banner(text: Copy.Explainer.installFailed(installError), action: nil) {}
         }
         HStack(spacing: theme.spacing(.standard)) {
-            Button(Copy.Explainer.cancel) { go(.done) }
+            Button(Copy.Explainer.cancel) { go(.done) }.buttonStyle(PixelButtonStyle())
             Spacer()
             Button(existing == nil ? Copy.Explainer.ctaNoExisting : Copy.Explainer.ctaExisting) {
                 installing = true
@@ -128,7 +128,7 @@ public struct OnboardingView: View {
                     installing = false
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(PixelButtonStyle(prominent: true))
             .disabled(preview.refusal != nil || installing)
         }
     }
@@ -152,11 +152,11 @@ public struct OnboardingView: View {
     }
 
     func primary(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(label, action: action).buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+        Button(label, action: action).buttonStyle(PixelButtonStyle(prominent: true)).keyboardShortcut(.defaultAction)
     }
 
     func secondary(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(label, action: action)
+        Button(label, action: action).buttonStyle(PixelButtonStyle())
     }
 }
 

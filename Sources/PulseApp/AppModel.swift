@@ -18,6 +18,8 @@ public final class AppModel {
     public enum SettingsTab: String, Hashable, Sendable { case general, notifications, providers, plan, diagnostics }
     public enum PopoverRoute: Hashable, Sendable { case overview, detail, inspector(poolKey: String, fromDetail: Bool) }
     public enum OnboardingStep: Int, CaseIterable, Sendable { case welcome, plan, provider, consent, firstReading, alerts, done }
+    public enum DetailsTab: String, Hashable, Sendable { case limits, session, stats }
+    public enum StatsPage: String, Hashable, Sendable { case overview, models }
 
     public private(set) var snapshot: OverviewSnapshot
     public private(set) var problem: Problem?
@@ -40,6 +42,9 @@ public final class AppModel {
     /// Navigation lives here so "Connect…" and similar can deep-link, and Escape always has one place to go back to.
     public var popoverRoute: PopoverRoute = .overview
     public var onboardingStep: OnboardingStep = .welcome
+    public var detailsTab: DetailsTab = .limits
+    public var statsPage: StatsPage = .overview
+    public var statsRange: StatsSummary.Range = .allTime
     /// The delete-all confirmation sheet; on the model so the verification probe can show it.
     public var confirmingDeleteAll = false
     public let catalog: PlanCatalog?
@@ -72,6 +77,7 @@ public final class AppModel {
     public func start() async {
         guard !started else { return }
         started = true
+        PixelFonts.ensureRegistered()                    // before the first popover open, not during it
         let now = environment.clock.now()
         diagnostics.record(.appStarted(version: environment.appVersion))
         do {

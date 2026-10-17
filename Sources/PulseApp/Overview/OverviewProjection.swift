@@ -56,7 +56,8 @@ public enum OverviewProjection {
             identity: .claudeCode, planName: input.plan?.displayName, plan: plan,
             header: header(plan: input.plan, provenance: plan, metricsLive: anyLive),
             pools: rows, session: session(input, now: now), sessionCount: input.sessionSummaries.count,
-            sourceVersion: input.sourceVersion, lastSeen: lastSeen, unreadLimitWindows: input.unreadLimitWindows)
+            sourceVersion: input.sourceVersion, lastSeen: lastSeen, unreadLimitWindows: input.unreadLimitWindows,
+            sessions: sessionDetails(input), models: modelGroups(sessionDetails(input)))
 
         let (icon, staleMark, text, line) = aggregate(rows.map(\.model), input: input, empty: empty, lastSeen: lastSeen,
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
@@ -122,6 +123,43 @@ public enum OverviewProjection {
             contextUsed: value(.contextUsedPct) { if case .percent(let d) = $0 { d } else { nil } },
             contextTokens: value(.contextTokens) { if case .tokens(let n) = $0 { n } else { nil } },
             contextWindow: value(.contextWindowSize) { if case .tokens(let n) = $0 { n } else { nil } })
+    }
+
+    /// Every stored session in summary order (newest first), each value only if Claude Code reported it.
+    static func sessionDetails(_ input: OverviewInput) -> [SessionDetail] {
+        let states = Dictionary(input.sessions.map { ($0.sessionRef, $0) }, uniquingKeysWith: { a, _ in a })
+        return input.sessionSummaries.compactMap { summary in
+            guard let s = states[summary.sessionRef] else { return nil }
+            func v(_ kind: MetricKind) -> MetricValue? { s.values[kind]?.value }
+            func pct(_ kind: MetricKind) -> Decimal? { if case .percent(let d)? = v(kind) { d } else { nil } }
+            func tokens(_ kind: MetricKind) -> Int64? { if case .tokens(let n)? = v(kind) { n } else { nil } }
+            func count(_ kind: MetricKind) -> Int64? { if case .count(let n)? = v(kind) { n } else { nil } }
+            func ms(_ kind: MetricKind) -> Int64? { if case .duration(let n)? = v(kind) { n } else { nil } }
+            let warm: Bool? = if case .flag(let b)? = v(.cacheWarm) { b } else { nil }
+            let cost: Decimal? = if case .usd(let d)? = v(.apiCostUSD) { d } else { nil }
+            return SessionDetail(id: summary.sessionRef, modelName: summary.modelDisplayName ?? s.modelID, lastSeen: s.lastSeen,
+                                 contextPct: pct(.contextUsedPct), tokensIn: tokens(.contextTokens), tokensOut: tokens(.sessionOutputTokens),
+                                 contextWindow: tokens(.contextWindowSize), costUSD: cost, wallMs: ms(.wallDuration), apiMs: ms(.apiDuration),
+                                 linesAdded: count(.linesAdded), linesRemoved: count(.linesRemoved), cacheHitPct: pct(.cacheHitPct),
+                                 cacheRequests: count(.cacheRequests), cacheMisses: count(.cacheMisses), cacheWarm: warm)
+        }
+    }
+
+    static func modelGroups(_ sessions: [SessionDetail]) -> [ModelGroup] {
+        var groups: [String: (sessions: Int, tokens: Int64, cost: Decimal, lines: Int64)] = [:]
+        for s in sessions {
+            let name = s.modelName ?? "Unknown model"
+            var g = groups[name] ?? (0, 0, 0, 0)
+            g.sessions += 1
+            g.tokens += (s.tokensIn ?? 0) + (s.tokensOut ?? 0)
+            g.cost += s.costUSD ?? 0
+            g.lines += s.linesAdded ?? 0
+            groups[name] = g
+        }
+        let total = groups.values.map(\.tokens).reduce(0, +)
+        return groups.map { ModelGroup(name: $0.key, sessions: $0.value.sessions, tokens: $0.value.tokens, costUSD: $0.value.cost,
+                                       linesAdded: $0.value.lines, share: total > 0 ? Double($0.value.tokens) / Double(total) : 0) }
+            .sorted { ($0.tokens, $1.name) > ($1.tokens, $0.name) }
     }
 
     static func provenance(_ plan: Store.PlanIdentity?) -> PlanProvenance {

@@ -34,12 +34,13 @@ public struct PopoverView: View {
                     }
                 } else { header(snapshot); overview(snapshot) }
             }
-            Divider()
+            Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline) * 2).accessibilityHidden(true)
             footer
         }
         .padding(theme.spacing(.windowPadding))
         .frame(width: PopoverMetrics.width, alignment: .topLeading)
         .background(theme.color(.background, scheme))
+        .overlay(PixelScanlines())
         .environment(\.isFixtureData, snapshot.isDemo)
         .environment(\.displayTimeZone, model.environment.timeZone)
         .onExitCommand { back() }
@@ -51,12 +52,12 @@ public struct PopoverView: View {
         VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
             HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
                 DemoTag()
-                Text(Copy.Header.title).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Text(Copy.Header.title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
                 Spacer()
                 if let updated = snapshot.updatedAt {
                     Text(Copy.Header.updated(Formatting.age(of: updated, now: snapshot.now, zone: model.environment.timeZone,
-                                                            locale: model.environment.locale)))
-                        .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                                                            locale: model.environment.locale)).uppercased())
+                        .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
             }
             Text(snapshot.aggregateLine)
@@ -95,13 +96,35 @@ public struct PopoverView: View {
             }
         case nil:
             if let provider = snapshot.provider {
-                ProviderCard(identity: provider.identity, planName: provider.planName.map(PopoverMetrics.shortPlan), plan: provider.plan,
-                             pools: provider.pools.map(\.model), session: provider.session, layout: .compact, now: snapshot.now,
-                             onHeader: { model.popoverRoute = .detail },
-                             onPool: { index in model.popoverRoute = .inspector(poolKey: provider.pools[index].poolKey, fromDetail: false) })
+                VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                    Button { model.popoverRoute = .detail } label: {
+                        HStack(spacing: theme.spacing(.standard)) {
+                            Text(provider.identity.wordmark.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+                            Spacer(minLength: theme.spacing(.standard))
+                            PlanPill(planName: provider.planName.map(PopoverMetrics.shortPlan), provenance: provider.plan)
+                            Image(systemName: "chevron.right").foregroundStyle(theme.color(.textSecondary, scheme)).accessibilityHidden(true)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Shows provider details")
+                    ForEach(provider.pools) { row in
+                        Button { model.popoverRoute = .inspector(poolKey: row.poolKey, fromDetail: false) } label: {
+                            PixelLimitRow(model: row.model, now: snapshot.now, pace: PaceText.make(row.pace, model: model)).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Shows where this number comes from")
+                    }
+                    if let session = provider.sessions.first { SessionStrip(session: session) }
+                    HStack(spacing: theme.spacing(.standard)) {
+                        Button(Copy.Details.open) { openDetails(.limits) }.buttonStyle(PixelButtonStyle(prominent: true))
+                        Button(Copy.Details.openStats) { openDetails(.stats) }.buttonStyle(PixelButtonStyle())
+                        Spacer()
+                    }
+                }
             }
             if snapshot.isDemo {
-                Button(Copy.Demo.exit) { Task { await model.setDemo(false) } }
+                Button(Copy.Demo.exit) { Task { await model.setDemo(false) } }.buttonStyle(PixelButtonStyle())
             }
         }
     }
@@ -116,7 +139,17 @@ public struct PopoverView: View {
             Button(Copy.Footer.quit) { NSApp.terminate(nil) }
         }
         .buttonStyle(.borderless)
-        .font(theme.font(.label))
+        .font(theme.font(.micro))
+        .textCase(.uppercase)
+        .foregroundStyle(theme.color(.textSecondary, scheme))
+    }
+
+    /// DETAILS and STATS open the Details window on that tab.
+    func openDetails(_ tab: AppModel.DetailsTab) {
+        model.detailsTab = tab
+        dismiss()
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: PulseScenes.detailsID)
     }
 
     func back() {
@@ -164,6 +197,38 @@ struct Banner: View {
         }
         .padding(theme.spacing(.standard))
         .background(RoundedRectangle(cornerRadius: theme.radius(.control)).fill(theme.color(.surfaceMuted, scheme)))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The newest session in one glance: model, context, cost estimate, cache hits, lines and API time.
+struct SessionStrip: View {
+    let session: SessionDetail
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            HStack {
+                Text((session.modelName ?? Copy.Details.unknownModel).uppercased()).font(theme.font(.title))
+                    .foregroundStyle(theme.color(.background, scheme))
+                    .padding(.horizontal, theme.spacing(.compact) * 1.5).padding(.vertical, theme.spacing(.compact) / 2)
+                    .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(.accent, scheme)))
+                Spacer()
+                if let pct = session.contextPct {
+                    Text("CTX \(Formatting.percent(pct))").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                }
+            }
+            if let pct = session.contextPct {
+                PixelBar(fraction: NSDecimalNumber(decimal: pct).doubleValue / 100, role: .accent, pattern: .solid, segments: 32)
+            }
+            HStack {
+                PixelStat(session.costUSD.map { $0.formatted(.currency(code: "USD").locale(Locale(identifier: "en_US"))) } ?? "—", Copy.Details.costEstimate)
+                PixelStat(session.cacheHitPct.map(Formatting.percent) ?? "—", Copy.Details.cacheHits)
+                PixelStat(session.linesAdded.map { "+" + Formatting.compact($0) } ?? "—", Copy.Details.lines)
+                PixelStat(session.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime)
+            }
+        }
         .accessibilityElement(children: .combine)
     }
 }
