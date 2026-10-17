@@ -424,6 +424,38 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .foot-base { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px 0 28px; font-size: 12px; }
 .foot-base code { background: none; color: var(--p-text); padding: 0; }
 
+/* The footer village (after Corgi 12.13): a pixel-rendered Three.js diorama with an HTML roster beside it. */
+.village { border-top: 1px solid var(--p-line); background: linear-gradient(180deg, rgba(6,9,7,0), #020403 70%); }
+.village-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px 32px; flex-wrap: wrap; padding-top: 28px; padding-bottom: 12px; }
+.village-head .eyebrow { margin-bottom: 6px; }
+.village-sub { margin: 0; max-width: 62ch; font-size: 12.5px; color: var(--p-text2); }
+.village-roster { display: flex; flex-wrap: wrap; gap: 6px; max-width: 640px; }
+.village-roster button { display: inline-flex; align-items: center; gap: 7px; font: 12px var(--p-mono); color: var(--p-text); background: var(--p-surface);
+  border: 1px solid var(--p-line); padding: 6px 9px; cursor: pointer; }
+.village-roster button:hover { border-color: var(--p-text2); }
+.village-roster button[aria-pressed="true"] { border-color: var(--p-accent); box-shadow: inset 0 0 0 1px var(--p-accent); }
+.village-roster i { width: 10px; height: 10px; display: block; }
+.village-roster small { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--p-text2); }
+.village-roster small.s-today { color: var(--p-accent); } .village-roster small.s-planned { color: var(--p-amber); }
+.village-stage { position: relative; height: clamp(280px, 30vw, 440px); overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.village-stage.dragging { cursor: grabbing !important; }
+.village-stage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.village-label { position: absolute; transform: translate(-50%, -100%); font: 11px var(--p-pixel); letter-spacing: .04em; color: var(--p-ink);
+  background: var(--p-cream); padding: 3px 6px 2px; pointer-events: none; white-space: nowrap; }
+.village-card { position: absolute; left: 16px; bottom: 16px; width: min(360px, calc(100% - 32px)); background: rgba(10,16,12,.92); border: 1px solid var(--p-line);
+  padding: 12px 14px; font-size: 13px; display: grid; gap: 4px; justify-items: start; }
+.village-card b { font: 13px var(--p-pixel); letter-spacing: .04em; text-transform: uppercase; }
+.village-card p { margin: 0; color: var(--p-text2); }
+.village-chip { font: 10.5px var(--p-mono); letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border: 1px solid var(--p-line); color: var(--p-text2); }
+.village-chip.s-today { background: var(--p-accent); border-color: var(--p-accent); color: var(--p-ink); }
+.village-chip.s-planned { border-color: var(--p-amber); color: var(--p-amber); }
+.village-now { color: var(--p-text) !important; font-size: 12px; }
+.village-hint { position: absolute; right: 16px; bottom: 12px; margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--p-text2); pointer-events: none; }
+.village-fallback { display: none; position: absolute; inset: 0; margin: 0; place-content: center; text-align: center; color: var(--p-text2); font-size: 13px; }
+.village.no-3d .village-fallback { display: grid; } .village.no-3d canvas, .village.no-3d .village-hint { display: none; }
+.village .foot-base, .foot > .foot-base { padding-left: 16px; padding-right: 16px; }
+@media (max-width: 640px) { .village-hint { display: none; } .village-card { bottom: 10px; left: 10px; width: calc(100% - 20px); } }
+
 /* Reveal on scroll. */
 .js .rv { opacity: 0; transform: translateY(18px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1); }
 .js .rv.in { opacity: 1; transform: none; }

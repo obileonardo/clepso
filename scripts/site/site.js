@@ -352,6 +352,18 @@
     chips.forEach(c => c.addEventListener("click", () => { tag = c.dataset.tag; chips.forEach(x => x.setAttribute("aria-pressed", String(x === c))); run(); }));
   }
 
+  // ------------------------------------------------- footer village: load Three.js only when the footer comes near
+  const village = $(".village");
+  if (village) {
+    let started = false;
+    const go = () => { if (started) return; started = true;
+      import("/assets/village.js").then(m => m.start(village)).catch(() => village.classList.add("no-3d")); };
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(es => { if (es.some(x => x.isIntersecting)) { io.disconnect(); go(); } }, { rootMargin: "600px 0px" });
+      io.observe(village);
+    } else go();
+  }
+
   // ------------------------------------------------------------------- exploded architecture (Atlas): open in view
   $$(".stack").forEach(st => {
     const plates = $$(".plate", st), steps = $$(".steps li", st.closest(".explode") || document);
