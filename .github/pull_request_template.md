@@ -4,11 +4,11 @@
 
 ## How it was verified
 
-<!-- Paste the `make ci` summary. If you could not run a gate (for example "app bundle" without the signing identity),
-say which and why. Describe any manual checks, using a throwaway -PulseHome / -PulseDataDirectory. -->
+<!-- Paste the `make ci-contributor` summary (maintainers: `make ci`). Describe any manual checks, using a throwaway
+-PulseHome / -PulseDataDirectory. -->
 
 ```
-make ci summary here
+make ci-contributor summary here
 ```
 
 - [ ] Tests added or updated for every behaviour change (bug fixes include a test that fails without the fix)
@@ -18,7 +18,7 @@ make ci summary here
 
 - [ ] This change does **not** widen the helper's field allowlist, read a new file or source, or change what leaves the Mac
 - [ ] If it does, it was discussed in an issue first, and the canary tests cover the new field or source
-- [ ] No secrets, personal data, real captures or unscrubbed fixtures are included
+- [ ] No secrets, personal data, real captures or unscrubbed fixtures are included, and no `Config/*.local.xcconfig`
 - [ ] Changes to `~/.claude/settings.json` handling keep backup, compare-and-swap and exact restore
 
 ## User-facing changes

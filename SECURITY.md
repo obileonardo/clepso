@@ -18,8 +18,9 @@ will receive fixes.
 **Please do not open a public issue, discussion or pull request for a security problem.**
 
 Report privately through GitHub: open the repository's **Security** tab and choose **Report a vulnerability**
-(GitHub private vulnerability reporting). If that option is not available, contact the maintainer at
-**[SECURITY CONTACT — to be confirmed by the maintainer]**.
+(GitHub private vulnerability reporting). This is the only reporting channel for now.
+
+<!-- PLACEHOLDER: a project contact alias (not a personal address) may be added here later. -->
 
 Please include:
 
@@ -49,6 +50,7 @@ In scope, for example:
 - Ways to corrupt or lose the user's `~/.claude/settings.json`, or to make Pulse write outside its own files.
 - Local privilege or trust-boundary problems in the Unix socket (`~/Library/Application Support/Pulse/run/`).
 - Injection through the `dev.tokone.pulse://` URL scheme or the sign-in flow.
+- A build from source (no `Config/Sync.local.xcconfig`) that signs in or makes any network request.
 - Row-level-security bypasses or cross-account access in `backend/supabase`.
 - Supply-chain problems in the build (the pinned XcodeGen download, `Package.resolved`).
 
@@ -63,8 +65,9 @@ Out of scope:
 
 ## Security design notes
 
-How Pulse limits what it can see and do is described in the README's
-[Privacy model](README.md#privacy-model) section. Known gaps that are planned work rather than vulnerabilities:
+How Pulse limits what it can see and do is described in
+[`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md). Known gaps that are planned work rather than
+vulnerabilities:
 
 - The local socket accepts any peer running as the same user; it does not yet verify the peer's code signature.
 - Builds are not yet Developer ID signed or notarized.

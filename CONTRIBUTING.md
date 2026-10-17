@@ -3,8 +3,8 @@
 Thank you for your interest. Pulse is a small, privacy-sensitive macOS app: the helper it installs runs inside every
 Claude Code session of the people who use it. That shapes how changes are proposed, reviewed and tested here.
 
-> The repository is pre-release and not yet public. Some items below (labels, branch protection, hosted CI) describe
-> how the project will work once it opens; until then, the maintainer applies them by hand.
+> The project is pre-release. Some items below (labels, branch protection, hosted CI) describe how the project will
+> work once it is public; until then, the maintainer applies them by hand.
 
 ## Ways to contribute
 
@@ -24,34 +24,31 @@ labelled `good first issue`.
 
 ## Development setup
 
-You need macOS with **Xcode 27.1** (Swift 6.4) selected:
+You need macOS with Xcode and a Swift 6 toolchain (the project is developed with Xcode 27.1 and Swift 6.4):
 
 ```sh
 sudo xcode-select -s /Applications/Xcode.app
-xcodebuild -version      # Xcode 27.1
-swift --version          # Swift version 6.4
-```
-
-Then:
-
-```sh
 swift build
 swift test
-make ci                  # everything, with a summary; logs in .build/ci-logs/
+make ci-contributor      # every gate; any Swift 6 toolchain, ad-hoc signing, Sync off. Logs in .build/ci-logs/
 ```
 
-`make app` (and the last `make ci` gate, "app bundle") currently needs the maintainer's Apple Development signing
-identity, named in `project.yml`. If you do not have it, run `make build` and `make test`, and say in your pull request
-that the app-bundle gate was not run. The README's [Run it safely](README.md#run-it-safely) section shows how to launch
-a debug build against a throwaway home folder.
+`make ci-contributor` runs the same checks as the maintainer's strict `make ci`, except that it accepts your
+toolchain version, an ad-hoc signature and a build without an accounts project. You need no signing certificate and
+no configuration: without `Config/*.local.xcconfig`, `make app` signs ad hoc and the app's Sync stays off, so a
+contributor build never talks to any server. The README's [Run it safely](README.md#run-it-safely) section shows how
+to launch a debug build against a throwaway home folder.
+
+Design references: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md),
+[`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) and [`docs/FIXTURES.md`](docs/FIXTURES.md). Code
+comments cite their sections (for example `DATA_MODEL §5.1`).
 
 Never point a development build at your real `~/.claude` unless you mean to; use `-PulseHome` and
 `-PulseDataDirectory`.
 
 ## Before you open a pull request
 
-1. Run `make ci` (or `make build` and `make test` if you cannot sign the app) and paste the summary into the pull
-   request.
+1. Run `make ci-contributor` and paste the summary into the pull request.
 2. Add or update tests for every behaviour change. A bug fix should come with a test that fails without the fix.
 3. Update the README or other docs if behaviour, commands or requirements change.
 4. Keep the change focused: one concern per pull request, no unrelated reformatting.
@@ -85,8 +82,9 @@ These are enforced by `make ci` where noted; reviewers check the rest.
   pointed at a temporary folder. **No test may read or write the real `~/.claude`, `~/.codex`, Keychain or network.**
 - Unix socket paths are limited to 104 bytes, which is why sandboxes live under `/tmp` with short names.
 - **Fixtures** live in `Sources/TestFixtures/Resources/claude-code/`: `synthetic/Fxx-*` (hand-written) and
-  `captured/<version>/Cxx-*` (real captures, scrubbed). Each has `meta.json`, `stdin/*.json` and `expected.json`.
-  `scripts/fixture-oracle.py` regenerates expectations independently of the Swift code.
+  `captured/<version>/Cxx-*` (real captures, scrubbed). Each has `meta.json`, `stdin/*.json` and `expected.json`;
+  the format is in [`docs/FIXTURES.md`](docs/FIXTURES.md). `scripts/fixture-oracle.py --check` verifies expectations
+  independently of the Swift code.
 - **Never commit an unscrubbed capture.** Real captures go through `pulse-fixture` and its scrubber
   (`Sources/FixtureTools/CaptureScrubber.swift`), and `meta.json` must say `"scrubbed": true`. Review every string by
   eye before committing.
@@ -100,11 +98,17 @@ Open an issue before writing code for any of these:
 
 - Adding, removing or widening a field in `Sources/ShimProtocol/Allowlist.swift` or `HookFrame.swift`.
 - Reading any new file or source on the user's machine.
-- Anything that sends data off the machine, or changes what `Sync` uploads or the backend schema.
+- Anything that sends data off the machine, or changes what `Sync` uploads or the backend schema. Never commit an
+  accounts project's host or key: they belong in the uncommitted `Config/Sync.local.xcconfig` (`make ci` checks).
 - Changes to how `~/.claude/settings.json` is modified, backed up or restored.
 - New dependencies. Pulse has one third-party package (GRDB); each new one needs a reason, a licence check and an
   exact pin in `Package.resolved`.
 - Database migrations (`Sources/Storage/`): they must keep every existing row and come with a migration test.
+
+## Screenshots
+
+Regenerate screenshots with the debug probe (README, "Run it safely") against the synthetic home from
+`scripts/probe-home.py` and demo data, never against your own `~/.claude`. The probe uses a neutral profile name.
 
 ## Commits and branches
 
@@ -118,7 +122,7 @@ Open an issue before writing code for any of these:
 - Every pull request needs the maintainer's review. Expect questions about privacy and failure behaviour first.
 - Reviews aim to respond within a week; ping the pull request if you have heard nothing.
 - Contributions are credited in the commit history. There is no Contributor License Agreement. By submitting a
-  contribution you agree that it is licensed under the project's licence once one is adopted (see README, Licence).
+  contribution you agree that it is licensed under the project's [MIT License](LICENSE).
 
 ## Code of Conduct
 
