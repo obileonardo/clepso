@@ -1,0 +1,84 @@
+name: Bug report
+description: Something in Pulse does not work as described.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this.
+
+        **Security problems do not belong here.** If this could expose data, change files Pulse should not touch, or
+        let someone else influence Pulse, follow SECURITY.md instead.
+
+        Please do not paste prompts, transcripts, file paths from your projects, tokens or account emails.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the Dashboard
+        2. Go to Limits
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Menu bar icon or panel
+        - Dashboard (Home, Limits, Session, Overview, Models, Card, Goals)
+        - Account or sign-in
+        - Settings, export or delete all
+        - Onboarding or connecting Claude Code
+        - Claude Code status line output changed or broke
+        - Agents per task (hooks)
+        - Command-line tool (pulse)
+        - Building from source or make ci
+        - Documentation site
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: pulse-version
+    attributes:
+      label: Pulse version or commit
+      description: Shown under the name in the Dashboard sidebar, or `git rev-parse --short HEAD` if you built it.
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and Mac
+      placeholder: e.g. macOS 27.0, Apple silicon
+    validations:
+      required: true
+  - type: input
+    id: claude-code
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`, if relevant.
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics (optional)
+      description: |
+        Relevant lines from Settings › Diagnostics, or the output of `swift run pulse status`.
+        Read them before posting and remove anything you would not want public.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: I removed personal data (paths, prompts, emails, tokens) from this report.
+          required: true

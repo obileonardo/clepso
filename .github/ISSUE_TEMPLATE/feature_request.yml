@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest something Pulse should do.
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Pulse reads only what coding agents report, keeps data on your Mac by default, and sends nothing unless you
+        sign in. Requests that would read a new source or send new data are welcome, but need a design discussion
+        first (see CONTRIBUTING.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+      description: How you imagine it working. Screens or sketches are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Data it would need
+      description: |
+        Which files, fields or services would Pulse have to read or contact? Is that data documented by the tool that
+        produces it? Leave blank if none.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and the roadmap in the README.
+          required: true
