@@ -96,6 +96,17 @@ public enum FrameMapper {
         }
         if let v = usd(frame.lookup(["cost_usd_estimate"])) { emit(session, .apiCostUSD, v) }
 
+        // Increment 1.7: the session detail. Each row only when the frame carries the field.
+        if let v = tokens(frame.lookup(["context", "total_output_tokens"])) { emit(session, .sessionOutputTokens, v) }
+        if let v = integer(frame.lookup(["activity", "wall_ms"]), as: { .duration(milliseconds: $0) }) { emit(session, .wallDuration, v) }
+        if let v = integer(frame.lookup(["activity", "api_ms"]), as: { .duration(milliseconds: $0) }) { emit(session, .apiDuration, v) }
+        if let v = integer(frame.lookup(["activity", "lines_added"]), as: MetricValue.count) { emit(session, .linesAdded, v) }
+        if let v = integer(frame.lookup(["activity", "lines_removed"]), as: MetricValue.count) { emit(session, .linesRemoved, v) }
+        if let v = ratioPercent(frame.lookup(["prompt_cache", "hit_ratio"])) { emit(session, .cacheHitPct, v) }
+        if let v = integer(frame.lookup(["prompt_cache", "requests"]), as: MetricValue.count) { emit(session, .cacheRequests, v) }
+        if let v = integer(frame.lookup(["prompt_cache", "misses"]), as: MetricValue.count) { emit(session, .cacheMisses, v) }
+        if let v = flag(frame.lookup(["prompt_cache", "warm"])) { emit(session, .cacheWarm, v) }
+
         func count(_ key: String) -> Int {
             if case .value(.number(let n)) = frame.lookup(["health", key]) { return Int(n) }
             return 0
@@ -133,6 +144,35 @@ public enum FrameMapper {
         case .absent: nil
         case .null: .absent(.providerNull)
         case .value(.number(let n)) where n.rounded() == n && abs(n) < 9.2e18: .tokens(Int64(n))
+        case .value: .absent(.rejectedBySanitizer)
+        }
+    }
+
+    /// A non-negative integer wrapped as the row's value kind.
+    static func integer(_ p: FieldPresence, as wrap: (Int64) -> MetricValue) -> MetricValue? {
+        switch p {
+        case .absent: nil
+        case .null: .absent(.providerNull)
+        case .value(.number(let n)) where n.rounded() == n && n >= 0 && n < 9.2e18: wrap(Int64(n))
+        case .value: .absent(.rejectedBySanitizer)
+        }
+    }
+
+    /// A 0…1 ratio stored as a percent, multiplied exactly in decimal (0.73 → 73, never 73.00000000000001).
+    static func ratioPercent(_ p: FieldPresence) -> MetricValue? {
+        switch p {
+        case .absent: nil
+        case .null: .absent(.providerNull)
+        case .value(.number(let n)) where (0...1).contains(n): decimal(n).map { .percent($0 * 100) } ?? .absent(.rejectedBySanitizer)
+        case .value: .absent(.rejectedBySanitizer)
+        }
+    }
+
+    static func flag(_ p: FieldPresence) -> MetricValue? {
+        switch p {
+        case .absent: nil
+        case .null: .absent(.providerNull)
+        case .value(.bool(let b)): .flag(b)
         case .value: .absent(.rejectedBySanitizer)
         }
     }

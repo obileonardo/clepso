@@ -53,13 +53,13 @@
       "model.id",
       "rate_limits.five_hour.resets_at",
       "session_id",
-      "version"
-    ],
-    "droppedByConstruction": [
+      "version",
       "cost.total_api_duration_ms",
       "cost.total_duration_ms",
       "cost.total_lines_added",
-      "cost.total_lines_removed",
+      "cost.total_lines_removed"
+    ],
+    "droppedByConstruction": [
       "cwd",
       "output_style",
       "transcript_path",

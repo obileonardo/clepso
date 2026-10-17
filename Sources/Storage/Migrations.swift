@@ -7,6 +7,11 @@ public enum Migrations {
         migrator.registerMigration("v1_initial") { db in
             try db.execute(sql: SchemaV1.sql)
         }
+        // Increment 1.7: three more value kinds (count, duration, flag). SQLite cannot alter a CHECK, so the ledger
+        // table is rebuilt with every row copied unchanged (DATA_MODEL §4 rule 3: rows are never reinterpreted).
+        migrator.registerMigration("v2_value_kinds_count_duration_flag") { db in
+            try db.execute(sql: SchemaV2.observationsRebuild)
+        }
         return migrator
     }
 

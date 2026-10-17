@@ -54,6 +54,9 @@ extension MetricValue {
         case .tokens(let n): "tokens:\(n)"
         case .usd(let d): "usd:\(d)"
         case .instant(let date): "instant:\(Int64((date.timeIntervalSince1970 * 1000).rounded()))"
+        case .count(let n): "count:\(n)"
+        case .duration(let ms): "duration:\(ms)"
+        case .flag(let b): "flag:\(b)"
         case .absent(let reason): "absent:\(reason.rawValue)"
         }
     }

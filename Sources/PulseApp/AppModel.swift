@@ -430,7 +430,8 @@ public final class AppModel {
         ingestor = nil
         diagnostics.clear()
         let data = environment.dataDirectory
-        for name in ["pulse.sqlite", "pulse.sqlite-wal", "pulse.sqlite-shm", "pulse.sqlite-journal", "diagnostics.jsonl", "run/agent.sock"] {
+        let migrationBackups = ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0.hasPrefix("pulse.sqlite.pre-") && $0.hasSuffix(".bak") }
+        for name in ["pulse.sqlite", "pulse.sqlite-wal", "pulse.sqlite-shm", "pulse.sqlite-journal", "diagnostics.jsonl", "run/agent.sock"] + migrationBackups {
             try? fm.removeItem(at: data.appendingPathComponent(name))
         }
         for folder in [data.appendingPathComponent("run"), data] where (try? fm.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {

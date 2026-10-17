@@ -40,17 +40,17 @@
       "rate_limits.five_hour.used_percentage",
       "rate_limits.five_hour.resets_at",
       "rate_limits.seven_day.used_percentage",
-      "rate_limits.seven_day.resets_at"
+      "rate_limits.seven_day.resets_at",
+      "cost.total_api_duration_ms",
+      "cost.total_duration_ms",
+      "cost.total_lines_added",
+      "cost.total_lines_removed"
     ],
     "droppedByConstruction": [
       "cwd",
       "transcript_path",
       "workspace",
-      "output_style",
-      "cost.total_duration_ms",
-      "cost.total_api_duration_ms",
-      "cost.total_lines_added",
-      "cost.total_lines_removed"
+      "output_style"
     ],
     "allowlistSource": "docs/specs/statusline-shim.md section 6, forward_cost=true (DECISIONS A4, A5)",
     "sessionIdIsHMAC": true,
@@ -377,6 +377,136 @@
       "sourceVersion": "2.1.301",
       "quality": "estimated",
       "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "sessionOutputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 6100
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "wallDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 5400000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "apiDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 410000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesAdded",
+      "measurement": {
+        "kind": "count",
+        "value": 240
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesRemoved",
+      "measurement": {
+        "kind": "count",
+        "value": 88
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "sessionOutputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 900
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "wallDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 240000
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "apiDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 15000
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesAdded",
+      "measurement": {
+        "kind": "count",
+        "value": 4
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesRemoved",
+      "measurement": {
+        "kind": "count",
+        "value": 0
+      },
+      "observedAt": "2026-10-16T14:00:30Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "B"
     }
   ],
   "snapshot": {
@@ -403,7 +533,7 @@
     "dedupeRejections": 0
   },
   "ui": {
-    "header": "AI Capacity \u00b7 Updated 1m ago",
+    "header": "AI Capacity · Updated 1m ago",
     "aggregate": "1 limit nearing capacity",
     "plan": {
       "label": "Plan not set"
@@ -413,7 +543,7 @@
         "scope": "5-hour",
         "cardState": "Approaching",
         "valueState": "Live",
-        "line": "5-hour 83% used \u00b7 Claude Code \u00b7 1m ago",
+        "line": "5-hour 83% used · Claude Code · 1m ago",
         "resetLine": "Resets 5:15 PM",
         "voiceOver": "5-hour, 83 percent used, approaching limit, Claude Code, 1 minute ago, resets 5:15 PM"
       },
@@ -421,7 +551,7 @@
         "scope": "7-day",
         "cardState": "Available",
         "valueState": "Live",
-        "line": "7-day 21% used \u00b7 Claude Code \u00b7 1m ago",
+        "line": "7-day 21% used · Claude Code · 1m ago",
         "resetLine": "Resets Sun 2:40 PM",
         "voiceOver": "7-day, 21 percent used, Claude Code, 1 minute ago, resets Sunday 2:40 PM"
       }
@@ -431,13 +561,13 @@
         "sessionRef": "A",
         "sessionIdIsHMAC": true,
         "model": "Opus",
-        "contextLine": "Context 41% \u00b7 1m ago"
+        "contextLine": "Context 41% · 1m ago"
       },
       {
         "sessionRef": "B",
         "sessionIdIsHMAC": true,
         "model": "Opus",
-        "contextLine": "Context 12% \u00b7 1m ago"
+        "contextLine": "Context 12% · 1m ago"
       }
     ],
     "forbiddenSubstrings": [
@@ -467,6 +597,6 @@
     "ui": "1.4",
     "notifications": "2.1"
   },
-  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL \u00a75.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
+  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL §5.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
   "engineNote": "Two sessions, one pool: 80 then 83 shows 83 (never 163). 80 is the first value (no event); 80 to 83 crosses nothing."
 }

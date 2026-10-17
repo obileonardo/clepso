@@ -9,7 +9,8 @@ import Testing
 @MainActor
 @Suite("Canary: nothing outside the allowlist reaches the database, the log or the export", .serialized)
 struct CanaryLeakTests {
-    /// Lower-cased markers. Numbers are ones no allowlisted field carries in this payload.
+    /// Lower-cased markers. Numbers are ones no allowlisted field carries in this payload. Durations and lines of
+    /// code are allowlisted since increment 1.7 (A4 amended), so they carry ordinary values and are checked to arrive.
     static let markers = ["canary", "987654321", "424242", "/users/", "@example", "sk-ant-", "akiaz", "ghp_"]
 
     /// Secret-shaped fakes, assembled at run time so the repository's secret scan has nothing to flag.
@@ -44,8 +45,8 @@ struct CanaryLeakTests {
           "rate_limits": {"five_hour": {"used_percentage": 41, "resets_at": \(nowSeconds + 9000), "label": "canary-label"},
                           "seven_day": {"used_percentage": 12, "resets_at": \(nowSeconds + 400_000)},
                           "seven_day_canary": {"used_percentage": 77, "resets_at": \(nowSeconds + 400_000), "name": "canary-window"}},
-          "cost": {"total_cost_usd": 0.12, "total_duration_ms": 987654321, "total_api_duration_ms": 987654321,
-                   "total_lines_added": 424242, "total_lines_removed": 424242},
+          "cost": {"total_cost_usd": 0.12, "total_duration_ms": 5271359, "total_api_duration_ms": 2762182,
+                   "total_lines_added": 4740, "total_lines_removed": 20, "total_tokens_canary": 987654321},
           "email": "canary@example.com", "aws": "\(fakeAWS)"
         }
         """.utf8)
@@ -84,6 +85,9 @@ struct CanaryLeakTests {
             }
             #expect(!bytes.contains("canary-raw-session".lowercased()), "\(name) contains the raw session id")
         }
+        // The fields allowlisted in 1.7 do arrive (so the test above is not passing by dropping everything).
+        let db = String(decoding: try Data(contentsOf: model.environment.databaseURL), as: UTF8.self)
+        for value in ["5271359", "2762182", "4740"] { #expect(db.contains(value), "allowlisted value \(value) stored") }
         // The helper's own status line went to Claude Code, not to Pulse; it must not echo markers either.
         #expect(!result.text.lowercased().contains("canary"), "\(result.text)")
     }

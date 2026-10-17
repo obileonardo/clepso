@@ -15,7 +15,27 @@ extension Store {
         configuration.busyMode = .timeout(5)
         let queue = try DatabaseQueue(path: url.path, configuration: configuration)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        try backUpBeforeMigrating(queue, at: url)
         return try Store(writer: queue, config: config, now: now)
+    }
+
+    /// DATA_MODEL §4 rule 5: before a pending migration touches an existing database, `VACUUM INTO
+    /// <db>.pre-<migration>.bak` (0600); at most two such backups are kept. A fresh database needs none.
+    static func backUpBeforeMigrating(_ queue: DatabaseQueue, at url: URL) throws {
+        let migrator = Migrations.migrator()
+        let applied = try queue.read { try migrator.appliedIdentifiers($0) }
+        guard !applied.isEmpty, let next = migrator.migrations.first(where: { !applied.contains($0) }) else { return }
+        let backup = url.deletingLastPathComponent().appendingPathComponent("\(url.lastPathComponent).pre-\(next).bak")
+        try? FileManager.default.removeItem(at: backup)
+        try queue.writeWithoutTransaction { try $0.execute(sql: "VACUUM INTO ?", arguments: [backup.path]) }
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: backup.path)
+        let folder = url.deletingLastPathComponent()
+        let old = ((try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? [])
+            .filter { $0.hasPrefix("\(url.lastPathComponent).pre-") && $0.hasSuffix(".bak") }
+            .map { folder.appendingPathComponent($0) }
+            .sorted { (try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate ?? .distantPast) ?? .distantPast
+                    > (try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate ?? .distantPast) ?? .distantPast }
+        for extra in old.dropFirst(2) { try? FileManager.default.removeItem(at: extra) }
     }
 
     // MARK: - Ledger reads

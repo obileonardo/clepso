@@ -39,17 +39,17 @@
       "prompt_cache.requests",
       "prompt_cache.misses",
       "effort.level",
-      "cost.total_cost_usd"
+      "cost.total_cost_usd",
+      "cost.total_api_duration_ms",
+      "cost.total_duration_ms",
+      "cost.total_lines_added",
+      "cost.total_lines_removed"
     ],
     "droppedByConstruction": [
       "cwd",
       "transcript_path",
       "workspace",
       "output_style",
-      "cost.total_duration_ms",
-      "cost.total_api_duration_ms",
-      "cost.total_lines_added",
-      "cost.total_lines_removed",
       "prompt_cache.expected_rebuilds",
       "prompt_cache.cache_write_tokens",
       "prompt_cache.miss_recache_tokens",
@@ -223,6 +223,123 @@
       "sourceVersion": "2.1.301",
       "quality": "estimated",
       "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "sessionOutputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 2100
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "wallDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 180000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "apiDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 9000
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesAdded",
+      "measurement": {
+        "kind": "count",
+        "value": 12
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesRemoved",
+      "measurement": {
+        "kind": "count",
+        "value": 3
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheHitPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "73"
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheRequests",
+      "measurement": {
+        "kind": "count",
+        "value": 3
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheMisses",
+      "measurement": {
+        "kind": "count",
+        "value": 0
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheWarm",
+      "measurement": {
+        "kind": "flag",
+        "value": true
+      },
+      "observedAt": "2026-10-16T14:00:00Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.301",
+      "quality": "reported",
+      "sessionRef": "A"
     }
   ],
   "snapshot": {
@@ -240,8 +357,8 @@
     }
   },
   "ui": {
-    "header": "AI Capacity \u00b7 Updated 1m ago",
-    "aggregate": "Claude Code metrics connected \u00b7 plan not verified",
+    "header": "AI Capacity · Updated 1m ago",
+    "aggregate": "Claude Code metrics connected · plan not verified",
     "plan": {
       "label": "Plan not set"
     },
@@ -250,7 +367,7 @@
         "scope": "5-hour",
         "cardState": "Unknown",
         "valueState": "Not available",
-        "line": "5-hour Not available \u00b7 Claude Code \u00b7 1m ago",
+        "line": "5-hour Not available · Claude Code · 1m ago",
         "resetLine": null,
         "detail": "Account quota not reported for this session",
         "voiceOver": "5-hour, not available, Claude Code, 1 minute ago"
@@ -259,7 +376,7 @@
         "scope": "7-day",
         "cardState": "Unknown",
         "valueState": "Not available",
-        "line": "7-day Not available \u00b7 Claude Code \u00b7 1m ago",
+        "line": "7-day Not available · Claude Code · 1m ago",
         "resetLine": null,
         "detail": "Account quota not reported for this session",
         "voiceOver": "7-day, not available, Claude Code, 1 minute ago"
@@ -268,7 +385,7 @@
         "scope": "Context",
         "cardState": "Available",
         "valueState": "Live",
-        "line": "Context 34% \u00b7 Claude Code \u00b7 1m ago",
+        "line": "Context 34% · Claude Code · 1m ago",
         "resetLine": null,
         "detail": "68,000 of 200,000 tokens",
         "voiceOver": "Context, 34 percent, Claude Code, 1 minute ago"
@@ -278,7 +395,7 @@
       {
         "sessionIdIsHMAC": true,
         "model": "Opus",
-        "contextLine": "Context 34% \u00b7 1m ago"
+        "contextLine": "Context 34% · 1m ago"
       }
     ],
     "forbiddenSubstrings": [
@@ -298,6 +415,6 @@
     "ui": "1.4",
     "notifications": "2.1"
   },
-  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL \u00a75.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
+  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL §5.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
   "engineNote": "No rate_limits at all: both pools unknown, never 0."
 }

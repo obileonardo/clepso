@@ -49,6 +49,12 @@ public enum Allowlist {
         FieldRule("effort.level", "session.effort_level", .oneOf(["low", "medium", "high", "xhigh", "max"])),
         FieldRule("thinking.enabled", "session.thinking_enabled", .bool),
         FieldRule("fast_mode", "session.fast_mode", .bool),
+        // Founder decision 17 Oct 2026 (A4 amended for increment 1.7): session time and lines of code changed.
+        // Counts and durations only; never file names, diffs or paths.
+        FieldRule("cost.total_duration_ms", "activity.wall_ms", .integer(0...maxTokens)),
+        FieldRule("cost.total_api_duration_ms", "activity.api_ms", .integer(0...maxTokens)),
+        FieldRule("cost.total_lines_added", "activity.lines_added", .integer(0...maxTokens)),
+        FieldRule("cost.total_lines_removed", "activity.lines_removed", .integer(0...maxTokens)),
     ]
 
     public static let currentUsageMembers = [

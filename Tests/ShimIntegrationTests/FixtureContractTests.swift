@@ -27,6 +27,11 @@ enum SpecOracle {
             "thinking.enabled": "session.thinking_enabled",
             "fast_mode": "session.fast_mode",
             "cost.total_cost_usd": "cost_usd_estimate",
+            // Increment 1.7, founder decision 17 Oct 2026 (A4 amended).
+            "cost.total_duration_ms": "activity.wall_ms",
+            "cost.total_api_duration_ms": "activity.api_ms",
+            "cost.total_lines_added": "activity.lines_added",
+            "cost.total_lines_removed": "activity.lines_removed",
             "rate_limits.spend_limit.used_usd": "rate_limits.spend_limit.used_usd",
             "rate_limits.spend_limit.limit_usd": "rate_limits.spend_limit.limit_usd",
             "rate_limits.spend_limit.period": "rate_limits.spend_limit.period",
@@ -163,7 +168,9 @@ struct FixtureContractTests {
             #expect(result.status == 0, "\(fixture.id): exit status \(result.status)")
 
             guard let agent else { accepted.append(false); continue }
-            let deadline = Date().addingTimeInterval(0.3)
+            // A maximum wait; frames normally arrive in milliseconds. 0.3 s failed twice for F01 on the first run after a
+            // helper rebuild (cause unconfirmed: a slow first launch did not reproduce in isolation).
+            let deadline = Date().addingTimeInterval(2)
             while agent.frames.count == before && Date() < deadline { try await Task.sleep(nanoseconds: 5_000_000) }
             let gotFrame = agent.frames.count > before
             accepted.append(gotFrame)
@@ -321,6 +328,9 @@ enum ObservationShape {
         case .usd(let d): dict["measurement"] = ["kind": "usd", "value": "\(d)"]
         case .tokens(let n): dict["measurement"] = ["kind": "tokens", "value": n]
         case .instant(let date): dict["measurement"] = ["kind": "instant", "epochSeconds": Int64(date.timeIntervalSince1970)]
+        case .count(let n): dict["measurement"] = ["kind": "count", "value": n]
+        case .duration(let ms): dict["measurement"] = ["kind": "duration", "milliseconds": ms]
+        case .flag(let b): dict["measurement"] = ["kind": "flag", "value": b]
         case .absent(let reason): dict["measurement"] = ["kind": "absent", "reason": reason.rawValue]
         }
         return serialize(dict)

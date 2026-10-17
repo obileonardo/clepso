@@ -6,6 +6,9 @@ public enum MetricValue: Codable, Sendable, Hashable {
     case tokens(Int64)
     case usd(Decimal)
     case instant(Date)
+    case count(Int64)                     // a plain count: lines changed, cache requests (increment 1.7)
+    case duration(milliseconds: Int64)    // elapsed time as Claude Code reports it
+    case flag(Bool)                       // a yes/no fact: the prompt cache is warm
     case absent(AbsenceReason)            // a recorded fact, never rendered as 0
 }
 
@@ -21,6 +24,9 @@ public enum MetricKind: String, Codable, Sendable, CaseIterable {
     case contextUsedPct, contextTokens, contextWindowSize
     case requestInputTokens, requestOutputTokens, cacheReadTokens, cacheCreationTokens
     case apiCostUSD, creditBalanceUSD
+    // Increment 1.7 (session detail; DATA_MODEL §5.1): cumulative per session as Claude Code reports them.
+    case sessionOutputTokens, wallDuration, apiDuration, linesAdded, linesRemoved
+    case cacheHitPct, cacheRequests, cacheMisses, cacheWarm
 }
 
 public enum ObservationSubject: Codable, Sendable, Hashable {

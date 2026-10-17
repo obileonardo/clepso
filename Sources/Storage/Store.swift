@@ -223,6 +223,9 @@ public actor Store {
         case .tokens(let n): ("tokens", String(n), nil)
         case .usd(let d): ("usd", "\(d)", nil)
         case .instant(let date): ("instant", String(ms(date)), nil)
+        case .count(let n): ("count", String(n), nil)
+        case .duration(let milliseconds): ("duration", String(milliseconds), nil)
+        case .flag(let b): ("flag", b ? "1" : "0", nil)
         case .absent(let reason): ("absent", nil, reason.rawValue)
         }
         let subjectKind = if case .pool = o.subject { "pool" } else { "session" }
@@ -261,6 +264,9 @@ public actor Store {
         case "usd": guard let d = text.flatMap({ Decimal(string: $0) }) else { return nil }; value = .usd(d)
         case "tokens": guard let n = text.flatMap({ Int64($0) }) else { return nil }; value = .tokens(n)
         case "instant": guard let n = text.flatMap({ Int64($0) }) else { return nil }; value = .instant(date(n))
+        case "count": guard let n = text.flatMap({ Int64($0) }) else { return nil }; value = .count(n)
+        case "duration": guard let n = text.flatMap({ Int64($0) }) else { return nil }; value = .duration(milliseconds: n)
+        case "flag": guard let t = text, t == "0" || t == "1" else { return nil }; value = .flag(t == "1")
         default: guard let r = (row["absence_reason"] as String?).flatMap(AbsenceReason.init(rawValue:)) else { return nil }; value = .absent(r)
         }
         let subject: SubjectKey = (row["subject_kind"] as String) == "pool"

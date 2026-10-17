@@ -50,13 +50,13 @@
       "rate_limits.seven_day.used_percentage",
       "session_id",
       "thinking.enabled",
-      "version"
-    ],
-    "droppedByConstruction": [
+      "version",
       "cost.total_api_duration_ms",
       "cost.total_duration_ms",
       "cost.total_lines_added",
-      "cost.total_lines_removed",
+      "cost.total_lines_removed"
+    ],
+    "droppedByConstruction": [
       "cwd",
       "output_style",
       "prompt_cache.cache_write_tokens",
@@ -241,9 +241,126 @@
       "sourceVersion": "2.1.302",
       "quality": "estimated",
       "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "sessionOutputTokens",
+      "measurement": {
+        "kind": "tokens",
+        "value": 386
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "wallDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 5271359
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "apiDuration",
+      "measurement": {
+        "kind": "duration",
+        "milliseconds": 2762182
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesAdded",
+      "measurement": {
+        "kind": "count",
+        "value": 4740
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "linesRemoved",
+      "measurement": {
+        "kind": "count",
+        "value": 20
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheHitPct",
+      "measurement": {
+        "kind": "percent",
+        "value": "98.90286000678344"
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheRequests",
+      "measurement": {
+        "kind": "count",
+        "value": 127
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheMisses",
+      "measurement": {
+        "kind": "count",
+        "value": 0
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
+    },
+    {
+      "subject": "session",
+      "metricKind": "cacheWarm",
+      "measurement": {
+        "kind": "flag",
+        "value": true
+      },
+      "observedAt": "2026-10-16T22:44:08Z",
+      "source": "officialLocalTelemetry",
+      "sourceVersion": "2.1.302",
+      "quality": "reported",
+      "sessionRef": "A"
     }
   ],
-  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL \u00a75.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
+  "observationsNote": "Generated on 17 Oct 2026 by an independent Python oracle applying DATA_MODEL §5.1 to the raw stdin; replaces the earlier draft lists. sessionRef letters label sessions in order of first appearance.",
   "snapshot": {
     "claude-code.rate_limits.five_hour": {
       "state": "available",
