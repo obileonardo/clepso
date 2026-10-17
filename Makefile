@@ -1,4 +1,4 @@
-.PHONY: ci build test perf design-site site clean-ci app
+.PHONY: ci build test perf design-site site clean-ci app backend-test
 
 # Every quality gate, one pass/fail summary (docs/ROADMAP.md increment 0.5).
 ci:
@@ -38,3 +38,10 @@ app:
 	xcodebuild -project Pulse.xcodeproj -scheme PulseMac -configuration Debug -derivedDataPath build/DerivedData build -quiet
 	codesign --verify --deep --strict build/DerivedData/Build/Products/Debug/Pulse.app
 	@echo "Built and verified: build/DerivedData/Build/Products/Debug/Pulse.app"
+
+# Accounts backend (ROADMAP 2.0): starts the local Supabase database and runs the pgTAP isolation tests in its container.
+# Needs Docker; not part of `make ci`, which must run without it.
+backend-test:
+	cd backend && supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor,realtime,storage-api >/dev/null
+	docker exec -i supabase_db_pulse psql -U postgres -d postgres -q -t -A < backend/supabase/tests/database/isolation.test.sql | tee .build/backend-test.tap
+	@! grep -q '^not ok' .build/backend-test.tap && grep -q '^ok 16' .build/backend-test.tap && echo "BACKEND TESTS PASSED"
