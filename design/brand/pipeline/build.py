@@ -47,6 +47,10 @@ def main(only=None):
         import sheets
         step("sheets")
         sheets.build_all(BRAND)
+    if "logo" in want or "sheets" in want:
+        import export
+        step("brand.json (for the design-system page)")
+        export.build()
     if "specimens" in want:
         import specimens
         step("type specimens (CoreText)")
