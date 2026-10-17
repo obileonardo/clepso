@@ -7,6 +7,7 @@ import struct Domain.Redacted
 import Foundation
 import Observation
 import enum ShimProtocol.HookFrame
+import Sync
 import Storage
 import SubscriptionCatalog
 import UsageEngine
@@ -38,6 +39,17 @@ public final class AppModel {
     public private(set) var forwardCost = true          // founder decision A5: on by default
     /// Increment 1.7d: reading Claude Code's own statistics file is a second source, so it is off until the user agrees.
     public private(set) var statsEnabled = false
+    /// ROADMAP 2.0: the Pulse account on this Mac.
+    public enum AccountState: Equatable, Sendable {
+        case signedOut
+        case linkSent(email: String)
+        case signedIn(email: String?)
+    }
+    public private(set) var account: AccountState = .signedOut
+    public private(set) var lastSync: Date?
+    public private(set) var accountMessage: String?
+    public private(set) var accountBusy = false
+    private var lastSyncAttempt: Date?
     /// Increment 1.10: the name Home greets, and the user's goals (both kept in preferences).
     public private(set) var profileName: String?
     public private(set) var goals = Goals()
@@ -101,6 +113,7 @@ public final class AppModel {
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
+            lastSync = try await store.preference(Pref.lastSync, as: Date.self)
             let chose = try await store.preference(Pref.loginItem, as: Bool.self) ?? false
             loginItemEnabled = chose && environment.loginItem.isEnabled
             plan = try await store.currentPlan()
@@ -109,6 +122,7 @@ public final class AppModel {
             diagnostics.record(.storageFailed(sqliteCode: Store.sqliteCode(of: error)))
             return
         }
+        await refreshAccount()
         await purgeIfDue()
         if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
         listen()
@@ -162,6 +176,7 @@ public final class AppModel {
     private func tick() async {
         _ = try? await store?.tick(now: environment.clock.now())
         await purgeIfDue()
+        await syncIfDue()
         await recordIngestHealth()
         await refresh()
     }
@@ -389,6 +404,121 @@ public final class AppModel {
                                       sevenDayPace: seven?.pace, now: environment.clock.now(), zone: environment.timeZone)
     }
 
+    // MARK: - Account and sync (ROADMAP 2.0)
+
+    public func refreshAccount() async {
+        if let session = await environment.sync.session { account = .signedIn(email: session.email) }
+        else if let email = await environment.sync.pendingEmail { account = .linkSent(email: email) }
+        else { account = .signedOut }
+    }
+
+    /// "Email me a link": a one-time sign-in link to `email`, which opens Pulse on this Mac.
+    public func emailSignInLink(_ email: String) async {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.contains("@"), trimmed.count <= 254 else { accountMessage = Copy.Sync.invalidEmail; return }
+        accountBusy = true
+        defer { accountBusy = false }
+        do {
+            try await environment.sync.requestEmailLink(trimmed)
+            account = .linkSent(email: trimmed)
+            accountMessage = Copy.Sync.linkSent(trimmed)
+        } catch {
+            accountMessage = Self.syncReason(error)
+        }
+    }
+
+    /// The sign-in link's return to the app (`dev.tokone.pulse://auth-callback?code=…`).
+    public func handleOpenURL(_ url: URL) async {
+        guard url.scheme == SyncConfig.urlScheme else { return }
+        detailsSection = .account
+        accountBusy = true
+        defer { accountBusy = false }
+        do {
+            let session = try await environment.sync.handleCallback(url)
+            account = .signedIn(email: session.email)
+            accountMessage = Copy.Sync.signedIn
+            diagnostics.record(.account(event: "signed in"))
+            await syncNow()
+        } catch {
+            accountMessage = Self.syncReason(error)
+            await refreshAccount()
+        }
+    }
+
+    public func cancelSignIn() async {
+        await environment.sync.signOut()
+        account = .signedOut
+        accountMessage = nil
+    }
+
+    public func signOut() async {
+        await environment.sync.signOut()
+        account = .signedOut
+        accountMessage = Copy.Sync.signedOut
+        diagnostics.record(.account(event: "signed out"))
+    }
+
+    /// Deletes the account and everything stored with it on the server; nothing on this Mac changes.
+    public func deleteAccount() async {
+        accountBusy = true
+        defer { accountBusy = false }
+        do {
+            try await environment.sync.deleteAccount()
+            account = .signedOut
+            lastSync = nil
+            try? await store?.setPreference(Pref.lastSync, Date?.none, now: environment.clock.now())
+            accountMessage = Copy.Sync.deleted
+            diagnostics.record(.account(event: "account deleted"))
+        } catch {
+            accountMessage = Self.syncReason(error)
+        }
+    }
+
+    /// Uploads the last 14 days of counts now. Never while demo data is showing.
+    public func syncNow() async {
+        guard case .signedIn = account, !snapshot.isDemo, let store else { return }
+        let now = environment.clock.now()
+        lastSyncAttempt = now
+        do {
+            let pools = snapshot.provider?.pools ?? []
+            func history(_ suffix: String) async throws -> [UsagePoint] {
+                guard let key = pools.first(where: { $0.poolKey.hasSuffix(suffix) })?.poolKey else { return [] }
+                return try await store.usageHistory(poolKey: key, since: now.addingTimeInterval(-14 * 86_400))
+            }
+            loadStats()
+            let input = SyncPayloadBuilder.Input(profileName: profileName, planLabel: plan?.displayName, stats: statsEnabled ? statsFile : nil,
+                                                 fiveHour: try await history("five_hour"), sevenDay: try await history("seven_day"),
+                                                 agentTasks: agentsCounting ? try await store.agentTasks(limit: 2000) : nil,
+                                                 goals: goals, goalStatuses: goalStatuses, now: now, zone: environment.timeZone)
+            try await environment.sync.upload(SyncPayloadBuilder.make(input))
+            lastSync = now
+            accountMessage = nil
+            try? await store.setPreference(Pref.lastSync, now, now: now)
+        } catch {
+            accountMessage = Self.syncReason(error)
+            if case SyncError.notSignedIn? = error as? SyncError { account = .signedOut }
+        }
+    }
+
+    /// Once an hour while signed in (ACCOUNTS_AND_SYNC S5).
+    func syncIfDue() async {
+        guard case .signedIn = account else { return }
+        let now = environment.clock.now()
+        if let last = lastSyncAttempt, now.timeIntervalSince(last) < 3600 { return }
+        await syncNow()
+    }
+
+    static func syncReason(_ error: Error) -> String {
+        switch error as? SyncError {
+        case .notSignedIn?: Copy.Sync.notSignedIn
+        case .noPendingSignIn?: Copy.Sync.noPending
+        case .invalidCallback(let why)?: Copy.Sync.linkFailed(why)
+        case .http(let status, let code)?: Copy.Sync.serverError(status, code)
+        case .badResponse?: Copy.Sync.badResponse
+        case nil: Copy.Sync.offline
+        }
+    }
+
     // MARK: - Agents per task (increment 1.9)
 
     public enum AgentsOutcome: Equatable, Sendable { case added, removedExactly, removedEntries, alreadyGone, failed(reason: String) }
@@ -581,7 +711,9 @@ public final class AppModel {
         }
         if Self.isRealDirectory(paths.pulseDir) { try? fm.removeItem(at: paths.pulseDir) }
 
-        // 4. Keychain, and the login item if the user had turned it on.
+        // 4. Keychain (the account session too), and the login item if the user had turned it on.
+        await environment.sync.signOut()
+        account = .signedOut
         environment.keychain.deleteAll()
         if (try? await store?.preference(Pref.loginItem, as: Bool.self)) == true { try? environment.loginItem.setEnabled(false) }
 
@@ -625,6 +757,8 @@ public final class AppModel {
         forwardCost = true
         statsEnabled = false
         stats = nil
+        lastSync = nil
+        accountMessage = nil
         socketHealth = IngestSocket.Health()
         popoverRoute = .overview
         onboardingStep = .welcome
@@ -648,6 +782,7 @@ public final class AppModel {
         static let readStats = "claudeCode.readStatsFile"
         static let profileName = "profile.name"
         static let goals = "goals.v1"
+        static let lastSync = "account.lastSync"
     }
 }
 

@@ -35,6 +35,9 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true              # menu bar only: no Dock icon, no main menu
         LSApplicationCategoryType: public.app-category.developer-tools
+        CFBundleURLTypes:              # ROADMAP 2.0: the sign-in link returns to dev.tokone.pulse://auth-callback
+          - CFBundleURLName: dev.tokone.pulse.auth
+            CFBundleURLSchemes: [dev.tokone.pulse]
     entitlements:
       path: App/PulseMac/PulseMac.entitlements
       properties: {}                   # empty: no sandbox (ADR-002), no network, no exceptions (RELEASE_AND_CI §5)

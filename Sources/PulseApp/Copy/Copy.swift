@@ -257,6 +257,35 @@ enum Copy {
         static let year = "YOUR YEAR"
     }
 
+    /// ROADMAP 2.0: Pulse accounts.
+    enum Sync {
+        static let title = "PULSE ACCOUNT"
+        static let explainer = "Sign in to see your goals and usage on the web (and later on iPhone). Once an hour Pulse uploads daily counts only: messages, sessions and tokens per model per day (when Claude Code stats are on), each day's limit peaks, agents per task (when counting is on), your goals and your name and plan. Never prompts, replies, file paths, project names or session ids. Delete the account at any time and everything on the server goes with it."
+        static let emailPlaceholder = "you@example.com"
+        static let emailMe = "Email me a link"
+        static func linkSent(_ email: String) -> String { "Check \(email): open the link on this Mac to sign in. It works once and expires within the hour." }
+        static let differentEmail = "Use a different email"
+        static let providersSoon = "Apple, Google and GitHub sign-in: being set up"
+        static func signedInAs(_ email: String?) -> String { "Signed in" + (email.map { " as \($0)" } ?? "") }
+        static func lastSynced(_ when: String) -> String { "Last uploaded \(when)" }
+        static let neverSynced = "Not uploaded yet"
+        static let syncNow = "Upload now", signOut = "Sign out", deleteAccount = "Delete account…"
+        static let deleteTitle = "Delete your Pulse account?"
+        static let deleteBody = "This deletes the account and every count stored with it on the server. Nothing on this Mac changes. It can't be undone."
+        static let deleteConfirm = "Delete account"
+        static let signedIn = "Signed in. Your counts are uploading."
+        static let signedOut = "Signed out. Nothing more is uploaded; what's on the server stays until you delete the account."
+        static let deleted = "Account deleted, and everything stored with it."
+        static let invalidEmail = "That doesn't look like an email address."
+        static let notSignedIn = "You're signed out. Sign in again to keep uploading."
+        static let noPending = "That link was sent from a different sign-in attempt. Ask for a new one."
+        static func linkFailed(_ why: String) -> String { "The sign-in link didn't work: \(why). Ask for a new one." }
+        static func serverError(_ status: Int, _ code: String?) -> String { "The server said no (\(status)\(code.map { ", \($0)" } ?? "")). Try again later." }
+        static let badResponse = "The server's answer didn't make sense. Try again later."
+        static let offline = "Couldn't reach the server. Pulse will try again within the hour."
+        static let demoNote = "Uploads are paused while demo data is showing."
+    }
+
     enum SettingsPage {
         static let title = "Settings", subtitle = "How Pulse runs on this Mac"
         static let general = "GENERAL", claudeCode = "CLAUDE CODE", notifications = "NOTIFICATIONS", data = "DATA"

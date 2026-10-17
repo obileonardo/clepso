@@ -48,15 +48,7 @@ struct AccountSection: View {
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
-            PixelPanel {
-                VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                    Text(Copy.Account.signInTitle).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                    Text(Copy.Account.signInBody).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button(Copy.Account.signIn) {}.buttonStyle(PixelButtonStyle()).disabled(true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            PixelPanel { AccountCard(model: model) }
         }
         .onAppear { name = model.profileName ?? "" }
         .task { model.loadStats() }
@@ -64,6 +56,67 @@ struct AccountSection: View {
             PlanPicker(model: model) { choosingPlan = false }
                 .padding(theme.spacing(.spacious))
                 .frame(width: SettingsMetrics.sheetWidth)
+        }
+    }
+}
+
+/// ROADMAP 2.0: sign in with an email link, see what's uploaded, upload now, sign out, delete the account.
+struct AccountCard: View {
+    @Bindable var model: AppModel
+    @State private var email = ""
+    @State private var confirmDelete = false
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            Text(Copy.Sync.title).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+            switch model.account {
+            case .signedOut:
+                Text(Copy.Sync.explainer).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: theme.spacing(.standard)) {
+                    TextField(Copy.Sync.emailPlaceholder, text: $email)
+                        .textFieldStyle(.plain).font(theme.font(.label)).textContentType(.emailAddress)
+                        .padding(theme.spacing(.standard)).background(theme.color(.surfaceMuted, scheme))
+                        .frame(maxWidth: DetailsMetrics.sideColumn * 1.5)
+                        .onSubmit { Task { await model.emailSignInLink(email) } }
+                    Button(Copy.Sync.emailMe) { Task { await model.emailSignInLink(email) } }
+                        .buttonStyle(PixelButtonStyle(prominent: true)).disabled(model.accountBusy || email.isEmpty)
+                }
+                Text(Copy.Sync.providersSoon).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            case .linkSent(let address):
+                Text(Copy.Sync.linkSent(address)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(Copy.Sync.differentEmail) { Task { await model.cancelSignIn() } }.buttonStyle(PixelButtonStyle())
+            case .signedIn(let address):
+                Text(Copy.Sync.signedInAs(address)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Text(model.lastSync.map { Copy.Sync.lastSynced(Formatting.age(of: $0, now: model.environment.clock.now(),
+                                                                            zone: model.environment.timeZone, locale: model.environment.locale)) }
+                     ?? Copy.Sync.neverSynced)
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                if model.snapshot.isDemo {
+                    Text(Copy.Sync.demoNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.statusAttention, scheme))
+                }
+                HStack(spacing: theme.spacing(.standard)) {
+                    Button(Copy.Sync.syncNow) { Task { await model.syncNow() } }.buttonStyle(PixelButtonStyle(prominent: true))
+                        .disabled(model.accountBusy || model.snapshot.isDemo)
+                    Button(Copy.Sync.signOut) { Task { await model.signOut() } }.buttonStyle(PixelButtonStyle())
+                    Button(Copy.Sync.deleteAccount) { confirmDelete = true }.buttonStyle(PixelButtonStyle())
+                }
+                Text(Copy.Sync.explainer).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let message = model.accountMessage {
+                Text(message).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task { await model.refreshAccount() }
+        .confirmationDialog(Copy.Sync.deleteTitle, isPresented: $confirmDelete) {
+            Button(Copy.Sync.deleteConfirm, role: .destructive) { Task { await model.deleteAccount() } }
+        } message: {
+            Text(Copy.Sync.deleteBody)
         }
     }
 }

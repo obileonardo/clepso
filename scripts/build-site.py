@@ -30,7 +30,7 @@ def git(*args):
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
 
 PAGES = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"),
-         ("screens/", "Screens"), ("changelog/", "Changelog"), ("design-system/", "Design system")]
+         ("screens/", "Screens"), ("privacy/", "Privacy"), ("changelog/", "Changelog"), ("design-system/", "Design system")]
 
 # ---------------------------------------------------------------------------------------------------------- styling
 
@@ -424,6 +424,43 @@ Mac, with no account, no server and no network code.</p></section>
 <tr><td>Design tokens only</td><td>Views use theme tokens, never literal colours or sizes.</td></tr><tr><td>Redaction audit</td><td>Logs and exports contain no fields outside the allowlist.</td></tr>
 <tr><td>Secret scan</td><td>No credentials in the repository.</td></tr><tr><td>App bundle</td><td>Signature, embedded helper, entitlements.</td></tr>
 </tbody></table></div>
+""")
+
+# ----------------------------------------------------------------------------------------------------------- privacy
+
+page("privacy/", "Privacy", "What Pulse reads, what it keeps on your Mac, and what it uploads if you sign in.", """
+<section class="hero"><h1>Privacy</h1>
+<p class="lede">Pulse works fully on your Mac without an account. If you choose to sign in, it uploads daily counts so you can see your
+goals and usage elsewhere. This page lists every field. Draft, 17 October 2026.</p></section>
+
+<h2 id="mac">On your Mac</h2>
+<p>Pulse reads Claude Code's status line (limits, model, context, session cost estimate, durations, lines changed), and, only if you turn them
+on, Claude Code's statistics file and four background hooks that count subagents per task. A helper drops everything else (prompts, replies,
+file paths, project names) before anything reaches the app. Readings stay in a local database for 90 days (sessions and tasks 30).
+Delete all removes everything Pulse stored and restores Claude Code's settings.</p>
+
+<h2 id="upload">If you sign in: what is uploaded</h2>
+<p>Once an hour, the last 14 days, to a database in Frankfurt (Supabase, EU), readable only with your sign-in:</p>
+<div class="table-wrap"><table><thead><tr><th>Data</th><th>Fields</th><th>Only when</th></tr></thead><tbody>
+<tr><td>Profile</td><td>Name you typed, plan name you chose</td><td>Always</td></tr>
+<tr><td>Daily activity</td><td>Day, messages, sessions, active or not</td><td>Claude Code stats are on</td></tr>
+<tr><td>Tokens per model per day</td><td>Day, model name, token count</td><td>Claude Code stats are on</td></tr>
+<tr><td>Totals per model</td><td>Model name; input, output, cache read and cache write tokens</td><td>Claude Code stats are on</td></tr>
+<tr><td>Limits per day</td><td>Day, the 5-hour limit's peak %, the 7-day limit's % at the end of the day</td><td>Always</td></tr>
+<tr><td>Agents per day</td><td>Day, tasks, subagents, subagents by built-in type (custom agents as "custom")</td><td>Counting agents is on</td></tr>
+<tr><td>Goals</td><td>Goal kind and target; each day's value and whether it was met</td><td>Always</td></tr>
+</tbody></table></div>
+<p><strong>Never uploaded:</strong> prompts, replies, file or folder paths, project or repository names, transcript locations, session or agent
+ids, per-session cost, your Claude account details or anything about other apps.</p>
+
+<h2 id="account">Your account</h2>
+<p>Sign-in is by email link (Apple, Google and GitHub to follow). Your email is held by the sign-in service to send links; it is not stored
+with your counts. <strong>Delete account</strong> (Pulse › Account) deletes the account and every row stored with it, at once. Signing out
+stops uploads; deleting the account removes what was uploaded. Nothing is sold or shared, and there is no advertising or tracking.</p>
+
+<h2 id="security">Security</h2>
+<p>Every table is protected by row-level security: a signed-in user can read and write only their own rows, and an anonymous request is
+refused. The app holds only the project's publishable key; your session is kept in this Mac's Keychain.</p>
 """)
 
 # ----------------------------------------------------------------------------------------------------------- screens

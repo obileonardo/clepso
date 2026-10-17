@@ -45,7 +45,9 @@ let package = Package(
         .target(name: "SubscriptionCatalog", resources: [.copy("Resources/plan-catalog.v1.json")]),
         // Composition root, view models and screens (ARCHITECTURE §2). The Xcode app target is a thin @main over this.
         .target(name: "PulseApp", dependencies: ["DesignSystem", "Domain", "Storage", "UsageEngine", "ClaudeCodeAdapter",
-                                                 "SubscriptionCatalog", "ShimProtocol"]),
+                                                 "SubscriptionCatalog", "ShimProtocol", "Sync"]),
+        // Pulse accounts (ROADMAP 2.0): the only module allowed to make network calls.
+        .target(name: "Sync"),
         // Developer-only fixture tooling: capture listener, capture shim, scrubber. Never shipped.
         .target(name: "FixtureTools", dependencies: ["ShimProtocol"]),
         .executableTarget(name: "pulse-fixture", dependencies: ["FixtureTools"]),
@@ -62,8 +64,9 @@ let package = Package(
         .testTarget(name: "ClaudeCodeAdapterTests", dependencies: ["ClaudeCodeAdapter", "Domain", "ShimProtocol", "TestFixtures"]),
         .testTarget(name: "FixtureToolsTests", dependencies: ["FixtureTools"]),
         .testTarget(name: "SubscriptionCatalogTests", dependencies: ["SubscriptionCatalog"]),
+        .testTarget(name: "SyncTests", dependencies: ["Sync"]),
         .testTarget(name: "PulseAppTests", dependencies: ["PulseApp", "DesignSystem", "Domain", "Storage", "UsageEngine",
-                                                          "ClaudeCodeAdapter", "ShimProtocol", "SubscriptionCatalog"]),
+                                                          "ClaudeCodeAdapter", "ShimProtocol", "SubscriptionCatalog", "Sync"]),
         // Runs the built pulse-statusline binary as a child process against a temporary HOME.
         .testTarget(name: "ShimIntegrationTests", dependencies: ["pulse-statusline", "pulse", "Domain", "ShimProtocol", "TestFixtures", "ClaudeCodeAdapter", "FixtureTools",
                                                              "UsageEngine", "Storage", "PulseApp"]),

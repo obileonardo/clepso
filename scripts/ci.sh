@@ -62,9 +62,12 @@ helper_linkage() {
 # Source rules from TEST_PLAN.md §1 and RELEASE_AND_CI.md lane B.
 no_networking_code() {
     local hits
-    hits=$(grep -rnE 'URLSession|NWConnection|NWListener|CFSocketCreate|import Network\b' Sources || true)
+    # ROADMAP 2.0 (DECISIONS C9): Pulse accounts make HTTPS calls from the Sync module, and only from there.
+    hits=$(grep -rnE 'URLSession|NWConnection|NWListener|CFSocketCreate|import Network\b' Sources | grep -v '^Sources/Sync/' || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
-    echo "no networking APIs in Sources/"
+    hits=$(grep -rln 'import Sync' Sources | grep -vE '^Sources/(PulseApp|Sync)/' || true)
+    [ -z "$hits" ] || { echo "Sync imported outside the app: $hits"; return 1; }
+    echo "networking APIs only in Sources/Sync/, used only by the app"
 }
 
 no_direct_clock() {
@@ -123,10 +126,12 @@ app_bundle() {
     keys=$(codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -convert json -o - - | python3 -c 'import json,sys; print(" ".join(sorted(json.load(sys.stdin))))')
     [ "$keys" = "com.apple.security.get-task-allow" ] || [ -z "$keys" ] || { echo "unexpected entitlements: $keys"; return 1; }
     [ "$(plutil -extract LSUIElement raw "$app/Contents/Info.plist")" = "true" ] || { echo "LSUIElement not set"; return 1; }
+    # Since ROADMAP 2.0 the app itself uploads (Sync); the helper Claude Code runs must still never touch the network.
     local net
-    net=$(for bin in "$app"/Contents/MacOS/*; do nm -u "$bin" 2>/dev/null; done | grep -E 'URLSession|NSURLConnection|CFHTTP|CFNetwork|_nw_|getaddrinfo|CFStream')
-    [ -z "$net" ] || { echo "networking symbols in app:"; echo "$net"; return 1; }
-    echo "bundle signed; helper dev.tokone.pulse.statusline; entitlements: ${keys:-none} (get-task-allow is debug-only); no networking"
+    net=$(nm -u "$helper" 2>/dev/null | grep -E 'URLSession|NSURLConnection|CFHTTP|CFNetwork|_nw_|getaddrinfo|CFStream' || true)
+    [ -z "$net" ] || { echo "networking symbols in the helper:"; echo "$net"; return 1; }
+    [ "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" = "dev.tokone.pulse" ] || { echo "sign-in URL scheme missing"; return 1; }
+    echo "bundle signed; helper dev.tokone.pulse.statusline without networking; entitlements: ${keys:-none} (get-task-allow is debug-only); sign-in URL scheme"
 }
 
 echo "Tokone local CI · $(date -u +%Y-%m-%dT%H:%M:%SZ) · $(git rev-parse --short HEAD 2>/dev/null || echo 'no commits')"
@@ -134,7 +139,7 @@ run "toolchain pinned"              check_toolchain
 run "strict build (warnings=errors)" strict_build
 run "tests"                         all_tests
 run "helper links no networking"    helper_linkage
-run "no networking code"            no_networking_code
+run "networking only in Sync"       no_networking_code
 run "clock injected"                no_direct_clock
 run "design tokens only"             design_tokens_only
 run "redaction audit"               redaction_audit

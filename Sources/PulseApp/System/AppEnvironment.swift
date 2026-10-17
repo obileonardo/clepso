@@ -1,5 +1,6 @@
 import Domain
 import Foundation
+import Sync
 #if canImport(ServiceManagement)
 import ServiceManagement
 #endif
@@ -26,12 +27,14 @@ public struct AppEnvironment: Sendable {
     public var tickInterval: Duration
     /// The Mac account's full name, for Home's default greeting (the user can change the name in Account).
     public var fullUserName: String
+    /// Pulse accounts (ROADMAP 2.0). Tests and previews get one that can't reach the network.
+    public var sync: SyncClient
 
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,
                 keychain: any KeychainCleaning = SystemKeychain(), appVersion: String = "dev",
                 timeZone: TimeZone = .current, locale: Locale = .current, tickInterval: Duration = .seconds(30),
-                fullUserName: String = NSFullUserName()) {
+                fullUserName: String = NSFullUserName(), sync: SyncClient? = nil) {
         self.dataDirectory = dataDirectory
         self.home = home
         self.shimPath = shimPath
@@ -44,6 +47,7 @@ public struct AppEnvironment: Sendable {
         self.locale = locale
         self.tickInterval = tickInterval
         self.fullUserName = fullUserName
+        self.sync = sync ?? SyncClient(config: .production, transport: OfflineTransport(), store: MemoryAuthStore(), now: { [clock] in clock.now() })
     }
 
     public var databaseURL: URL { dataDirectory.appendingPathComponent("pulse.sqlite") }
@@ -61,11 +65,18 @@ public struct AppEnvironment: Sendable {
         if let path = defaults.string(forKey: "PulseDataDirectory") { data = URL(fileURLWithPath: path) }
         if let path = defaults.string(forKey: "PulseHome") { home = URL(fileURLWithPath: path) }
         #endif
+        // The real account lives in the Keychain; a debug run on another data folder (the probe, demo screenshots) gets a
+        // private in-memory one, so it can never upload to, or sign out of, the user's real account.
+        var authStore: any AuthStore = KeychainAuthStore()
+        #if DEBUG
+        if UserDefaults.standard.string(forKey: "PulseDataDirectory") != nil { authStore = MemoryAuthStore() }
+        #endif
         let shim = bundle.bundleURL.appendingPathComponent("Contents/Helpers/pulse-statusline").path
         let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         return AppEnvironment(dataDirectory: data, home: home, shimPath: shim,
                               loginItem: SystemLoginItem(), notifications: SystemNotifications(),
-                              keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "dev.tokone.pulse"), appVersion: version)
+                              keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "dev.tokone.pulse"), appVersion: version,
+                              sync: SyncClient(config: .production, store: authStore, now: { SystemClock().now() }))
     }
 }
 

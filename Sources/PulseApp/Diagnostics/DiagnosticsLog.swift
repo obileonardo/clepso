@@ -26,6 +26,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case purged(readings: Int, sessions: Int)
     case statsReading(on: Bool)
     case agentsCounting(outcome: String)              // a `HooksInstaller` outcome or error case name
+    case account(event: String)                       // signed in / signed out / account deleted (never the email)
 
     var level: DiagnosticsLog.Entry.Level {
         switch self {
@@ -55,6 +56,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .purged: "data.purged"
         case .statsReading: "stats.reading"
         case .agentsCounting: "agents.hooks"
+        case .account: "account.changed"
         }
     }
 
@@ -83,6 +85,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case let .purged(readings, sessions): "Removed \(readings) reading(s) and \(sessions) session(s) past their keep time"
         case .statsReading(let on): on ? "Reading Claude Code's statistics file: on" : "Reading Claude Code's statistics file: off"
         case .agentsCounting(let outcome): "Agents per task hooks: \(outcome)"
+        case .account(let event): "Pulse account: \(event)"
         }
     }
 }

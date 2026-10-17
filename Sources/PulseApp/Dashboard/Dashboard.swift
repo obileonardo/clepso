@@ -125,6 +125,8 @@ struct GoalStatus: Sendable, Equatable, Identifiable {
     enum State: Sendable, Equatable { case met, onTrack, atRisk, missed, noData }
     let kind: Kind
     let value: String
+    /// The value as a number (days, or percent), for upload; nil without data.
+    var amount: Double? = nil
     let target: String
     /// How full the bar is: value against target, 0…1.
     let fraction: Double
@@ -144,7 +146,7 @@ enum GoalEvaluator {
         if let target = goals.activeDaysPerWeek {
             if let last7 {
                 let n = last7.activeDays
-                out.append(GoalStatus(kind: .activeDays, value: "\(n)/7", target: "\(target)/7", fraction: min(1, Double(n) / Double(max(1, target))),
+                out.append(GoalStatus(kind: .activeDays, value: "\(n)/7", amount: Double(n), target: "\(target)/7", fraction: min(1, Double(n) / Double(max(1, target))),
                                       state: n >= target ? .met : (n + 1 >= target ? .atRisk : .missed),
                                       detail: Copy.Goals.activeDetail(n, target), streak: nil))
             } else {
@@ -166,7 +168,7 @@ enum GoalEvaluator {
                     guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { break }
                     day = previous
                 }
-                out.append(GoalStatus(kind: .fiveHourPeak, value: "\(Int(peak.rounded()))%", target: "≤ \(target)%",
+                out.append(GoalStatus(kind: .fiveHourPeak, value: "\(Int(peak.rounded()))%", amount: peak, target: "≤ \(target)%",
                                       fraction: min(1, peak / Double(max(1, target))), state: peak <= Double(target) ? .onTrack : .missed,
                                       detail: Copy.Goals.peakDetail(Int(peak.rounded()), target), streak: streak))
             } else {
@@ -182,7 +184,7 @@ enum GoalEvaluator {
                 default: pct
                 }
                 let state: GoalStatus.State = pct > Double(target) ? .missed : (projected <= Double(target) ? .onTrack : .atRisk)
-                out.append(GoalStatus(kind: .weeklyFinish, value: "\(Int(pct.rounded()))%", target: "≤ \(target)%",
+                out.append(GoalStatus(kind: .weeklyFinish, value: "\(Int(pct.rounded()))%", amount: pct, target: "≤ \(target)%",
                                       fraction: min(1, pct / Double(max(1, target))), state: state,
                                       detail: Copy.Goals.weeklyDetail(Int(pct.rounded()), projected: Int(projected.rounded()), target: target), streak: nil))
             } else {
