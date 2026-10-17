@@ -429,6 +429,11 @@ Mac, with no account, no server and no network code.</p></section>
 # ----------------------------------------------------------------------------------------------------------- screens
 
 CAPTIONS = {
+    "details-home": ("Home", "A greeting, the running total, both limits, the latest task, goals at a glance and the last 12 months."),
+    "details-card": ("Stats › Card", "The player card: name, first session, plan, milestone stamps, output total, named level; copy, save or share."),
+    "details-goals": ("Goals", "Active days a week, the 5-hour peak and the week's finish, each with its state in words and its target."),
+    "details-account": ("Account", "Your year, your profile and plan, and where sign-in will go."),
+    "details-settings": ("Settings", "Settings in the window, as rows with a line of explanation each."),
     "popover-overview": ("Menu bar popover", "Limits with state, reset and pace estimate; the current session; links to Details and Stats."),
     "popover-detail": ("Provider detail", "Plan, both limits and the session in more depth."),
     "popover-inspector": ("Provenance inspector", "Where a number came from and how fresh it is."),

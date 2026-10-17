@@ -20,7 +20,7 @@ public final class AppModel {
     public enum PopoverRoute: Hashable, Sendable { case overview, detail, inspector(poolKey: String, fromDetail: Bool) }
     public enum OnboardingStep: Int, CaseIterable, Sendable { case welcome, plan, provider, consent, firstReading, alerts, done }
     /// Increment 1.8c: one sidebar, one level of sections.
-    public enum DetailsSection: String, Hashable, Sendable, CaseIterable { case limits, session, overview, models }
+    public enum DetailsSection: String, Hashable, Sendable, CaseIterable { case home, limits, session, overview, models, card, goals, account, settings }
     public enum ModelsView: String, Hashable, Sendable { case chart, arena }
 
     public private(set) var snapshot: OverviewSnapshot
@@ -38,6 +38,9 @@ public final class AppModel {
     public private(set) var forwardCost = true          // founder decision A5: on by default
     /// Increment 1.7d: reading Claude Code's own statistics file is a second source, so it is off until the user agrees.
     public private(set) var statsEnabled = false
+    /// Increment 1.10: the name Home greets, and the user's goals (both kept in preferences).
+    public private(set) var profileName: String?
+    public private(set) var goals = Goals()
     /// Agents per task: the hooks are in Claude Code's settings (read from Pulse's install record).
     public private(set) var agentsCounting = false
     public private(set) var stats: Result<ClaudeCodeStats, StatsReader.Problem>?
@@ -46,7 +49,7 @@ public final class AppModel {
     /// Navigation lives here so "Connect…" and similar can deep-link, and Escape always has one place to go back to.
     public var popoverRoute: PopoverRoute = .overview
     public var onboardingStep: OnboardingStep = .welcome
-    public var detailsSection: DetailsSection = .limits
+    public var detailsSection: DetailsSection = .home
     public var statsRange: StatsSummary.Range = .allTime
     /// The year the all-time calendar shows; nil means the current year.
     public var statsYear: Int?
@@ -95,6 +98,9 @@ public final class AppModel {
             forwardCost = try await store.preference(Pref.forwardCost, as: Bool.self) ?? true
             firstRealReadingAt = try await store.preference(Pref.firstReading, as: Date.self)
             statsEnabled = try await store.preference(Pref.readStats, as: Bool.self) ?? false
+            profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
+            goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
+            agentsCounting = Self.hooks(environment).isInstalled
             let chose = try await store.preference(Pref.loginItem, as: Bool.self) ?? false
             loginItemEnabled = chose && environment.loginItem.isEnabled
             plan = try await store.currentPlan()
@@ -349,6 +355,38 @@ public final class AppModel {
     /// An enum value's case name without its payload, which can hold a path.
     static func caseName(_ value: Any) -> String {
         Mirror(reflecting: value).children.first?.label ?? String(describing: value)
+    }
+
+    // MARK: - Home, card, goals, account (increment 1.10)
+
+    public func setProfileName(_ name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        profileName = trimmed.isEmpty ? nil : String(trimmed.prefix(40))
+        try? await store?.setPreference(Pref.profileName, profileName ?? "", now: environment.clock.now())
+    }
+
+    public func setGoals(_ goals: Goals) async {
+        self.goals = goals
+        try? await store?.setPreference(Pref.goals, goals, now: environment.clock.now())
+    }
+
+    var greeting: String { Greeting.make(environment.clock.now(), zone: environment.timeZone, name: profileName) }
+
+    var statsFile: ClaudeCodeStats? { if case .success(let file)? = stats { file } else { nil } }
+
+    var playerCard: PlayerCard? {
+        guard let file = statsFile, let summary = statsSummary(.allTime) else { return nil }
+        return PlayerCard.make(file: file, summary: summary, name: profileName ?? "", plan: plan?.displayName)
+    }
+
+    var runningTotal: RunningTotal? { statsFile.map(RunningTotal.make) }
+
+    var goalStatuses: [GoalStatus] {
+        let pools = snapshot.provider?.pools ?? []
+        let five = pools.first { $0.poolKey.hasSuffix("five_hour") }, seven = pools.first { $0.poolKey.hasSuffix("seven_day") }
+        let sevenPct = seven?.model.used.value.map { NSDecimalNumber(decimal: $0).doubleValue }
+        return GoalEvaluator.evaluate(goals, last7: statsSummary(.last7), fiveHourHistory: five?.history ?? [], sevenDayPct: sevenPct,
+                                      sevenDayPace: seven?.pace, now: environment.clock.now(), zone: environment.timeZone)
     }
 
     // MARK: - Agents per task (increment 1.9)
@@ -608,6 +646,8 @@ public final class AppModel {
         static let firstReading = "onboarding.firstReadingAt"
         static let loginItem = "general.openAtLogin"
         static let readStats = "claudeCode.readStatsFile"
+        static let profileName = "profile.name"
+        static let goals = "goals.v1"
     }
 }
 

@@ -74,7 +74,9 @@ enum PopoverProbe {
             ("stats-overview-7", .overview, .last7, .arena), ("stats-models", .models, .allTime, .chart),
             ("stats-models-30", .models, .last30, .chart), ("stats-arena", .models, .allTime, .arena),
             ("stats-arena-7", .models, .last7, .arena), ("stats-overview-prev-year", .overview, .allTime, .arena),
-            ("stats-arena-tall", .models, .allTime, .arena)]
+            ("stats-arena-tall", .models, .allTime, .arena),
+            ("home", .home, .allTime, .arena), ("card", .card, .allTime, .arena), ("goals", .goals, .allTime, .arena),
+            ("account", .account, .allTime, .arena), ("settings", .settings, .allTime, .arena), ("home-tall", .home, .allTime, .arena)]
         for (name, section, range, view) in pages {
             model.statsYear = name.hasSuffix("prev-year") ? Calendar.current.component(.year, from: model.environment.clock.now()) - 1 : nil
             model.detailsSection = section

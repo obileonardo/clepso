@@ -91,7 +91,7 @@ enum Copy {
     /// Increment 1.7e: the Details window.
     enum Details {
         static let open = "Details", openStats = "Stats"
-        static let limits = "Limits", session = "Session", stats = "Stats"
+        static let limits = "Limits", session = "Session", stats = "Stats", you = "You"
         static let now = "NOW"
         static func resets(_ time: String) -> String { "RESETS \(time.uppercased())" }
         static let noLimits = "No limits reported yet. They appear after your next Claude Code message."
@@ -198,6 +198,74 @@ enum Copy {
         static let arenaRangeNote = "Levels and ranks use all-time output. Tokens, share and active days are for this range; the bars show all-time tokens by kind, the only breakdown Claude Code records."
         static let toggle = "Read Claude Code's statistics file"
         static let toggleSublabel = "For the Stats tab: dates, counts and model names only"
+    }
+
+    /// Increment 1.10: Home, the player card, Goals, Account.
+    enum Home {
+        static let morning = "Good morning", afternoon = "Good afternoon", evening = "Good evening", late = "Working late"
+        static let title = "Home"
+        static let subtitle = "Your limits, your latest task and your goals, at a glance"
+        static func runningTotal(_ tokens: String) -> String { "\(tokens) tokens and counting" }
+        static func lastDay(_ tokens: String, _ day: String) -> String { "+\(tokens) on \(day)" }
+        static func watched(_ sessions: Int) -> String { "\(sessions) Claude Code session\(sessions == 1 ? "" : "s") watched" }
+        static let limits = "LIMITS", latestTask = "LATEST TASK", goals = "GOALS", level = "LEVEL", lastYear = "LAST 12 MONTHS"
+        static let connectTitle = "CONNECT CLAUDE CODE", connectBody = "Pulse reads Claude Code's status line on this Mac to show your limits."
+        static let agentsTitle = "COUNT AGENTS PER TASK", agentsBody = "See how many subagents each prompt starts, by type. Counts only."
+        static let statsTitle = "SHOW YOUR CLAUDE CODE STATS", statsBody = "Your activity calendar, levels and the player card come from Claude Code's statistics file."
+        static let turnOn = "Turn on", connect = "Connect…"
+        static let seeAll = "See all"
+    }
+
+    enum Card {
+        static let title = "Card", subtitle = "Your Claude Code player card, ready to share"
+        static func toNext(_ n: String, _ level: Int) -> String { "\(n) output to LV \(level)" }
+        static func levelBar(_ level: Int, _ name: String) -> String { "LV \(level): \(name.uppercased())" }
+        static let outputTokens = "OUTPUT TOKENS"
+        static let streak = "Streak", topModel = "Top model", sessions = "Sessions", longest = "Longest session"
+        static func days(_ n: Int) -> String { n == 1 ? "1 day" : "\(n) days" }
+        static let copy = "Copy image", save = "Save PNG…", share = "Share…"
+        static let copied = "Copied to the clipboard", saved = "Saved"
+        static let needsStats = "The card needs Claude Code's statistics file. Turn it on in Stats › Overview or Settings."
+        static let since = "SINCE"
+        static let note = "Built on this Mac from Claude Code's statistics file. Sharing is up to you: nothing is sent anywhere."
+    }
+
+    enum Goals {
+        static let title = "Goals", subtitle = "Targets you set; checked on this Mac against what Claude Code reports"
+        static let activeDays = "Active days a week", fiveHourPeak = "Keep the 5-hour limit under", weeklyFinish = "Finish the week under"
+        static func activeDetail(_ n: Int, _ target: Int) -> String { "Active \(n) of the last 7 days; goal \(target)" }
+        static func peakDetail(_ peak: Int, _ target: Int) -> String { "Today's 5-hour peak so far: \(peak)%; goal under \(target)%" }
+        static func weeklyDetail(_ pct: Int, projected: Int, target: Int) -> String {
+            "7-day limit at \(pct)%; estimate at the reset about \(projected)%; goal under \(target)%"
+        }
+        static let needsStats = "Needs Claude Code's statistics file (Stats › Overview)"
+        static let noReadingsToday = "No readings yet today"
+        static let met = "MET", onTrack = "ON TRACK", atRisk = "AT RISK", missed = "OVER", noData = "NO DATA"
+        static func streak(_ n: Int) -> String { n == 1 ? "1 day in a row" : "\(n) days in a row" }
+        static let off = "Off", target = "Target"
+        static let note = "Goals stay on this Mac for now. When accounts arrive (ACCOUNTS_AND_SYNC), you'll be able to see them anywhere."
+    }
+
+    enum Account {
+        static let title = "Account", subtitle = "Your profile, your plan and your year"
+        static let name = "Name", namePlaceholder = "Your first name"
+        static let plan = "PLAN", planNotSet = "PLAN NOT SET", change = "Change plan…"
+        static let profile = "PROFILE"
+        static let signInTitle = "SIGN IN TO SEE PULSE ANYWHERE"
+        static let signInBody = "Coming next: sign in with Apple, Google or an email link to see your goals and usage on the web, and later on iPhone. Only daily counts would leave this Mac, never prompts, replies or file paths, and you could delete everything at any time."
+        static let signIn = "Sign in (coming soon)"
+        static let year = "YOUR YEAR"
+    }
+
+    enum SettingsPage {
+        static let title = "Settings", subtitle = "How Pulse runs on this Mac"
+        static let general = "GENERAL", claudeCode = "CLAUDE CODE", notifications = "NOTIFICATIONS", data = "DATA"
+        static let loginSub = "Start Pulse when you log in"
+        static let percentSub = "The highest limit's % next to the icon"
+        static let notificationsTitle = "Notifications"
+        static let allowed = "Allowed", notAllowed = "Not allowed yet", allow = "Allow…"
+        static let connection = "Connection"
+        static let diagnostics = "Diagnostics, export and delete-all", open = "Open…"
     }
 
     /// Increment 1.9: agents per task, from Claude Code hooks (counts only).

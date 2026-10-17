@@ -330,3 +330,16 @@ struct HourChart: View {
         }
     }
 }
+
+/// A year-style calendar that sizes its squares to the width it is given (Home, Account).
+struct FittedCalendar: View {
+    let grid: StatsCalendar.Grid
+    @State private var width: CGFloat = 600
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: width, weeks: grid.weeks.count, theme: theme), showDayNumbers: false)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    }
+}

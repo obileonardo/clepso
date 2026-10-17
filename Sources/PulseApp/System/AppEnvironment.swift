@@ -24,11 +24,14 @@ public struct AppEnvironment: Sendable {
     public var timeZone: TimeZone
     public var locale: Locale
     public var tickInterval: Duration
+    /// The Mac account's full name, for Home's default greeting (the user can change the name in Account).
+    public var fullUserName: String
 
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,
                 keychain: any KeychainCleaning = SystemKeychain(), appVersion: String = "dev",
-                timeZone: TimeZone = .current, locale: Locale = .current, tickInterval: Duration = .seconds(30)) {
+                timeZone: TimeZone = .current, locale: Locale = .current, tickInterval: Duration = .seconds(30),
+                fullUserName: String = NSFullUserName()) {
         self.dataDirectory = dataDirectory
         self.home = home
         self.shimPath = shimPath
@@ -40,6 +43,7 @@ public struct AppEnvironment: Sendable {
         self.timeZone = timeZone
         self.locale = locale
         self.tickInterval = tickInterval
+        self.fullUserName = fullUserName
     }
 
     public var databaseURL: URL { dataDirectory.appendingPathComponent("pulse.sqlite") }

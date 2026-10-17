@@ -121,7 +121,7 @@ public struct PopoverView: View {
                     }
                     .environment(\.isFixtureData, false)
                     HStack(spacing: theme.spacing(.standard)) {
-                        Button(Copy.Details.open) { openDetails(.limits) }.buttonStyle(PixelButtonStyle(prominent: true))
+                        Button(Copy.Details.open) { openDetails(.home) }.buttonStyle(PixelButtonStyle(prominent: true))
                         Button(Copy.Details.openStats) { openDetails(.overview) }.buttonStyle(PixelButtonStyle())
                         Spacer()
                     }

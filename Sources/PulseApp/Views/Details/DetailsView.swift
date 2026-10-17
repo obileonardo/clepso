@@ -24,6 +24,11 @@ public struct DetailsView: View {
                 ScrollView {
                     Group {
                         switch model.detailsSection {
+                        case .home: HomeSection(model: model)
+                        case .card: StatsGate(model: model) { _, _ in CardSection(model: model) }
+                        case .goals: GoalsSection(model: model)
+                        case .account: AccountSection(model: model)
+                        case .settings: SettingsSection(model: model)
                         case .limits: LimitsSection(model: model, snapshot: snapshot)
                         case .session:
                             SessionSection(snapshot: snapshot, zone: model.environment.timeZone, locale: model.environment.locale) {
@@ -54,8 +59,8 @@ public struct DetailsView: View {
         HStack(alignment: .center, spacing: theme.spacing(.standard)) {
             VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
                 HStack(spacing: theme.spacing(.standard)) {
-                    Text(DetailsSidebar.title(model.detailsSection).uppercased()).font(theme.font(.metricMedium))
-                        .foregroundStyle(theme.color(.textPrimary, scheme))
+                    Text((model.detailsSection == .home ? model.greeting : DetailsSidebar.title(model.detailsSection)).uppercased())
+                        .font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
                     DemoTag()
                 }
                 Text(DetailsSidebar.subtitle(model.detailsSection)).font(theme.font(.supporting))
@@ -92,6 +97,11 @@ struct DetailsSidebar: View {
 
     static func title(_ s: AppModel.DetailsSection) -> String {
         switch s {
+        case .home: Copy.Home.title
+        case .card: Copy.Card.title
+        case .goals: Copy.Goals.title
+        case .account: Copy.Account.title
+        case .settings: Copy.SettingsPage.title
         case .limits: Copy.Details.limits
         case .session: Copy.Details.session
         case .overview: Copy.Stats.overview
@@ -100,6 +110,11 @@ struct DetailsSidebar: View {
     }
     static func subtitle(_ s: AppModel.DetailsSection) -> String {
         switch s {
+        case .home: Copy.Home.subtitle
+        case .card: Copy.Card.subtitle
+        case .goals: Copy.Goals.subtitle
+        case .account: Copy.Account.subtitle
+        case .settings: Copy.SettingsPage.subtitle
         case .limits: Copy.Details.limitsSubtitle
         case .session: Copy.Details.sessionSubtitle
         case .overview: Copy.Stats.overviewSubtitle
@@ -108,6 +123,11 @@ struct DetailsSidebar: View {
     }
     static func symbol(_ s: AppModel.DetailsSection) -> String {
         switch s {
+        case .home: "house"
+        case .card: "person.text.rectangle"
+        case .goals: "target"
+        case .account: "person.crop.circle"
+        case .settings: "gearshape"
         case .limits: "gauge.with.dots.needle.50percent"
         case .session: "terminal"
         case .overview: "calendar"
@@ -117,11 +137,19 @@ struct DetailsSidebar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-            Text(Copy.Header.title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
-                .padding(.bottom, theme.spacing(.spacious))
+            // Name and version, like a title screen.
+            VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
+                Text(Product.name.uppercased()).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.accent, scheme))
+                Text("v\(model.environment.appVersion)").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+            .accessibilityElement(children: .combine)
+            .padding(.bottom, theme.spacing(.standard))
+            group(nil, [.home])
             group(Copy.Details.usage, [.limits, .session])
-            group(Copy.Details.stats, [.overview, .models])
-            Spacer()
+            group(Copy.Details.stats, [.overview, .models, .card])
+            group(Copy.Details.you, [.goals, .account, .settings])
+            Spacer(minLength: theme.spacing(.spacious))
+            planBadge
         }
         .padding(theme.spacing(.spacious))
         .frame(width: DetailsMetrics.sidebarWidth, alignment: .topLeading)
@@ -129,10 +157,27 @@ struct DetailsSidebar: View {
         .background(theme.color(.surfaceElevated, scheme))
     }
 
-    func group(_ title: String, _ sections: [AppModel.DetailsSection]) -> some View {
+    /// The plan, pinned at the bottom like a badge; opens Account.
+    var planBadge: some View {
+        let name = model.plan?.displayName
+        return Button { model.detailsSection = .account } label: {
+            Text((name ?? Copy.Account.planNotSet).uppercased()).font(theme.font(.micro)).lineLimit(1)
+                .foregroundStyle(theme.color(name == nil ? .textSecondary : .background, scheme))
+                .padding(.horizontal, theme.spacing(.standard)).padding(.vertical, theme.spacing(.compact) + 1)
+                .background(PixelRect(step: theme.stroke(.hairline) * 2).fill(name == nil ? Color.clear : theme.color(.accent, scheme)))
+                .overlay(PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(name == nil ? .separator : .accent, scheme),
+                                                                                   lineWidth: theme.stroke(.hairline)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Copy.Account.plan + ": " + (name ?? Copy.Account.planNotSet))
+    }
+
+    func group(_ title: String?, _ sections: [AppModel.DetailsSection]) -> some View {
         VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-            Text(title.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                .padding(.top, theme.spacing(.standard)).accessibilityAddTraits(.isHeader)
+            if let title {
+                Text(title.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .padding(.top, theme.spacing(.standard)).accessibilityAddTraits(.isHeader)
+            }
             ForEach(sections, id: \.self) { section in
                 let selected = model.detailsSection == section
                 Button { model.detailsSection = section } label: {
