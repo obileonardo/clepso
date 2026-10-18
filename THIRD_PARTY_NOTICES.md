@@ -12,7 +12,7 @@ font licences bundled beside the fonts.
 - Source: https://github.com/groue/GRDB.swift, revision `b83108d10f42680d78f23fe4d4d80fc88dab3212` (pinned in
   `Package.resolved`).
 - Licence: MIT. Copyright (C) 2015-2025 Gwendal Roué. The full text is reproduced in
-  `App/PulseMac/Acknowledgements.txt`, which ships in the app.
+  `App/ClepsoMac/Acknowledgements.txt`, which ships in the app.
 - GRDB links the SQLite library that ships with macOS. Its `SQLiteCustom/src` git submodule is fetched by Swift
   Package Manager but not compiled into Clepso.
 
@@ -54,7 +54,7 @@ bundling with software; the fonts may not be sold on their own, and their licenc
 ## Clepso brand assets
 
 The Clepso name, the Clepso mark and logo, the app icon and the menu bar mark (`design/brand/`,
-`App/PulseMac/Assets.xcassets/`), and the **Clepso Pixel** and **Clepso Mono** typefaces (`design/brand/fonts/`,
+`App/ClepsoMac/Assets.xcassets/`), and the **Clepso Pixel** and **Clepso Mono** typefaces (`design/brand/fonts/`,
 `Sources/DesignSystem/Resources/Fonts/ClepsoPixel-*` and `ClepsoMono-*`, and copies under `site/design-system/brand/`)
 are original works made for this project.
 

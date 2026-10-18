@@ -10,7 +10,7 @@ platforms is built yet.
 |---|---|---|
 | `Domain`, `UsageEngine`, `Storage` (with GRDB) | builds | builds |
 | `DesignSystem` | builds | **fails**: `onHover(perform:)` is unavailable on watchOS (`Pixel/PixelKit.swift`); later errors may be hidden behind this one |
-| `PulseApp` | not attempted: AppKit, the status item, the Unix socket and the settings installer are Mac-only by design | — |
+| `ClepsoApp` | not attempted: AppKit, the status item, the Unix socket and the settings installer are Mac-only by design | — |
 
 Command: `xcodebuild -scheme <Storage|DesignSystem> -destination 'generic/platform=iOS Simulator' build` (and the
 watchOS one). `Package.swift` already declares `.iOS(.v17), .watchOS(.v10)`.

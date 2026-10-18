@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Pulse does not work as described.
+description: Something in Clepso does not work as described.
 labels: ["bug", "triage"]
 body:
   - type: markdown
@@ -7,8 +7,8 @@ body:
       value: |
         Thanks for taking the time to report this.
 
-        **Security problems do not belong here.** If this could expose data, change files Pulse should not touch, or
-        let someone else influence Pulse, follow SECURITY.md instead.
+        **Security problems do not belong here.** If this could expose data, change files Clepso should not touch, or
+        let someone else influence Clepso, follow SECURITY.md instead.
 
         Please do not paste prompts, transcripts, file paths from your projects, tokens or account emails.
   - type: textarea
@@ -40,16 +40,16 @@ body:
         - Onboarding or connecting Claude Code
         - Claude Code status line output changed or broke
         - Agents per task (hooks)
-        - Command-line tool (pulse)
+        - Command-line tool (clepso)
         - Building from source or make ci
         - Documentation site
         - Other
     validations:
       required: true
   - type: input
-    id: pulse-version
+    id: clepso-version
     attributes:
-      label: Pulse version or commit
+      label: Clepso version or commit
       description: Shown under the name in the Dashboard sidebar, or `git rev-parse --short HEAD` if you built it.
     validations:
       required: true
@@ -70,7 +70,7 @@ body:
     attributes:
       label: Diagnostics (optional)
       description: |
-        Relevant lines from Settings › Diagnostics, or the output of `swift run pulse status`.
+        Relevant lines from Settings › Diagnostics, or the output of `swift run clepso status`.
         Read them before posting and remove anything you would not want public.
       render: text
   - type: checkboxes

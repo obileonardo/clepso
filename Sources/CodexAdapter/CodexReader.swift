@@ -58,7 +58,7 @@ public enum CodexMapper {
     public static let adapterID = "codex.sessions"
     public static let providerID = "openai"
 
-    /// A window's pool key: `five_hour` and `seven_day` for the lengths Pulse already knows, so the charts, pace
+    /// A window's pool key: `five_hour` and `seven_day` for the lengths Clepso already knows, so the charts, pace
     /// estimate and goals treat them like Claude Code's; any other length keeps its minutes in the key.
     public static func poolKey(_ window: CodexReading.Window?, fallback: String) -> String {
         switch window?.windowMinutes {

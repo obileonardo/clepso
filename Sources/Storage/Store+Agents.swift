@@ -24,7 +24,7 @@ extension Store {
 
     /// A prompt opens a task (closing the session's previous one if Claude never reported stopping); Claude stopping
     /// closes it. A subagent belongs to the session's latest task that started before it; with none, a task is opened
-    /// for it (`fromPrompt` false: Pulse missed the prompt, for instance because the hooks were added mid-task).
+    /// for it (`fromPrompt` false: Clepso missed the prompt, for instance because the hooks were added mid-task).
     /// Hooks run in the background, so a stop can arrive before its start: either order lands on the same run.
     public func record(_ event: AgentEvent) throws {
         try writer.write { db in

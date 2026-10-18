@@ -10,7 +10,7 @@ extension Store {
     public static func onDisk(at url: URL, now: Date, config: EngineConfig = EngineConfig()) throws -> Store {
         let folder = url.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-        // Wait out a brief lock held by another process (the `pulse` CLI, an export) instead of failing at once.
+        // Wait out a brief lock held by another process (the `clepso` CLI, an export) instead of failing at once.
         var configuration = Configuration()
         configuration.busyMode = .timeout(5)
         let queue = try DatabaseQueue(path: url.path, configuration: configuration)

@@ -122,7 +122,7 @@ machine can be undone.
   transcript path, session name, prompt id and workspace folders are never forwarded. Strings that look like paths,
   emails or secrets are dropped. Session ids are replaced by an HMAC keyed with a random 32-byte key stored at
   `~/.claude/pulse/session.key` (0600).
-- **The helper cannot reach the network.** `pulse-statusline` links only Foundation, CryptoKit and system libraries;
+- **The helper cannot reach the network.** `clepso-statusline` links only Foundation, CryptoKit and system libraries;
   `make ci` fails if it links any networking library or symbol.
 - **Network code lives in one module.** Only `Sources/Sync` may use networking APIs, and only the app imports it
   (`make ci` enforces both). Sync does nothing unless the build carries an accounts project *and* you sign in.
@@ -155,7 +155,7 @@ flowchart LR
         HK["hook events<br/>(opt-in)"]
     end
 
-    subgraph Helper["pulse-statusline<br/>(Clepso.app/Contents/Helpers)"]
+    subgraph Helper["clepso-statusline<br/>(Clepso.app/Contents/Helpers)"]
         RUN["runs your original<br/>status-line command"]
         AL["field allowlist + scrub<br/>HMAC of session ids"]
     end
@@ -229,7 +229,7 @@ swift test         # the full suite: no network, never touches your real ~/.clau
 make app           # Clepso.app: XcodeGen → xcodebuild → codesign --verify
 ```
 
-`make app` writes `build/DerivedData/Build/Products/Debug/Clepso.app`. The Xcode project (`Pulse.xcodeproj`) is
+`make app` writes `build/DerivedData/Build/Products/Debug/Clepso.app`. The Xcode project (`Clepso.xcodeproj`) is
 generated from `project.yml` and is not committed; `Package.swift` is the source of truth for all code.
 
 **Local configuration** (all optional; the files are gitignored, each has a committed `.example` template in
@@ -241,7 +241,7 @@ generated from `project.yml` and is not committed; `Package.swift` is the source
 | `Config/Sync.local.xcconfig` | An accounts project (host and publishable key) | Sync is off: no sign-in, no uploads, no requests |
 | `Config/local.mk` | `DOCS`, the planning folder `make site` reads | `make site` stops with an explanation |
 
-`Config/Pulse.xcconfig` holds the defaults and includes the local files when they exist.
+`Config/Clepso.xcconfig` holds the defaults and includes the local files when they exist.
 
 | Command | What it does |
 |---|---|
@@ -260,10 +260,10 @@ touching your real `~/.claude` or Application Support folder:
 
 ```sh
 build/DerivedData/Build/Products/Debug/Clepso.app/Contents/MacOS/Clepso \
-    -PulseDataDirectory /tmp/pulse-data -PulseHome /tmp/pulse-home
+    -ClepsoDataDirectory /tmp/clepso-data -ClepsoHome /tmp/clepso-home
 ```
 
-With `-PulseDataDirectory` set, sign-in state is kept in memory instead of the Keychain, so a debug run can never
+With `-ClepsoDataDirectory` set, sign-in state is kept in memory instead of the Keychain, so a debug run can never
 upload to, or sign out of, a real account. Choose **Show demo data instead** in onboarding to see the screens above.
 Keep the data folder path short: the socket path inside it must stay under the 104-byte Unix limit, otherwise the
 panel reports that it isn't receiving updates.
@@ -273,8 +273,8 @@ To connect a real Claude Code, launch normally and use **Connect** in onboarding
 and only previews unless you pass `--confirm`:
 
 ```sh
-swift run pulse install --shim <path to pulse-statusline>           # preview only
-swift run pulse install --shim <path to pulse-statusline> --confirm # install
+swift run pulse install --shim <path to clepso-statusline>           # preview only
+swift run pulse install --shim <path to clepso-statusline> --confirm # install
 swift run pulse status
 swift run pulse uninstall --confirm                                 # restore your settings
 swift run pulse recover                                             # finish or roll back an interrupted install
@@ -283,16 +283,16 @@ swift run pulse recover                                             # finish or 
 **Screenshots and popover timing** (debug builds):
 
 ```sh
-python3 -I scripts/probe-home.py /tmp/pulse-home                 # synthetic ~/.claude/stats-cache.json, fixed seed
+python3 -I scripts/probe-home.py /tmp/clepso-home                 # synthetic ~/.claude/stats-cache.json, fixed seed
 build/DerivedData/Build/Products/Debug/Clepso.app/Contents/MacOS/Clepso \
-    -PulseDataDirectory /tmp/pulse-data -PulseHome /tmp/pulse-home \
-    -PulseProbeOutput /tmp/pulse-shots -PulseProbeDemo YES &       # add -PulseProbeLight YES for light mode
-swift scripts/probe-popover.swift /tmp/pulse-shots 40
+    -ClepsoDataDirectory /tmp/clepso-data -ClepsoHome /tmp/clepso-home \
+    -ClepsoProbeOutput /tmp/clepso-shots -ClepsoProbeDemo YES &       # add -ClepsoProbeLight YES for light mode
+swift scripts/probe-popover.swift /tmp/clepso-shots 40
 ```
 
 The script posts 40 real clicks on the status item (your terminal needs Accessibility permission) and prints
 popover-open p50/p95; the app then saves each screen as a PNG in the output folder and quits. The probe always uses
-the profile name "Sam" (or `-PulseProbeName <name>`), never your Mac account's name.
+the profile name "Sam" (or `-ClepsoProbeName <name>`), never your Mac account's name.
 
 ## Quality gates (`make ci`)
 
@@ -307,7 +307,7 @@ accounts project.
 | toolchain pinned | Xcode 27.1 and Swift 6.4 are selected (contributor mode: a Swift 6 toolchain) |
 | strict build | Everything, tests included, builds with warnings as errors |
 | tests | `swift test` passes |
-| helper links no networking | The release `pulse-statusline` links only allowed system libraries and no networking symbols |
+| helper links no networking | The release `clepso-statusline` links only allowed system libraries and no networking symbols |
 | networking only in Sync | No `URLSession`/`Network` use outside `Sources/Sync`; only the app imports `Sync` |
 | clock injected | No direct `Date()` in the pure layers and the app (time is injected) |
 | design tokens only | Components and screens use `Theme` tokens and pixel icons, never raw colours, sizes or system symbols |
@@ -322,24 +322,24 @@ There is no hosted CI yet. A proposed GitHub Actions workflow is in
 ## Project layout
 
 ```
-App/PulseMac/              @main, app icon and Acknowledgements.txt (Info.plist and entitlements are generated)
-Config/                    Pulse.xcconfig defaults and templates for the uncommitted local settings
+App/ClepsoMac/              @main, app icon and Acknowledgements.txt (Info.plist and entitlements are generated)
+Config/                    Clepso.xcconfig defaults and templates for the uncommitted local settings
 Sources/
   Domain/                  Value types, provenance, Redacted<T>. No I/O, no clock reads
   ShimProtocol/            Frame v1, the field allowlist, the string scrubber, hook frames
   StatusLineShim/          The helper's run loop: stdin, child process, socket send
-  pulse-statusline/        The helper executable Claude Code runs (one-line main)
+  clepso-statusline/        The helper executable Claude Code runs (one-line main)
   ClaudeCodeAdapter/       Settings and hooks installers, ingest socket, frame mapper, statistics reader
   CodexAdapter/            Codex session-file tail reader
   UsageEngine/             Pure limit, reset, session and pace state machines
   Storage/                 GRDB/SQLite schema v1–v3, migrations, ledger policy, retention
   SubscriptionCatalog/     Bundled plan catalog (plan-catalog.v1.json)
   DesignSystem/            Themes and tokens, status styles, pixel components and glyphs, bundled fonts
-  PulseApp/                Composition root, AppModel, projections, SwiftUI views, copy, diagnostics, export
+  ClepsoApp/                Composition root, AppModel, projections, SwiftUI views, copy, diagnostics, export
   Sync/                    Optional accounts: PKCE email-link sign-in, Keychain session, upload
   pulse/                   Headless CLI: install, uninstall, status, recover
-  FixtureTools/, pulse-fixture/   Developer-only capture listener and scrubber (never shipped)
-  pulse-design-render/     Developer-only: renders real components to PNG for the design-system page
+  FixtureTools/, clepso-fixture/   Developer-only capture listener and scrubber (never shipped)
+  clepso-design-render/     Developer-only: renders real components to PNG for the design-system page
   TestFixtures/            Fixture corpus F01–F19 and one scrubbed real capture (C01)
 Tests/                     Swift Testing suites per module, plus integration tests that run the built helper
 backend/supabase/          Accounts schema with row-level security, pgTAP tests, local Supabase config
@@ -404,7 +404,7 @@ are read automatically today.
 |---|---|
 | `make ci` fails at "toolchain pinned" or "app bundle" | That is the strict mode. Use `make ci-contributor` unless you build official releases |
 | `make app` fails with a signing error | Remove or fix `Config/Signing.local.xcconfig`; without it the app is signed ad hoc |
-| The panel says Clepso isn't receiving updates (debug run) | The `-PulseDataDirectory` path is too long for a Unix socket; use a shorter one |
+| The panel says Clepso isn't receiving updates (debug run) | The `-ClepsoDataDirectory` path is too long for a Unix socket; use a shorter one |
 | Account says accounts aren't available | Expected in builds from source (see [Optional accounts backend](#optional-accounts-backend)) |
 | The panel says "not connected" | Claude Code only runs the status line while a session is open; check Settings for the connection state and the diagnostics log |
 | My old status line disappeared | It should keep running. Run `swift run pulse status`, then `swift run pulse uninstall --confirm` to restore the backed-up bytes, and open an issue |

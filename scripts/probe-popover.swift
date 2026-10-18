@@ -1,5 +1,5 @@
-// Developer tool: drives the popover timing probe (Sources/PulseApp/Debug/PopoverProbe.swift).
-// Posts real mouse clicks on Pulse's status item through the HID event tap (needs the terminal to have
+// Developer tool: drives the popover timing probe (Sources/ClepsoApp/Debug/PopoverProbe.swift).
+// Posts real mouse clicks on Clepso's status item through the HID event tap (needs the terminal to have
 // Accessibility permission; checked first, never prompted), notes the system uptime of each click, and reads the
 // uptime at which the app saw its popover become visible. Both are the same system-wide monotonic clock, so the
 // difference is click → popover on screen. Before every click it makes sure the popover is closed, and it times

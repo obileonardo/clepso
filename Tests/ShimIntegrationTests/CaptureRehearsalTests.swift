@@ -3,16 +3,16 @@ import Testing
 import ShimProtocol
 import FixtureTools
 
-/// The exact increment 0.6 sequence, rehearsed in a throwaway HOME: `pulse install` (preview, then
-/// confirm), capture shim → real helper → listener, scrub, `pulse uninstall`. The real run differs only
+/// The exact increment 0.6 sequence, rehearsed in a throwaway HOME: `clepso install` (preview, then
+/// confirm), capture shim → real helper → listener, scrub, `clepso uninstall`. The real run differs only
 /// in HOME and in who sends the status-line events (Claude Code instead of this test).
 @Suite("0.6 rehearsal in a throwaway home", .serialized)
 struct CaptureRehearsalTests {
-    static let pulseURL = ShimHarness.shimURL.deletingLastPathComponent().appendingPathComponent("pulse")
+    static let clepsoURL = ShimHarness.shimURL.deletingLastPathComponent().appendingPathComponent("clepso")
 
-    func pulse(_ arguments: [String], home: URL) throws -> (String, Int32) {
+    func clepso(_ arguments: [String], home: URL) throws -> (String, Int32) {
         let process = Process()
-        process.executableURL = Self.pulseURL
+        process.executableURL = Self.clepsoURL
         process.arguments = arguments
         process.environment = ["HOME": home.path, "PATH": "/usr/bin:/bin"]
         let output = Pipe()
@@ -34,25 +34,25 @@ struct CaptureRehearsalTests {
         try original.write(to: settings)
 
         // 1. Capture shim around the real helper.
-        let captures = h.home.appendingPathComponent(".pulse/captures")
-        let captureShim = h.home.appendingPathComponent(".pulse/capture-shim.sh")
+        let captures = h.home.appendingPathComponent(".clepso/captures")
+        let captureShim = h.home.appendingPathComponent(".clepso/capture-shim.sh")
         try fm.createDirectory(at: captureShim.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data(CaptureShim.script(helper: ShimHarness.shimURL.path, captureDirectory: captures.path).utf8).write(to: captureShim)
         chmod(captureShim.path, 0o700)
 
         // 2. Preview changes nothing.
-        let (preview, previewStatus) = try pulse(["install", "--shim", captureShim.path, "--socket", h.socketPath], home: h.home)
+        let (preview, previewStatus) = try clepso(["install", "--shim", captureShim.path, "--socket", h.socketPath], home: h.home)
         #expect(previewStatus == 0 && preview.contains("Preview only"))
         #expect(try Data(contentsOf: settings) == original)
         #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/pulse").path))
         #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/pulse-backups").path))
 
         // 3. Confirmed install.
-        let (installed, installStatus) = try pulse(["install", "--shim", captureShim.path, "--socket", h.socketPath, "--confirm"], home: h.home)
+        let (installed, installStatus) = try clepso(["install", "--shim", captureShim.path, "--socket", h.socketPath, "--confirm"], home: h.home)
         #expect(installStatus == 0 && installed.contains("Installed"), "\(installed)")
 
         // 4. Listener in the background, two status-line events through the installed wrapper.
-        let listener = try FrameListener(socketPath: h.socketPath, outputDirectory: h.home.appendingPathComponent(".pulse/frames"))
+        let listener = try FrameListener(socketPath: h.socketPath, outputDirectory: h.home.appendingPathComponent(".clepso/frames"))
         let box = FrameBox()
         let thread = Thread { listener.run(limit: 2, onFrame: { box.add($0.frame) }) }
         thread.start()
@@ -80,7 +80,7 @@ struct CaptureRehearsalTests {
         #expect(scrubbed.contains("\"used_percentage\" : 80"))
 
         // 7. Uninstall restores the exact bytes.
-        let (removed, removeStatus) = try pulse(["uninstall", "--confirm"], home: h.home)
+        let (removed, removeStatus) = try clepso(["uninstall", "--confirm"], home: h.home)
         #expect(removeStatus == 0 && removed.contains("restoredExactly"), "\(removed)")
         #expect(try Data(contentsOf: settings) == original)
         #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/pulse").path))

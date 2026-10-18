@@ -2,11 +2,11 @@
 # Rebuilds every Clepso brand asset: fonts, logo, app icon, menu bar icon, favicon, sheets and specimens,
 # then validates the fonts (scripted checks + the OpenType Sanitizer that browsers use).
 # Usage, from anywhere:  design/brand/pipeline/build.sh [fonts|logo|menubar|sheets|specimens ...]
-# The virtualenv lives in $PULSE_BRAND_VENV (default: design/brand/.venv, git-ignored), pinned by requirements.txt.
+# The virtualenv lives in $CLEPSO_BRAND_VENV (default: design/brand/.venv, git-ignored), pinned by requirements.txt.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
-VENV=${PULSE_BRAND_VENV:-"$HERE/../.venv"}
-PY=${PULSE_BRAND_PYTHON:-python3.12}
+VENV=${CLEPSO_BRAND_VENV:-"$HERE/../.venv"}
+PY=${CLEPSO_BRAND_PYTHON:-python3.12}
 if [ ! -x "$VENV/bin/python" ]; then
   "$PY" -m venv "$VENV"
   "$VENV/bin/pip" install --quiet -r "$HERE/requirements.txt"

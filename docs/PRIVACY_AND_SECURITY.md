@@ -11,7 +11,7 @@ stable: code comments cite them (for example `PRIVACY_AND_SECURITY §4`). To rep
                                                                 │ status-line JSON on stdin   [untrusted]
  ══ B1 process boundary, same user ═════════════════════════════▼══
  ~/.claude/pulse/statusline.sh   runs the helper if present, else the user's original command
- Clepso.app/Contents/Helpers/pulse-statusline   [no network, no disk writes]
+ Clepso.app/Contents/Helpers/clepso-statusline   [no network, no disk writes]
       1. runs the user's original status-line command with the exact input bytes
       2. builds an allowlisted frame (≤ 4 KiB), session ids replaced by keyed hashes
       3. one non-blocking send within its time budget; no reply, no retry
@@ -102,7 +102,7 @@ file is stored in Clepso's database, logged or exported (`Sources/ClaudeCodeAdap
 
 Off by default, and available only once the status line is connected. Claude Code gives each hook the whole event on
 stdin, including the prompt, the last assistant message, transcript paths and the working directory. The helper
-(`pulse-statusline --hook`) parses at most 4 MiB (draining the rest) and keeps only: the event name
+(`clepso-statusline --hook`) parses at most 4 MiB (draining the rest) and keeps only: the event name
 (`UserPromptSubmit`, `SubagentStart`, `SubagentStop`, `Stop`), the HMAC of the session id, the HMAC of the agent id,
 and the agent type if it is one of Claude Code's built-in types (`general-purpose`, `Explore`, `Plan`,
 `statusline-setup`, `claude-code-guide`), otherwise `custom`. It always exits 0 with nothing on stdout or stderr, so it
@@ -200,7 +200,7 @@ in the data folder that Clepso did not create are left and named.
 
 Sync is the only code that uses the network. It does nothing unless **both** are true:
 
-1. The build carries an accounts project (`PulseSyncHost` and `PulseSyncPublishableKey` in Info.plist, from the
+1. The build carries an accounts project (`ClepsoSyncHost` and `ClepsoSyncPublishableKey` in Info.plist, from the
    uncommitted `Config/Sync.local.xcconfig`). Builds from source have none, so Sync is off: the Account page explains
    this, Home never suggests signing in, and no request is ever made (tested).
 2. The user signs in with a one-time email link (PKCE; the verifier stays in this Mac's Keychain).

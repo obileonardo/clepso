@@ -7,7 +7,7 @@ design/brand/pipeline/build.sh            # everything, then font checks and the
 design/brand/pipeline/build.sh fonts      # or one stage: fonts | logo | sheets | specimens
 ```
 
-The script creates a virtualenv (`$PULSE_BRAND_VENV`, default `design/brand/.venv`, git-ignored) from
+The script creates a virtualenv (`$CLEPSO_BRAND_VENV`, default `design/brand/.venv`, git-ignored) from
 `pipeline/requirements.txt`. Builds are deterministic: fonts carry a fixed timestamp, so an unchanged source gives
 byte-identical files.
 

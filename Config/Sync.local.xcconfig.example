@@ -1,8 +1,8 @@
-// Copy to Config/Sync.local.xcconfig (gitignored) only if you run your own Pulse accounts backend
+// Copy to Config/Sync.local.xcconfig (gitignored) only if you run your own Clepso accounts backend
 // (backend/supabase). Without it, Sync is off: the app never signs in or uploads anything.
 //
 // Host only, without "https://" (in .xcconfig files "//" starts a comment). The publishable key is meant to ship
 // inside apps; never put a secret ("sb_secret_…") or service-role key here. The app refuses secret keys.
 
-PULSE_SYNC_HOST = your-project-ref.supabase.co
-PULSE_SYNC_PUBLISHABLE_KEY = sb_publishable_your_key
+CLEPSO_SYNC_HOST = your-project-ref.supabase.co
+CLEPSO_SYNC_PUBLISHABLE_KEY = sb_publishable_your_key

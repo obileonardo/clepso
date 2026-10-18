@@ -15,13 +15,13 @@ public struct SettingsInstaller: Sendable {
         public let commandValue: String
 
         public var settings: URL { claudeDir.appendingPathComponent("settings.json") }
-        public var pulseDir: URL { claudeDir.appendingPathComponent("pulse") }
+        public var clepsoDir: URL { claudeDir.appendingPathComponent("pulse") }
         public var backupsDir: URL { claudeDir.appendingPathComponent("pulse-backups") }
-        public var wrapper: URL { pulseDir.appendingPathComponent("statusline.sh") }
-        public var sidecar: URL { pulseDir.appendingPathComponent("original-statusline.json") }
-        public var config: URL { pulseDir.appendingPathComponent("config.json") }
-        public var key: URL { pulseDir.appendingPathComponent("session.key") }
-        public var record: URL { pulseDir.appendingPathComponent("install-state.json") }
+        public var wrapper: URL { clepsoDir.appendingPathComponent("statusline.sh") }
+        public var sidecar: URL { clepsoDir.appendingPathComponent("original-statusline.json") }
+        public var config: URL { clepsoDir.appendingPathComponent("config.json") }
+        public var key: URL { clepsoDir.appendingPathComponent("session.key") }
+        public var record: URL { clepsoDir.appendingPathComponent("install-state.json") }
 
         /// `~/.claude` unless the user runs Claude Code with `CLAUDE_CONFIG_DIR`.
         public init(home: URL, claudeConfigDir: URL? = nil) {
@@ -47,7 +47,7 @@ public struct SettingsInstaller: Sendable {
     }
 
     public struct InstallReport: Sendable, Equatable {
-        public let backupPath: String?          // nil when Pulse created settings.json
+        public let backupPath: String?          // nil when Clepso created settings.json
         public let createdSettingsFile: Bool
         public let hadExistingStatusLine: Bool
     }
@@ -55,14 +55,14 @@ public struct SettingsInstaller: Sendable {
     public enum UninstallOutcome: Sendable, Equatable {
         case notInstalled
         case restoredExactly                     // bytes and SHA-256 equal the pre-install file
-        case deletedCreatedFile                  // Pulse had created settings.json; nothing else was added
+        case deletedCreatedFile                  // Clepso had created settings.json; nothing else was added
         case restoredStatusLineOnly(backupPath: String?, formattingChanged: Bool)
         case leftUnchanged(reason: String)       // the user already replaced or removed our status line
     }
 
     public enum RecoveryOutcome: Sendable, Equatable {
         case nothingToRecover
-        case cleanedUp                           // settings untouched; Pulse's partial files removed
+        case cleanedUp                           // settings untouched; Clepso's partial files removed
         case completed                           // settings were written; verification now passed
         case rolledBack                          // settings were written but failed verification
         case needsUserDecision(backupPath: String?)
@@ -100,10 +100,37 @@ public struct SettingsInstaller: Sendable {
     struct Record: Codable {
         var state: State
         var h0: String?                          // sha256 of the pre-install bytes; nil if no file
-        var h1: String?                          // sha256 of the bytes Pulse wrote
-        var createdByPulse: Bool
+        var h1: String?                          // sha256 of the bytes Clepso wrote
+        var createdByClepso: Bool
         var backupPath: String?
         var originalMode: UInt16?
+
+        enum CodingKeys: String, CodingKey { case state, h0, h1, createdByClepso, backupPath, originalMode }
+        /// Records written before the rename to Clepso name the flag `createdByPulse`.
+        enum LegacyKeys: String, CodingKey { case createdByPulse }
+
+        init(state: State, h0: String?, h1: String?, createdByClepso: Bool, backupPath: String?, originalMode: UInt16?) {
+            self.state = state
+            self.h0 = h0
+            self.h1 = h1
+            self.createdByClepso = createdByClepso
+            self.backupPath = backupPath
+            self.originalMode = originalMode
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            state = try container.decode(State.self, forKey: .state)
+            h0 = try container.decodeIfPresent(String.self, forKey: .h0)
+            h1 = try container.decodeIfPresent(String.self, forKey: .h1)
+            backupPath = try container.decodeIfPresent(String.self, forKey: .backupPath)
+            originalMode = try container.decodeIfPresent(UInt16.self, forKey: .originalMode)
+            if let flag = try container.decodeIfPresent(Bool.self, forKey: .createdByClepso) {
+                createdByClepso = flag
+            } else {
+                createdByClepso = try decoder.container(keyedBy: LegacyKeys.self).decode(Bool.self, forKey: .createdByPulse)
+            }
+        }
     }
 
     func loadRecord() -> Record? {
@@ -198,7 +225,7 @@ public struct SettingsInstaller: Sendable {
 
         // 2. Backup.
         try FileOps.ensureRealDirectory(paths.backupsDir, mode: 0o700)
-        try FileOps.ensureRealDirectory(paths.pulseDir, mode: 0o700)
+        try FileOps.ensureRealDirectory(paths.clepsoDir, mode: 0o700)
         let h0 = original.map { FileOps.sha256($0.bytes) }
         var backupPath: String?
         if let original, let h0 {
@@ -207,8 +234,8 @@ public struct SettingsInstaller: Sendable {
             try FileOps.writeExclusive(backup, bytes: original.bytes, mode: 0o600)
             backupPath = backup.path
         }
-        try appendManifest(hash: h0, mode: original?.mode, size: original?.bytes.count, createdByPulse: original == nil)
-        var record = Record(state: .backupWritten, h0: h0, h1: nil, createdByPulse: original == nil,
+        try appendManifest(hash: h0, mode: original?.mode, size: original?.bytes.count, createdByClepso: original == nil)
+        var record = Record(state: .backupWritten, h0: h0, h1: nil, createdByClepso: original == nil,
                             backupPath: backupPath, originalMode: original?.mode)
         try save(record)
 
@@ -235,7 +262,7 @@ public struct SettingsInstaller: Sendable {
         beforeSettingsWrite?()
         let current = try FileOps.readNoFollow(paths.settings)
         guard current.map({ FileOps.sha256($0.bytes) }) == h0 else {
-            try? FileManager.default.removeItem(at: paths.pulseDir)
+            try? FileManager.default.removeItem(at: paths.clepsoDir)
             throw InstallError.settingsChangedDuringInstall
         }
         try FileOps.atomicReplace(paths.settings, with: newBytes, mode: original?.mode ?? 0o644)
@@ -288,12 +315,12 @@ public struct SettingsInstaller: Sendable {
     }
 
     func rollBack(_ record: Record) throws {
-        if record.createdByPulse {
+        if record.createdByClepso {
             unlink(paths.settings.path)
         } else if let backup = record.backupPath, let bytes = try FileOps.readNoFollow(URL(fileURLWithPath: backup))?.bytes {
             try FileOps.atomicReplace(paths.settings, with: bytes, mode: record.originalMode ?? 0o644)
         }
-        try? FileManager.default.removeItem(at: paths.pulseDir)
+        try? FileManager.default.removeItem(at: paths.clepsoDir)
     }
 
     // MARK: - Uninstall (§3.2)
@@ -308,9 +335,9 @@ public struct SettingsInstaller: Sendable {
         let hc = current.map { FileOps.sha256($0.bytes) }
 
         if hc != nil, hc == record.h1 {
-            if record.createdByPulse {
+            if record.createdByClepso {
                 unlink(paths.settings.path)
-                try removePulseFiles()
+                try removeClepsoFiles()
                 return .deletedCreatedFile
             }
             guard let backup = record.backupPath,
@@ -320,16 +347,16 @@ public struct SettingsInstaller: Sendable {
             guard try FileOps.readNoFollow(paths.settings).map({ FileOps.sha256($0.bytes) }) == record.h0 else {
                 throw InstallError.verificationFailed
             }
-            try removePulseFiles()
+            try removeClepsoFiles()
             return .restoredExactly
         }
 
         guard let current, let object = FileOps.jsonObject(current.bytes) else {
-            try removePulseFiles()
+            try removeClepsoFiles()
             return .leftUnchanged(reason: current == nil ? "settings.json was removed" : "settings.json is not valid JSON")
         }
         guard (object["statusLine"] as? [String: Any])?["command"] as? String == paths.commandValue else {
-            try removePulseFiles()
+            try removeClepsoFiles()
             return .leftUnchanged(reason: "the status line no longer points to this app")
         }
 
@@ -354,14 +381,14 @@ public struct SettingsInstaller: Sendable {
               Set(restored.keys.filter { $0 != "statusLine" }) == Set(object.keys.filter { $0 != "statusLine" }) else {
             throw InstallError.verificationFailed
         }
-        try removePulseFiles()
+        try removeClepsoFiles()
         return .restoredStatusLineOnly(backupPath: record.backupPath, formattingChanged: formattingChanged)
     }
 
     /// Removes `~/.claude/pulse/`. Backups stay for 30 days (PRIVACY_AND_SECURITY §6).
-    func removePulseFiles() throws {
-        if FileManager.default.fileExists(atPath: paths.pulseDir.path) {
-            try FileManager.default.removeItem(at: paths.pulseDir)
+    func removeClepsoFiles() throws {
+        if FileManager.default.fileExists(atPath: paths.clepsoDir.path) {
+            try FileManager.default.removeItem(at: paths.clepsoDir)
         }
     }
 
@@ -373,12 +400,12 @@ public struct SettingsInstaller: Sendable {
         switch record.state {
         case .backupWritten, .filesWritten:
             guard hc == record.h0 else { return .needsUserDecision(backupPath: record.backupPath) }
-            try? removePulseFiles()
+            try? removeClepsoFiles()
             return .cleanedUp
         case .settingsWritten:
             guard hc != nil, hc == record.h1 else {
                 guard hc == record.h0 else { return .needsUserDecision(backupPath: record.backupPath) }
-                try? removePulseFiles()
+                try? removeClepsoFiles()
                 return .cleanedUp
             }
             let originalBytes = record.backupPath.flatMap { FileOps.readBytes(URL(fileURLWithPath: $0)) }
@@ -401,7 +428,7 @@ public struct SettingsInstaller: Sendable {
         guard loadRecord()?.state == .verified else { return false }
         let wrapper = FileOps.readBytes(paths.wrapper).map { String(decoding: $0, as: UTF8.self) } ?? ""
         let config = FileOps.readBytes(paths.config).flatMap(FileOps.jsonObject)
-        return !wrapper.contains("PULSE_SHIM=\(Self.singleQuoted(shimPath))\n") || config?["socket"] as? String != socketPath
+        return !wrapper.contains("CLEPSO_SHIM=\(Self.singleQuoted(shimPath))\n") || config?["socket"] as? String != socketPath
     }
 
     /// Regenerates only the wrapper and config. settings.json is neither read nor written.
@@ -427,10 +454,10 @@ public struct SettingsInstaller: Sendable {
         let fallback = originalCommand.map { "exec /bin/sh -c \(Self.singleQuoted($0))" } ?? "exit 0"
         return """
         #!/bin/sh
-        # Pulse status-line wrapper v1. Generated \(FileOps.basicISO8601(now())). Do not edit; "Repair" regenerates it.
-        PULSE_SHIM=\(Self.singleQuoted(shimPath))
-        if [ -x "$PULSE_SHIM" ]; then
-          exec "$PULSE_SHIM"
+        # Clepso status-line wrapper v1. Generated \(FileOps.basicISO8601(now())). Do not edit; "Repair" regenerates it.
+        CLEPSO_SHIM=\(Self.singleQuoted(shimPath))
+        if [ -x "$CLEPSO_SHIM" ]; then
+          exec "$CLEPSO_SHIM"
         fi
         # Fallback: the binary is missing (app moved or deleted). Run the user's original command unchanged.
         \(fallback)
@@ -440,9 +467,9 @@ public struct SettingsInstaller: Sendable {
 
     static func singleQuoted(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
 
-    func appendManifest(hash: String?, mode: UInt16?, size: Int?, createdByPulse: Bool) throws {
+    func appendManifest(hash: String?, mode: UInt16?, size: Int?, createdByClepso: Bool) throws {
         let entry: [String: Any] = ["ts": FileOps.basicISO8601(now()), "hash": hash ?? NSNull(), "mode": mode.map { Int($0) } ?? NSNull(),
-                                    "size": size ?? NSNull(), "created_by_pulse": createdByPulse]
+                                    "size": size ?? NSNull(), "created_by_clepso": createdByClepso]
         let line = FileOps.serialize(entry, pretty: false) + Array("\n".utf8)
         let manifest = paths.backupsDir.appendingPathComponent("manifest.jsonl")
         let fd = open(manifest.path, O_WRONLY | O_CREAT | O_APPEND | O_NOFOLLOW, 0o600)
@@ -496,7 +523,7 @@ enum FileOps {
     /// Temp file in the same directory (O_EXCL), fsync, chmod, rename(2), fsync the directory.
     static func atomicReplace(_ url: URL, with bytes: [UInt8], mode: UInt16) throws {
         let directory = url.deletingLastPathComponent()
-        var template = Array(directory.appendingPathComponent(".\(url.lastPathComponent).pulse-XXXXXX").path.utf8CString)
+        var template = Array(directory.appendingPathComponent(".\(url.lastPathComponent).clepso-XXXXXX").path.utf8CString)
         let fd = template.withUnsafeMutableBufferPointer { mkstemp($0.baseAddress!) }
         guard fd >= 0 else { throw SettingsInstaller.InstallError.io("temp file: errno \(errno)") }
         let tempPath = String(decoding: template.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)

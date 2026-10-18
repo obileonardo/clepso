@@ -18,7 +18,7 @@ let f08Stdin = Data(#"""
 """#.utf8)
 
 /// Each test owns its temporary HOME; `.serialized` keeps process-heavy tests from skewing timings.
-@Suite("pulse-statusline as a real process", .serialized)
+@Suite("clepso-statusline as a real process", .serialized)
 struct ShimIntegrationTests {
     @Test("The user's command receives the exact stdin bytes and its output is passed through unchanged")
     func passthroughIsByteIdentical() throws {
@@ -139,8 +139,8 @@ func waitUntil(timeout: Double = 2, _ condition: () -> Bool) throws {
 }
 
 /// ARCHITECTURE §3 budget: shim-added overhead ≤ 20 ms p95, ≤ 50 ms max, measured baseline-relative.
-/// Opt-in because it spawns 600 processes: `PULSE_PERF=1 swift test -c release --filter Overhead`.
-@Suite("Overhead budget", .serialized, .enabled(if: ProcessInfo.processInfo.environment["PULSE_PERF"] == "1"))
+/// Opt-in because it spawns 600 processes: `CLEPSO_PERF=1 swift test -c release --filter Overhead`.
+@Suite("Overhead budget", .serialized, .enabled(if: ProcessInfo.processInfo.environment["CLEPSO_PERF"] == "1"))
 struct OverheadTests {
     @Test("200 interleaved runs: baseline, app absent, app present")
     func overhead() throws {

@@ -1,10 +1,10 @@
 import Domain
 import Foundation
-import PulseApp
+import ClepsoApp
 import Testing
 
 /// Increment 1.5 proof ("no allowlist-external field in DB, logs or export"). A payload carrying a marked
-/// value in every field Pulse must never keep goes through the real helper binary into the real app model; the
+/// value in every field Clepso must never keep goes through the real helper binary into the real app model; the
 /// database file, the export and the diagnostics log are then searched byte for byte for any marker.
 @MainActor
 @Suite("Canary: nothing outside the allowlist reaches the database, the log or the export", .serialized)
@@ -88,7 +88,7 @@ struct CanaryLeakTests {
         // The fields allowlisted in 1.7 do arrive (so the test above is not passing by dropping everything).
         let db = String(decoding: try Data(contentsOf: model.environment.databaseURL), as: UTF8.self)
         for value in ["5271359", "2762182", "4740"] { #expect(db.contains(value), "allowlisted value \(value) stored") }
-        // The helper's own status line went to Claude Code, not to Pulse; it must not echo markers either.
+        // The helper's own status line went to Claude Code, not to Clepso; it must not echo markers either.
         #expect(!result.text.lowercased().contains("canary"), "\(result.text)")
     }
 }

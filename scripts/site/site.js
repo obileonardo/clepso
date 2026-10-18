@@ -144,9 +144,9 @@
   // -------------------------------------------------------------------------- boot sequence (Shader), once a session
   const boot = $(".boot");
   if (boot) {
-    if (reduce || store.get("pulse-booted")) boot.remove();
+    if (reduce || store.get("clepso-booted")) boot.remove();
     else {
-      store.set("pulse-booted", "1");
+      store.set("clepso-booted", "1");
       const lines = $(".boot-lines", boot), cells = $$(".boot-bar i", boot);
       const text = JSON.parse(boot.dataset.lines || "[]");
       let done = false, t0 = performance.now();

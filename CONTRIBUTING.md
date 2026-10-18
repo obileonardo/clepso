@@ -43,8 +43,8 @@ Design references: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/DATA_M
 [`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) and [`docs/FIXTURES.md`](docs/FIXTURES.md). Code
 comments cite their sections (for example `DATA_MODEL §5.1`).
 
-Never point a development build at your real `~/.claude` unless you mean to; use `-PulseHome` and
-`-PulseDataDirectory`.
+Never point a development build at your real `~/.claude` unless you mean to; use `-ClepsoHome` and
+`-ClepsoDataDirectory`.
 
 ## Before you open a pull request
 
@@ -60,14 +60,14 @@ These are enforced by `make ci` where noted; reviewers check the rest.
 
 - **Swift 6 language mode, warnings are errors** (`make ci`: strict build).
 - **Inject time.** No `Date()` in `Domain`, `ClaudeCodeAdapter`, `ShimProtocol`, `UsageEngine`, `Storage` or
-  `PulseApp`; take a clock (`WallClock`) instead. `SystemClock` is the one marked exception (`make ci`: clock injected).
+  `ClepsoApp`; take a clock (`WallClock`) instead. `SystemClock` is the one marked exception (`make ci`: clock injected).
 - **Network only in `Sources/Sync`**, and only the app imports `Sync` (`make ci`: networking only in Sync). The helper
   must never link networking (`make ci`: helper links no networking).
 - **Design tokens only.** Components and screens take colour, spacing and type from `Theme`, and icons from
   `PixelIcon`/`PixelLabel`, never system symbols (`make ci`: design tokens only).
 - **Redaction.** Wrap sensitive values in `Redacted<T>`; call `unsafeReveal` only in `Storage` and `StatusLineShim`
   (`make ci`: redaction audit).
-- **User-facing text** lives in `Sources/PulseApp/Copy/Copy.swift`. Say only what the source reports: a missing
+- **User-facing text** lives in `Sources/ClepsoApp/Copy/Copy.swift`. Say only what the source reports: a missing
   value is "not reported", never zero; estimates are labelled as estimates.
 - **Accessibility.** Text is at least 12 pt; every state must be distinguishable without colour; text meets 4.5:1
   contrast in light and dark modes (tests in `DesignSystemTests`).
@@ -77,15 +77,15 @@ These are enforced by `make ci` where noted; reviewers check the rest.
 ## Tests
 
 - Tests use **Swift Testing** (`import Testing`, `@Test`, `#expect`, `#require`).
-- Anything that touches files runs in a throwaway folder: see `Sandbox` in `Tests/PulseAppTests/Support.swift` and
-  `ShimHarness` in `Tests/ShimIntegrationTests/`. Integration tests run the built `pulse-statusline` with `HOME`
+- Anything that touches files runs in a throwaway folder: see `Sandbox` in `Tests/ClepsoAppTests/Support.swift` and
+  `ShimHarness` in `Tests/ShimIntegrationTests/`. Integration tests run the built `clepso-statusline` with `HOME`
   pointed at a temporary folder. **No test may read or write the real `~/.claude`, `~/.codex`, Keychain or network.**
 - Unix socket paths are limited to 104 bytes, which is why sandboxes live under `/tmp` with short names.
 - **Fixtures** live in `Sources/TestFixtures/Resources/claude-code/`: `synthetic/Fxx-*` (hand-written) and
   `captured/<version>/Cxx-*` (real captures, scrubbed). Each has `meta.json`, `stdin/*.json` and `expected.json`;
   the format is in [`docs/FIXTURES.md`](docs/FIXTURES.md). `scripts/fixture-oracle.py --check` verifies expectations
   independently of the Swift code.
-- **Never commit an unscrubbed capture.** Real captures go through `pulse-fixture` and its scrubber
+- **Never commit an unscrubbed capture.** Real captures go through `clepso-fixture` and its scrubber
   (`Sources/FixtureTools/CaptureScrubber.swift`), and `meta.json` must say `"scrubbed": true`. Review every string by
   eye before committing.
 - **Canary tests** (`Tests/ShimIntegrationTests/CanaryLeakTests.swift`, `HookModeTests.swift`) put marker strings

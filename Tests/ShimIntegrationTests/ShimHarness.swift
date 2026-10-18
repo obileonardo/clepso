@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-/// Runs the real `pulse-statusline` binary as Claude Code would: stdin JSON in, stdout captured,
+/// Runs the real `clepso-statusline` binary as Claude Code would: stdin JSON in, stdout captured,
 /// with HOME pointed at a throwaway folder so the real ~/.claude is never read or written.
 struct ShimHarness {
     let home: URL
@@ -9,11 +9,11 @@ struct ShimHarness {
 
     static let shimURL: URL = {
         if let bundle = Bundle.allBundles.first(where: { $0.bundlePath.hasSuffix(".xctest") }) {
-            let candidate = bundle.bundleURL.deletingLastPathComponent().appendingPathComponent("pulse-statusline")
+            let candidate = bundle.bundleURL.deletingLastPathComponent().appendingPathComponent("clepso-statusline")
             if FileManager.default.isExecutableFile(atPath: candidate.path) { return candidate }
         }
         return URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appendingPathComponent(".build/debug/pulse-statusline")
+            .deletingLastPathComponent().appendingPathComponent(".build/debug/clepso-statusline")
     }()
 
     /// A short directory name keeps the socket path under the 104-byte `sun_path` limit.
@@ -53,7 +53,7 @@ struct ShimHarness {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
-        process.environment = ["HOME": home.path, "PATH": "/usr/bin:/bin", "COLUMNS": "80", "PULSE_SHIM_NOW_MS": String(nowMs)]
+        process.environment = ["HOME": home.path, "PATH": "/usr/bin:/bin", "COLUMNS": "80", "CLEPSO_SHIM_NOW_MS": String(nowMs)]
         let input = Pipe(), output = Pipe()
         process.standardInput = input
         process.standardOutput = output

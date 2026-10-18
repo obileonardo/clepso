@@ -96,10 +96,10 @@ public struct Theme: Sendable {
         if typeface == .pixel {
             PixelFonts.ensureRegistered()
             return switch token {
-            // 1.16: Pulse Pixel for figures, titles and buttons (dotted 0, flagged 1, square-shouldered 5: figures are
+            // 1.16: Clepso Pixel for figures, titles and buttons (dotted 0, flagged 1, square-shouldered 5: figures are
             // never misread; tabular). Sizes are multiples of 5 pt so every font pixel lands on whole Retina pixels.
-            // Increment 1.8 (founder review): nothing under 12 pt; text runs in Pulse Mono at the text-style sizes
-            // (`pixelTextStyle`), and CoreText falls back to the system face for characters Pulse Mono doesn't cover.
+            // Increment 1.8 (founder review): nothing under 12 pt; text runs in Clepso Mono at the text-style sizes
+            // (`pixelTextStyle`), and CoreText falls back to the system face for characters Clepso Mono doesn't cover.
             // The one figure a share card leads with (the player card's total).
             case .metricDisplay: .custom(PixelFonts.display, size: 55, relativeTo: .largeTitle)
             case .metricHero: .custom(PixelFonts.display, size: 35, relativeTo: .largeTitle)
@@ -279,7 +279,7 @@ extension EnvironmentValues {
 }
 
 /// Every window's root: copies the system's Reduce Motion setting into `\.reduceMotion`, or forces it on (`forced`,
-/// the screenshot probe's `-PulseProbeReduceMotion YES`).
+/// the screenshot probe's `-ClepsoProbeReduceMotion YES`).
 public struct ReduceMotionRoot: ViewModifier {
     let forced: Bool
     @Environment(\.accessibilityReduceMotion) private var system

@@ -300,10 +300,10 @@ public enum StatusLineShim {
     static func now() -> UInt64 { clock_gettime_nsec_np(CLOCK_UPTIME_RAW) }
 
     /// Wall clock for `emitted_at_ms` and the `resets_at` transport bound. Debug builds accept
-    /// `PULSE_SHIM_NOW_MS` so fixtures with fixed dates stay valid; release builds ignore it.
+    /// `CLEPSO_SHIM_NOW_MS` so fixtures with fixed dates stay valid; release builds ignore it.
     static func wallClock(_ environment: [String: String]) -> Date {
         #if DEBUG
-        if let ms = environment["PULSE_SHIM_NOW_MS"].flatMap(Double.init) {
+        if let ms = environment["CLEPSO_SHIM_NOW_MS"].flatMap(Double.init) {
             return Date(timeIntervalSince1970: ms / 1000)
         }
         #endif

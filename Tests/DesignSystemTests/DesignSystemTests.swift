@@ -117,7 +117,7 @@ struct ThemeTests {
             let font = CTFontCreateWithName(family as CFString, 12, nil)
             #expect(CTFontCopyFamilyName(font) as String == family, "\(family) resolved to \(CTFontCopyFamilyName(font))")
         }
-        // 1.16: Pulse's own faces, by PostScript name; CoreText must not substitute another font.
+        // 1.16: Clepso's own faces, by PostScript name; CoreText must not substitute another font.
         for name in [PixelFonts.display, PixelFonts.body, PixelFonts.bodyMedium, PixelFonts.bodyBold] {
             let font = CTFontCreateWithName(name as CFString, 12, nil)
             #expect(CTFontCopyPostScriptName(font) as String == name, "\(name) resolved to \(CTFontCopyPostScriptName(font))")
@@ -405,11 +405,11 @@ struct PixelMenuBarIconTests {
         }
     }
 
-    /// Visual review, not a check: with PULSE_MENUBAR_RENDER_DIR set, writes every state (and the stale variants), with
+    /// Visual review, not a check: with CLEPSO_MENUBAR_RENDER_DIR set, writes every state (and the stale variants), with
     /// and without text, tinted as a template on a light and a dark menu bar at 1× and 2×, plus a 4× contact sheet.
-    @Test("Contact sheet for review (only with PULSE_MENUBAR_RENDER_DIR)")
+    @Test("Contact sheet for review (only with CLEPSO_MENUBAR_RENDER_DIR)")
     func contactSheet() throws {
-        guard let dir = ProcessInfo.processInfo.environment["PULSE_MENUBAR_RENDER_DIR"] else { return }
+        guard let dir = ProcessInfo.processInfo.environment["CLEPSO_MENUBAR_RENDER_DIR"] else { return }
         let out = URL(fileURLWithPath: dir)
         try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
         var rows: [(String, MenuBarIcon.Shape, Bool, String?)] = []
@@ -485,11 +485,11 @@ struct PixelIconSetTests {
             + CardState.allCases.compactMap { StatusStyles.of($0).badge } + PlanProvenance.allCases.map { StatusStyles.of($0).symbol }
         for name in styles { #expect(PixelGlyph.symbols[name] != nil, "no glyph for \(name)") }
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        let sources = FileManager.default.enumerator(atPath: root.appendingPathComponent("Sources/PulseApp").path)?
+        let sources = FileManager.default.enumerator(atPath: root.appendingPathComponent("Sources/ClepsoApp").path)?
             .compactMap { $0 as? String }.filter { $0.hasSuffix(".swift") } ?? []
         let pattern = try NSRegularExpression(pattern: #"(?:symbol: |return |: )"([a-z][a-z0-9.]+)""#)
         for file in sources {
-            let text = try String(contentsOf: root.appendingPathComponent("Sources/PulseApp/" + file), encoding: .utf8)
+            let text = try String(contentsOf: root.appendingPathComponent("Sources/ClepsoApp/" + file), encoding: .utf8)
             for match in pattern.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
                 let name = String(text[Range(match.range(at: 1), in: text)!])
                 guard name.contains("."), PixelGlyph.symbols[name] == nil, ["circle", "trash", "key"].contains(name) == false else { continue }

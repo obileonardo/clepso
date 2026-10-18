@@ -10,7 +10,7 @@ struct Sandbox {
     let home: URL
     var claude: URL { home.appendingPathComponent(".claude") }
     var settings: URL { claude.appendingPathComponent("settings.json") }
-    static let shim = "/Applications/Pulse.app/Contents/Helpers/pulse-statusline"
+    static let shim = "/Applications/Clepso.app/Contents/Helpers/clepso-statusline"
     static let fixedNow = Date(timeIntervalSince1970: 1_792_159_200)
 
     init(settingsFixture: String? = nil, mode: mode_t = 0o640) throws {
@@ -119,7 +119,7 @@ struct SettingsInstallerTests {
         #expect(restored == original, "\(file): not byte-identical after uninstall")
         #expect(sha(restored) == sha(original))
         #expect(box.mode(box.settings) == 0o640)
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse")), "Pulse's files must be removed")
+        #expect(!box.exists(box.claude.appendingPathComponent("pulse")), "Clepso's files must be removed")
         #expect(box.exists(URL(fileURLWithPath: backup)), "backups are kept for 30 days")
     }
 
@@ -307,13 +307,13 @@ struct RecoveryTests {
         let box = try Sandbox(settingsFixture: "plain.json"); defer { box.cleanUp() }
         _ = try box.installer().install()
         let settingsBefore = box.bytes(box.settings)
-        let moved = box.installer(shim: "/Users/Shared/Pulse.app/Contents/Helpers/pulse-statusline")
+        let moved = box.installer(shim: "/Users/Shared/Clepso.app/Contents/Helpers/clepso-statusline")
         #expect(moved.needsRepair())
         try moved.repair()
         #expect(!moved.needsRepair())
         #expect(box.bytes(box.settings) == settingsBefore, "repair must not touch settings.json")
         let wrapper = String(decoding: try #require(box.bytes(box.claude.appendingPathComponent("pulse/statusline.sh"))), as: UTF8.self)
-        #expect(wrapper.contains("PULSE_SHIM='/Users/Shared/Pulse.app/Contents/Helpers/pulse-statusline'"))
+        #expect(wrapper.contains("CLEPSO_SHIM='/Users/Shared/Clepso.app/Contents/Helpers/clepso-statusline'"))
     }
 }
 

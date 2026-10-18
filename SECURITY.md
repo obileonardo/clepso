@@ -24,7 +24,7 @@ Report privately through GitHub: open the repository's **Security** tab and choo
 
 Please include:
 
-- What is affected (the helper `pulse-statusline`, the app, the settings installer, the `pulse` CLI, the Sync client,
+- What is affected (the helper `clepso-statusline`, the app, the settings installer, the `pulse` CLI, the Sync client,
   the Supabase schema, or the documentation site), and the commit or version.
 - Steps to reproduce, and what an attacker needs (another local user? a process running as the same user? a
   malicious web page? network position?).

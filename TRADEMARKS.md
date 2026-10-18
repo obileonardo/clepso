@@ -6,7 +6,7 @@ identity:
 
 - the name **Clepso** (a working name) when used for software or services,
 - the Clepso mark and logo (`design/brand/logo/`),
-- the app icon (`design/brand/app-icon/`, `App/PulseMac/Assets.xcassets/AppIcon.appiconset/`),
+- the app icon (`design/brand/app-icon/`, `App/ClepsoMac/Assets.xcassets/AppIcon.appiconset/`),
 - the menu bar mark and favicon (`design/brand/menubar/`, `design/brand/favicon/`).
 
 **What you can do without asking:** refer to Clepso by name, link to it, show the logo unmodified when you write about

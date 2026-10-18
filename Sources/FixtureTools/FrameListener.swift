@@ -111,7 +111,7 @@ public enum CaptureShim {
         func quoted(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
         return """
         #!/bin/sh
-        # Pulse capture shim (increment 0.6). Saves raw status-line stdin for one fixture capture, then runs
+        # Clepso capture shim (increment 0.6). Saves raw status-line stdin for one fixture capture, then runs
         # the helper. Raw captures contain paths and stay in this private folder; never commit them.
         umask 077
         mkdir -p \(quoted(captureDirectory))
