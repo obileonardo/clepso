@@ -338,7 +338,7 @@
     }
   ],
   "demoInstant" : "2026-10-16T14:01:00Z",
-  "generatedAt" : "2026-10-18T04:08:37Z",
+  "generatedAt" : "2026-10-18T04:51:02Z",
   "palette" : [
     {
       "dark" : "#1C1C1E",
@@ -797,6 +797,10 @@
     {
       "points" : 12,
       "token" : "windowPadding"
+    },
+    {
+      "points" : 32,
+      "token" : "section"
     }
   ],
   "specimens" : [
@@ -1281,6 +1285,10 @@
     }
   ],
   "typography" : [
+    {
+      "style" : "Large Title, rounded, heavy, tabular digits (pixel: 55 pt)",
+      "token" : "metricDisplay"
+    },
     {
       "style" : "Large Title, rounded, bold, tabular digits",
       "token" : "metricHero"
