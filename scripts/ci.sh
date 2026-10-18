@@ -148,6 +148,15 @@ no_committed_sync_project() {
     echo "no accounts project in tracked files; Config/*.local.xcconfig untracked"
 }
 
+# Account emails (backend/supabase/templates) are generated: up to date, wired into config.toml, well-formed, no
+# comments (Supabase strips them), no scripts or web fonts, and under Gmail's clipping size. The logo they link is in
+# site/ and matches the brand pipeline's output.
+email_templates() {
+    python3 -I scripts/build-email.py --check || return 1
+    cmp design/brand/logo/png/clepso-logo-email-244.png site/assets/email/clepso-logo-email-244.png || return 1
+    echo "email templates current; logo deployed with the site"
+}
+
 # The app bundle builds, is signed, embeds the helper under its identifier, carries no sandbox, network or exception
 # entitlements, runs as a menu bar app, ships third-party licences, and its helper links no networking.
 # Strict mode also requires a real signing identity, hardened runtime and a configured accounts project.
@@ -204,6 +213,7 @@ run "design tokens only"             design_tokens_only
 run "redaction audit"               redaction_audit
 run "secret scan"                   secret_scan
 run "no committed accounts project" no_committed_sync_project
+run "email templates"               email_templates
 run "app bundle"                    app_bundle
 
 echo
