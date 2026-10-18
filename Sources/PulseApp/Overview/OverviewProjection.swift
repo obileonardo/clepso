@@ -62,12 +62,18 @@ public enum OverviewProjection {
             sourceVersion: input.sourceVersion, lastSeen: lastSeen, unreadLimitWindows: input.unreadLimitWindows,
             sessions: sessionDetails(input), models: modelGroups(sessionDetails(input)))
 
-        let (icon, staleMark, text, line) = aggregate(rows.map(\.model), input: input, empty: empty, lastSeen: lastSeen,
+        // The menu bar summarises every agent Clepso reads (3.4): Codex's limits count toward the icon and its %.
+        let codexSection = input.codexEnabled && !input.isDemo ? codex(input, now: now) : nil
+        let codexCards = codexSection?.pools.map(\.model) ?? []
+        let codexSeen = codexSection?.lastSeen
+        let (icon, staleMark, text, line) = aggregate(rows.map(\.model) + codexCards, input: input,
+                                                       empty: codexCards.isEmpty ? empty : nil,
+                                                       lastSeen: [lastSeen, codexSeen].compactMap { $0 }.max(),
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
         return OverviewSnapshot(now: now, isDemo: input.isDemo, icon: icon, iconStaleMark: staleMark, iconText: text,
                                 aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty,
                                 agents: input.agentsTracking ? agents(input.agentTasks, now: now) : nil,
-                                codex: input.codexEnabled && !input.isDemo ? codex(input, now: now) : nil)
+                                codex: codexSection)
     }
 
     static let codexSource = SourceDescriptor(evidence: .officialLocalTelemetry, displayName: "Codex", version: nil)
@@ -257,10 +263,9 @@ public enum OverviewProjection {
         }
         let staleSuffix = live.isEmpty ? age.map { " · last seen \($0)" } ?? "" : ""
         let highest = input.showPercent && !live.isEmpty ? live.compactMap(\.used.value).max().map(Formatting.percent) : nil
-        let provider = ProviderIdentity.claudeCode.wordmark
-
         let blocked: [CardState] = [.exhausted, .exhaustedNoReset, .exhaustedOverage, .resetExpected]
         if let worst = blocked.lazy.compactMap({ state in cards.first { $0.card == state } }).first {
+            let provider = worst.source.displayName      // the agent whose limit it is: Claude Code or Codex
             let line: String = switch worst.card {
             case .exhausted:
                 "\(provider) limit reached · reset expected " + (worst.resetsAt.value.map { Formatting.resetTime($0, now: now, zone: zone, locale: locale) } ?? "")

@@ -88,11 +88,11 @@ def search_dialog():
 VILLAGE = [
     ("claude-code", "Claude Code", "#FF8A5B", "today", "Read today: both limits, the session, Claude Code's statistics and agents per task."),
     ("codex", "Codex", "#8FD3FF", "today", "Read today, if you turn it on: the 5-hour and weekly limits and plan, from Codex's own session files (3.4)."),
-    ("gemini-cli", "Gemini CLI", "#A58CFF", "planned", "On the roadmap: dated manual snapshots (3.2), then a spike on its documented outputs (3.3)."),
-    ("grok", "Grok", "#D9D4C4", "planned", "On the roadmap: dated manual snapshots (3.2)."),
-    ("cursor", "Cursor", "#FFC04D", "requested", "Requested on 17 Oct 2026; not on the roadmap yet."),
-    ("copilot", "GitHub Copilot", "#5EE6FF", "requested", "Requested on 17 Oct 2026; not on the roadmap yet."),
-    ("windsurf", "Windsurf", "#3DD6B0", "requested", "Requested on 17 Oct 2026; not on the roadmap yet."),
+    ("gemini-cli", "Gemini CLI", "#A58CFF", "planned", "On the roadmap (3.5): a reader for what Gemini CLI records on your Mac, like Codex's."),
+    ("grok", "Grok", "#D9D4C4", "planned", "On the roadmap (3.6): a reader once a Grok coding agent keeps local records; manual entries meanwhile."),
+    ("cursor", "Cursor", "#FFC04D", "planned", "On the roadmap (3.7–3.9): study what it keeps on your Mac, then a reader like Codex\'s."),
+    ("copilot", "GitHub Copilot", "#5EE6FF", "planned", "On the roadmap (3.7–3.9): study what it keeps on your Mac, then a reader like Codex\'s."),
+    ("windsurf", "Windsurf", "#3DD6B0", "planned", "On the roadmap (3.7–3.9): study what it keeps on your Mac, then a reader like Codex\'s."),
 ]
 VILLAGE_STATUS = {"today": "Today", "planned": "Roadmap", "requested": "Requested"}
 

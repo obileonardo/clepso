@@ -53,4 +53,29 @@ struct CodexOverviewTests {
         #expect(OverviewProjection.window(of: "claude-code.rate_limits.seven_day") == "seven_day")
         #expect(OverviewProjection.window(of: "something-else") == "something-else")
     }
+
+    @Test func codexCountsTowardTheMenuBar() {
+        var input = OverviewInput()
+        input.pools = [pool("claude-code.rate_limits.five_hour", used: 40)]
+        var weekly = pool("codex.rate_limits.seven_day", used: 100)
+        weekly.limit = .exhausted
+        input.codexPools = [pool("codex.rate_limits.five_hour", used: 62), weekly]
+        input.codexEnabled = true
+        input.lastEventAt = now
+        let snap = make(input)
+        #expect(snap.icon == .exhausted)
+        #expect(snap.aggregateLine.hasPrefix("Codex limit reached"), "\(snap.aggregateLine)")
+        // Without Codex the same Claude Code reading is fine.
+        input.codexEnabled = false
+        #expect(make(input).icon == .ok)
+    }
+
+    @Test func codexAloneDrivesTheIconWhenClaudeCodeIsNotConnected() {
+        var input = OverviewInput()
+        input.codexPools = [pool("codex.rate_limits.five_hour", used: 62)]
+        input.codexEnabled = true
+        let snap = make(input)
+        #expect(snap.empty == .notConnected)              // the panel still offers to connect Claude Code
+        #expect(snap.icon == .ok && snap.iconText == "62%")
+    }
 }
