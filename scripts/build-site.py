@@ -985,9 +985,8 @@ def accounts_config():
                 if "=" in line:
                     k, v = line.split("=", 1)
                     values[k.strip()] = v.strip()
-        # The names from before the rename to Clepso (PULSE_…) still count; CLEPSO_… wins, as in Config/Clepso.xcconfig.
-        host = values.get("CLEPSO_SYNC_HOST") or values.get("PULSE_SYNC_HOST", "")
-        key = values.get("CLEPSO_SYNC_PUBLISHABLE_KEY") or values.get("PULSE_SYNC_PUBLISHABLE_KEY", "")
+        host = values.get("CLEPSO_SYNC_HOST", "")
+        key = values.get("CLEPSO_SYNC_PUBLISHABLE_KEY", "")
         url = f"https://{host}" if re.fullmatch(r"(?=.{4,253}$)[a-z0-9-]+(\.[a-z0-9-]+)+", host) else ""
     url_ok = re.fullmatch(r"https://[a-z0-9-]+(\.[a-z0-9-]+)+|http://(127\.0\.0\.1|localhost):\d{1,5}", url)
     key_ok = 0 < len(key) <= 512 and not re.search(r"\s|\$\(", key) and not key.startswith("sb_secret_")

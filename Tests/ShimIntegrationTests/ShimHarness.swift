@@ -44,16 +44,20 @@ struct ShimHarness {
         var text: String { String(decoding: stdout, as: UTF8.self) }
     }
 
-    /// `afterLaunch` runs once the process has started (used to send signals).
+    /// `afterLaunch` runs once the process has started (used to send signals). `realBudget: false` (the default) relaxes
+    /// the helper's real-time deadlines, so a busy host can't drop the frame a content test is waiting for; tests of the
+    /// budget itself pass `true`.
     /// Fixture clock: 2026-10-16T14:00:00Z, so fixed reset times stay inside the transport bound.
     static let fixtureNowMs: Int64 = 1_792_159_200_000
 
     func run(stdin: Data, executable: URL = ShimHarness.shimURL, arguments: [String] = [],
-             nowMs: Int64 = ShimHarness.fixtureNowMs, afterLaunch: ((Process) -> Void)? = nil) throws -> Result {
+             nowMs: Int64 = ShimHarness.fixtureNowMs, realBudget: Bool = false,
+             afterLaunch: ((Process) -> Void)? = nil) throws -> Result {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
         process.environment = ["HOME": home.path, "PATH": "/usr/bin:/bin", "COLUMNS": "80", "CLEPSO_SHIM_NOW_MS": String(nowMs)]
+            .merging(realBudget ? [:] : ["CLEPSO_SHIM_RELAXED_BUDGET": "1"]) { $1 }
         let input = Pipe(), output = Pipe()
         process.standardInput = input
         process.standardOutput = output

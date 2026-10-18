@@ -52,11 +52,12 @@ public enum StatusLineShim {
             let options = FrameBuilder.Options(shimVersion: version, forwardCost: config.forwardCost ?? true,
                                                hmacKey: key?.count == 32 ? key : nil,
                                                originalPresent: config.originalCommand != nil, truncated: truncated)
+            let scale = budgetScale(environment)
             if case .frame(let built) = FrameBuilder.build(stdin: stdin, now: wallClock(environment), options: options),
-               now() - t0 <= parseDeadlineNs {
+               now() - t0 <= parseDeadlineNs * scale {
                 frame = built
                 if let wire = try? FrameCodec.encode(built) {
-                    _ = send(wire, socketPath: config.socket, t0: t0)
+                    _ = send(wire, socketPath: config.socket, t0: t0, scale: scale)
                 }
             }
         }
@@ -82,7 +83,7 @@ public enum StatusLineShim {
         if case .frame(let frame) = HookFrame.build(stdin: stdin, now: wallClock(environment), shimVersion: version,
                                                     hmacKey: key?.count == 32 ? key : nil),
            let wire = try? FrameCodec.encode(frame) {
-            _ = send(wire, socketPath: config.socket, t0: now())        // the connect and write budget starts once parsed
+            _ = send(wire, socketPath: config.socket, t0: now(), scale: budgetScale(environment))   // budget starts once parsed
         }
         return 0
     }
@@ -208,7 +209,7 @@ public enum StatusLineShim {
 
     /// Non-blocking connect and write within the ARCHITECTURE §3 budget. Never reads a reply, never retries.
     @discardableResult
-    static func send(_ wire: Data, socketPath: String, t0: UInt64) -> Bool {
+    static func send(_ wire: Data, socketPath: String, t0: UInt64, scale: UInt64 = 1) -> Bool {
         var info = stat()
         guard lstat(socketPath, &info) == 0, (info.st_mode & S_IFMT) == S_IFSOCK else { return false }
 
@@ -235,7 +236,7 @@ public enum StatusLineShim {
         }
         if connected != 0 {
             guard errno == EINPROGRESS else { return false }
-            let connectDeadline = min(now() + connectBudgetNs, t0 + connectCeilingNs)
+            let connectDeadline = min(now() + connectBudgetNs * scale, t0 + connectCeilingNs * scale)
             guard waitWritable(fd, until: connectDeadline) else { return false }
             var error: Int32 = 0
             var length = socklen_t(MemoryLayout<Int32>.size)
@@ -251,7 +252,7 @@ public enum StatusLineShim {
                     pointer += n
                     remaining -= n
                 } else if n < 0 && (errno == EAGAIN || errno == EINTR) {
-                    guard waitWritable(fd, until: t0 + writeCeilingNs) else { return false }
+                    guard waitWritable(fd, until: t0 + writeCeilingNs * scale) else { return false }
                 } else {
                     return false
                 }
@@ -308,6 +309,16 @@ public enum StatusLineShim {
         }
         #endif
         return Date()
+    }
+
+    /// Multiplies every deadline above. Debug builds accept `CLEPSO_SHIM_RELAXED_BUDGET=1` (×100: parse 1 s, write 4.8 s)
+    /// so tests about what a frame carries don't fail when a busy host misses the real-time budget; the tests about the
+    /// budget itself and every release build use the real one.
+    static func budgetScale(_ environment: [String: String]) -> UInt64 {
+        #if DEBUG
+        if environment["CLEPSO_SHIM_RELAXED_BUDGET"] == "1" { return 100 }
+        #endif
+        return 1
     }
 }
 
