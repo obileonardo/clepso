@@ -131,4 +131,48 @@ struct StatsModelTests {
         await model.setStatsEnabled(false)
         #expect(model.stats == nil)
     }
+
+    /// The founder's case end to end: the file stops on the 16th, Clepso receives readings on the 17th and the 18th.
+    @Test("The card's streak counts the days Clepso received readings after the file's last day")
+    func streakFromReadings() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        try Data(StatsTests.file.utf8).write(to: box.home.appendingPathComponent(".claude/stats-cache.json"))
+        let clock = TestClock(Date(timeIntervalSince1970: 1_792_249_200))         // 17 Oct 2026, 15:00 UTC
+        let model = box.model(clock: clock)
+        await model.start(); defer { model.stop() }
+        await model.setStatsEnabled(true)
+        #expect(send(model.environment.socketPath, try frameBytes(at: clock.now(), fiveHour: 20)))
+        #expect(await eventually { model.snapshot.provider?.pools.count == 2 })
+        clock.advance(21 * 3600)                                                 // 18 Oct, 12:00
+        #expect(send(model.environment.socketPath, try frameBytes(at: clock.now(), fiveHour: 30)))
+        #expect(await eventually { model.snapshot.provider?.pools.first?.model.used.value == 30 })
+        let card = try #require(model.playerCard)
+        #expect(card.currentStreak == 5 && card.bestStreak == 5, "14, 15, 16 from the file; 17 and 18 from Clepso's readings")
+        #expect(card.statsThrough == "2026-10-16" && card.updatedAt == clock.now())
+    }
+
+    @Test("A rewritten statistics file is picked up on the next tick: the card follows it without reopening")
+    func reloadsWhenRewritten() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let url = box.home.appendingPathComponent(".claude/stats-cache.json")
+        try Data(StatsTests.file.utf8).write(to: url)
+        let clock = TestClock(Date(timeIntervalSince1970: 1_792_238_400))         // 17 Oct 2026, 12:00 UTC
+        let model = box.model(clock: clock)
+        await model.start(); defer { model.stop() }
+        await model.setStatsEnabled(true)
+        #expect(model.playerCard?.statsThrough == "2026-10-16" && model.statsCheckedAt == clock.now())
+
+        clock.advance(60)
+        model.reloadStatsIfChanged()                                             // unchanged: only the check time moves
+        #expect(model.playerCard?.statsThrough == "2026-10-16" && model.statsCheckedAt == clock.now())
+
+        // Claude Code folds in the 17th and rewrites the file.
+        let next = StatsTests.file.replacingOccurrences(of: "\"lastComputedDate\": \"2026-10-16\"", with: "\"lastComputedDate\": \"2026-10-17\"")
+            .replacingOccurrences(of: "\"totalSessions\": 9", with: "\"totalSessions\": 12")
+        try Data(next.utf8).write(to: url)
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 1_792_300_000)], ofItemAtPath: url.path)
+        clock.advance(60)
+        model.reloadStatsIfChanged()
+        #expect(model.playerCard?.statsThrough == "2026-10-17" && model.playerCard?.sessions == 12)
+    }
 }

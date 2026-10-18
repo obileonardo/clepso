@@ -81,6 +81,13 @@ public final class AppModel {
     /// Agents per task: the hooks are in Claude Code's settings (read from Pulse's install record).
     public private(set) var agentsCounting = false
     public private(set) var stats: Result<ClaudeCodeStats, StatsReader.Problem>?
+    /// When the statistics file was last checked for changes (each tick re-reads it only when Claude Code rewrote it).
+    public private(set) var statsCheckedAt: Date?
+    private var statsModifiedAt: Date?
+    /// Which face of the player card is showing; on the model so the export and the verification probe agree with it.
+    public var cardShowsBack = false
+    /// Debug probe only: a fixed pointer position for the card's tilt, so a screenshot can show it (nil: follow the pointer).
+    public var cardTiltPreview: CGSize?
     public private(set) var started = false
     public var settingsTab: SettingsTab = .general
     /// Navigation lives here so "Connect…" and similar can deep-link, and Escape always has one place to go back to.
@@ -216,6 +223,7 @@ public final class AppModel {
         await purgeIfDue()
         await syncIfDue()
         await recordIngestHealth()
+        reloadStatsIfChanged()
         await refresh()
         await handleEngineEvents(codexEvents + tickEvents)
     }
@@ -448,7 +456,8 @@ public final class AppModel {
 
     var playerCard: PlayerCard? {
         guard let file = statsFile, let summary = statsSummary(.allTime) else { return nil }
-        return PlayerCard.make(file: file, summary: summary, name: profileName ?? "", plan: plan?.displayName)
+        return PlayerCard.make(file: file, summary: summary, name: profileName ?? "", plan: plan?.displayName,
+                               lines: snapshot.provider?.lines, updatedAt: [statsCheckedAt, snapshot.updatedAt].compactMap { $0 }.max())
     }
 
     var runningTotal: RunningTotal? { statsFile.map(RunningTotal.make) }
@@ -689,8 +698,22 @@ public final class AppModel {
 
     /// Reads the file now (it is small). Nothing from it is stored.
     public func loadStats() {
-        guard statsEnabled else { stats = nil; return }
+        guard statsEnabled else { stats = nil; statsCheckedAt = nil; return }
+        statsModifiedAt = Self.modificationDate(StatsReader.url(home: environment.home))
         stats = StatsReader.read(home: environment.home)
+        statsCheckedAt = environment.clock.now()
+    }
+
+    /// Each tick: re-reads the file when Claude Code has rewritten it (it does so as it folds in finished days), so the
+    /// card, Stats and Goals follow it without reopening; otherwise only notes the check.
+    func reloadStatsIfChanged() {
+        guard statsEnabled else { return }
+        let modified = Self.modificationDate(StatsReader.url(home: environment.home))
+        if stats == nil || modified != statsModifiedAt { loadStats() } else { statsCheckedAt = environment.clock.now() }
+    }
+
+    static func modificationDate(_ url: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
     }
 
     /// The summary for a range, counting the days after the statistics file's last day on which Clepso itself received

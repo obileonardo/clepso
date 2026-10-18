@@ -35,14 +35,25 @@ struct DashboardTests {
         return s
     }
 
-    @Test("Player card: output level, name, milestones are the highest earned per kind; the running total adds every kind")
+    @Test("Player card: total tokens of every kind, output and its level, current and best streak kept apart, the activity log")
     func card() throws {
         let file = try stats()
-        let summary = StatsSummary.make(file, range: .allTime, today: "2026-10-17")
-        let card = PlayerCard.make(file: file, summary: summary, name: "Elvis", plan: "Max 5×")
+        let summary = StatsSummary.make(file, range: .allTime, today: "2026-10-18", seenDays: ["2026-10-17", "2026-10-18"])
+        let card = PlayerCard.make(file: file, summary: summary, name: "Elvis", plan: "Max 5×", weeks: 2)
         let output = file.models.map(\.output).reduce(0, +)
         #expect(card.output == output && card.level == ModelLevel(output: output) && card.levelName == LevelName.of(card.level.level))
-        #expect(Set(card.milestones.map(\.id)).count == card.milestones.count, "one stamp per kind")
+        #expect(card.totalTokens == 10_030, "input, output and both caches, every model: what /stats calls total")
+        #expect(card.currentStreak == 5 && card.bestStreak == 5, "14–18: the file's 14–16 plus the 17th and 18th Clepso saw")
+        #expect(card.activeDays == 7 && card.dayCount == 9 && card.sessions == 9 && card.longestSessionMs == 3_600_000)
+        #expect(card.topModel == "Opus 5.5" && card.topModelShare == 100 && card.statsThrough == "2026-10-16")
+        // Two weeks ending today (Sunday 18 Oct): last week from Sunday the 11th, then this week's first day, today.
+        #expect(card.activity.columns.count == 2 && card.activity.columns.allSatisfy { $0.count == 7 })
+        let days = card.activity.columns.joined().compactMap { $0 }
+        #expect(days.first?.date == "2026-10-11" && days.last?.date == "2026-10-18" && days.count == 8, "nothing after today")
+        #expect(days.filter(\.pending).map(\.date) == ["2026-10-17", "2026-10-18"])
+        #expect(card.activity.activeDays == 6 && card.activity.days == 8, "11, 14, 15, 16 from the file; 17 and 18 seen")
+        let wide = PlayerCard.make(file: file, summary: summary, name: "", plan: nil, weeks: 3).activity
+        #expect(wide.columns.joined().compactMap { $0 }.first?.date == "2026-10-10", "nothing before the first session (the 10th)")
         let total = RunningTotal.make(file)
         #expect(total.tokens == file.models.map(\.total).reduce(0, +))
         #expect(total.lastDayDate == file.dailyTokens.map(\.date).max())
@@ -98,18 +109,22 @@ struct DashboardTests {
         #expect(statuses.first?.state == .noData)
     }
 
-    @Test("The card renders to a 2× image the size of the card, for copy, save and share")
+    @Test("Both faces render to 2× images the card's width and the same height, for copy, save and share")
     @MainActor
     func cardImage() throws {
         PixelFonts.ensureRegistered()
         let file = try stats()
         let summary = StatsSummary.make(file, range: .allTime, today: "2026-10-17")
         let card = PlayerCard.make(file: file, summary: summary, name: "Elvis", plan: nil)
-        let renderer = ImageRenderer(content: PlayerCardView(card: card, topModelID: summary.favorite?.model)
-            .environment(\.theme, .phosphor).environment(\.colorScheme, .dark))
-        renderer.scale = 2
-        let image = try #require(renderer.cgImage)
-        #expect(image.width == Int(PlayerCardView.width * 2) && image.height > 400)
+        func render(back: Bool) throws -> CGImage {
+            let renderer = ImageRenderer(content: PlayerCardFace(card: card, back: back)
+                .environment(\.theme, .phosphor).environment(\.colorScheme, .dark))
+            renderer.scale = 2
+            return try #require(renderer.cgImage)
+        }
+        let front = try render(back: false), back = try render(back: true)
+        #expect(front.width == Int(PlayerCardFront.width * 2) && front.height > 800)
+        #expect(back.width == front.width && back.height == front.height)
     }
 
     @Test("For you: limits and goals first, then a running task, then setup steps; all clear when nothing needs you")

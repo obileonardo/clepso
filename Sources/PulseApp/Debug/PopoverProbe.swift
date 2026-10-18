@@ -59,9 +59,15 @@ enum PopoverProbe {
             ("stats-models-30", .models, .last30, .chart), ("stats-arena", .models, .allTime, .arena),
             ("stats-arena-7", .models, .last7, .arena), ("stats-overview-prev-year", .overview, .allTime, .arena),
             ("stats-arena-tall", .models, .allTime, .arena),
-            ("home", .home, .allTime, .arena), ("card", .card, .allTime, .arena), ("goals", .goals, .allTime, .arena),
+            ("home", .home, .allTime, .arena), ("card", .card, .allTime, .arena), ("card-back", .card, .allTime, .arena),
+            ("card-tilt", .card, .allTime, .arena), ("goals", .goals, .allTime, .arena),
             ("account", .account, .allTime, .arena), ("settings", .settings, .allTime, .arena), ("home-tall", .home, .allTime, .arena)]
-        for (name, section, range, view) in pages {
+        // `-PulseProbePages card,card-back` captures only those pages (a quicker loop while working on one screen).
+        let only = defaults.string(forKey: "PulseProbePages").map { Set($0.split(separator: ",").map(String.init)) }
+        for (name, section, range, view) in pages where only?.contains(name) ?? true {
+            // The card's back, and its tilt with the pointer held near the top-right corner (hover can't be scripted).
+            model.cardShowsBack = name == "card-back"
+            model.cardTiltPreview = name == "card-tilt" ? CGSize(width: 0.8, height: -0.7) : .zero   // flat, wherever the mouse is
             model.statsYear = name.hasSuffix("prev-year") ? Calendar.current.component(.year, from: model.environment.clock.now()) - 1 : nil
             model.detailsSection = section
             model.statsRange = range
@@ -71,7 +77,7 @@ enum PopoverProbe {
                 // As tall as the screen allows, so content below the fold is captured too.
                 window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: min(screen.width, 1500), height: screen.height), display: true)
             }
-            try? await Task.sleep(for: .milliseconds(800))
+            try? await Task.sleep(for: .milliseconds(name.hasPrefix("card") ? 1600 : 800))      // the card's flip settles
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) {
                 recorder.log(shoot(window, folder, "details-\(name)"))
             } else {
