@@ -73,8 +73,17 @@ struct LimitsSection: View {
                 }
                 .frame(width: theme.spacing(.spacious) * 5.5, height: theme.spacing(.spacious) * 5.5)
                 VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                    Text(used.map { "\(Int($0.rounded()))% used" } ?? Copy.LimitsPage.notReported).font(theme.font(.metricMedium))
-                        .foregroundStyle(theme.color(.textPrimary, scheme))
+                    // The figure at the popover card's hero size, its unit quiet beside it.
+                    if let used {
+                        HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
+                            Text("\(Int(used.rounded()))%").font(theme.font(.metricHero)).monospacedDigit()
+                                .foregroundStyle(theme.color(.textPrimary, scheme)).padding(.vertical, -theme.spacing(.compact))
+                            Text(Copy.LimitsPage.used).font(theme.font(.title)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        }
+                        .accessibilityElement(children: .combine)
+                    } else {
+                        Text(Copy.LimitsPage.notReported).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    }
                     Text(style.label).font(theme.font(.label)).foregroundStyle(theme.color(style.role, scheme))
                     if let pace = PaceText.make(row.pace, model: model) {
                         Text(pace).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))

@@ -272,6 +272,7 @@ enum Copy {
     enum ModelsPage {
         static let distribution = "USAGE DISTRIBUTION", tokens = "TOKENS"
         static let distributionTitle = "Distribution", distributionSub = "Each model's share of all tokens in this range."
+        static let chartTitle = "Tokens over time"
         static let chartSub = "Stacked by model; every day on the axis, quiet ones included."
         static func ofTotal(_ pct: String) -> String { "\(pct)% of all tokens" }
     }
@@ -302,7 +303,7 @@ enum Copy {
 
     /// Limits page (1.12, after the founder's Remote, StackAI and Sprig picks).
     enum LimitsPage {
-        static let allLimits = "ALL LIMITS", plan = "Plan", left = "LEFT"
+        static let allLimits = "ALL LIMITS", plan = "Plan", left = "LEFT", used = "used"
         static let planSub = "What you're on, and where these numbers come from."
         static let planName = "Plan", source = "Source", lastReading = "Last reading", sessions = "Sessions seen"
         static func usage(_ scope: String) -> String { "\(scope) usage" }

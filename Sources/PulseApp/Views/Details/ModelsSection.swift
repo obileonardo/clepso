@@ -25,7 +25,7 @@ struct ModelsSection: View {
                 switch model.modelsView {
                 case .arena: ModelArena(summary: summary)
                 case .chart:
-                    PageSection(Copy.Stats.tokensPerDay.capitalized, Copy.ModelsPage.chartSub) {
+                    PageSection(Copy.ModelsPage.chartTitle, Copy.ModelsPage.chartSub) {
                         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
                             StackedModelChart(summary: summary, from: first, to: summary.today)
                             ModelLegend(models: summary.models)
@@ -159,7 +159,9 @@ struct StackedModelChart: View {
         let gutter = theme.spacing(.spacious) * 2.4
         let footer = theme.spacing(.spacious) * 1.2
         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(weekly ? Copy.Stats.tokensPerWeek : Copy.Stats.tokensPerDay).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+            // The bucket as a quiet caption (the section's name is the heading): long ranges count by week.
+            Text(weekly ? Copy.Stats.tokensPerWeek : Copy.Stats.tokensPerDay).font(theme.font(.micro)).tracking(1)
+                .foregroundStyle(theme.color(.textSecondary, scheme))
             Canvas { context, size in
                 let plot = CGRect(x: gutter, y: theme.spacing(.standard), width: size.width - gutter, height: size.height - footer - theme.spacing(.standard))
                 let slot = plot.width / CGFloat(max(1, buckets.count))
@@ -338,6 +340,7 @@ struct FighterCard: View {
                 .gridColumnAlignment(.leading)
             PixelBar(fraction: Double(n) / Double(total), role: ModelStyle.role(index), pattern: .solid, segments: 24)
             Text(Formatting.compact(n)).font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                .frame(minWidth: theme.spacing(.spacious) * 3, alignment: .trailing)   // one width, so every model's meters end together
                 .gridColumnAlignment(.trailing)
         }
         .accessibilityElement(children: .combine)
