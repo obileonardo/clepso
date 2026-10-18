@@ -15,7 +15,9 @@ final class TimeTravel {
     let box = Sandbox()
     let clock: TestClock
     let notifications = FakeNotifications()
-    private(set) var model: AppModel
+    /// Files the app asked the system to open (Add to Calendar); never the real Calendar in tests.
+    private(set) var opened: [URL] = []
+    private(set) var model: AppModel!                      // set in init, once the harness can hand it its file opener
     private(set) var zone: TimeZone
     private(set) var locale: Locale
 
@@ -24,13 +26,16 @@ final class TimeTravel {
         self.zone = zone
         self.locale = locale
         try? Data("{}\n".utf8).write(to: box.settings)          // a Claude Code settings file with no status line yet
-        model = Self.model(box, clock: clock, notifications: notifications, zone: zone, locale: locale)
+        model = makeModel()
     }
 
-    static func model(_ box: Sandbox, clock: TestClock, notifications: FakeNotifications, zone: TimeZone, locale: Locale) -> AppModel {
-        AppModel(environment: AppEnvironment(dataDirectory: box.data, home: box.home, shimPath: "/Applications/Clepso.app/Contents/Helpers/pulse-statusline",
-                                             clock: clock, loginItem: FakeLoginItem(), notifications: notifications, keychain: FakeKeychain(),
-                                             appVersion: "0.1.0-test", timeZone: zone, locale: locale, tickInterval: .seconds(3600)))
+    private func makeModel() -> AppModel {
+        var environment = AppEnvironment(dataDirectory: box.data, home: box.home, shimPath: "/Applications/Clepso.app/Contents/Helpers/pulse-statusline",
+                                         clock: clock, loginItem: FakeLoginItem(), notifications: notifications, keychain: FakeKeychain(),
+                                         appVersion: "0.1.0-test", timeZone: zone, locale: locale, tickInterval: .seconds(3600))
+        environment.calendarDirectory = box.root.appendingPathComponent("calendar")
+        environment.openFile = { [weak self] url in self?.opened.append(url) }
+        return AppModel(environment: environment)
     }
 
     /// The first start connects Claude Code the way a user does (consent install), so the cards stay connected through
@@ -48,7 +53,7 @@ final class TimeTravel {
         model.stop()
         if let zone { self.zone = zone }
         if let locale { self.locale = locale }
-        model = Self.model(box, clock: clock, notifications: notifications, zone: self.zone, locale: self.locale)
+        model = makeModel()
         await start()
     }
 

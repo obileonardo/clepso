@@ -481,6 +481,17 @@ enum Copy {
         static let snooze = "Snooze 1 h", unsnooze = "Resume"
     }
 
+    /// 2.5 One-tap Calendar: a weekly reset as a one-shot event the user adds (NOTIFICATIONS §3.1).
+    enum CalendarAction {
+        static let add = "Add reset to Calendar"
+        static let addSub = "Opens Calendar, which asks before adding it. Weekly limits only."
+        static func summary(_ agent: String, _ scope: String) -> String { "\(agent) \(scope) limit resets" }
+        static func notes(_ agent: String) -> String {
+            "The reset time \(agent) reported. \(Product.name) can't change this event: if the time moves, add it again from Limits."
+        }
+        static func fileName(_ summary: String) -> String { summary + ".ics" }
+    }
+
     /// Increment 3.4: Codex's limits beside Claude Code's.
     enum Codex {
         static let name = "Codex"

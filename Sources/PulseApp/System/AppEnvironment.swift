@@ -1,3 +1,6 @@
+#if canImport(AppKit)
+import AppKit
+#endif
 import Domain
 import Foundation
 import Sync
@@ -27,6 +30,16 @@ public struct AppEnvironment: Sendable {
     public var timeZone: TimeZone
     public var locale: Locale
     public var tickInterval: Duration
+    /// 2.5 Calendar actions. Off: UX_SPEC hides them in Stage A. Debug builds turn them on with `-PulseCalendarActions YES`.
+    public var calendarActions = false
+    /// Where Add to Calendar writes its `.ics` file (temporary: Calendar copies the event when the user adds it).
+    public var calendarDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("\(Product.name) Calendar")
+    /// Opens a file in its default app (Calendar, for `.ics`). Tests record the call instead.
+    public var openFile: @MainActor @Sendable (URL) -> Void = { url in
+        #if canImport(AppKit)
+        NSWorkspace.shared.open(url)
+        #endif
+    }
     /// The Mac account's full name, for Home's default greeting (the user can change the name in Account).
     public var fullUserName: String
     /// Pulse accounts. Off (no project, no requests) unless the build carries a `SyncConfig`; tests and previews get
@@ -76,11 +89,15 @@ public struct AppEnvironment: Sendable {
         #endif
         let shim = bundle.bundleURL.appendingPathComponent("Contents/Helpers/pulse-statusline").path
         let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
-        return AppEnvironment(dataDirectory: data, home: home, shimPath: shim,
-                              loginItem: SystemLoginItem(), notifications: SystemNotifications(),
-                              keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "dev.tokone.pulse"), appVersion: version,
-                              sync: SyncClient(config: SyncConfig(infoDictionary: bundle.infoDictionary ?? [:]), store: authStore,
-                                               now: { SystemClock().now() }))
+        var environment = AppEnvironment(dataDirectory: data, home: home, shimPath: shim,
+                                          loginItem: SystemLoginItem(), notifications: SystemNotifications(),
+                                          keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "dev.tokone.pulse"), appVersion: version,
+                                          sync: SyncClient(config: SyncConfig(infoDictionary: bundle.infoDictionary ?? [:]), store: authStore,
+                                                           now: { SystemClock().now() }))
+        #if DEBUG
+        environment.calendarActions = UserDefaults.standard.bool(forKey: "PulseCalendarActions")
+        #endif
+        return environment
     }
 }
 
