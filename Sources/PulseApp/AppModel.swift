@@ -1,5 +1,6 @@
 import ClaudeCodeAdapter
 import struct CodexAdapter.CodexReading
+import struct CodexAdapter.CodexUsage
 import DesignSystem
 import enum Domain.EvidenceKind
 import enum Domain.Freshness
@@ -49,6 +50,10 @@ public final class AppModel {
     public internal(set) var codexEnabled = false
     var codexLatest: CodexReading?
     var codexConnection: UUID?
+    /// Codex's tokens per day and model (Stats), in memory only; nil until the first background read finishes.
+    public internal(set) var codexDays: [CodexUsage.Day]?
+    var codexUsage: CodexUsage?
+    var codexScanning = false
     /// The Pulse account on this Mac.
     public enum AccountState: Equatable, Sendable {
         case signedOut
@@ -81,6 +86,13 @@ public final class AppModel {
     /// Agents per task: the hooks are in Claude Code's settings (read from Pulse's install record).
     public private(set) var agentsCounting = false
     public private(set) var stats: Result<ClaudeCodeStats, StatsReader.Problem>?
+    /// When the statistics file was last checked for changes (each tick re-reads it only when Claude Code rewrote it).
+    public private(set) var statsCheckedAt: Date?
+    private var statsModifiedAt: Date?
+    /// Which face of the player card is showing; on the model so the export and the verification probe agree with it.
+    public var cardShowsBack = false
+    /// Debug probe only: a fixed pointer position for the card's tilt, so a screenshot can show it (nil: follow the pointer).
+    public var cardTiltPreview: CGSize?
     public private(set) var started = false
     public var settingsTab: SettingsTab = .general
     /// Navigation lives here so "Connect…" and similar can deep-link, and Escape always has one place to go back to.
@@ -216,6 +228,7 @@ public final class AppModel {
         await purgeIfDue()
         await syncIfDue()
         await recordIngestHealth()
+        reloadStatsIfChanged()
         await refresh()
         await handleEngineEvents(codexEvents + tickEvents)
     }
@@ -312,6 +325,7 @@ public final class AppModel {
         }
         input.sessions = try await store.sessionStates()
         input.sessionSummaries = try await store.sessionSummaries(limit: 20)
+        input.firstSessionSeen = try await store.firstSessionSeenAt()
         for pool in input.pools {
             input.recent[pool.poolKey] = try await store.recentReadings(poolKey: pool.poolKey, kind: .quotaUsedPct, limit: 3)
         }
@@ -450,7 +464,8 @@ public final class AppModel {
 
     var playerCard: PlayerCard? {
         guard let file = statsFile, let summary = statsSummary(.allTime) else { return nil }
-        return PlayerCard.make(file: file, summary: summary, name: profileName ?? "", plan: plan?.displayName)
+        return PlayerCard.make(file: file, summary: summary, name: profileName ?? "", plan: plan?.displayName,
+                               lines: snapshot.provider?.lines, updatedAt: [statsCheckedAt, snapshot.updatedAt].compactMap { $0 }.max())
     }
 
     var runningTotal: RunningTotal? { statsFile.map(RunningTotal.make) }
@@ -560,6 +575,26 @@ public final class AppModel {
         } catch {
             accountMessage = Self.syncReason(error)
             if case SyncError.notSignedIn? = error as? SyncError { account = .signedOut }
+        }
+    }
+
+    /// Upload on quit: the counts since the last hourly upload are sent before Clepso quits. True when signed in,
+    /// real data shows, and the last upload is more than a minute old.
+    public var uploadsOnQuit: Bool {
+        guard case .signedIn = account, !snapshot.isDemo else { return false }
+        guard let lastSync else { return true }
+        return environment.clock.now().timeIntervalSince(lastSync) >= 60
+    }
+
+    /// One last upload, given at most `limit`: quitting never waits longer, offline or not. True if it finished in time.
+    public func uploadBeforeQuit(limit: Duration = .seconds(3)) async -> Bool {
+        guard uploadsOnQuit else { return true }
+        return await withTaskGroup(of: Bool.self) { group in
+            group.addTask { await self.syncNow(); return true }
+            group.addTask { try? await Task.sleep(for: limit); return false }
+            let first = await group.next() ?? false
+            group.cancelAll()
+            return first
         }
     }
 
@@ -691,16 +726,38 @@ public final class AppModel {
 
     /// Reads the file now (it is small). Nothing from it is stored.
     public func loadStats() {
-        guard statsEnabled else { stats = nil; return }
+        guard statsEnabled else { stats = nil; statsCheckedAt = nil; return }
+        statsModifiedAt = Self.modificationDate(StatsReader.url(home: environment.home))
         stats = StatsReader.read(home: environment.home)
+        statsCheckedAt = environment.clock.now()
     }
 
-    /// The summary for a range, counting today as active when Pulse itself received readings today.
+    /// Each tick: re-reads the file when Claude Code has rewritten it (it does so as it folds in finished days), so the
+    /// card, Stats and Goals follow it without reopening; otherwise only notes the check.
+    func reloadStatsIfChanged() {
+        guard statsEnabled else { return }
+        let modified = Self.modificationDate(StatsReader.url(home: environment.home))
+        if stats == nil || modified != statsModifiedAt { loadStats() } else { statsCheckedAt = environment.clock.now() }
+    }
+
+    static func modificationDate(_ url: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+    }
+
+    /// The summary for a range, counting the days after the statistics file's last day on which Clepso itself received
+    /// Claude Code readings (see `seenDays`).
     public func statsSummary(_ range: StatsSummary.Range) -> StatsSummary? {
         guard case .success(let file)? = stats else { return nil }
         let today = Self.dayLabel(environment.clock.now(), zone: environment.timeZone)
-        let seenToday = snapshot.updatedAt.map { Self.dayLabel($0, zone: environment.timeZone) == today } ?? false
-        return StatsSummary.make(file, range: range, today: today, seenToday: seenToday && !snapshot.isDemo)
+        return StatsSummary.make(file, range: range, today: today, seenDays: snapshot.isDemo ? [] : Self.seenDays(snapshot, zone: environment.timeZone))
+    }
+
+    /// Local days with Claude Code readings in Clepso's own store: the newest reading, the limit readings of the last
+    /// seven days, and when each kept session was last seen. Claude Code's pools only; demo data is never evidence.
+    static func seenDays(_ snapshot: OverviewSnapshot, zone: TimeZone) -> Set<String> {
+        guard let provider = snapshot.provider else { return [] }
+        let instants = [snapshot.updatedAt] + provider.pools.flatMap { $0.history.map(\.at) } + provider.sessions.map(\.lastSeen)
+        return Set(instants.compactMap { $0 }.map { dayLabel($0, zone: zone) })
     }
 
     /// Claude Code labels days by the local calendar.

@@ -96,6 +96,14 @@ extension Store {
         }
     }
 
+    /// When the oldest session still kept (30-day retention) was first seen: where per-session totals start.
+    public func firstSessionSeenAt() throws -> Date? {
+        try writer.read { db in
+            try Int64.fetchOne(db, sql: "SELECT MIN(first_seen_at) FROM sessions WHERE connection_id = ?",
+                               arguments: [connectionID.uuidString]).map(date)
+        }
+    }
+
     // MARK: - Plan (user-confirmed or selected; never inferred)
 
     public struct PlanIdentity: Sendable, Equatable {

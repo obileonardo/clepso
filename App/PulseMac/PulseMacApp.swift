@@ -5,8 +5,9 @@ import SwiftUI
 @main
 struct PulseMacApp: App {
     @State private var model = AppModel(environment: .live())
+    @NSApplicationDelegateAdaptor(QuitHandler.self) private var quitHandler
 
     var body: some Scene {
-        PulseScenes(model: model)
+        PulseScenes(model: model, quitHandler: quitHandler)
     }
 }

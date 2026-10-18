@@ -20,6 +20,14 @@ final class RecordingTransport: HTTPTransport, @unchecked Sendable {
     var bodies: String { lock.withLock { log.map { String(decoding: $0.httpBody ?? Data(), as: UTF8.self) }.joined(separator: "\n") } }
 }
 
+/// A server that never answers (until cancelled): stands in for a dead network.
+struct StalledTransport: HTTPTransport {
+    func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        try await Task.sleep(for: .seconds(30))
+        throw URLError(.timedOut)
+    }
+}
+
 /// A stand-in accounts project for tests: nothing here can reach a real server (the transport records instead).
 let testSyncConfig = SyncConfig(projectURL: URL(string: "https://example.supabase.co")!, publishableKey: "sb_publishable_test",
                                 redirectURL: SyncConfig.redirectURL)
@@ -100,6 +108,42 @@ struct AccountSyncTests {
         _ = await model.deleteAll(includeBackups: false, relaunch: false)
         #expect(model.account == .signedOut && store.load() == StoredAuth())
         #expect(transport.paths.last == "/auth/v1/logout")
+    }
+
+    @Test("Upload on quit: counts not yet sent go up before quitting, and quitting never waits past the limit")
+    func uploadOnQuit() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let transport = RecordingTransport(), store = MemoryAuthStore(), clock = TestClock()
+        var environment = box.model(clock: clock).environment
+        environment.sync = SyncClient(config: testSyncConfig, transport: transport, store: store, now: { clock.now() })
+        let model = AppModel(environment: environment)
+        await model.start(); defer { model.stop() }
+        await model.setDemo(false)                                   // an empty sandbox opens on demo data
+        #expect(!model.uploadsOnQuit, "signed out: nothing to send")
+
+        await model.emailSignInLink("e@example.test")
+        transport.respond(200, #"{"access_token":"a","refresh_token":"r","expires_in":3600,"user":{"id":"u-1","email":"e@example.test"}}"#)
+        await model.handleOpenURL(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!)
+        #expect(model.account == .signedIn(email: "e@example.test"))
+        #expect(!model.uploadsOnQuit, "just uploaded on sign-in")
+
+        clock.advance(120)
+        #expect(model.uploadsOnQuit)
+        let before = transport.paths.count
+        #expect(await model.uploadBeforeQuit())
+        #expect(transport.paths.count > before && model.lastSync == clock.now())
+        #expect(!model.uploadsOnQuit, "sent: quit at once")
+
+        clock.advance(120)
+        environment.sync = SyncClient(config: testSyncConfig, transport: StalledTransport(), store: store, now: { clock.now() })
+        let stalled = AppModel(environment: environment)
+        await stalled.start(); defer { stalled.stop() }
+        await stalled.setDemo(false)
+        await stalled.refreshAccount()
+        #expect(stalled.uploadsOnQuit)
+        let started = ContinuousClock.now
+        #expect(await stalled.uploadBeforeQuit(limit: .milliseconds(200)) == false, "offline: gave up")
+        #expect(ContinuousClock.now - started < .seconds(2), "quitting waited no longer than the limit")
     }
 
     @Test("A build without an accounts project: sign-in unavailable, never suggested, and not one request")

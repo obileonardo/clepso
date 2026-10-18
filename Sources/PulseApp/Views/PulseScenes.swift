@@ -9,7 +9,10 @@ public struct PulseScenes: Scene {
     public static let detailsID = "details"
     let model: AppModel
 
-    public init(model: AppModel) { self.model = model }
+    public init(model: AppModel, quitHandler: QuitHandler? = nil) {
+        self.model = model
+        quitHandler?.model = model
+    }
 
     public var body: some Scene {
         MenuBarExtra {

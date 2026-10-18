@@ -39,7 +39,7 @@ public enum ColorToken: String, CaseIterable, Sendable, Codable {
     public static let surfaces: [ColorToken] = [.background, .surfaceElevated, .surfaceMuted]
 }
 
-public enum TypographyToken: String, CaseIterable, Sendable { case metricHero, metricMedium, title, label, supporting, micro }
+public enum TypographyToken: String, CaseIterable, Sendable { case metricDisplay, metricHero, metricMedium, title, label, supporting, micro }
 /// `section`: the air above and below a Dashboard section's content, between its hairlines (32 pt, founder review 18 Oct 2026).
 public enum SpacingToken: String, CaseIterable, Sendable { case compact, standard, spacious, windowPadding, section }
 public enum RadiusToken: String, CaseIterable, Sendable { case control, card, pill }
@@ -74,7 +74,7 @@ public struct Theme: Sendable {
         switch token {
         case .label: .body
         case .supporting, .micro: .callout
-        case .metricHero, .metricMedium, .title: nil
+        case .metricDisplay, .metricHero, .metricMedium, .title: nil
         }
     }
 
@@ -88,6 +88,8 @@ public struct Theme: Sendable {
             // never misread; tabular). Sizes are multiples of 5 pt so every font pixel lands on whole Retina pixels.
             // Increment 1.8 (founder review): nothing under 12 pt; text runs in Pulse Mono at the text-style sizes
             // (`pixelTextStyle`), and CoreText falls back to the system face for characters Pulse Mono doesn't cover.
+            // The one figure a share card leads with (the player card's total).
+            case .metricDisplay: .custom(PixelFonts.display, size: 55, relativeTo: .largeTitle)
             case .metricHero: .custom(PixelFonts.display, size: 35, relativeTo: .largeTitle)
             case .metricMedium: .custom(PixelFonts.display, size: 20, relativeTo: .title2)
             case .title: .custom(PixelFonts.display, size: 15, relativeTo: .headline)
@@ -97,6 +99,7 @@ public struct Theme: Sendable {
             }
         }
         return switch token {
+        case .metricDisplay: .system(.largeTitle, design: .rounded).weight(.heavy).monospacedDigit()
         case .metricHero: .system(.largeTitle, design: .rounded).weight(.bold).monospacedDigit()
         case .metricMedium: .system(.title2, design: .rounded).weight(.semibold).monospacedDigit()
         case .title: .headline

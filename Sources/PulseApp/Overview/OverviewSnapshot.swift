@@ -55,6 +55,38 @@ public struct ProviderSection: Sendable {
     public let sessions: [SessionDetail]
     /// Sessions grouped by their main model: an approximation (Claude Code's background models count under it).
     public let models: [ModelGroup]
+    /// Lines added and removed over every kept session (the player card); nil when no session reported lines.
+    public var lines: CodeLines? = nil
+}
+
+/// Lines of code per session, as Claude Code's status line reports them (lines added and removed, cumulative per
+/// session), summed over the sessions Clepso still keeps: those seen in the last 30 days. Not a lifetime figure: older
+/// sessions are deleted with their readings, and sessions from before Clepso was connected were never seen.
+public struct CodeLines: Sendable, Equatable {
+    public let added: Int64
+    public let removed: Int64
+    public let sessions: Int
+    /// The window's start: 30 days ago, or the first kept session's first sighting if that is later (a newer install).
+    public let since: Date
+    /// True when `since` is the retention edge rather than the first session Clepso saw.
+    public let fullWindow: Bool
+
+    public static let window: TimeInterval = 30 * 86_400
+
+    /// Sessions last seen within the window, each counted once at its latest cumulative value.
+    public static func make(_ sessions: [SessionState], firstSeen: Date?, now: Date) -> CodeLines? {
+        let edge = now.addingTimeInterval(-window)
+        var added: Int64 = 0, removed: Int64 = 0, count = 0
+        for s in sessions where (s.lastSeen ?? .distantPast) >= edge {
+            let a: Int64? = if case .count(let n)? = s.values[.linesAdded]?.value { n } else { nil }
+            let r: Int64? = if case .count(let n)? = s.values[.linesRemoved]?.value { n } else { nil }
+            guard a != nil || r != nil else { continue }
+            added += max(0, a ?? 0); removed += max(0, r ?? 0); count += 1
+        }
+        guard count > 0 else { return nil }
+        let start = max(edge, firstSeen ?? edge)
+        return CodeLines(added: added, removed: removed, sessions: count, since: start, fullWindow: start == edge)
+    }
 }
 
 /// One Claude Code session as its status line reports it: cumulative for the session, as of `lastSeen`.
@@ -126,6 +158,8 @@ public struct OverviewInput: Sendable {
     public var codexPools: [PoolState] = []
     public var codexPlan: String?
     public var codexModel: String?
+    /// The oldest kept session's first sighting (`CodeLines.since`).
+    public var firstSessionSeen: Date?
     public init() {}
 }
 

@@ -117,6 +117,12 @@ only the last 256 KB of the three newest files. It decodes only lines that are `
 weekly used %, reset time, plan) and the turn's model name; every other line, including prompts and replies, is
 skipped before JSON decoding (`Sources/CodexAdapter/`).
 
+For Codex's tokens per day (Stats), Clepso also reads every session file under `~/.codex/sessions` once, in the
+background, and then only what Codex appends. The same rule holds: a line is decoded only when its bytes contain
+`"token_count"` or `"turn_context"` and it is at most 16 KB; prompts, replies, paths and every other line are skipped
+undecoded. It keeps only each day's token counts per model, in memory: nothing from these files is stored, logged,
+exported or uploaded. Turning Codex off drops them.
+
 ## 5. Logging and redaction
 
 Never logged: raw status-line input, the original status line's output, environment variables, the home folder or
@@ -196,6 +202,18 @@ when the account is deleted. The publishable key in an official build identifies
 itself; no secret key is ever in the app (the app refuses `sb_secret_…` keys).
 
 A sign-in link's own error text is never displayed, because any app can open the `dev.tokone.pulse://` URL scheme.
+
+### 9.1 Web dashboard (`/app`)
+
+A static page on the docs site (`scripts/site/app.js`, no libraries) that reads the signed-in user's own rows and can
+sign out or delete the account. It talks only to Supabase Auth and REST with plain `fetch`. Its project URL and
+publishable key come from `site/app/config.js`, generated at build time from `Config/Sync.local.xcconfig` and
+gitignored; without it the page says accounts aren't configured and makes no request. Sign-in is the same email link
+with PKCE: the verifier stays in that browser's `localStorage`, so a link works only in the browser that asked for it;
+the returned `?code=` is exchanged at once and removed from the address bar. The session is kept in `localStorage`
+(as supabase-js does), so the page loads no third-party script and sets a Content Security Policy (scripts from the
+site only; connections to the site and `*.supabase.co`) and `no-referrer`. As on the Mac, an error in a returned link
+is shown in the page's own words, never the link's text. Deleting the account asks the user to type DELETE first.
 
 ## 10. Entitlements
 

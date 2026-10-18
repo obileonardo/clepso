@@ -11,7 +11,7 @@ extension AppModel {
     public func setCodexEnabled(_ on: Bool) async {
         codexEnabled = on
         try? await store?.setPreference(Pref.readCodex, on, now: environment.clock.now())
-        if on { await pollCodex() } else { codexLatest = nil }
+        if on { await pollCodex() } else { codexLatest = nil; codexUsage = nil; codexDays = nil }
         await refresh()
     }
 
@@ -20,6 +20,7 @@ extension AppModel {
     @discardableResult
     func pollCodex() async -> [EngineEvent] {
         guard codexEnabled, !demo, let store else { return [] }
+        scanCodexUsage()
         let now = environment.clock.now()
         guard let reading = CodexReader.latest(home: environment.home, now: now) else { return [] }
         codexLatest = reading
@@ -35,6 +36,26 @@ extension AppModel {
         } catch {
             problem = .storage("\(error)")
             return []
+        }
+    }
+
+    /// Tokens per day: the first read of every session file takes seconds, so it runs off the main actor; later reads
+    /// take only what Codex appended. One read at a time; a tick that finds one running skips.
+    func scanCodexUsage() {
+        guard !codexScanning else { return }
+        codexScanning = true
+        let home = environment.home
+        let usage = codexUsage ?? CodexUsage(zone: environment.timeZone)
+        Task {
+            let scanned = await Task.detached(priority: .utility) { () -> CodexUsage in
+                var copy = usage
+                copy.scan(home: home)
+                return copy
+            }.value
+            codexScanning = false
+            guard codexEnabled else { return }                     // turned off while reading: keep nothing
+            codexUsage = scanned
+            codexDays = scanned.days
         }
     }
 }
