@@ -239,6 +239,7 @@ struct StackedModelChart: View {
             .onPreferenceChange(ChartWidthKey.self) { chartWidth = $0 }
             .accessibilityElement()
             .accessibilityLabel(Copy.Stats.chartSummary(days: StatsSummary.Day.between(from, to) + 1, models: series.ids.count))
+            .chartKeyboard($hover, count: buckets.count, readout: hover == nil ? nil : readout(buckets))
             Text(readout(buckets)).font(theme.font(.label)).monospacedDigit().lineLimit(1).truncationMode(.middle)
                 .foregroundStyle(theme.color(hover == nil ? .textSecondary : .textPrimary, scheme))
                 .accessibilityHidden(hover == nil)
@@ -525,10 +526,11 @@ struct ModelSprite: View {
     let role: ColorToken
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.6)) { timeline in
+        // Under Reduce Motion the schedule is paused: one still frame, and no timer waking the app every 0.6 s.
+        TimelineView(.animation(minimumInterval: 0.6, paused: reduceMotion)) { timeline in
             let frame = reduceMotion ? 0 : Int(timeline.date.timeIntervalSinceReferenceDate / 0.6) % 2
             Canvas { context, size in
                 let rows = Self.bitmap(family)

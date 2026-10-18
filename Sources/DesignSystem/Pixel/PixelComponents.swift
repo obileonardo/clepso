@@ -117,6 +117,51 @@ public struct PixelPanel<Content: View>: View {
     }
 }
 
+/// Item 9: the keyboard focus indicator of every control the app draws itself: a pixel frame in the accent colour,
+/// two focus strokes outside the control, so it never hides the control's own frame or reads as its selected state.
+/// Drawn only while the control holds keyboard focus (System Settings › Keyboard › Keyboard navigation).
+public struct PixelFocusRing: ViewModifier {
+    let focused: Bool
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+    public init(focused: Bool) { self.focused = focused }
+
+    public func body(content: Content) -> some View {
+        content.overlay {
+            if focused {
+                PixelRect(step: theme.stroke(.hairline) * 2).inset(by: -theme.stroke(.focus) * 2)
+                    .strokeBorder(theme.color(.accent, scheme), lineWidth: theme.stroke(.focus))
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+}
+
+extension View {
+    /// Draws `PixelFocusRing` while `focused`.
+    public func pixelFocusRing(_ focused: Bool) -> some View { modifier(PixelFocusRing(focused: focused)) }
+}
+
+/// Item 9: the style for a button whose label draws itself (sidebar rows, limit cards, chips, swatches, segments):
+/// no chrome of its own, a dimmed label while pressed (callers dim a disabled label themselves, as with `.plain`),
+/// and the pixel focus ring. Use it instead of
+/// `.plain`, which draws no focus indicator of the app's own (`scripts/ci.sh` checks).
+public struct PixelPlainButtonStyle: ButtonStyle {
+    public init() {}
+    public func makeBody(configuration: Configuration) -> some View { PlainBody(configuration: configuration) }
+
+    struct PlainBody: View {
+        let configuration: ButtonStyleConfiguration
+        @Environment(\.isFocused) private var focused
+        var body: some View {
+            configuration.label
+                .opacity(configuration.isPressed ? 0.75 : 1)
+                .pixelFocusRing(focused)
+        }
+    }
+}
+
 /// Bevelled pixel button: a lit top-left edge and a shaded bottom-right edge that swap when pressed.
 public struct PixelButtonStyle: ButtonStyle {
     public var prominent: Bool
@@ -138,6 +183,7 @@ public struct PixelButtonStyle: ButtonStyle {
         @Environment(\.theme) private var theme
         @Environment(\.colorScheme) private var scheme
         @Environment(\.isEnabled) private var enabled
+        @Environment(\.isFocused) private var focused
 
         var body: some View {
             let px = theme.stroke(.hairline) * 2
@@ -163,6 +209,7 @@ public struct PixelButtonStyle: ButtonStyle {
                 .offset(y: pressed ? px / 2 : 0)
                 .opacity(enabled ? 1 : 0.45)
                 .contentShape(PixelRect(step: px))
+                .pixelFocusRing(focused)
         }
     }
 }

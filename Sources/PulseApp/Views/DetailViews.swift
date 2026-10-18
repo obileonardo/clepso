@@ -13,7 +13,7 @@ struct ProviderDetailView: View {
     let provider: ProviderSection
     let now: Date
     @State private var showsCoverage = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reduceMotion) private var reduceMotion
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
@@ -37,7 +37,7 @@ struct ProviderDetailView: View {
                             .padding(.vertical, theme.spacing(.standard))
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PixelPlainButtonStyle())
                     .accessibilityHint("Shows where this number comes from")
                     .overlay(alignment: .top) {
                         if index > 0 { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
@@ -74,7 +74,7 @@ struct ProviderDetailView: View {
                          text: provider.unreadLimitWindows > 0 ? Copy.Detail.unreadShort(provider.unreadLimitWindows) : Copy.Detail.coverage,
                          role: provider.unreadLimitWindows > 0 ? .statusAttention : .textSecondary, active: showsCoverage)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PixelPlainButtonStyle())
             .help(coverageSentence)
             .accessibilityLabel(coverageSentence)
             .accessibilityHint(Copy.Detail.moreInfo)
@@ -124,7 +124,7 @@ struct Breadcrumb: View {
                 .foregroundStyle(theme.color(.textSecondary, scheme))
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PixelPlainButtonStyle())
             .accessibilityLabel("Back to \(parent)")
             Text("/").font(theme.font(.micro)).foregroundStyle(theme.color(.separator, scheme)).accessibilityHidden(true)
             Text(title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))

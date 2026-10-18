@@ -95,7 +95,7 @@ public struct PopoverView: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PixelPlainButtonStyle())
                 .accessibilityLabel(provider.header)
                 .accessibilityHint("Shows provider details")
             }
@@ -293,7 +293,7 @@ struct LimitCards: View {
                         .pulseCard()
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PixelPlainButtonStyle())
                 .accessibilityHint("Shows where this number comes from")
             }
         }

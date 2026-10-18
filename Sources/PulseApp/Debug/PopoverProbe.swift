@@ -5,6 +5,13 @@ import OSLog
 import ServiceManagement
 import SwiftUI
 
+/// Debug probe only: `-PulseProbeReduceMotion YES` runs every window as if System Settings › Accessibility › Display ›
+/// Reduce motion were on (through `ReduceMotionRoot`), so screenshots can show what that setting does without
+/// changing the Mac's own setting.
+enum ProbeOverrides {
+    static let reduceMotion = UserDefaults.standard.bool(forKey: "PulseProbeReduceMotion")
+}
+
 /// Verification harness, debug builds only (popover open ≤ 200 ms p95, trigger to first frame), and the source of the
 /// screenshots in design/screens.
 ///
@@ -20,6 +27,14 @@ import SwiftUI
 ///
 /// Files in <dir>: `state` (opens, closes, last visible uptime, status-item point), `probe.log`, PNGs; the driver
 /// adds `popover-open-ms.txt`.
+///
+/// Item 9 (keyboard and Reduce Motion): `-PulseProbeReduceMotion YES` runs every window as if Reduce Motion were on
+/// (`ProbeOverrides`); `-PulseProbeAX YES` pauses on every captured page until `scripts/probe-ax.swift` has read the
+/// accessibility tree (read-only); `-PulseProbeFlipFrames YES` captures the player card mid-flip;
+/// `-PulseProbeFocusGallery YES` focuses each self-drawn control through `@FocusState` and captures it. No key event
+/// is ever posted. (Buttons take focus only while the Mac's Keyboard navigation setting is on, which the probe
+/// cannot turn on for itself: neither an `-AppleKeyboardUIMode` argument nor answering `isFullKeyboardAccessEnabled`
+/// makes SwiftUI focus them, and `selectNextKeyView` does not move SwiftUI's focus.)
 @MainActor
 enum PopoverProbe {
     static let signposter = OSSignposter(subsystem: "dev.tokone.pulse", category: "popover")
@@ -45,6 +60,7 @@ enum PopoverProbe {
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
         recorder.start(button)
         recorder.log("login item: SMAppService.mainApp.status=\(SMAppService.mainApp.status.rawValue) model.loginItemEnabled=\(model.loginItemEnabled)")
+        recorder.log("keyboard navigation (the Mac's setting): \(NSApp.isFullKeyboardAccessEnabled) · reduce motion override: \(ProbeOverrides.reduceMotion)")
 
         // The driver clicks; wait for it (at most twenty minutes: idle runs wait between clicks).
         let done = folder.appendingPathComponent("driver-done")
@@ -83,6 +99,7 @@ enum PopoverProbe {
                 window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: defaults.double(forKey: "PulseProbeWidth"), height: screen.height), display: true)
             }
             try? await Task.sleep(for: .milliseconds(name.hasPrefix("card") ? 1600 : 800))      // the card's flip settles
+            await axCheckpoint(folder, "details-\(name)")
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) {
                 recorder.log(shoot(window, folder, "details-\(name)"))
             } else {
@@ -90,11 +107,15 @@ enum PopoverProbe {
             }
         }
 
+        if defaults.bool(forKey: "PulseProbeFlipFrames") { await flipFrames(model, recorder, folder) }
+        if defaults.bool(forKey: "PulseProbeFocusGallery") { await focusGallery(model, recorder, folder) }
+
         // The delete-all confirmation, a sheet on the Dashboard's Settings page (opened, captured, cancelled; nothing deleted).
         model.detailsSection = .settings
         try? await Task.sleep(for: .milliseconds(400))
         model.confirmingDeleteAll = true
         try? await Task.sleep(for: .milliseconds(800))
+        await axCheckpoint(folder, "settings-delete-all-sheet")
         if let sheet = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name })?.attachedSheet {
             recorder.log(shoot(sheet, folder, "settings-delete-all-sheet"))
         } else {
@@ -107,6 +128,7 @@ enum PopoverProbe {
         for step in AppModel.OnboardingStep.allCases {
             model.onboardingStep = step
             try? await Task.sleep(for: .milliseconds(600))
+            await axCheckpoint(folder, "onboarding-\(step.rawValue)-\(step)")
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title.hasPrefix("Welcome to") }) {
                 recorder.log(shoot(window, folder, "onboarding-\(step.rawValue)-\(step)"))
             } else {
@@ -189,6 +211,7 @@ enum PopoverProbe {
                 let name = "popover-" + page.dropFirst("shoot:".count)
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(500))
+                    await axCheckpoint(self.folder, name)
                     self.log(shoot(window, self.folder, name))
                 }
             }
@@ -214,6 +237,68 @@ enum PopoverProbe {
             log("opens \(opens), closes \(closes)")
             try? lines.joined(separator: "\n").appending("\n").write(to: folder.appendingPathComponent("probe.log"), atomically: true, encoding: .utf8)
         }
+    }
+
+    /// With `-PulseProbeAX YES`: names this page in `ax-wait` and waits (at most 5 s) until `scripts/probe-ax.swift`
+    /// has read the accessibility tree and written `ax-done-<name>`.
+    static func axCheckpoint(_ folder: URL, _ name: String) async {
+        guard UserDefaults.standard.bool(forKey: "PulseProbeAX") else { return }
+        let done = folder.appendingPathComponent("ax-done-\(name)")
+        try? name.write(to: folder.appendingPathComponent("ax-wait"), atomically: true, encoding: .utf8)
+        for _ in 0..<100 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(50)) }
+    }
+
+    /// Each self-drawn control focused in turn through `@FocusState` (`FocusGallery`), captured, and whether SwiftUI
+    /// reports it focused.
+    static func focusGallery(_ model: AppModel, _ recorder: Recorder, _ folder: URL) async {
+        let state = FocusGalleryState()
+        let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.title = "Focus gallery"
+        window.isReleasedWhenClosed = false
+        window.contentViewController = NSHostingController(rootView: FocusGallery(state: state).themed(model))
+        window.center()
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        try? await Task.sleep(for: .milliseconds(600))
+        for (index, name) in FocusGallery.names.enumerated() {
+            state.request = index
+            try? await Task.sleep(for: .milliseconds(400))
+            recorder.log("focus gallery \(name): requested \(index), focused \(state.reported.map(String.init) ?? "none")")
+            if name == "calendar" {                // what a first arrow does, through the same function the view calls
+                recorder.log("calendar: first arrow chooses \(FocusGallery.grid.day(from: nil, weeks: 1) ?? "none")")
+            }
+            recorder.log(shoot(window, folder, "focus-\(index)-\(name)"))
+        }
+        window.close()
+    }
+
+    /// The player card turning over, captured as fast as the screenshot tool allows (about every 100 ms): with Reduce
+    /// Motion off the frames show the card edge-on; with it on, a crossfade between two flat faces.
+    static func flipFrames(_ model: AppModel, _ recorder: Recorder, _ folder: URL) async {
+        model.cardTiltPreview = .zero
+        model.cardShowsBack = false
+        model.detailsSection = .card
+        try? await Task.sleep(for: .milliseconds(1600))
+        guard let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) else { return recorder.log("ERROR no details window") }
+        let start = ProcessInfo.processInfo.systemUptime
+        model.cardShowsBack = true
+        // Off the main thread, so the animation keeps running while the screenshot tool works.
+        let number = window.windowNumber
+        for frame in 0..<6 {
+            let ms = Int((ProcessInfo.processInfo.systemUptime - start) * 1000)
+            let url = folder.appendingPathComponent("flip-\(frame)-\(ms)ms.png")
+            let status = await Task.detached { () -> Int32 in
+                let tool = Process()
+                tool.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+                tool.arguments = ["-x", "-o", "-l", String(number), url.path]
+                do { try tool.run() } catch { return -1 }
+                tool.waitUntilExit()
+                return tool.terminationStatus
+            }.value
+            recorder.log(status == 0 ? "captured flip-\(frame)-\(ms)ms" : "ERROR flip frame \(frame) status \(status)")
+        }
+        model.cardShowsBack = false
+        try? await Task.sleep(for: .milliseconds(1200))
     }
 
     static func tabTitle(_ tab: AppModel.SettingsTab) -> String {

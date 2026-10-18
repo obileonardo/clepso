@@ -69,6 +69,27 @@ public enum StatsCalendar {
     }
 }
 
+extension StatsCalendar.Grid {
+    /// Item 9: the day a keyboard cursor reaches from `date`, `days` (±1) or `weeks` (±1) away. Only days with data
+    /// are reached (the ones a click can choose); padding and no-data days are passed over in the same direction, and
+    /// at the edge the cursor stays. From no day, or a day not in the grid: the latest day with data.
+    public func day(from date: String?, days: Int = 0, weeks: Int = 0) -> String? {
+        let cells = self.weeks.flatMap { $0 }
+        func choosable(_ cell: StatsCalendar.Cell?) -> Bool { if case .level = cell?.state { true } else { false } }
+        guard let date, let start = cells.firstIndex(where: { $0?.date == date }) else {
+            return cells.last(where: choosable)??.date
+        }
+        let stride = days + 7 * weeks
+        guard stride != 0 else { return date }
+        var index = start + stride
+        while cells.indices.contains(index) {
+            if choosable(cells[index]) { return cells[index]?.date }
+            index += stride
+        }
+        return date
+    }
+}
+
 /// Time axes for the Limits chart (increment 1.8d): the limit's own window, whole-hour or whole-day ticks.
 public enum ChartAxis {
     /// The window a limit counts within: the reset minus its length, through the reset. Without a reset time,

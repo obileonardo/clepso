@@ -28,11 +28,31 @@ public struct PulseScenes: Scene {
         }
         .handlesExternalEvents(matching: ["auth-callback"])
         .defaultSize(width: DetailsMetrics.defaultWidth, height: DetailsMetrics.minHeight + 160)
+        .commands { SettingsCommand(model: model) }
 
         Window("Welcome to \(Product.name)", id: Self.onboardingID) {
             OnboardingView(model: model).themed(model)
         }
         .windowResizability(.contentSize)
+    }
+}
+
+/// Item 9: ⌘, opens Settings, as in every Mac app. Settings is a page of the Dashboard, so the app menu's Settings item
+/// (hidden with the menu bar of a menu bar app, but its shortcut works whenever Clepso is active: popover, Dashboard
+/// or onboarding) opens the Dashboard on that page.
+struct SettingsCommand: Commands {
+    let model: AppModel
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(replacing: .appSettings) {
+            Button(Copy.SettingsPage.title + "…") {
+                model.detailsSection = .settings
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: PulseScenes.detailsID)
+            }
+            .keyboardShortcut(",", modifiers: .command)
+        }
     }
 }
 
@@ -44,7 +64,14 @@ struct ThemedRoot: ViewModifier {
         content.modifier(Tint(theme: model.theme)).environment(\.theme, model.theme)
             .modifier(Scheme(forced: model.appearance.colorScheme))
             .preferredColorScheme(model.appearance.colorScheme)
+            .modifier(ReduceMotionRoot(forced: Self.forceReduceMotion))
     }
+
+    #if DEBUG
+    static var forceReduceMotion: Bool { ProbeOverrides.reduceMotion }
+    #else
+    static let forceReduceMotion = false
+    #endif
 
     /// `preferredColorScheme` never reaches the menu bar panel (it follows the menu bar), so a chosen Light or Dark is
     /// also set in the environment, which is what every token and native control reads.

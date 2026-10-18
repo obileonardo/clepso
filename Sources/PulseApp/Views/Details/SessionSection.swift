@@ -65,7 +65,7 @@ struct SessionSection: View {
                     .padding(.vertical, theme.spacing(.standard))
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PixelPlainButtonStyle())
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }

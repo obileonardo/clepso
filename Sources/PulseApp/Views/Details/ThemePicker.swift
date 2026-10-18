@@ -44,7 +44,7 @@ struct ThemeSwatch: View {
                                                       lineWidth: selected ? theme.stroke(.emphasis) : theme.stroke(.hairline)))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PixelPlainButtonStyle())
         .help(Copy.SettingsPage.themeIntent(candidate.name))
         .accessibilityLabel(Copy.SettingsPage.themeName(candidate.name) + ", " + Copy.SettingsPage.themeIntent(candidate.name))
         .accessibilityAddTraits(selected ? .isSelected : [])
