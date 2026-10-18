@@ -1,16 +1,16 @@
-# PROPOSAL ONLY. This file is deliberately NOT in .github/workflows, so it never runs.
-# To adopt it: resolve every "TODO(owner)" below, copy it to .github/workflows/ci.yml, and push to a branch.
+# Hosted CI (adopted 18 Oct 2026 from the Stage A proposal; see docs/open-source/GITHUB_SETTINGS.md §2).
 #
-# Design (matches the project's own CI plan, lanes A and B):
 #   - Runs on pull requests and pushes to main. Never uses pull_request_target, so code from forks runs with a
 #     read-only token and no secrets.
 #   - Least privilege: the workflow token can only read the repository contents.
-#   - Every third-party action must be pinned to a full commit SHA (TODO markers below). Dependabot
-#     (docs/open-source/proposed/dependabot.yml) then proposes updates to those pins.
+#   - Every action is pinned to a full commit SHA (version in the trailing comment); Dependabot (.github/dependabot.yml)
+#     proposes updates to those pins.
 #   - Gates run in contributor mode (scripts/ci.sh --contributor): ad-hoc signing and no accounts project, so the
 #     workflow needs no secrets at all. The maintainer's signing identity and accounts project must never be given to
 #     a workflow that runs pull-request code; signed builds belong in a separate, environment-protected release
 #     workflow, added later.
+#   - Runner: GitHub's `xcode-27` image (public preview, macOS 27) is the only hosted image with Xcode 27.1, which
+#     make ci pins (build 27A9275, checked 18 Oct 2026 in actions/runner-images). Never fall back to an older Xcode.
 
 name: CI
 
@@ -29,26 +29,20 @@ concurrency:
 jobs:
   spm:
     name: Build and test (SwiftPM)
-    # TODO(owner): Xcode 27.1 needs a macOS 26-or-later host. Confirm in actions/runner-images that this image
-    # carries Xcode 27.1 before adopting; if it does not, do not fall back to an older Xcode (make ci pins 27.1).
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
-      # TODO(owner): replace with actions/checkout pinned to the full commit SHA of a release you have verified,
-      # keeping the version as a trailing comment, e.g.  uses: actions/checkout@<40-char sha> # vX.Y.Z
-      - uses: actions/checkout@TODO-PIN-FULL-COMMIT-SHA
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Select Xcode 27.1
-        # TODO(owner): confirm the install path on the runner image.
         run: |
           sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
           xcodebuild -version
           swift --version
 
-      # TODO(owner): replace with actions/cache pinned to a full commit SHA.
-      - uses: actions/cache@TODO-PIN-FULL-COMMIT-SHA
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .build
           key: spm-${{ runner.os }}-xcode27.1-${{ hashFiles('Package.resolved') }}
@@ -61,10 +55,10 @@ jobs:
 
   gates:
     name: Quality gates (contributor mode)
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@TODO-PIN-FULL-COMMIT-SHA
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -79,8 +73,7 @@ jobs:
 
       - name: Keep gate logs
         if: always()
-        # TODO(owner): replace with actions/upload-artifact pinned to a full commit SHA.
-        uses: actions/upload-artifact@TODO-PIN-FULL-COMMIT-SHA
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-logs
           path: .build/ci-logs/
