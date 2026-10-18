@@ -115,6 +115,23 @@ struct CodexAdapterTests {
         #expect(CodexReader.latest(home: home, now: Date()) == nil)
     }
 
+    @Test("Item 8: timestamps come from one shared parser, with or without fractional seconds, safely from many threads")
+    func sharedTimestampParser() async {
+        let at = Date(timeIntervalSince1970: 1_792_260_000)
+        #expect(CodexRollout.timestamp("2026-10-17T18:00:00.250Z") == at.addingTimeInterval(0.25))
+        #expect(CodexRollout.timestamp("2026-10-17T18:00:00Z") == at)
+        #expect(CodexRollout.timestamp("2026-10-17T19:00:00+01:00") == at)
+        #expect(CodexRollout.timestamp("yesterday") == nil && CodexRollout.timestamp(42) == nil)
+        // A background scan and a tail read parse at the same time.
+        let results = await withTaskGroup(of: Bool.self) { group in
+            for i in 0..<64 {
+                group.addTask { CodexRollout.timestamp(i.isMultiple(of: 2) ? "2026-10-17T18:00:00.000Z" : "2026-10-17T18:00:00Z") == at }
+            }
+            return await group.reduce(into: [Bool]()) { $0.append($1) }
+        }
+        #expect(results.count == 64 && results.allSatisfy { $0 })
+    }
+
     func dayPath(_ date: Date, _ cal: Calendar) -> String {
         let c = cal.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d/%02d/%02d", c.year!, c.month!, c.day!)
