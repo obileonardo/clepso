@@ -2,7 +2,7 @@ import AppKit
 import Testing
 @testable import PulseApp
 
-/// 1.17: the Dashboard opens filling the screen, and its page column grows with the window within bounds.
+/// 1.17: the Dashboard opens at three quarters of the screen (then where the user left it), and its page column grows with the window within bounds.
 struct WindowSizingTests {
     @Test func columnGrowsWithTheWindowWithinBounds() {
         #expect(PageMetrics.column(fitting: 900) == 1040)               // small windows keep the old column
@@ -12,13 +12,17 @@ struct WindowSizingTests {
         #expect(content == 1070, "\(content)")
     }
 
-    @Test func windowFillsTheVisibleScreenAndIsNeverTallerThanIt() {
-        let visible = NSRect(x: 0, y: 80, width: 1728, height: 1037)    // below the menu bar, above the Dock
-        let frame = WindowFitter.FittingView.frame(for: visible, minimum: NSSize(width: 1100, height: 660))
-        #expect(frame == visible)
-        // A screen smaller than the minimum: never taller than the screen, centred, top-aligned.
-        let small = NSRect(x: 0, y: 0, width: 1024, height: 600)
-        let fitted = WindowFitter.FittingView.frame(for: small, minimum: NSSize(width: 1100, height: 660))
-        #expect(fitted.height == 600 && fitted.maxY == 600 && fitted.midX == small.midX)
+    @Test func windowOpensAtThreeQuartersCentredAndNeverPastTheScreen() {
+        let visible = NSRect(x: 0, y: 80, width: 2304, height: 1213)    // below the menu bar, above the Dock
+        let minimum = NSSize(width: 1100, height: 660)
+        let frame = WindowFitter.FittingView.frame(for: visible, minimum: minimum)
+        #expect(frame.width == 1728 && abs(frame.height - 910) <= 1, "\(frame)")
+        #expect(abs(frame.midX - visible.midX) <= 1 && abs(frame.midY - visible.midY) <= 1, "centred")
+        // A smaller screen: the minimum size wins over three quarters, and the window never leaves the screen.
+        let laptop = NSRect(x: 0, y: 0, width: 1280, height: 760)
+        let fitted = WindowFitter.FittingView.frame(for: laptop, minimum: minimum)
+        #expect(fitted.width == 1100 && fitted.height == 660 && laptop.contains(fitted))
+        let tiny = NSRect(x: 0, y: 0, width: 1024, height: 600)
+        #expect(WindowFitter.FittingView.frame(for: tiny, minimum: minimum).height == 600)
     }
 }

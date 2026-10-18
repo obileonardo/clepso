@@ -21,24 +21,7 @@ struct CardSection: View {
         PageColumn {
             // Read from the model here, so the page follows it: a new reading or a rewritten statistics file redraws it.
             if let card = model.playerCard {
-                PageSection(Copy.CardPage.yourCard, Copy.Card.note) {
-                    VStack(alignment: .leading, spacing: theme.spacing(.spacious) * 1.5) {
-                        FlipCard(card: card, showsBack: $model.cardShowsBack, previewTilt: model.cardTiltPreview)
-                        HStack(spacing: theme.spacing(.standard)) {
-                            // 1.15: the primary action leads, as in every action row.
-                            Button(Copy.Card.save) { save(card) }.buttonStyle(PixelButtonStyle(prominent: true))
-                            Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
-                            let image = image(card)
-                            ShareLink(item: Image(nsImage: image), preview: SharePreview(card.name.isEmpty ? Product.name : card.name, image: Image(nsImage: image))) {
-                                Text(Copy.Card.share)
-                            }
-                            .buttonStyle(PixelButtonStyle())
-                            Button(model.cardShowsBack ? Copy.Card.showFront : Copy.Card.showBack) { model.cardShowsBack.toggle() }
-                                .buttonStyle(PixelButtonStyle())
-                            if let note { Text(note).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)) }
-                        }
-                    }
-                }
+                cardSection(card)
                 if let summary = model.statsSummary(.allTime) {
                     PageSection(Copy.CardPage.milestones.capitalized, Copy.CardPage.milestonesSub) {
                         milestones(Ladder.all(output: card.output, longestStreak: summary.longestStreak, sessions: summary.sessions,
@@ -52,6 +35,41 @@ struct CardSection: View {
             }
         }
         .onChange(of: model.cardShowsBack) { note = nil }
+    }
+
+    /// The card on the right; its name and note level with the card's top, the actions level with its bottom (founder
+    /// review, 18 Oct 2026). The row is as tall as the card, and the left column fills that height. Same rule and air
+    /// as every `PageSection`.
+    func cardSection(_ card: PlayerCard) -> some View {
+        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
+            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                Text(Copy.CardPage.yourCard.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+                    .accessibilityAddTraits(.isHeader)
+                Text(Copy.Card.note).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: PageMetrics.labelColumn * 1.6, alignment: .leading)
+                Spacer(minLength: theme.spacing(.spacious))
+                if let note { Text(note).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)) }
+                HStack(spacing: theme.spacing(.standard)) {
+                    // 1.15: the primary action leads, as in every action row.
+                    Button(Copy.Card.save) { save(card) }.buttonStyle(PixelButtonStyle(prominent: true))
+                    Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
+                    let image = image(card)
+                    ShareLink(item: Image(nsImage: image), preview: SharePreview(card.name.isEmpty ? Product.name : card.name, image: Image(nsImage: image))) {
+                        Text(Copy.Card.share)
+                    }
+                    .buttonStyle(PixelButtonStyle())
+                    Button(model.cardShowsBack ? Copy.Card.showFront : Copy.Card.showBack) { model.cardShowsBack.toggle() }
+                        .buttonStyle(PixelButtonStyle())
+                }
+                .fixedSize()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            FlipCard(card: card, showsBack: $model.cardShowsBack, previewTilt: model.cardTiltPreview)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.vertical, theme.spacing(.section))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
     }
 
     /// Tripadvisor's ladders as rows: the category and its tier on the left, the rungs, then what reaches the next.

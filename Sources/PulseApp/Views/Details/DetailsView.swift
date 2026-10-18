@@ -280,20 +280,31 @@ struct WindowFitter: NSViewRepresentable {
     func updateNSView(_ view: FittingView, context: Context) {}
 
     final class FittingView: NSView {
+        /// The saved frame's name: macOS keeps the size and place the user last left the Dashboard at under it.
+        nonisolated static let autosaveName = "ClepsoDashboard"
+        /// The first open, before the user has sized it (founder review, 18 Oct 2026: not the full screen).
+        nonisolated static let openFraction: CGFloat = 0.75
+
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             guard let window else { return }
-            // After SwiftUI has placed the window (and restored any saved frame), so this frame wins.
+            // After SwiftUI has placed the window, so this frame wins. Reopens where the user left it; the first time,
+            // three quarters of the screen, centred, which the user can then make bigger or smaller.
             DispatchQueue.main.async {
-                guard let screen = window.screen ?? NSScreen.main else { return }
+                guard window.frameAutosaveName != Self.autosaveName else { return }
+                let restored = window.setFrameUsingName(Self.autosaveName)
+                window.setFrameAutosaveName(Self.autosaveName)
+                guard !restored, let screen = window.screen ?? NSScreen.main else { return }
                 window.setFrame(Self.frame(for: screen.visibleFrame, minimum: window.minSize), display: true, animate: false)
             }
         }
 
-        /// The visible area, or the window's minimum size centred in it on a screen too small for that.
+        /// Three quarters of the visible area, centred; never smaller than the window's minimum, never larger than the
+        /// screen.
         nonisolated static func frame(for visible: NSRect, minimum: NSSize) -> NSRect {
-            let w = max(visible.width, minimum.width), h = min(max(visible.height, minimum.height), visible.height)
-            return NSRect(x: visible.midX - w / 2, y: visible.maxY - h, width: w, height: h).integral
+            let w = min(max(visible.width * openFraction, minimum.width), max(visible.width, minimum.width))
+            let h = min(max(visible.height * openFraction, minimum.height), visible.height)
+            return NSRect(x: visible.midX - w / 2, y: visible.midY - h / 2, width: w, height: h).integral
         }
     }
 }
