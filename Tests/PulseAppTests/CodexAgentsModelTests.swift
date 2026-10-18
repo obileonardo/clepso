@@ -27,7 +27,9 @@ struct CodexAgentsModelTests {
         await model.setDemo(false)
         #expect(!model.snapshot.codexAgentsShown && model.snapshot.codexAgents == nil, "off: nothing shown")
         await model.setCodexEnabled(true)
-        #expect(model.snapshot.codexAgentsShown)
+        // The background scan's own refresh can supersede the one `setCodexEnabled` awaits (newest refresh wins), so the
+        // snapshot can arrive a moment after the call returns: wait for it rather than race it (failed ~1 run in 2).
+        #expect(await eventually { model.snapshot.codexAgentsShown })
         #expect(await eventually { model.snapshot.codexAgents != nil })
         let latest = try #require(model.snapshot.codexAgents?.latest)
         #expect(latest.agents == 1 && latest.finished == 0 && latest.byType.map(\.name) == ["Explorer"])
