@@ -22,6 +22,8 @@ public struct AppEnvironment: Sendable {
     public var notifications: any NotificationAuthorizing
     public var keychain: any KeychainCleaning
     public var appVersion: String
+    /// Auto-updating by default: `TimeZone.current` and `Locale.current` are snapshots, so after the Mac changes zone
+    /// (or its 12/24-hour setting) every reset time would keep the old one until a relaunch (TEST_PLAN §5, F16).
     public var timeZone: TimeZone
     public var locale: Locale
     public var tickInterval: Duration
@@ -34,7 +36,7 @@ public struct AppEnvironment: Sendable {
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,
                 keychain: any KeychainCleaning = SystemKeychain(), appVersion: String = "dev",
-                timeZone: TimeZone = .current, locale: Locale = .current, tickInterval: Duration = .seconds(30),
+                timeZone: TimeZone = .autoupdatingCurrent, locale: Locale = .autoupdatingCurrent, tickInterval: Duration = .seconds(30),
                 fullUserName: String = NSFullUserName(), sync: SyncClient? = nil) {
         self.dataDirectory = dataDirectory
         self.home = home

@@ -191,6 +191,11 @@ struct TextTests {
         #expect(Formatting.resetTime(reset, now: now, zone: la, locale: us) == "9:15 AM")
     }
 
+    @Test("Views follow the Mac's zone without a relaunch: the default display zone updates itself")
+    func displayZoneFollowsSystem() {
+        #expect(EnvironmentValues().displayTimeZone == TimeZone.autoupdatingCurrent)
+    }
+
     @Test("Ages: just now, minutes, then clock time")
     func ages() {
         #expect(Formatting.age(of: now.addingTimeInterval(-30), now: now, zone: london, locale: us) == "just now")

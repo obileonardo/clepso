@@ -251,6 +251,7 @@ extension EnvironmentValues {
     @Entry public var staleAfter: TimeInterval = 600
     /// True for demo or fixture data: every value then carries a DEMO badge.
     @Entry public var isFixtureData: Bool = false
-    /// Display time zone; stored instants never change with it (fixture F16).
-    @Entry public var displayTimeZone: TimeZone = .current
+    /// Display time zone; stored instants never change with it (fixture F16). Auto-updating, so a zone change on the
+    /// Mac moves every displayed time without a relaunch (`TimeZone.current` is a snapshot taken at first use).
+    @Entry public var displayTimeZone: TimeZone = .autoupdatingCurrent
 }
