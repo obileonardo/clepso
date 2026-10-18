@@ -1,4 +1,3 @@
-# PROPOSAL ONLY. To adopt: copy to .github/dependabot.yml.
 # Version updates are weekly and grouped so they arrive as one reviewable pull request per ecosystem.
 # Major versions are not ignored, but each still needs a human review against the changelog before merging.
 version: 2

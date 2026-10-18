@@ -319,8 +319,8 @@ accounts project.
 | no committed accounts project | No Supabase project host or publishable key in tracked files, and no `Config/*.local.xcconfig` tracked |
 | app bundle | `Clepso.app` builds and is signed, embeds the helper under its identifier, has no unexpected entitlements, runs as a menu bar app, registers the sign-in URL scheme, ships the third-party licences, and its helper links no networking. Strict mode also requires a real signature, hardened runtime and a configured accounts project |
 
-There is no hosted CI yet. A proposed GitHub Actions workflow is in
-[`docs/open-source/proposed/ci.yml`](docs/open-source/proposed/ci.yml); it is not active.
+GitHub Actions runs the same gates in contributor mode on every pull request and every push to `main`
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), on GitHub's `xcode-27` macOS image with Xcode 27.1.
 
 ## Project layout
 

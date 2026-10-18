@@ -37,7 +37,7 @@ visibility. **At public** = only available, or only free, once the repository is
 
 1. **Dependabot alerts**: Enable.
 2. **Dependabot security updates**: Enable.
-3. **Dependabot version updates**: adopt `docs/open-source/proposed/dependabot.yml` as `.github/dependabot.yml`.
+3. **Dependabot version updates**: `.github/dependabot.yml` (adopted 18 Oct 2026).
 4. **Secret scanning** and **Push protection**: Enable. Free for public repositories; for a private repository it
    needs GitHub Secret Protection. Turn both on no later than the moment the repository becomes public.
 5. **Private vulnerability reporting**: Enable (**owner action, required**: `SECURITY.md` names it as the only
@@ -53,7 +53,7 @@ visibility. **At public** = only available, or only free, once the repository is
 3. **Fork pull request workflows**: "Require approval for all outside collaborators".
 4. **Workflow permissions**: keep "Read repository contents and packages permissions"; keep "Allow GitHub Actions to
    create and approve pull requests" off.
-5. Adopt `docs/open-source/proposed/ci.yml` as `.github/workflows/ci.yml` after resolving its `TODO(owner)` items.
+5. `.github/workflows/ci.yml` (adopted 18 Oct 2026; actions pinned to full SHAs, runner `xcode-27` for Xcode 27.1).
    Never use `pull_request_target` for anything that checks out pull-request code.
 
 ### 3. Ruleset for `main` (Settings › Rules › Rulesets) — At public
