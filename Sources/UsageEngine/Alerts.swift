@@ -6,6 +6,8 @@ import Foundation
 /// its events become notifications and keys each one so it can be shown at most once.
 public enum AlertKind: String, Codable, Sendable, CaseIterable {
     case approaching, exhausted, resetExpected, readyAgain
+    /// Scheduled ahead with the notification center (§2), never planned from an event: see `ReminderPlanner`.
+    case resetReminder
 }
 
 public struct AlertCandidate: Sendable, Equatable {
@@ -21,13 +23,18 @@ public struct AlertCandidate: Sendable, Equatable {
         self.kind = kind; self.poolKey = poolKey; self.windowID = windowID; self.level = level
         self.occurredAt = occurredAt; self.dedupKey = dedupKey
     }
-    /// §1.9: exhausted 1.0, readyAgain 0.9, resetExpected 0.8, approaching 0.6.
+    /// §1.9: exhausted 1.0, readyAgain 0.9, resetExpected 0.8, approaching 0.6, others 0.2.
+    public var relevance: Double { kind.relevance }
+}
+
+extension AlertKind {
     public var relevance: Double {
-        switch kind {
+        switch self {
         case .exhausted: 1.0
         case .readyAgain: 0.9
         case .resetExpected: 0.8
         case .approaching: 0.6
+        case .resetReminder: 0.2
         }
     }
 }
@@ -39,7 +46,7 @@ extension AlertKind {
     public var maxAge: TimeInterval {
         switch self {
         case .readyAgain: 10 * 60
-        case .resetExpected: 15 * 60
+        case .resetExpected, .resetReminder: 15 * 60
         case .approaching, .exhausted: 30 * 60
         }
     }
@@ -55,13 +62,19 @@ public enum AlertPlanner {
         public var snoozedUntil: Date?
         public var enabled: Bool
         public var isDemo: Bool
+        /// §1.6, read in `timeZone` (the Mac's zone at decision time).
+        public var quietHours: QuietHours
+        public var timeZone: TimeZone
         public init(delivered: Set<String> = [], deliveredKinds: [UUID: Set<AlertKind>] = [:], snoozedUntil: Date? = nil,
-                    enabled: Bool = true, isDemo: Bool = false) {
+                    enabled: Bool = true, isDemo: Bool = false, quietHours: QuietHours = QuietHours(),
+                    timeZone: TimeZone = TimeZone(identifier: "UTC")!) {
             self.delivered = delivered
             self.deliveredKinds = deliveredKinds
             self.snoozedUntil = snoozedUntil
             self.enabled = enabled
             self.isDemo = isDemo
+            self.quietHours = quietHours
+            self.timeZone = timeZone
         }
     }
 
@@ -70,10 +83,13 @@ public enum AlertPlanner {
     }
 
     /// One batch's outcome: what to show, and what was due but is too old to show (`stale_dropped` receipts and one
-    /// diagnostic line, never a notification).
+    /// diagnostic line, never a notification). During quiet hours (§1.6) `approaching` waits for the digest
+    /// (`quiet_deferred` receipts) and everything else is shown quietly: `.passive`, no sound.
     public struct Decision: Sendable, Equatable {
         public var alerts: [AlertCandidate] = []
         public var expired: [AlertCandidate] = []
+        public var deferred: [AlertCandidate] = []
+        public var quiet = false
     }
 
     /// The alerts for one batch of events, highest level per pool and window, oldest first.
@@ -114,7 +130,32 @@ public enum AlertPlanner {
             candidates.append(candidate)
             if let window = event.windowID { shownKinds[window, default: []].insert(kind) }
         }
-        return Decision(alerts: coalesced(candidates), expired: expired)
+        let shown = coalesced(candidates)
+        guard context.quietHours.isActive(at: now, in: context.timeZone) else { return Decision(alerts: shown, expired: expired) }
+        return Decision(alerts: shown.filter { $0.kind != .approaching }, expired: expired,
+                        deferred: shown.filter { $0.kind == .approaching }, quiet: true)
+    }
+
+    /// What to do with the approaching alerts quiet hours held back (§1.6, §1.8 `digest`).
+    public enum DigestDecision: Sendable, Equatable {
+        /// Still quiet (or snoozed): keep holding.
+        case wait
+        /// Show one digest now.
+        case deliver
+        /// The quiet spell ended more than `AlertKind.approaching.maxAge` ago (the Mac slept through the morning):
+        /// settle without a notification, like any alert too old to be news.
+        case expired
+    }
+
+    /// `newestDeferral`: when the last held-back alert was deferred. The digest is due at the end of the quiet spell
+    /// that alert fell in, or at once if quiet hours were switched off before then.
+    public static func digest(newestDeferral: Date, quietHours: QuietHours, snoozedUntil: Date?, timeZone: TimeZone,
+                              now: Date) -> DigestDecision {
+        if quietHours.isActive(at: now, in: timeZone) { return .wait }
+        let due = min(quietHours.end(after: newestDeferral, in: timeZone), now)
+        if now.timeIntervalSince(due) > AlertKind.approaching.maxAge { return .expired }
+        if let snoozedUntil, now < snoozedUntil { return .wait }          // §1.7: a snooze holds approaching alerts
+        return .deliver
     }
 
     /// §1.5: within one batch, a pool and window keep only the highest crossing (95 and 100 together → limit reached).
