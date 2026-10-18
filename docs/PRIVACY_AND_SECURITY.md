@@ -117,6 +117,12 @@ only the last 256 KB of the three newest files. It decodes only lines that are `
 weekly used %, reset time, plan) and the turn's model name; every other line, including prompts and replies, is
 skipped before JSON decoding (`Sources/CodexAdapter/`).
 
+For Codex's tokens per day (Stats), Clepso also reads every session file under `~/.codex/sessions` once, in the
+background, and then only what Codex appends. The same rule holds: a line is decoded only when its bytes contain
+`"token_count"` or `"turn_context"` and it is at most 16 KB; prompts, replies, paths and every other line are skipped
+undecoded. It keeps only each day's token counts per model, in memory: nothing from these files is stored, logged,
+exported or uploaded. Turning Codex off drops them.
+
 ## 5. Logging and redaction
 
 Never logged: raw status-line input, the original status line's output, environment variables, the home folder or

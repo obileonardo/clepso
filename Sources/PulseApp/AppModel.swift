@@ -1,5 +1,6 @@
 import ClaudeCodeAdapter
 import struct CodexAdapter.CodexReading
+import struct CodexAdapter.CodexUsage
 import DesignSystem
 import enum Domain.EvidenceKind
 import enum Domain.Freshness
@@ -49,6 +50,10 @@ public final class AppModel {
     public internal(set) var codexEnabled = false
     var codexLatest: CodexReading?
     var codexConnection: UUID?
+    /// Codex's tokens per day and model (Stats), in memory only; nil until the first background read finishes.
+    public internal(set) var codexDays: [CodexUsage.Day]?
+    var codexUsage: CodexUsage?
+    var codexScanning = false
     /// The Pulse account on this Mac.
     public enum AccountState: Equatable, Sendable {
         case signedOut
