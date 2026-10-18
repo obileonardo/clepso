@@ -3,6 +3,7 @@
     python3 -I scripts/build-email.py              write backend/supabase/templates/*.html
     python3 -I scripts/build-email.py --check      fail if those files are stale, malformed or too big for Gmail
     python3 -I scripts/build-email.py --preview D  also write D/<name>.html with sample values, for screenshots
+    python3 -I scripts/build-email.py --api-payload  print the templates as a Management API JSON body (docs/EMAIL.md)
 
 The templates are Go templates filled in by Supabase Auth: {{ .ConfirmationURL }}, {{ .Email }}, {{ .NewEmail }}.
 Both apps sign in with PKCE, and {{ .ConfirmationURL }} (Auth's /verify link) is what returns `?code=…` to the
@@ -16,6 +17,7 @@ only pin the brand's colours for clients that would re-colour them. No HTML comm
 with Go's html/template, which strips them (so Outlook conditional comments can't be used).
 """
 import html
+import json
 import re
 import sys
 from html.parser import HTMLParser
@@ -295,7 +297,19 @@ def subjects_in_config():
     return found
 
 
+def api_payload():
+    """The committed templates as a Management API body (PATCH /v1/projects/{ref}/config/auth), written to stdout."""
+    body = {}
+    for name, e in EMAILS.items():
+        body[f"mailer_subjects_{name}"] = e["subject"]
+        body[f"mailer_templates_{name}_content"] = (OUT / f"{name}.html").read_text()
+    json.dump(body, sys.stdout, indent=1)
+    return 0
+
+
 def main(argv):
+    if "--api-payload" in argv:
+        return api_payload()
     check = "--check" in argv
     preview = Path(argv[argv.index("--preview") + 1]) if "--preview" in argv else None
     errs = []
