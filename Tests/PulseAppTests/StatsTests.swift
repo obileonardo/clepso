@@ -61,13 +61,30 @@ struct StatsTests {
         #expect(s.currentStreak == 3, "yesterday back: 16, 15, 14")
     }
 
-    @Test("Seen today on Pulse's own evidence: today counts as active and extends the streak, tokens unchanged")
+    @Test("Seen today on Clepso's own evidence: today counts as active and extends the streak, tokens unchanged")
     func seenToday() throws {
         let without = StatsSummary.make(try stats(), range: .allTime, today: "2026-10-17")
-        let with = StatsSummary.make(try stats(), range: .allTime, today: "2026-10-17", seenToday: true)
+        let with = StatsSummary.make(try stats(), range: .allTime, today: "2026-10-17", seenDays: ["2026-10-17"])
         #expect(with.activeDays == without.activeDays + 1)
         #expect(with.currentStreak == 4)
         #expect(with.totalTokens == without.totalTokens)
+    }
+
+    /// The founder's card on 18 Oct said "STREAK 1 day": Claude Code's file was last computed on the 16th, Clepso saw
+    /// activity on the 17th and 18th, and the 17th — not yet in the file — was counted as a day off.
+    @Test("A lagging file: days after its last day count when Clepso saw them, so the streak runs 14–18, not just today")
+    func laggingFile() throws {
+        let file = try stats()                                       // computed through the 16th: 14, 15, 16 active
+        let before = StatsSummary.make(file, range: .allTime, today: "2026-10-18", seenDays: [])
+        #expect(before.currentStreak == 0, "nothing seen: the 17th and 18th are unknown, the streak ends on the 16th's eve")
+        let seen = StatsSummary.make(file, range: .allTime, today: "2026-10-18", seenDays: ["2026-10-17", "2026-10-18"])
+        #expect(seen.currentStreak == 5 && seen.longestStreak == 5 && seen.activeDays == 7)
+        // Only today seen: yesterday is a real gap, so the streak is today alone.
+        let gap = StatsSummary.make(file, range: .allTime, today: "2026-10-18", seenDays: ["2026-10-18"])
+        #expect(gap.currentStreak == 1 && gap.longestStreak == 3)
+        // Seen days the file already covers never override it, and future days never count.
+        let covered = StatsSummary.make(file, range: .allTime, today: "2026-10-18", seenDays: ["2026-10-12", "2026-10-13", "2026-10-19"])
+        #expect(covered.activeDays == before.activeDays && covered.longestStreak == before.longestStreak)
     }
 
     @Test("Last 7 days: per-day token counts, sessions in range only")

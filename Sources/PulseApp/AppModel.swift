@@ -692,12 +692,20 @@ public final class AppModel {
         stats = StatsReader.read(home: environment.home)
     }
 
-    /// The summary for a range, counting today as active when Pulse itself received readings today.
+    /// The summary for a range, counting the days after the statistics file's last day on which Clepso itself received
+    /// Claude Code readings (see `seenDays`).
     public func statsSummary(_ range: StatsSummary.Range) -> StatsSummary? {
         guard case .success(let file)? = stats else { return nil }
         let today = Self.dayLabel(environment.clock.now(), zone: environment.timeZone)
-        let seenToday = snapshot.updatedAt.map { Self.dayLabel($0, zone: environment.timeZone) == today } ?? false
-        return StatsSummary.make(file, range: range, today: today, seenToday: seenToday && !snapshot.isDemo)
+        return StatsSummary.make(file, range: range, today: today, seenDays: snapshot.isDemo ? [] : Self.seenDays(snapshot, zone: environment.timeZone))
+    }
+
+    /// Local days with Claude Code readings in Clepso's own store: the newest reading, the limit readings of the last
+    /// seven days, and when each kept session was last seen. Claude Code's pools only; demo data is never evidence.
+    static func seenDays(_ snapshot: OverviewSnapshot, zone: TimeZone) -> Set<String> {
+        guard let provider = snapshot.provider else { return [] }
+        let instants = [snapshot.updatedAt] + provider.pools.flatMap { $0.history.map(\.at) } + provider.sessions.map(\.lastSeen)
+        return Set(instants.compactMap { $0 }.map { dayLabel($0, zone: zone) })
     }
 
     /// Claude Code labels days by the local calendar.

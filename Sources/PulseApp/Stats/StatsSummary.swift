@@ -32,13 +32,15 @@ public struct StatsSummary: Sendable, Equatable {
     /// Per day in the range, tokens by model id, oldest first (the Models chart).
     public let dailyTokens: [ClaudeCodeStats.DayTokens]
     public let hourCounts: [Int: Int]
-    /// The last day the file covers. Claude Code folds a day in after it ends, so tokens stop here; see `seenToday`.
+    /// The last day the file covers. Claude Code folds a day in after it ends, so tokens stop here; see `seenDays`.
     public let computedThrough: String?
     public var favorite: ModelShare? { models.first }
 
-    /// `seenToday`: Pulse received Claude Code readings today. Claude Code's file covers days up to yesterday, so today
-    /// counts as active for days and streaks on Pulse's own evidence; today's tokens are not invented.
-    public static func make(_ stats: ClaudeCodeStats, range: Range, today: String, seenToday: Bool = false) -> StatsSummary {
+    /// `seenDays`: days on which Clepso itself received Claude Code readings. Claude Code folds a day into its file only
+    /// after the day ends, and sometimes days later (`computedThrough` can lag: a file last computed on the 16th says
+    /// nothing about the 17th). A seen day after the file's last day therefore counts as active for days and streaks on
+    /// Clepso's own evidence; days the file covers are left as the file says, and no tokens are invented.
+    public static func make(_ stats: ClaudeCodeStats, range: Range, today: String, seenDays: Set<String> = []) -> StatsSummary {
         let first: String = switch range {
         case .allTime: stats.firstSessionDate ?? stats.days.first?.date ?? today
         case .last30: Day.adding(-29, to: today)
@@ -47,7 +49,8 @@ public struct StatsSummary: Sendable, Equatable {
         let days = stats.days.filter { $0.date >= first && $0.date <= today }
         let active = days.filter { $0.messages > 0 }
         var activeSet = Set(active.map(\.date))
-        if seenToday { activeSet.insert(today) }
+        let covered = stats.computedThrough ?? stats.days.last?.date ?? ""
+        activeSet.formUnion(seenDays.filter { $0 > covered && $0 <= today })
         let tokensInRange = stats.dailyTokens.filter { $0.date >= first && $0.date <= today }
 
         // All time uses Claude Code's per-model totals (input, output and cache), as /stats does; a shorter range can
