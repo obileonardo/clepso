@@ -57,8 +57,11 @@ enum SyncPayloadBuilder {
             for t in tasks where label(t.startedAt) >= first {
                 var d = byDay[label(t.startedAt)] ?? (0, 0, [:])
                 d.tasks += 1
-                d.agents += t.agents
-                for (type, n) in t.byType { d.types[type, default: 0] += n }
+                // Claude Code's own internal agents (no type) aren't subagents of the task; counted as the Mac counts them.
+                for (type, n) in t.byType where type != OverviewProjection.internalAgentType {
+                    d.agents += n
+                    d.types[type, default: 0] += n
+                }
                 byDay[label(t.startedAt)] = d
             }
             payload.agents = byDay.keys.sorted().map { .init(day: $0, tasks: byDay[$0]!.tasks, agents: byDay[$0]!.agents, byType: byDay[$0]!.types) }

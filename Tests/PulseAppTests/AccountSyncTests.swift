@@ -47,7 +47,7 @@ struct AccountSyncTests {
         let now = Date(timeIntervalSince1970: 1_792_159_200)                    // 16 Oct 2026 14:00 UTC
         let day: Double = 86_400
         let task = Store.AgentTask(id: "task-uuid-should-not-leak", sessionRef: "0123456789abcdef", startedAt: now - 3600, endedAt: nil,
-                                   fromPrompt: true, byType: ["Explore": 2, "custom": 1], finished: 1)
+                                   fromPrompt: true, byType: ["Explore": 2, "custom": 1, "unknown": 4], finished: 1)
         var input = SyncPayloadBuilder.Input(profileName: "Elvis", planLabel: "Max 5×", stats: nil,
                                              fiveHour: [UsagePoint(at: now - day, usedPct: 40), UsagePoint(at: now - 60, usedPct: 63), UsagePoint(at: now - 120, usedPct: 70),
                                                         UsagePoint(at: now - 20 * day, usedPct: 99)],
