@@ -525,10 +525,11 @@ struct ModelSprite: View {
     let role: ColorToken
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.6)) { timeline in
+        // Under Reduce Motion the schedule is paused: one still frame, and no timer waking the app every 0.6 s.
+        TimelineView(.animation(minimumInterval: 0.6, paused: reduceMotion)) { timeline in
             let frame = reduceMotion ? 0 : Int(timeline.date.timeIntervalSinceReferenceDate / 0.6) % 2
             Canvas { context, size in
                 let rows = Self.bitmap(family)

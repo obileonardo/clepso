@@ -44,7 +44,14 @@ struct ThemedRoot: ViewModifier {
         content.modifier(Tint(theme: model.theme)).environment(\.theme, model.theme)
             .modifier(Scheme(forced: model.appearance.colorScheme))
             .preferredColorScheme(model.appearance.colorScheme)
+            .modifier(ReduceMotionRoot(forced: Self.forceReduceMotion))
     }
+
+    #if DEBUG
+    static var forceReduceMotion: Bool { ProbeOverrides.reduceMotion }
+    #else
+    static let forceReduceMotion = false
+    #endif
 
     /// `preferredColorScheme` never reaches the menu bar panel (it follows the menu bar), so a chosen Light or Dark is
     /// also set in the environment, which is what every token and native control reads.

@@ -117,6 +117,26 @@ design_tokens_only() {
     echo "components use Theme tokens and pixel icons only"
 }
 
+# Item 9: every animation goes through a motion token (`Theme.motion`), which honours Reduce Motion, and views read
+# Reduce Motion from `\.reduceMotion` (set once per window by `ReduceMotionRoot`). Animation curves live only in
+# Tokens.swift; an explicit `.animation(nil…)` is allowed (it turns animation off).
+motion_tokens_only() {
+    local scope=(Sources/DesignSystem Sources/PulseApp) hits
+    hits=$(grep -rnE 'withAnimation[[:space:]]*\(|\.animation[[:space:]]*\(|Transaction\(animation:|\.animation[[:space:]]*=' "${scope[@]}" \
+        | grep -v '^Sources/DesignSystem/Theme/Tokens.swift:' | grep -v 'motion(' | grep -vE '\.animation\(nil|TimelineView\(' \
+        | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' || true)
+    [ -z "$hits" ] || { echo "animate through theme.motion(<MotionToken>, reduceMotion:):"; echo "$hits"; return 1; }
+    # Frame-by-frame motion (a TimelineView) pauses under Reduce Motion: its schedule names reduceMotion.
+    hits=$(grep -rn 'TimelineView(' "${scope[@]}" | grep -v 'reduceMotion' | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' || true)
+    [ -z "$hits" ] || { echo "pause TimelineView under Reduce Motion (.animation(minimumInterval:paused: reduceMotion)):"; echo "$hits"; return 1; }
+    hits=$(grep -rnE '\.(spring|interpolatingSpring|interactiveSpring|easeInOut|easeIn|easeOut|linear|bouncy|snappy|smooth)\(|\.repeatForever|\.(bouncy|snappy|smooth|spring|easeInOut|easeIn|easeOut|linear)[,)]' \
+        "${scope[@]}" | grep -v '^Sources/DesignSystem/Theme/Tokens.swift:' | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' || true)
+    [ -z "$hits" ] || { echo "animation curves belong in MotionToken (Tokens.swift):"; echo "$hits"; return 1; }
+    hits=$(grep -rn 'accessibilityReduceMotion' "${scope[@]}" | grep -v '^Sources/DesignSystem/Theme/Tokens.swift:' || true)
+    [ -z "$hits" ] || { echo "read \\.reduceMotion (set by ReduceMotionRoot), not the system value:"; echo "$hits"; return 1; }
+    echo "animations: $(grep -rnE 'withAnimation[[:space:]]*\(|\.animation[[:space:]]*\(' "${scope[@]}" | grep -v 'TimelineView(' | grep -vc '^Sources/DesignSystem/Theme/Tokens.swift:' || true) call sites, all through motion tokens"
+}
+
 # Logging and redaction (PRIVACY_AND_SECURITY §5): `unsafeReveal` only in Storage and the helper's passthrough;
 # `Redacted` is never Codable.
 redaction_audit() {
@@ -210,6 +230,7 @@ run "helper links no networking"    helper_linkage
 run "networking only in Sync"       no_networking_code
 run "clock injected"                no_direct_clock
 run "design tokens only"             design_tokens_only
+run "motion through tokens"         motion_tokens_only
 run "redaction audit"               redaction_audit
 run "secret scan"                   secret_scan
 run "no committed accounts project" no_committed_sync_project

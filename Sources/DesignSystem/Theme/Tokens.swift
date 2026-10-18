@@ -44,7 +44,19 @@ public enum TypographyToken: String, CaseIterable, Sendable { case metricDisplay
 public enum SpacingToken: String, CaseIterable, Sendable { case compact, standard, spacious, windowPadding, section }
 public enum RadiusToken: String, CaseIterable, Sendable { case control, card, pill }
 public enum StrokeToken: String, CaseIterable, Sendable { case hairline, emphasis, focus }
-public enum MotionToken: String, CaseIterable, Sendable { case ringFill, stateChange }
+/// Every animation in the app is one of these (`scripts/ci.sh` fails on any other). Item 9: under Reduce Motion each
+/// one stops, except where the view it drives changes only opacity then (`crossfadesUnderReduceMotion`).
+public enum MotionToken: String, CaseIterable, Sendable {
+    case ringFill, stateChange
+    /// The player card turning over. Under Reduce Motion the card stays flat and its faces crossfade (`FlipFace`).
+    case cardFlip
+    /// The player card leaning toward the pointer and lifting while hovered. Off under Reduce Motion.
+    case cardTilt
+
+    /// True when the view keeps a short opacity crossfade under Reduce Motion instead of changing at once: a change of
+    /// content with no movement, which Apple's guidance allows (a dissolve rather than a slide or a spin).
+    public var crossfadesUnderReduceMotion: Bool { self == .cardFlip }
+}
 
 /// How text is set: the system faces, or the pixel faces of increment 1.7b (bundled under the SIL OFL).
 public enum Typeface: String, Sendable { case system, pixel }
@@ -109,14 +121,20 @@ public struct Theme: Sendable {
         }
     }
 
-    /// nil when Reduce Motion is on: no animation at all, not a shorter one.
+    /// The one place an animation is chosen. Under Reduce Motion: nil (the change happens at once), or for a token that
+    /// `crossfadesUnderReduceMotion`, a short ease that the view spends on opacity alone.
     public func motion(_ token: MotionToken, reduceMotion: Bool) -> Animation? {
-        guard !reduceMotion else { return nil }
+        guard !reduceMotion else { return token.crossfadesUnderReduceMotion ? .easeInOut(duration: Self.reducedCrossfade) : nil }
         return switch token {
         case .ringFill: .easeInOut(duration: 0.35)
         case .stateChange: .easeOut(duration: 0.2)
+        case .cardFlip: .spring(response: 0.6, dampingFraction: 0.82)
+        case .cardTilt: .spring(response: 0.35, dampingFraction: 0.75)
         }
     }
+
+    /// Seconds: the longest crossfade Reduce Motion keeps.
+    public static let reducedCrossfade: Double = 0.25
 
     public static let mac = Theme(
         palette: [
@@ -254,4 +272,17 @@ extension EnvironmentValues {
     /// Display time zone; stored instants never change with it (fixture F16). Auto-updating, so a zone change on the
     /// Mac moves every displayed time without a relaunch (`TimeZone.current` is a snapshot taken at first use).
     @Entry public var displayTimeZone: TimeZone = .autoupdatingCurrent
+    /// Item 9: Reduce Motion as the app applies it, set once at every window's root by `ReduceMotionRoot` from the
+    /// system setting (System Settings › Accessibility › Display › Reduce motion). Views read this, never
+    /// `accessibilityReduceMotion`, so one place decides and a debug run can turn it on without touching the Mac's setting.
+    @Entry public var reduceMotion: Bool = false
+}
+
+/// Every window's root: copies the system's Reduce Motion setting into `\.reduceMotion`, or forces it on (`forced`,
+/// the screenshot probe's `-PulseProbeReduceMotion YES`).
+public struct ReduceMotionRoot: ViewModifier {
+    let forced: Bool
+    @Environment(\.accessibilityReduceMotion) private var system
+    public init(forced: Bool = false) { self.forced = forced }
+    public func body(content: Content) -> some View { content.environment(\.reduceMotion, system || forced) }
 }

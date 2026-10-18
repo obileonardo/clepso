@@ -13,7 +13,7 @@ struct ProviderDetailView: View {
     let provider: ProviderSection
     let now: Date
     @State private var showsCoverage = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reduceMotion) private var reduceMotion
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 

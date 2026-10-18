@@ -140,7 +140,7 @@ struct FlipCard: View {
     @FocusState private var focused: Bool
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.reduceMotion) private var reduceMotion
 
     static let maxTilt: Double = 8                       // degrees, with the pointer at the card's edge
 
@@ -159,8 +159,8 @@ struct FlipCard: View {
             .scaleEffect(lifted ? 1.01 : 1)
             .shadow(color: shadow.opacity(lifted ? 0.3 : 0.15), radius: theme.spacing(.spacious) * (lifted ? 1.5 : 0.8),
                     x: -lean.width * theme.spacing(.standard) * 1.5, y: theme.spacing(.standard) * (lifted ? 2 : 1) - lean.height * theme.spacing(.compact))
-            .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.75), value: tilt)
-            .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.75), value: hovering)
+            .animation(theme.motion(.cardTilt, reduceMotion: reduceMotion), value: tilt)
+            .animation(theme.motion(.cardTilt, reduceMotion: reduceMotion), value: hovering)
             .contentShape(Rectangle())
             .onContinuousHover { phase in
                 switch phase {
@@ -186,7 +186,7 @@ struct FlipCard: View {
             .onAppear { angle = showsBack ? 180 : 0 }
             .onChange(of: showsBack) { _, back in
                 // A spring flip; under Reduce Motion the same change is a short crossfade (`FlipFace(flat:)`).
-                withAnimation(reduceMotion ? .easeInOut(duration: 0.25) : .spring(response: 0.6, dampingFraction: 0.82)) {
+                withAnimation(theme.motion(.cardFlip, reduceMotion: reduceMotion)) {
                     angle = back ? 180 : 0
                 }
             }

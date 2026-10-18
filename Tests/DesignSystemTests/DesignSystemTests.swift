@@ -124,9 +124,31 @@ struct ThemeTests {
         }
     }
 
-    @Test("Reduce Motion turns every animation off")
+    @Test("Reduce Motion stops every animation; only a token that turns into an opacity change keeps a short crossfade")
     func reduceMotion() {
-        for token in MotionToken.allCases { #expect(Theme.mac.motion(token, reduceMotion: true) == nil) }
+        for theme in Theme.all {
+            for token in MotionToken.allCases {
+                let reduced = theme.motion(token, reduceMotion: true)
+                if token.crossfadesUnderReduceMotion {
+                    #expect(reduced == .easeInOut(duration: Theme.reducedCrossfade), "\(token)")
+                } else {
+                    #expect(reduced == nil, "\(token) still animates under Reduce Motion")
+                }
+                #expect(theme.motion(token, reduceMotion: false) != nil, "\(token) has no animation at all")
+            }
+        }
+        #expect(MotionToken.allCases.filter(\.crossfadesUnderReduceMotion) == [.cardFlip])   // a new one is a deliberate choice
+        #expect(Theme.reducedCrossfade <= 0.25)
+    }
+
+    @Test("Views see Reduce Motion only through the root, which a forced override turns on")
+    @MainActor
+    func reduceMotionRoot() {
+        // The environment value every view reads defaults to off; `ReduceMotionRoot` is what turns it on.
+        #expect(EnvironmentValues().reduceMotion == false)
+        let probe = ReduceMotionProbe()
+        _ = ImageRenderer(content: probe.modifier(ReduceMotionRoot(forced: true))).cgImage
+        #expect(probe.seen.value == true)
     }
 }
 
@@ -477,5 +499,17 @@ struct PixelIconSetTests {
                 #expect(!isIcon, "\(file): no glyph for \(name)")
             }
         }
+    }
+}
+
+/// Records the `\.reduceMotion` a view sees when rendered.
+@MainActor
+struct ReduceMotionProbe: View {
+    final class Box { var value: Bool? }
+    let seen = Box()
+    @Environment(\.reduceMotion) private var reduceMotion
+    var body: some View {
+        seen.value = reduceMotion
+        return Color.clear.frame(width: 1, height: 1)
     }
 }
