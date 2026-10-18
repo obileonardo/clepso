@@ -4,12 +4,15 @@ import SwiftUI
 
 /// Agents per task (increment 1.9; cards after the founder's review of 18 Oct 2026) on the Session page: the 30-day
 /// figures as cards, the latest task as a card of its own, and the recent tasks as a table. Counts and types only;
-/// when the hooks aren't installed, what turning them on would do and where.
+/// when the hooks aren't installed, what turning them on would do and where. Item 4: the same panel for Codex, from
+/// its session files, with the approval auto-reviews Codex ran beside each task's agents.
 struct AgentsPanel: View {
+    enum Source { case claudeCode, codex }
     let summary: AgentsSummary?
     let now: Date
     let zone: TimeZone
     let locale: Locale
+    var source: Source = .claudeCode
     let openProviders: () -> Void
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
@@ -24,9 +27,11 @@ struct AgentsPanel: View {
                     if summary.recent.count > 1 { recent(summary) }
                 }
             } else {
-                Text(Copy.Agents.noTasks).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
-                    .fixedSize(horizontal: false, vertical: true)
+                Text(source == .codex ? Copy.Agents.codexNoTasks : Copy.Agents.noTasks).font(theme.font(.label))
+                    .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
             }
+        } else if source == .codex {
+            Text(Copy.Agents.codexReading).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
         } else {
             VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                 Text(Copy.Agents.offBody).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
@@ -94,17 +99,30 @@ struct AgentsPanel: View {
                 types: Text(Copy.Agents.colTypes.uppercased()), duration: Text(Copy.Agents.colDuration.uppercased()), header: true)
                 .accessibilityHidden(true)
             ForEach(s.recent) { task in
-                let types = task.byType.map { "\($0.name) \($0.count)" }.joined(separator: " · ")
-                row(Text(Formatting.clock(task.startedAt, zone: zone, locale: locale)),
+                let types = (task.byType.map { "\($0.name) \($0.count)" } + reviews(task)).joined(separator: " · ")
+                row(Text(Self.started(task.startedAt, now: now, zone: zone, locale: locale)),
                     agents: Double(task.agents) / Double(top),
                     count: Text("\(task.agents)"),
                     types: Text(types.isEmpty ? Copy.Agents.none : types),
                     duration: Text(task.running ? Copy.Agents.running : duration(task) ?? "—"),
                     header: false, running: task.running, empty: task.agents == 0)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Formatting.clock(task.startedAt, zone: zone, locale: locale) + ": " + line(task))
+                    .accessibilityLabel(Self.started(task.startedAt, now: now, zone: zone, locale: locale) + ": " + line(task))
             }
         }
+    }
+
+    /// When a task started: the time today, and the day too for an earlier day, so yesterday's 23:50 never reads as today's.
+    nonisolated static func started(_ date: Date, now: Date, zone: TimeZone, locale: Locale) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let time = Formatting.clock(date, zone: zone, locale: locale)
+        guard !calendar.isDate(date, inSameDayAs: now) else { return time }
+        let day = DateFormatter()
+        day.locale = locale
+        day.timeZone = zone
+        day.setLocalizedDateFormatFromTemplate(now.timeIntervalSince(date) < 6 * 86_400 ? "EEE" : "d MMM")
+        return day.string(from: date) + " " + time
     }
 
     /// One table row on a faint rule; the header row is small capitals in the secondary colour.
@@ -140,15 +158,20 @@ struct AgentsPanel: View {
 
     func when(_ task: AgentsSummary.Task) -> String {
         let start = Copy.Agents.started(Formatting.clock(task.startedAt, zone: zone, locale: locale))
-        guard !task.running, let took = duration(task) else { return start }
-        return "\(start) · \(took)"
+        let took = task.running ? nil : duration(task)
+        return ([start] + [took].compactMap { $0 } + reviews(task)).joined(separator: " · ")
+    }
+
+    /// Codex's auto-reviews as words, when it ran any; never part of the agent counts.
+    func reviews(_ task: AgentsSummary.Task) -> [String] {
+        task.reviews > 0 ? [Copy.Agents.reviews(task.reviews)] : []
     }
 
     func line(_ task: AgentsSummary.Task) -> String {
         let count = task.agents == 0 ? Copy.Agents.none : Copy.Agents.count(task.agents)
         let types = task.byType.map { "\($0.name) \($0.count)" }.joined(separator: ", ")
         let took = task.running ? Copy.Agents.running : duration(task)
-        return [count, types.isEmpty ? nil : types, took].compactMap { $0 }.joined(separator: " · ")
+        return ([count, types.isEmpty ? nil : types, took].compactMap { $0 } + reviews(task)).joined(separator: " · ")
     }
 }
 

@@ -561,7 +561,7 @@ enum Copy {
         static let lastTaskShort = "Agents, last task"
         static let statShort = "Agents"
         static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom"
-        static let title = "AGENTS PER TASK", titleShort = "Agents per task"
+        static let title = "AGENTS PER TASK", titleShort = "Agents per task", claudeTitle = "Claude Code agents per task"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
         static func count(_ n: Int) -> String { n == 1 ? "1 agent" : "\(n) agents" }
         static let none = "No subagents"
@@ -579,6 +579,13 @@ enum Copy {
         static let offTitle = "COUNT AGENTS PER TASK?"
         static let offBody = "\(product) can count how many subagents Claude Code starts for each prompt, by type (Explore, Plan, General; your own agents as Custom). It adds four background hooks to Claude Code's settings, with a backup first. The hooks send only the event, hashed ids and the type, never your prompts, replies or file names. Turn it on in Settings › Providers."
         static let openSettings = "Open Settings…"
+        /// Item 4: Codex's agents per task, from its own session files.
+        static let codexTitle = "Codex agents per task"
+        static let codexTaskLabel = "A task is one prompt to Codex: from sending it until Codex finishes the turn. Its agents are the sub-agents Codex spawns for it."
+        static let codexNoTasks = "No Codex tasks yet. Send Codex a prompt; it appears here once Codex has written it to its session files."
+        static let codexReading = "Reading Codex's session files…"
+        static let codexDefault = "Default", codexExplorer = "Explorer", codexWorker = "Worker", codexAwaiter = "Awaiter"
+        static func reviews(_ n: Int) -> String { n == 1 ? "1 auto-review" : "\(n) auto-reviews" }
         static func strip(_ n: Int, _ types: String) -> String { n == 0 ? "Last task: no subagents" : "Last task: \(n == 1 ? "1 agent" : "\(n) agents") · \(types)" }
         static let toggle = "Count subagents per task"
         static let toggleSublabel = "Adds four background hooks to Claude Code's settings; counts and types only"
