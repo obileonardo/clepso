@@ -70,6 +70,10 @@ enum PopoverProbe {
                name.hasSuffix("-tall") || defaults.bool(forKey: "PulseProbeTall") {
                 // As tall as the screen allows, so content below the fold is captured too.
                 window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: min(screen.width, 1500), height: screen.height), display: true)
+            } else if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }), let screen = window.screen?.visibleFrame,
+                      defaults.double(forKey: "PulseProbeWidth") > 0 {
+                // `-PulseProbeWidth <pt>`: every page at one window width (the minimum is 1100), full screen height.
+                window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: defaults.double(forKey: "PulseProbeWidth"), height: screen.height), display: true)
             }
             try? await Task.sleep(for: .milliseconds(800))
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) {

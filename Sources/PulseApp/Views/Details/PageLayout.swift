@@ -11,18 +11,30 @@ import SwiftUI
 /// things from the column (calendars) take the closure form, which hands them the content side's width.
 struct PageColumn<Content: View>: View {
     let content: (CGFloat) -> Content
-    @State private var available: CGFloat = PageMetrics.column
+    /// The pane's width from `DetailsView`, measured where content can't push it wider. A column that measured itself
+    /// read its content's width once content overflowed, so calendars sized from it kept overflowing (Overview at the
+    /// 1100 pt minimum window, main at 5ac329b). Its own measurement is only a fallback outside the Dashboard.
+    @Environment(\.pageWidth) private var pageWidth
+    @State private var measured: CGFloat = 0
+    var available: CGFloat { pageWidth > 0 ? pageWidth : measured }
 
     init(@ViewBuilder content: @escaping () -> Content) { self.content = { _ in content() } }
     init(@ViewBuilder fitting content: @escaping (_ contentWidth: CGFloat) -> Content) { self.content = content }
 
     var body: some View {
         let column = PageMetrics.column(fitting: available)
-        VStack(alignment: .leading, spacing: 0) { content(PageMetrics.content(column)) }
+        // Pages size things (calendars) from the width the column really gets: below 1040 + gutters its frame shrinks
+        // to the window.
+        VStack(alignment: .leading, spacing: 0) { content(PageMetrics.content(min(column, available))) }
             .frame(maxWidth: column, alignment: .leading)
             .frame(maxWidth: .infinity)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { available = $0 }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { measured = $0 }
     }
+}
+
+extension EnvironmentValues {
+    /// The Dashboard page's width, as proposed by the window (see `PageColumn`).
+    @Entry var pageWidth: CGFloat = 0
 }
 
 enum PageMetrics {
@@ -35,7 +47,7 @@ enum PageMetrics {
     static let labelColumn: CGFloat = 260
     /// The content side's width, for things sized from it (calendars).
     static var content: CGFloat { content(column) }
-    static func content(_ column: CGFloat) -> CGFloat { column - labelColumn - 30 }
+    static func content(_ column: CGFloat) -> CGFloat { max(0, column - labelColumn - 30) }
     /// The column for a page `available` points wide. Below 1040 + gutters the column stays 1040 and its frame
     /// shrinks to fit, as it always did.
     static func column(fitting available: CGFloat) -> CGFloat { min(max(available - 2 * gutter, column), maxColumn) }

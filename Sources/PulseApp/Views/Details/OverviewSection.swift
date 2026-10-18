@@ -219,9 +219,13 @@ struct CalendarGridView: View {
     static func labelColumn(_ theme: Theme) -> CGFloat { theme.spacing(.spacious) * 2 }
 
     /// The largest square that fits `weeks` columns and the label column in `width`, within readable bounds.
+    /// The drawn width is the label column, a gap, and a cell and a gap per week, where the gap is `gapRatio` of a cell
+    /// but never under two hairlines; both are counted, so a fitted year never runs past `width`.
     static func cell(fitting width: CGFloat, weeks: Int, theme: Theme) -> CGFloat {
-        let fit = (width - labelColumn(theme) - theme.spacing(.compact)) / (CGFloat(max(1, weeks)) * (1 + gapRatio))
-        return min(max(fit, theme.spacing(.standard)), theme.spacing(.spacious) * 1.6)
+        let w = CGFloat(max(1, weeks)), floorGap = theme.stroke(.hairline) * 2, room = width - labelColumn(theme)
+        var fit = room / (w * (1 + gapRatio) + gapRatio)
+        if fit * gapRatio < floorGap { fit = (room - floorGap * (w + 1)) / w }
+        return min(max(fit, theme.spacing(.standard) - theme.stroke(.hairline)), theme.spacing(.spacious) * 1.6)
     }
 
     var body: some View {

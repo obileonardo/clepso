@@ -1,4 +1,5 @@
 import ClaudeCodeAdapter
+import DesignSystem
 import Foundation
 import Testing
 @testable import PulseApp
@@ -51,5 +52,16 @@ struct CalendarAxisTests {
         let week = ChartAxis.window(length: 7 * 86_400, resetsAt: now.addingTimeInterval(4 * 86_400), now: now)
         #expect(ChartAxis.ticks(week, zone: utc).allSatisfy { Int($0.timeIntervalSince1970) % 86_400 == 0 })
         #expect(ChartAxis.window(length: 3600, resetsAt: nil, now: now) == now.addingTimeInterval(-3600)...now, "no reset: ending now")
+    }
+
+    @Test("A year fitted to a width is never drawn wider than it (it pushed Overview past the window's edge at 1100 pt)")
+    @MainActor func yearFits() {
+        let theme = Theme.phosphor
+        for width in stride(from: CGFloat(560), through: 1100, by: 7) {
+            let cell = CalendarGridView.cell(fitting: width, weeks: 53, theme: theme)
+            let gap = max(theme.stroke(.hairline) * 2, cell * CalendarGridView.gapRatio)
+            let drawn = CalendarGridView.labelColumn(theme) + gap + 53 * (cell + gap)
+            #expect(drawn <= width + 0.001, "\(width): drawn \(drawn)")
+        }
     }
 }
