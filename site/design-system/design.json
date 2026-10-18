@@ -338,7 +338,7 @@
     }
   ],
   "demoInstant" : "2026-10-16T14:01:00Z",
-  "generatedAt" : "2026-10-18T04:51:02Z",
+  "generatedAt" : "2026-10-18T22:21:18Z",
   "palette" : [
     {
       "dark" : "#1C1C1E",
@@ -567,19 +567,9 @@
         "use" : "figures, labels, buttons, tabs"
       },
       {
-        "family" : "Pixelify Sans",
+        "family" : "ClepsoMono-Regular",
         "licence" : "SIL OFL 1.1",
-        "use" : "bundled; replaced for figures (its 5 read as S)"
-      },
-      {
-        "family" : "VT323",
-        "licence" : "SIL OFL 1.1",
-        "use" : "bundled for terminal details"
-      },
-      {
-        "family" : "SF Mono (system)",
-        "licence" : "system",
-        "use" : "sentences, for legibility"
+        "use" : "sentences and supporting text"
       }
     ],
     "palette" : [
@@ -758,7 +748,7 @@
         "width" : 420
       },
       {
-        "caption" : "Silkscreen for figures and labels, monospaced system face for sentences",
+        "caption" : "Clepso Pixel for figures and labels, Clepso Mono for sentences",
         "component" : "Typography",
         "height" : 178,
         "id" : "type",
