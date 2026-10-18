@@ -123,6 +123,19 @@ background, and then only what Codex appends. The same rule holds: a line is dec
 undecoded. It keeps only each day's token counts per model, in memory: nothing from these files is stored, logged,
 exported or uploaded. Turning Codex off drops them.
 
+Codex's agents per task (Session page) come from the same pass and decode nothing at all
+(`Sources/CodexAdapter/CodexAgents.swift`). The lines they need hold private text too: a thread's first line
+(`session_meta`) carries Codex's instructions, the working folder, git details and account ids, and a turn's
+`task_complete` carries the final reply. So instead of decoding such a line and dropping most of it, Clepso looks up a
+few keys by their bytes and reads only short plain values: a string of at most 64 letters, digits and `._:+-`, an
+integer, or null; a value with an escape, a space or any other character is refused. An unescaped `"key":` can only be
+a JSON key, because quotes inside strings are escaped, so text in a prompt or reply can't pass for one. Event lines are
+searched only in their first 512 bytes, where Codex writes their type and ids. Read: the event type, turn ids with their
+parent and root turn ids, the turn's trigger, timestamps and line numbers, whether a thread is a spawned agent, and the
+agent's role (Codex's built-in role names; any other role is kept only as "custom"). Never read: prompts, replies,
+instructions, paths, git details, account ids, agent nicknames and agent paths. Kept, in memory only like the token
+counts: each task's times, its agents by role, how many finished and how many auto-reviews ran. They are not synced.
+
 ## 5. Logging and redaction
 
 Never logged: raw status-line input, the original status line's output, environment variables, the home folder or

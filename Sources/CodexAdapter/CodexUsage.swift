@@ -27,6 +27,8 @@ public struct CodexUsage: Sendable {
 
     var files: [String: FileState] = [:]
     let zone: TimeZone
+    /// Agents per task, from the same lines (it decodes nothing; see `CodexAgents`).
+    public private(set) var agents = CodexAgents()
 
     public init(zone: TimeZone) { self.zone = zone }
 
@@ -57,7 +59,7 @@ public struct CodexUsage: Sendable {
         defer { try? handle.close() }
         let size = (try? handle.seekToEnd()) ?? 0
         var state = files[url.path] ?? FileState()
-        if size < state.offset { state = FileState() }                // rewritten, not appended: start this file over
+        if size < state.offset { state = FileState(); agents.forget(url.path) }   // rewritten, not appended: start over
         guard size > state.offset else { files[url.path] = state; return }
         try? handle.seek(toOffset: state.offset)
         let chunk = 4 * 1024 * 1024
@@ -67,6 +69,7 @@ public struct CodexUsage: Sendable {
             guard let lastNewline = carry.lastIndex(of: UInt8(ascii: "\n")) else { continue }
             let complete = carry[carry.startIndex...lastNewline]
             consume(complete, into: &state)
+            agents.read(complete, file: url.path)
             state.offset += UInt64(complete.count)
             carry = Data(carry[carry.index(after: lastNewline)...])
         }

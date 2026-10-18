@@ -38,7 +38,7 @@ everything except bundle-only behaviour.
 | `UsageEngine` | Domain | Pure limit, reset, session and pace state machines |
 | `Storage` | Domain, UsageEngine, GRDB | Schema, migrations, ledger policy, the `Store` actor, retention, export queries |
 | `ClaudeCodeAdapter` | Domain, ShimProtocol | Settings and hooks installers, ingest socket, frame mapper, statistics reader |
-| `CodexAdapter` | Domain | Codex session-file tail reader and mapper |
+| `CodexAdapter` | Domain | Codex session-file tail reader and mapper; tokens per day and agents per task from whole files |
 | `SubscriptionCatalog` | — | The bundled plan catalog |
 | `DesignSystem` | Domain | Theme tokens, status styles, pixel components and glyphs, bundled fonts |
 | `Sync` | — | Optional accounts: PKCE sign-in, Keychain session, upload. The only module allowed to use the network |
