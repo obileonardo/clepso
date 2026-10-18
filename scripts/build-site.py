@@ -1,8 +1,9 @@
 """Builds the Clepso documentation website around the design-system page.
 
-Pages: Overview, Progress, Metrics, Architecture, Privacy, Screens, Changelog and the Design system (built by
-build-design-site.py, which runs first; this script adds the site's header, menu and search to it). Content comes from
-the repository: ROADMAP.md tables for progress, ARCHITECTURE.md's data-flow diagram, git history, the gate list in
+Pages: Overview, Progress, Metrics, Architecture, Privacy, Screens, Changelog, the Design system (built by
+build-design-site.py, which runs first; this script adds the site's header, menu and search to it) and the web
+dashboard at /app (scripts/site/app.js; its accounts project goes into the uncommitted site/app/config.js).
+Content comes from the repository: ROADMAP.md tables for progress, ARCHITECTURE.md's data-flow diagram, git history, the gate list in
 scripts/ci.sh, the app screenshots in design/screens, Swift source excerpts beside the interactive rules, and the metric
 rules below, which mirror the Swift code they describe (each names its source file).
 
@@ -15,6 +16,7 @@ Usage: python3 -I scripts/build-site.py <site dir> <docs dir> <screens dir>
 """
 import html
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -37,7 +39,8 @@ COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--prett
 
 NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
 MENU = [("Docs", [("", "Overview"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]),
-        ("Project", [("progress/", "Progress"), ("changelog/", "Changelog"), ("screens/", "Screens"), ("design-system/", "Design system")])]
+        ("Project", [("progress/", "Progress"), ("changelog/", "Changelog"), ("screens/", "Screens"), ("design-system/", "Design system"),
+                     ("app/", "Web dashboard")])]
 DOC_PAGES = [("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]
 
 # ------------------------------------------------------------------------------------------------------------ shell
@@ -46,11 +49,11 @@ DOC_PAGES = [("metrics/", "Metrics"), ("architecture/", "Architecture"), ("priva
 LOGO = (repo / "design/brand/favicon/favicon.svg").read_text().strip().replace("<svg ", '<svg aria-hidden="true" ', 1)
 
 
-def header(current):
+def header(current, label="docs"):
     here = ' aria-current="page"'
     pill = "".join(f'<a href="/{p}"{here if p == current else ""}>{e(n)}</a>' for p, n in NAV)
     return (f'<a class="px-skip" href="#main">Skip to content</a>'
-            f'<header class="px-head"><a class="px-brand" href="/" aria-label="Clepso docs, home">{LOGO}CLEPSO<small>docs</small></a>'
+            f'<header class="px-head"><a class="px-brand" href="/" aria-label="Clepso docs, home">{LOGO}CLEPSO<small>{e(label)}</small></a>'
             f'<div class="px-pill" role="navigation" aria-label="Main">{pill}</div>'
             '<div class="px-actions"><button class="px-btn" type="button" data-search-open aria-label="Search the docs (⌘K)">'
             '<span class="px-label">Search</span><kbd>⌘K</kbd></button>'
@@ -967,6 +970,58 @@ if design_page.exists():
     for anchor, title in re.findall(r'<h2[^>]*id="([^"]+)"[^>]*>(.*?)</h2>', text, re.S):
         SEARCH.append({"t": strip(title), "p": "Design system", "u": f"/design-system/#{anchor}", "x": ""})
 
+# ----------------------------------------------------------------------------------------------- web dashboard (/app)
+
+
+def accounts_config():
+    """The accounts project the dashboard talks to, or None. From Config/Sync.local.xcconfig (uncommitted, the same file
+    official app builds read), or CLEPSO_ACCOUNTS_URL and CLEPSO_ACCOUNTS_KEY for a local stack. The same checks as
+    SyncConfig.swift: a plausible host and a publishable key; a secret key is refused outright."""
+    url, key = os.environ.get("CLEPSO_ACCOUNTS_URL", "").strip(), os.environ.get("CLEPSO_ACCOUNTS_KEY", "").strip()
+    if not (url and key):
+        values, local = {}, repo / "Config" / "Sync.local.xcconfig"
+        if local.exists():
+            for line in local.read_text().splitlines():
+                line = line.split("//", 1)[0]
+                if "=" in line:
+                    k, v = line.split("=", 1)
+                    values[k.strip()] = v.strip()
+        host, key = values.get("PULSE_SYNC_HOST", ""), values.get("PULSE_SYNC_PUBLISHABLE_KEY", "")
+        url = f"https://{host}" if re.fullmatch(r"(?=.{4,253}$)[a-z0-9-]+(\.[a-z0-9-]+)+", host) else ""
+    url_ok = re.fullmatch(r"https://[a-z0-9-]+(\.[a-z0-9-]+)+|http://(127\.0\.0\.1|localhost):\d{1,5}", url)
+    key_ok = 0 < len(key) <= 512 and not re.search(r"\s|\$\(", key) and not key.startswith("sb_secret_")
+    return {"url": url, "key": key} if url_ok and key_ok else None
+
+
+# Connections only to this site and a Supabase project (127.0.0.1:54321 is the local stack, for testing).
+APP_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; "
+           "connect-src 'self' https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321; "
+           "object-src 'none'; base-uri 'none'; form-action 'self'")
+
+app_dir = site / "app"
+app_dir.mkdir(parents=True, exist_ok=True)
+for name in ("app.js", "app.css"):
+    shutil.copy(assets_src / name, assets / name)
+accounts = accounts_config()
+# Gitignored (the "no committed accounts project" gate); Vercel deploys the local site/ folder, so it still ships.
+(app_dir / "config.js").write_text("// Generated by scripts/build-site.py; not committed. null: accounts aren't configured.\n"
+                                   f"window.CLEPSO_ACCOUNTS = {json.dumps(accounts)};\n")
+(app_dir / "index.html").write_text(f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{APP_CSP}"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex">
+<title>Web dashboard · Clepso</title><meta name="description" content="Your Clepso goals and usage: the daily counts your Mac uploads when you sign in.">
+<meta name="theme-color" content="#060907"><link rel="stylesheet" href="/assets/site.css"><link rel="stylesheet" href="/assets/app.css"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+</head><body class="k-app">{header("app/", "app")}
+<main id="main"><div class="app" id="app" aria-busy="true"><div class="loading" role="status"><i aria-hidden="true"></i>Loading…</div>
+<noscript><div class="note warn"><p>The web dashboard needs JavaScript. Clepso on your Mac works without it.</p></div></noscript></div>
+<p class="sr" id="app-live" aria-live="polite"></p></main>
+<footer class="foot"><div class="wrap foot-base"><span>Clepso web dashboard · build <code>{e(COMMIT)}</code></span>
+<span><a href="/privacy/#upload">What is uploaded</a> · <a href="/">Docs</a></span></div></footer>
+<script src="/app/config.js" defer></script><script src="/assets/app.js" defer></script><script src="/assets/site.js" defer></script>
+</body></html>
+""")
+SEARCH.append({"t": "Web dashboard", "p": "Page", "u": "/app/", "x": "Sign in to see your goals and usage: the daily counts your Mac uploads.", "top": True})
+
 (assets / "search.json").write_text(json.dumps(SEARCH, ensure_ascii=False, separators=(",", ":")))
 
 (site / "404.html").write_text(f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -976,5 +1031,6 @@ if design_page.exists():
 <p class="lede">That page doesn't exist. <a href="/">Back to the overview</a>, or press ⌘K to search.</p></div></main>{footer()}
 <script src="/assets/site.js" defer></script></body></html>
 """)
-print(f"site: {len(NAV) + 3} pages, {shot_count} screens, {done}/{total} increments done, {TESTS} tests, {len(GATES)} gates, "
+print(f"app: accounts {'configured' if accounts else 'not configured'}")
+print(f"site: {len(NAV) + 4} pages, {shot_count} screens, {done}/{total} increments done, {TESTS} tests, {len(GATES)} gates, "
       f"{len(SEARCH)} search entries, commit {COMMIT}")
