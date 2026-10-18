@@ -16,20 +16,12 @@ font licences bundled beside the fonts.
 - GRDB links the SQLite library that ships with macOS. Its `SQLiteCustom/src` git submodule is fetched by Swift
   Package Manager but not compiled into Clepso.
 
-### Fonts under the SIL Open Font License 1.1
+### Fonts
 
-Bundled in `Sources/DesignSystem/Resources/Fonts/` (and so in the app), fetched from https://github.com/google/fonts at
-commit `47d54ca1ebb14fd864695f1d39dc734f39017c33`; SHA-256 checksums are in that folder's `README.md`, and each font's
-full licence sits beside it and ships with it.
-
-| Font | Copyright | Licence file |
-|---|---|---|
-| Silkscreen | Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen) | `Silkscreen-OFL.txt` |
-| Pixelify Sans | Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans) | `PixelifySans-OFL.txt` |
-| VT323 | Copyright 2011, The VT323 Project Authors | `VT323-OFL.txt` |
-
-Since Clepso's own typefaces arrived, these three are still bundled but no longer used by the interface. The OFL allows
-bundling with software; the fonts may not be sold on their own, and their licence must travel with them.
+The app and the website use only Clepso's own typefaces, Clepso Pixel and Clepso Mono: original drawings made in this
+repository (`design/brand/pipeline/`), not third-party work. They are released under the SIL Open Font License 1.1 with
+Reserved Font Names (`Sources/DesignSystem/Resources/Fonts/ClepsoFonts-OFL.txt`). The third-party faces bundled before
+them (Silkscreen, Pixelify Sans, VT323) were removed on 18 Oct 2026.
 
 ## Used by the documentation website only (`site/`, `scripts/site/`)
 
@@ -39,10 +31,6 @@ bundling with software; the fonts may not be sold on their own, and their licenc
 - Files: `scripts/site/vendor/three.module.min.js` and the identical copy `site/assets/vendor/three.module.min.js`
   (SHA-256 `3e690ac7d180b0aadf0891bea39eec643e29e2d3e75c99b18689518665f69ba6`), from npm `three@0.160.0`.
 - Licence: MIT. Copyright © 2010-2023 three.js authors. Full text beside each copy (`three-LICENSE.txt`).
-
-### Silkscreen (site copy)
-
-`site/assets/fonts/Silkscreen-*.ttf` are byte-identical copies of the app's fonts, shipped with `Silkscreen-OFL.txt`.
 
 ## Development tools (not distributed)
 

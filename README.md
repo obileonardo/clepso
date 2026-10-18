@@ -438,6 +438,4 @@ names are used only to say which tools Clepso works with.
 ## Acknowledgements
 
 - [GRDB.swift](https://github.com/groue/GRDB.swift) by Gwendal Roué (MIT), for SQLite.
-- [Silkscreen](https://github.com/googlefonts/silkscreen), [Pixelify Sans](https://github.com/eifetx/Pixelify-Sans)
-  and VT323 (SIL Open Font License 1.1), for the pixel type.
 - [three.js](https://threejs.org) r160 (MIT), for the documentation site's footer scene.

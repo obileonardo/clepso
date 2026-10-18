@@ -531,7 +531,7 @@ PH_NOTES = {
     "PixelLineChart": "History drawn as steps snapped to a pixel grid, with dotted 80/95/100 guides, NOW, and the dashed pace projection. VoiceOver reads a sentence instead of the drawing.",
     "PixelHeatmap": "Activity like Claude Code's /stats: one column per week, Monday on top, four levels plus empty.",
     "PixelPanel": "The frame every pixel screen sits in: stepped corners, an outer frame and an inner rule; glass behind it in the app.",
-    "Typography": "Rendered with the faces the app bundles today (Silkscreen); Clepso Pixel replaces it when the integration lands.",
+    "Typography": "Clepso Pixel for figures, titles and labels; Clepso Mono for sentences. Both are drawn for Clepso and bundled in the app.",
 }
 SCREENS = [("popover-overview", "Menu bar popover"), ("popover-detail", "Provider detail"), ("popover-inspector", "Where this number comes from"),
            ("details-limits", "Details · Limits: history and pace"), ("details-session", "Details · Session"),

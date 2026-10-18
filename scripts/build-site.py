@@ -802,7 +802,8 @@ page("changelog/", "Changelog", "Every commit to Clepso, newest first.", f"""
 <div class="wrap" data-changelog>
 <section class="section" style="padding-top:40px"><p class="eyebrow">Project / <b>Changelog</b></p>
 <h1>Changelog <span class="code-voice">// {len(log)} commits</span></h1>
-<p class="lede">Every commit, newest first. Each one passed all {len(GATES)} quality gates before it was pushed.</p></section>
+<p class="lede">Every commit, newest first. Each one passed all {len(GATES)} quality gates before it was pushed.</p>
+<p class="muted">Clepso was called Pulse until 18 Oct 2026. Older commits keep the name they were written with.</p></section>
 {f'<div class="release rv"><div><p class="eyebrow">Latest increment · <b>{e(latest_inc[0])}</b></p><h3>{e(latest_inc[1])}</h3><p>Passed every gate:</p></div><div class="gates">{gates_list}</div></div>' if latest_inc else ""}
 <div class="filters"><input type="search" placeholder="Search the changelog" aria-label="Search the changelog">{chips}</div>
 {"".join(days_html)}
@@ -937,7 +938,6 @@ fast you are going, from what those agents report on your own Mac. These pages d
 # ------------------------------------------------------------------------------------------- shared assets and design
 
 assets = site / "assets"
-(assets / "fonts").mkdir(parents=True, exist_ok=True)
 shell_css = (assets_src / "shell.css").read_text()
 (assets / "bar.css").write_text(shell_css)
 (assets / "site.css").write_text(shell_css + (assets_src / "page.css").read_text())
@@ -946,9 +946,6 @@ shutil.copy(assets_src / "village.js", assets / "village.js")
 (assets / "vendor").mkdir(exist_ok=True)
 for name in ("three.module.min.js", "three-LICENSE.txt"):
     shutil.copy(assets_src / "vendor" / name, assets / "vendor" / name)
-fonts = repo / "Sources/DesignSystem/Resources/Fonts"
-for name in ("Silkscreen-Regular.ttf", "Silkscreen-Bold.ttf", "Silkscreen-OFL.txt"):
-    shutil.copy(fonts / name, assets / "fonts" / name)
 shutil.copy(repo / "design/brand/favicon/favicon.svg", assets / "favicon.svg")
 (assets / "email").mkdir(exist_ok=True)   # account emails link here: keep the name stable (scripts/build-email.py)
 shutil.copy(repo / "design/brand/logo/png/clepso-logo-email-244.png", assets / "email" / "clepso-logo-email-244.png")

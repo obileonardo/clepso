@@ -22,12 +22,9 @@ Fonts (SIL Open Font License 1.1), bundled in Clepso_DesignSystem.bundle/Content
 
 Clepso Pixel,     Copyright 2026 The Clepso Project Authors, with Reserved Font Names "Clepso Pixel" and "Clepso Mono"
 Clepso Mono
-Silkscreen       Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen)
-Pixelify Sans    Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
-VT323            Copyright 2011, The VT323 Project Authors
 
-The full licence text for each font sits beside it in that folder: ClepsoFonts-OFL.txt, Silkscreen-OFL.txt,
-PixelifySans-OFL.txt and VT323-OFL.txt. The fonts may be bundled with software; they may not be sold on their own.
+The full licence text sits beside the fonts in that folder: ClepsoFonts-OFL.txt. The fonts may be bundled with
+software; they may not be sold on their own.
 
 The Clepso name, logo, app icon and menu bar mark are not covered by these licences (see TRADEMARKS.md in the source
 repository).

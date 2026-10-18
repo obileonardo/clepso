@@ -84,7 +84,7 @@ func renderPhosphor(images: URL, now: Date, used: (Decimal?, Double, AbsenceReas
                          months: [(1, "Aug"), (5, "Sep"), (9, "Oct")], summary: "Activity heatmap, demo"))),
         ("panel", "PixelPanel", "Stepped corners, outer frame, inner rule (glass in the app)", 420, AnyView(
             PixelPanel { Text("AI CAPACITY").font(theme.font(.title)).foregroundStyle(theme.color(.accent, .dark)).frame(maxWidth: .infinity, alignment: .leading) })),
-        ("type", "Typography", "Silkscreen for figures and labels, monospaced system face for sentences", 420, AnyView(
+        ("type", "Typography", "Clepso Pixel for figures and labels, Clepso Mono for sentences", 420, AnyView(
             VStack(alignment: .leading, spacing: 6) {
                 Text("83%").font(theme.font(.metricHero)).foregroundStyle(theme.color(.textPrimary, .dark))
                 Text("16.5B · OPUS 5.5").font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, .dark))
@@ -113,8 +113,6 @@ func renderPhosphor(images: URL, now: Date, used: (Decimal?, Double, AbsenceReas
     return [
         "specimens": specimens, "palette": palette, "contrast": contrast,
         "fonts": [["family": PixelFonts.display, "use": "figures, labels, buttons, tabs", "licence": "SIL OFL 1.1"],
-                  ["family": PixelFonts.number, "use": "bundled; replaced for figures (its 5 read as S)", "licence": "SIL OFL 1.1"],
-                  ["family": PixelFonts.terminal, "use": "bundled for terminal details", "licence": "SIL OFL 1.1"],
-                  ["family": "SF Mono (system)", "use": "sentences, for legibility", "licence": "system"]],
+                  ["family": PixelFonts.body, "use": "sentences and supporting text", "licence": "SIL OFL 1.1"]],
     ]
 }

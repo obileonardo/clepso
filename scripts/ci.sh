@@ -233,7 +233,7 @@ app_bundle() {
     [ "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" = "clepso" ] || { echo "sign-in URL scheme missing"; return 1; }
     local ack="$app/Contents/Resources/Acknowledgements.txt"
     grep -q 'Gwendal Rou' "$ack" 2>/dev/null && grep -q 'Permission is hereby granted' "$ack" || { echo "third-party licences missing: $ack"; return 1; }
-    for font in ClepsoFonts Silkscreen PixelifySans VT323; do
+    for font in ClepsoFonts; do
         [ -f "$app/Contents/Resources/Clepso_DesignSystem.bundle/Contents/Resources/Fonts/$font-OFL.txt" ] || { echo "$font licence missing"; return 1; }
     done
     local sync
