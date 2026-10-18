@@ -288,7 +288,10 @@ public enum OverviewProjection {
     // MARK: - Aggregate
 
     /// Precedence: demo > not connected or waiting for the first reading > exhausted or reset expected > approaching or
-    /// nearly exhausted > stale > ok. When the shape showing is from old readings, the stale mark opens its ring.
+    /// nearly exhausted > stale > ok. When the shape showing is built from old readings, the stale mark opens its ring
+    /// (design system, Menu bar: "A state built from old readings opens the ring at five o'clock and sets a dot in the
+    /// gap"): the cards that put that shape there have no live reading, whatever the other cards say. A Codex limit
+    /// reached two days ago shows the flatline with the mark even while Claude Code's readings are live.
     static func aggregate(_ cards: [PoolCardModel], input: OverviewInput, empty: OverviewSnapshot.Empty?, lastSeen: Date?,
                           now: Date, staleAfter: TimeInterval, zone: TimeZone, locale: Locale)
         -> (OverviewSnapshot.Icon, Bool, String?, String) {
@@ -308,6 +311,10 @@ public enum OverviewProjection {
         let staleSuffix = live.isEmpty ? age.map { " · last seen \($0)" } ?? "" : ""
         let highest = input.showPercent && !live.isEmpty ? live.compactMap(\.used.value).max().map(Formatting.percent) : nil
         let blocked: [CardState] = [.exhausted, .exhaustedNoReset, .exhaustedOverage, .resetExpected]
+        // True when none of the cards behind the shape showing has a live reading.
+        func fromOldReadings(_ behind: [PoolCardModel]) -> Bool {
+            !behind.contains { $0.valueState(now: now, staleAfter: staleAfter) == .live }
+        }
         if let worst = blocked.lazy.compactMap({ state in cards.first { $0.card == state } }).first {
             let provider = worst.source.displayName      // the agent whose limit it is: Claude Code or Codex
             let line: String = switch worst.card {
@@ -317,11 +324,13 @@ public enum OverviewProjection {
             case .resetExpected: "\(provider) reset expected · awaiting next update"
             default: "\(provider) limit reached · reset time not reported"
             }
-            return (.exhausted, live.isEmpty, nil, line + staleSuffix)
+            return (.exhausted, fromOldReadings(cards.filter { blocked.contains($0.card) }), nil, line + staleSuffix)
         }
-        let nearing = cards.filter { $0.card == .approaching || $0.card == .critical }.count
+        let nearingCards = cards.filter { $0.card == .approaching || $0.card == .critical }
+        let nearing = nearingCards.count
         if nearing > 0 {
-            return (.approaching, live.isEmpty, highest, (nearing == 1 ? "1 limit nearing capacity" : "\(nearing) limits nearing capacity") + staleSuffix)
+            return (.approaching, fromOldReadings(nearingCards), highest,
+                    (nearing == 1 ? "1 limit nearing capacity" : "\(nearing) limits nearing capacity") + staleSuffix)
         }
         guard !live.isEmpty else { return age.map { (.stale, false, nil, "Last seen \($0)") } ?? (.notConnected, false, nil, "Not connected") }
         let allAvailable = cards.allSatisfy { [.available, .availableAgain, .availableAgainUser].contains($0.card) }

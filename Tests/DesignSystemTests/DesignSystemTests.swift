@@ -383,6 +383,35 @@ struct PixelMenuBarIconTests {
         #expect(MenuBarIcon.pixels(.stale, staleMark: true) == MenuBarIcon.pixels(.stale, staleMark: false))
     }
 
+    @Test("The % text is hard pixels on whole points: no grey fringe, and 2× is 1× with each pixel doubled")
+    func textOnTheGrid() throws {
+        /// Alpha of every device pixel right of the 16 pt glyph square, rows top to bottom.
+        func textAlpha(_ image: NSImage, scale: Int) throws -> [[UInt8]] {
+            let w = Int(image.size.width.rounded(.up)) * scale, h = 16 * scale
+            let rep = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8,
+                                                    samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+                                                    bytesPerRow: 0, bitsPerPixel: 0))
+            rep.size = NSSize(width: CGFloat(w / scale), height: 16)
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+            image.draw(in: NSRect(origin: .zero, size: image.size))
+            NSGraphicsContext.restoreGraphicsState()
+            return (0..<h).map { y in (16 * scale..<w).map { x in UInt8(((rep.colorAt(x: x, y: y)?.alphaComponent ?? 0) * 255).rounded()) } }
+        }
+        for text in ["83%", "100%", "7%", "DEMO"] {
+            let image = MenuBarIcon.pixelImage(.beat, staleMark: false, text: text)
+            let one = try textAlpha(image, scale: 1), two = try textAlpha(image, scale: 2)
+            #expect(one.joined().allSatisfy { $0 == 0 || $0 == 255 }, "\(text) at 1×: partly transparent pixels")
+            #expect(two.joined().allSatisfy { $0 == 0 || $0 == 255 }, "\(text) at 2×: partly transparent pixels")
+            #expect(one.joined().contains(255), "\(text): nothing drawn")
+            let doubled = one.flatMap { row in [row.flatMap { [$0, $0] }, row.flatMap { [$0, $0] }] }
+            #expect(doubled == two, "\(text): 2× is not 1× doubled, so a font pixel is not one point")
+            // 7 px capitals on a baseline at y = 12: rows 5 to 11 hold ink, nothing above or below (descender-free text).
+            let inked = one.indices.filter { one[$0].contains(255) }
+            #expect(inked.first == 5 && inked.last == 11, "\(text): ink on rows \(inked)")
+        }
+    }
+
     @Test("Every state renders as a template image on whole pixels at 1× and 2×, with and without the % text")
     func renders() throws {
         for shape in MenuBarIcon.Shape.allCases {
