@@ -18,15 +18,15 @@ visibility. **At public** = only available, or only free, once the repository is
 | Branch protection / rulesets | Not available: the API answers "Upgrade to GitHub Pro or make this repository public" | Ruleset on `main` (At public) |
 | Collaborators | Owner (admin) and one other account with **write** access | Kept as is: owner's decision (see §5) |
 | Deploy keys, webhooks | None | None |
-| Actions | Enabled; all actions allowed; SHA pinning not required | Allow only GitHub-owned and selected actions; require SHA pinning |
+| Actions | 18 Oct 2026: enabled; only GitHub-owned actions allowed (verified creators off, no extra patterns); SHA pinning required; fork pull requests from all outside contributors need approval before workflows run | Done |
 | Default workflow token | Read-only; workflows cannot approve pull requests | Keep |
 | Actions secrets, variables, environments | None | Add a `release` environment only when signed builds exist |
 | Dependabot alerts | Disabled | Enabled |
 | Dependabot security updates | Disabled | Enabled |
 | Secret scanning, push protection | Disabled | Enabled |
-| Code scanning | Not enabled | Enabled (At public) |
+| Code scanning | 18 Oct 2026: CodeQL default setup, default query suite, weekly; covers Actions, JavaScript/TypeScript and Python. **Swift not covered**: CodeQL's autobuild on GitHub's standard macOS runner fails to compile `Sources/StatusLineShim/StatusLineShim.swift:154` (older toolchain than the pinned Xcode 27.1 / Swift 6.4), so GitHub dropped Swift from the setup. First run: 2 alerts (`js/incomplete-multi-character-sanitization`, `app.js:182`, both copies): not exploitable (every message is a constant; the text went to `textContent`), fixed anyway by escaping in `notice()` | Swift needs an advanced (workflow) setup with a manual build once the runner has a matching Xcode |
 | Private vulnerability reporting | Not enabled (endpoint returns 404) | Enabled |
-| Merge methods | Merge, squash and rebase all allowed; branches not deleted on merge | Squash only; delete head branches |
+| Merge methods | 18 Oct 2026: squash only (commit title = PR title, message = PR body); head branches deleted on merge; "Update branch" button on | Done |
 | Issues / Projects / Wiki / Discussions | On / On / Off / Off | On / Off unless used / Off / Off until there is a community |
 | Tags, releases | None | First pre-release tag after Stage C |
 | Community profile | 28% (README only) | 100% after the drafted files merge |

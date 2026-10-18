@@ -144,7 +144,8 @@
     `<section class="row ${cls}" aria-labelledby="h-${id}"><div class="row-head"><h2 id="h-${id}">${name}</h2><p>${line}</p></div><div class="row-body">${body}</div></section>`;
   const loading = text => `<div class="loading" role="status"><i aria-hidden="true"></i>${esc(text)}</div>`;
 
-  function notice(kind, text) { return text ? `<div class="note ${kind}" role="${kind === "err" ? "alert" : "status"}"><p>${text}</p></div>` : ""; }
+  // Messages are plain text; escaped here so no caller can ever put markup (or a link's own error text) on the page.
+  function notice(kind, text) { return text ? `<div class="note ${kind}" role="${kind === "err" ? "alert" : "status"}"><p>${esc(text)}</p></div>` : ""; }
 
   // Unconfigured deployment: nothing to sign in to, no request is ever made.
   function renderUnconfigured() {
@@ -179,7 +180,7 @@
           <li>Each day's 5-hour peak and where the 7-day limit finished</li>
           <li>Agents per task, your goals day by day, your name and plan</li></ul>
         <p class="chart-note">Every field is listed on the <a href="/privacy/#upload">Privacy</a> page. You can delete the account here at any time.</p>`),
-      { say: message ? message.replace(/<[^>]+>/g, "") : undefined });
+      { say: message || undefined });
 
     const formEl = root.querySelector("[data-signin]");
     if (formEl) {
