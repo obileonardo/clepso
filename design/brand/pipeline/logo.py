@@ -167,6 +167,16 @@ def write_logo(out: Path):
     return written
 
 
+def write_email_logo(out: Path):
+    """Header logo for account emails (scripts/build-email.py): the horizontal lockup in phosphor on ink, without clear
+    space (the email's own padding gives it), shown at 2 px per p (122 x 32) and stored at 2x for Retina screens. The
+    ink is opaque so a mail client that re-colours the page in dark mode still shows the logo as designed."""
+    on, w, h = layout("horizontal")
+    path = out / f"clepso-logo-email-{w * 4}.png"
+    png("horizontal", hex_rgba(COLOURS["phosphor"]), 4, background=hex_rgba(INK)).save(path)
+    return path
+
+
 # --------------------------------------------------------------------------------------------- menu bar
 # The status family proposed for MenuBarIcon (shape carries meaning; the system tints the template).
 def menubar_states():

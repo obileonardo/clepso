@@ -34,6 +34,7 @@ def main(only=None):
     if "logo" in want:
         step("logo masters and rasters")
         logo.write_logo(BRAND / "logo")
+        logo.write_email_logo(BRAND / "logo" / "png")
         step("menu bar template images")
         logo.write_menubar(BRAND / "menubar")
         step("app icon")
