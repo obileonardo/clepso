@@ -91,6 +91,14 @@ struct LimitsSection: View {
                 }
             }
             WindowChart(row: row, now: snapshot.now, zone: model.environment.timeZone, locale: model.environment.locale)
+            // 2.5: weekly resets only, and only while Calendar actions are on (hidden in Stage A).
+            if model.environment.calendarActions, model.calendarEvent(for: row) != nil {
+                HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
+                    Button(Copy.CalendarAction.add) { model.addResetToCalendar(row) }.buttonStyle(PixelButtonStyle())
+                    Text(Copy.CalendarAction.addSub).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 }

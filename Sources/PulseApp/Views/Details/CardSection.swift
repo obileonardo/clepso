@@ -405,7 +405,7 @@ struct PlayerCardFront: View {
         ]
     }
 
-    static func summary(_ c: PlayerCard, zone: TimeZone = .current) -> String {
+    static func summary(_ c: PlayerCard, zone: TimeZone = .autoupdatingCurrent) -> String {
         Copy.Card.frontSummary(c, figures: [(Copy.Card.totalTokens.capitalized, Formatting.compact(c.totalTokens))]
                                + figures(c, zone: zone).map { ($0.label, "\($0.value), \($0.caption)") })
     }

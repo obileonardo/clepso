@@ -20,7 +20,7 @@ public enum Formatting {
         if seconds < 60 { return "just now" }
         if seconds < 3600 { return "\(Int(seconds / 60))m ago" }
         if seconds < 86_400 { return clock(date, zone: zone, locale: locale) }
-        return format(date, "MMM d", zone: zone, locale: locale)
+        return format(date, template: "MMMd", zone: zone, locale: locale)
     }
 
     /// The same age read aloud: "1 minute ago", "42 minutes ago".
@@ -31,15 +31,16 @@ public enum Formatting {
         return "at " + clock(date, zone: zone, locale: locale)
     }
 
-    public static func clock(_ date: Date, zone: TimeZone, locale: Locale) -> String { format(date, "h:mm a", zone: zone, locale: locale) }
+    /// "8:30 AM" or "08:30": the locale's own hour cycle (`j`), so the Mac's 12/24-hour setting is honoured.
+    public static func clock(_ date: Date, zone: TimeZone, locale: Locale) -> String { format(date, template: "jmm", zone: zone, locale: locale) }
 
     /// A reset time: clock time today, weekday and time within a week, the date beyond.
     public static func resetTime(_ date: Date, now: Date, zone: TimeZone, locale: Locale) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         if calendar.isDate(date, inSameDayAs: now) { return clock(date, zone: zone, locale: locale) }
-        if date.timeIntervalSince(now) < 6 * 86_400 { return format(date, "EEE h:mm a", zone: zone, locale: locale) }
-        return format(date, "MMM d", zone: zone, locale: locale)
+        if date.timeIntervalSince(now) < 6 * 86_400 { return format(date, template: "EEEjmm", zone: zone, locale: locale) }
+        return format(date, template: "MMMd", zone: zone, locale: locale)
     }
 
     /// "16.5B", "27.7M", "193.2K", "940" (increment 1.7): how /stats writes token counts.
@@ -71,12 +72,16 @@ public enum Formatting {
         return "in \(minutes / 1440) days"
     }
 
-    static func format(_ date: Date, _ pattern: String, zone: TimeZone, locale: Locale) -> String {
+    /// Formats from a skeleton (`jmm`, `EEEjmm`, `MMMd`): the locale picks order, separators and hour cycle, so a
+    /// British Mac reads "Sun 01:30" and "1 Nov" where an American one reads "Sun 1:30 AM" and "Nov 1". ICU puts a
+    /// narrow no-break space before AM/PM; it becomes a plain space, as the fixed patterns wrote it, so notification
+    /// bodies, VoiceOver sentences and Diagnostics stay plain text.
+    static func format(_ date: Date, template: String, zone: TimeZone, locale: Locale) -> String {
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.timeZone = zone
-        formatter.dateFormat = pattern
-        return formatter.string(from: date)
+        formatter.setLocalizedDateFormatFromTemplate(template)
+        return formatter.string(from: date).replacingOccurrences(of: "\u{202F}", with: " ")
     }
 }
 
