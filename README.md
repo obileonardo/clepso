@@ -2,7 +2,7 @@
 
 **A local-first macOS menu bar app that shows how much of your AI coding agent's usage limits you have left, and when they reset.**
 
-Clepso is a working name. This repository is `tokone`; the app it builds is `Clepso.app`.
+This repository (`clepso`, formerly `tokone`) builds `Clepso.app`.
 
 > **Status: pre-release (v0.1.0).** Clepso runs daily on its maintainer's Mac against real Claude Code sessions, but
 > there are no signed builds and no releases yet. The source code is MIT-licensed (see [Licence](#licence)); the first
@@ -220,8 +220,8 @@ in `Package.resolved`.
 ## Build from source
 
 ```sh
-git clone https://github.com/obileonardo/tokone.git
-cd tokone
+git clone https://github.com/obileonardo/clepso.git
+cd clepso
 sudo xcode-select -s /Applications/Xcode.app   # point at your Xcode 27.1 installation
 
 swift build        # all libraries and command-line tools

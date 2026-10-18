@@ -1,4 +1,4 @@
-# GitHub settings for `obileonardo/tokone`
+# GitHub settings for `obileonardo/clepso`
 
 What the repository owner must configure by hand. Nothing here was changed by the readiness review; the current
 state was read on 17 Oct 2026 with read-only `gh api` calls (listed at the end).
@@ -12,7 +12,7 @@ visibility. **At public** = only available, or only free, once the repository is
 |---|---|---|
 | Visibility | Private | Public, only after the Stage A blockers and owner questions are resolved |
 | Description | "Clepso: local AI capacity monitor for Claude Code (macOS menu bar)" | Keep; mention Codex once public |
-| Repository name | `tokone` | Rename to `pulse` deferred until after a trademark check (owner decision) |
+| Repository name | `clepso` | Renamed from `tokone` on 18 Oct 2026; GitHub redirects the old URLs |
 | Homepage, topics | None | Add (see below) |
 | Default branch | `main`, **not protected** | Protected by a ruleset |
 | Branch protection / rulesets | Not available: the API answers "Upgrade to GitHub Pro or make this repository public" | Ruleset on `main` (At public) |
@@ -105,27 +105,27 @@ Add a tag ruleset for `v*`: restrict creation, update and deletion to the owner.
 All read-only (`GET`):
 
 ```
-gh api repos/obileonardo/tokone
-gh api repos/obileonardo/tokone/branches
-gh api repos/obileonardo/tokone/branches/main/protection
-gh api repos/obileonardo/tokone/rulesets
-gh api repos/obileonardo/tokone/vulnerability-alerts
-gh api repos/obileonardo/tokone/automated-security-fixes
-gh api repos/obileonardo/tokone/private-vulnerability-reporting
-gh api repos/obileonardo/tokone/actions/permissions
-gh api repos/obileonardo/tokone/actions/permissions/workflow
-gh api repos/obileonardo/tokone/actions/secrets
-gh api repos/obileonardo/tokone/actions/variables
-gh api repos/obileonardo/tokone/environments
-gh api repos/obileonardo/tokone/collaborators
-gh api repos/obileonardo/tokone/invitations
-gh api repos/obileonardo/tokone/hooks
-gh api repos/obileonardo/tokone/keys
-gh api repos/obileonardo/tokone/tags
-gh api repos/obileonardo/tokone/releases
-gh api repos/obileonardo/tokone/pages
-gh api repos/obileonardo/tokone/community/profile
-gh api repos/obileonardo/tokone/secret-scanning/alerts
-gh api repos/obileonardo/tokone/code-scanning/alerts
-gh api repos/obileonardo/tokone/dependabot/alerts
+gh api repos/obileonardo/clepso
+gh api repos/obileonardo/clepso/branches
+gh api repos/obileonardo/clepso/branches/main/protection
+gh api repos/obileonardo/clepso/rulesets
+gh api repos/obileonardo/clepso/vulnerability-alerts
+gh api repos/obileonardo/clepso/automated-security-fixes
+gh api repos/obileonardo/clepso/private-vulnerability-reporting
+gh api repos/obileonardo/clepso/actions/permissions
+gh api repos/obileonardo/clepso/actions/permissions/workflow
+gh api repos/obileonardo/clepso/actions/secrets
+gh api repos/obileonardo/clepso/actions/variables
+gh api repos/obileonardo/clepso/environments
+gh api repos/obileonardo/clepso/collaborators
+gh api repos/obileonardo/clepso/invitations
+gh api repos/obileonardo/clepso/hooks
+gh api repos/obileonardo/clepso/keys
+gh api repos/obileonardo/clepso/tags
+gh api repos/obileonardo/clepso/releases
+gh api repos/obileonardo/clepso/pages
+gh api repos/obileonardo/clepso/community/profile
+gh api repos/obileonardo/clepso/secret-scanning/alerts
+gh api repos/obileonardo/clepso/code-scanning/alerts
+gh api repos/obileonardo/clepso/dependabot/alerts
 ```

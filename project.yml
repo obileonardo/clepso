@@ -24,7 +24,7 @@ settings:
     MARKETING_VERSION: 0.1.0
     CURRENT_PROJECT_VERSION: 1
 packages:
-  Tokone:
+  Clepso:
     path: .
 targets:
   PulseMac:
@@ -55,7 +55,7 @@ targets:
         ENABLE_APP_SANDBOX: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # 1.16: the Pulse mark (design/brand/app-icon)
     dependencies:
-      - package: Tokone
+      - package: Clepso
         product: PulseApp
       - target: pulse-statusline
         embed: true
@@ -75,5 +75,5 @@ targets:
         GENERATE_INFOPLIST_FILE: YES        # embedded __info_plist: codesign then uses the bundle id as the identifier,
         CREATE_INFOPLIST_SECTION_IN_BINARY: YES   # which a code-signing peer check can require (PRIVACY_AND_SECURITY §3)
     dependencies:
-      - package: Tokone
+      - package: Clepso
         product: StatusLineShim

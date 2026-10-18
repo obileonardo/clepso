@@ -232,7 +232,7 @@ app_bundle() {
     local ack="$app/Contents/Resources/Acknowledgements.txt"
     grep -q 'Gwendal Rou' "$ack" 2>/dev/null && grep -q 'Permission is hereby granted' "$ack" || { echo "third-party licences missing: $ack"; return 1; }
     for font in ClepsoFonts Silkscreen PixelifySans VT323; do
-        [ -f "$app/Contents/Resources/Tokone_DesignSystem.bundle/Contents/Resources/Fonts/$font-OFL.txt" ] || { echo "$font licence missing"; return 1; }
+        [ -f "$app/Contents/Resources/Clepso_DesignSystem.bundle/Contents/Resources/Fonts/$font-OFL.txt" ] || { echo "$font licence missing"; return 1; }
     done
     local sync
     sync=$(plutil -extract PulseSyncHost raw "$app/Contents/Info.plist" 2>/dev/null || true)
@@ -243,7 +243,7 @@ app_bundle() {
          "sign-in URL scheme; licences shipped; accounts project: $([ -n "$sync" ] && echo configured || echo none, Sync off)"
 }
 
-echo "Tokone local CI ($MODE) · $(date -u +%Y-%m-%dT%H:%M:%SZ) · $(git rev-parse --short HEAD 2>/dev/null || echo 'no commits')"
+echo "Clepso local CI ($MODE) · $(date -u +%Y-%m-%dT%H:%M:%SZ) · $(git rev-parse --short HEAD 2>/dev/null || echo 'no commits')"
 run "toolchain pinned"              check_toolchain
 run "strict build (warnings=errors)" strict_build
 run "tests"                         all_tests

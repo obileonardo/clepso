@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "Tokone",
+    name: "Clepso",
     platforms: [.macOS(.v14), .iOS(.v17), .watchOS(.v10)],
     products: [
         .library(name: "Domain", targets: ["Domain"]),
