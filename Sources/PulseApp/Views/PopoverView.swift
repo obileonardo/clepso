@@ -178,6 +178,7 @@ public struct PopoverView: View {
                                                             locale: model.environment.locale)).uppercased())
                         .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).lineLimit(1)
                 }
+                .padding(.trailing, theme.spacing(.compact))     // a little air before QUIT's frame
             }
             // Quitting is an action, not a label: framed like DASHBOARD but unlit, so it reads as a button without competing.
             Button { NSApp.terminate(nil) } label: { PixelLabel(Copy.Footer.quit, glyph: .power) }
