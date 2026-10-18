@@ -71,7 +71,7 @@ struct ShimIntegrationTests {
         let h = try ShimHarness(); defer { h.cleanUp() }
         try h.writeConfig(originalCommand: "printf 'ok'")
         let agent = try FakeAgent(path: h.socketPath, mode: .acceptAndHang); defer { agent.stop() }
-        let result = try h.run(stdin: f08Stdin)
+        let result = try h.run(stdin: f08Stdin, realBudget: true)
         #expect(result.text == "ok")
         #expect(result.seconds < 1.0)
     }
@@ -152,10 +152,10 @@ struct OverheadTests {
 
         for _ in 0..<runs {
             baseline.append(try h.run(stdin: f08Stdin, executable: baselineShell, arguments: ["-c", "cat >/dev/null"]).seconds)
-            absent.append(try h.run(stdin: f08Stdin).seconds)
+            absent.append(try h.run(stdin: f08Stdin, realBudget: true).seconds)
         }
         let agent = try FakeAgent(path: h.socketPath, mode: .readAll); defer { agent.stop() }
-        for _ in 0..<runs { present.append(try h.run(stdin: f08Stdin).seconds) }
+        for _ in 0..<runs { present.append(try h.run(stdin: f08Stdin, realBudget: true).seconds) }
 
         func ms(_ values: [Double], _ q: Double) -> Double {
             let sorted = values.sorted()

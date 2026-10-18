@@ -9,18 +9,10 @@
 //
 // `#include?` is an optional include: a missing file is not an error.
 
-// The local files may still use the names from before the rename to Clepso (PULSE_…): those are read too, and a
-// CLEPSO_… value in a local file wins. Build settings resolve `$(…)` after every file is read, so the defaults below
-// pick up whichever name the local file sets.
-PULSE_CODE_SIGN_IDENTITY = -
-PULSE_DEVELOPMENT_TEAM =
-PULSE_SYNC_HOST =
-PULSE_SYNC_PUBLISHABLE_KEY =
-
-CLEPSO_CODE_SIGN_IDENTITY = $(PULSE_CODE_SIGN_IDENTITY)
-CLEPSO_DEVELOPMENT_TEAM = $(PULSE_DEVELOPMENT_TEAM)
-CLEPSO_SYNC_HOST = $(PULSE_SYNC_HOST)
-CLEPSO_SYNC_PUBLISHABLE_KEY = $(PULSE_SYNC_PUBLISHABLE_KEY)
+CLEPSO_CODE_SIGN_IDENTITY = -
+CLEPSO_DEVELOPMENT_TEAM =
+CLEPSO_SYNC_HOST =
+CLEPSO_SYNC_PUBLISHABLE_KEY =
 
 #include? "Signing.local.xcconfig"
 #include? "Sync.local.xcconfig"

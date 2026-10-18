@@ -34,6 +34,17 @@ func describe(_ url: URL) -> String {
     return "\(info.st_size) bytes, mode \(String(info.st_mode & 0o777, radix: 8))"
 }
 
+// Installs from before the rename to Clepso live in ~/.claude/pulse. The app moves them at every launch; do the same
+// before any command that changes the install, so it acts on the current layout. Previews and status only report it.
+let migration = LegacyLayoutMigration(home: home, now: { Date() })
+if migration.legacyLayoutPresent {
+    if confirmed || arguments.first == "recover" {
+        print("Old Pulse folders found in ~/.claude: \(migration.run().rawValue)\n")
+    } else {
+        print("Old Pulse folders found in ~/.claude: a confirmed command (or the app) moves them to the Clepso layout first.\n")
+    }
+}
+
 switch arguments.first {
 case "install":
     guard let shim = option("--shim") else { print(usage); exit(2) }
