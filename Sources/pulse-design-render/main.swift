@@ -171,7 +171,8 @@ try MainActor.assumeIsolated {
         "generatedAt": ISO8601DateFormatter().string(from: Date()),          // clock-ok: build stamp for the page only
         "demoInstant": ISO8601DateFormatter().string(from: now),
         "palette": palette, "contrast": contrast,
-        "typography": [["token": "metricHero", "style": "Large Title, rounded, bold, tabular digits"],
+        "typography": [["token": "metricDisplay", "style": "Large Title, rounded, heavy, tabular digits (pixel: 55 pt)"],
+                       ["token": "metricHero", "style": "Large Title, rounded, bold, tabular digits"],
                        ["token": "metricMedium", "style": "Title 2, rounded, semibold, tabular digits"],
                        ["token": "title", "style": "Headline"], ["token": "label", "style": "Subheadline"],
                        ["token": "supporting", "style": "Footnote"], ["token": "micro", "style": "Caption 2"]],

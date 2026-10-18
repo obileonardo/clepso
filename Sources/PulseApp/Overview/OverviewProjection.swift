@@ -55,12 +55,13 @@ public enum OverviewProjection {
         let empty: OverviewSnapshot.Empty? = everSeen || input.isDemo ? nil : (input.installed ? .waitingForFirstReading : .notConnected)
         let plan = provenance(input.plan)
         let anyLive = rows.contains { $0.model.valueState(now: now, staleAfter: staleAfter) == .live }
-        let provider = empty != nil ? nil : ProviderSection(
+        var provider = empty != nil ? nil : ProviderSection(
             identity: .claudeCode, planName: input.plan?.displayName, plan: plan,
             header: header(plan: input.plan, provenance: plan, metricsLive: anyLive),
             pools: rows, session: session(input, now: now), sessionCount: input.sessionSummaries.count,
             sourceVersion: input.sourceVersion, lastSeen: lastSeen, unreadLimitWindows: input.unreadLimitWindows,
             sessions: sessionDetails(input), models: modelGroups(sessionDetails(input)))
+        provider?.lines = CodeLines.make(input.sessions, firstSeen: input.firstSessionSeen, now: now)
 
         // The menu bar summarises every agent Clepso reads (3.4): Codex's limits count toward the icon and its %.
         let codexSection = input.codexEnabled && !input.isDemo ? codex(input, now: now) : nil

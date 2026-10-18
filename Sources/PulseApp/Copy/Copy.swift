@@ -341,14 +341,55 @@ enum Copy {
         static let title = "Card", subtitle = "Your Claude Code player card, ready to share"
         static func toNext(_ n: String, _ level: Int) -> String { "\(n) output to LV \(level)" }
         static func levelBar(_ level: Int, _ name: String) -> String { "LV \(level): \(name.uppercased())" }
-        static let outputTokens = "OUTPUT TOKENS"
-        static let streak = "Streak", topModel = "Top model", sessions = "Sessions", longest = "Longest session"
         static func days(_ n: Int) -> String { n == 1 ? "1 day" : "\(n) days" }
         static let copy = "Copy image", save = "Save PNG…", share = "Share…"
-        static let copied = "Copied to the clipboard", saved = "Saved"
+        static func copied(_ back: Bool) -> String { back ? "Copied the back of the card" : "Copied the front of the card" }
+        static let saved = "Saved"
         static let needsStats = "The card needs Claude Code's statistics file. Turn it on in Stats › Overview or Settings."
         static let since = "SINCE"
-        static let note = "Built on this Mac from Claude Code's statistics file. Sharing is up to you: nothing is sent anywhere."
+        static let note = "Built on this Mac from Claude Code's statistics file and Clepso's own readings. Sharing is up to you: "
+            + "nothing is sent anywhere. Click the card to flip it; Save and Copy use the side that's showing."
+
+        // The hero and the grid (founder review: one hero figure, the rest in a tidy grid, every label unambiguous).
+        static let totalTokens = "TOTAL TOKENS", totalCaption = "Input, output and cache · all models · all time"
+        static let output = "Output tokens", outputCaption = "Written by the models"
+        static let lines = "Lines added"
+        static func linesCaption(removed: String, since: String?) -> String { "−\(removed) removed · " + (since.map { "since \($0)" } ?? "last 30 days") }
+        static let linesNone = "No session has reported lines yet"
+        static let currentStreak = "Current streak", bestStreak = "Best streak", bestCaption = "Longest run of active days"
+        static func currentCaption(includesToday: Bool) -> String { includesToday ? "Including today" : "Through yesterday" }
+        static let sessions = "Sessions", sessionsCaption = "All time"
+        static let longest = "Longest session", longestCaption = "First to last message"
+        static let activeDays = "Active days"
+        static func activeCaption(_ days: Int) -> String { "of \(days) days since the first" }
+        static let topModel = "Top model"
+        static func topCaption(_ pct: Int) -> String { "\(pct)% of tokens" }
+        static func updated(_ when: String) -> String { "UPDATED \(when)" }
+        static func through(_ day: String) -> String { "TOKENS THROUGH \(day)" }
+
+        // The back and the flip (after Aqua Voice's card).
+        static let flip = "Flip card", showBack = "Show back", showFront = "Show front"
+        static let front = "Front", back = "Back"
+        static let website = "clepso-app.vercel.app"
+        static let backTag = "PLAYER CARD"
+        static let backLine = "Claude Code usage and limits, tracked on this Mac."
+        static func activityTitle(_ weeks: Int) -> String { "ACTIVITY LOG · LAST \(weeks) WEEKS" }
+        static func activitySummary(_ active: Int, _ days: Int) -> String { "\(active) of \(days) days active" }
+        static let less = "LESS", more = "MORE", pending = "Seen by Clepso, not yet in the file"
+        static func dayBeforeFirst(_ date: String) -> String { "\(date): before your first session" }
+        static func dayHelp(_ date: String, active: Bool, pending: Bool) -> String {
+            pending ? "Active on \(date) (seen by Clepso; Claude Code's file adds it later)" : (active ? "Active on \(date)" : "No activity on \(date)")
+        }
+
+        /// What VoiceOver reads for each face (the card is one button, "Flip card", whose value is the face showing).
+        static func frontSummary(_ c: PlayerCard, figures: [(String, String)]) -> String {
+            (["Front", c.name, c.plan ?? "", levelBar(c.level.level, c.levelName)] + figures.map { "\($0.0): \($0.1)" })
+                .filter { !$0.isEmpty }.joined(separator: ". ")
+        }
+        static func backSummary(_ c: PlayerCard, weeks: Int) -> String {
+            ["Back", Copy.product, backLine, "\(activityTitle(weeks).capitalized): \(activitySummary(c.activity.activeDays, c.activity.days))", website]
+                .joined(separator: ". ")
+        }
     }
 
     enum Goals {

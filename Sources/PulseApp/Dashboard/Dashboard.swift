@@ -41,55 +41,84 @@ enum LevelName {
     }
 }
 
-/// Stamps on the player card: the highest one earned in each category.
-struct Milestone: Sendable, Equatable, Identifiable {
-    let id: String
-    let big: String        // "1", "30", "1B"
-    let unit: String       // "YEAR", "DAY STREAK", "OUTPUT"
-}
+/// The player card (1.10c; redesigned after the founder's review). Every figure is all time from Claude Code's
+/// statistics file unless its name says otherwise; nothing is estimated.
+struct PlayerCard: Sendable, Equatable {
+    let name: String
+    let since: String?             // the first session's day, YYYY-MM-DD
+    let plan: String?
+    /// Every token Claude Code has counted, all kinds (input, output, cache read, cache write), all models.
+    let totalTokens: Int64
+    let output: Int64              // all-time output tokens, all models: what the level is earned by
+    let level: ModelLevel
+    let levelName: String
+    let currentStreak: Int         // consecutive active days ending today (or yesterday, if today has no activity yet)
+    let bestStreak: Int            // the longest run of consecutive active days
+    let activeDays: Int
+    let dayCount: Int              // days since the first session, today included
+    let topModel: String?          // most tokens, all time
+    let topModelID: String?
+    let topModelShare: Int?        // its share of all tokens, percent
+    let sessions: Int
+    let longestSessionMs: Int64?
+    /// Lines over the sessions Clepso keeps (last 30 days at most); nil without any.
+    let lines: CodeLines?
+    /// The statistics file's last day: tokens stop there; days after it count as active on Clepso's own evidence.
+    let statsThrough: String?
+    let activity: CardActivity
+    /// When the card's sources were last checked (the statistics file and Clepso's own readings).
+    let updatedAt: Date?
 
-enum Milestones {
-    static func make(file: ClaudeCodeStats, summary: StatsSummary) -> [Milestone] {
-        var out: [Milestone] = []
-        if let first = file.firstSessionDate {
-            let days = StatsSummary.Day.between(first, summary.today)
-            let tenure: [(Int, String, String)] = [(730, "2", "YEARS"), (365, "1", "YEAR"), (100, "100", "DAYS"), (30, "30", "DAYS")]
-            if let t = tenure.first(where: { days >= $0.0 }) { out.append(Milestone(id: "tenure", big: t.1, unit: t.2)) }
-        }
-        if let s = [100, 30, 7].first(where: { summary.longestStreak >= $0 }) {
-            out.append(Milestone(id: "streak", big: "\(s)", unit: "DAY STREAK"))
-        }
+    static func make(file: ClaudeCodeStats, summary: StatsSummary, name: String, plan: String?, lines: CodeLines? = nil,
+                     updatedAt: Date? = nil, weeks: Int = CardActivity.weeks) -> PlayerCard {
         let output = file.models.map(\.output).reduce(0, +)
-        let outputMarks: [(Int64, String)] = [(1_000_000_000, "1B"), (100_000_000, "100M"), (10_000_000, "10M"), (1_000_000, "1M")]
-        if let o = outputMarks.first(where: { output >= $0.0 }) { out.append(Milestone(id: "output", big: o.1, unit: "OUTPUT")) }
-        if let n = [1000, 100].first(where: { summary.sessions >= $0 }) {
-            out.append(Milestone(id: "sessions", big: "\(n)", unit: "SESSIONS"))
-        }
-        return out
+        let level = ModelLevel(output: output)
+        return PlayerCard(name: name, since: file.firstSessionDate, plan: plan, totalTokens: RunningTotal.make(file).tokens,
+                          output: output, level: level, levelName: LevelName.of(level.level),
+                          currentStreak: summary.currentStreak, bestStreak: summary.longestStreak,
+                          activeDays: summary.activeDays, dayCount: summary.dayCount,
+                          topModel: summary.favorite?.name, topModelID: summary.favorite?.model,
+                          topModelShare: summary.favorite.map { Int(($0.share * 100).rounded()) }, sessions: summary.sessions,
+                          longestSessionMs: summary.longestSessionMs, lines: lines, statsThrough: summary.computedThrough,
+                          activity: CardActivity.make(file: file, summary: summary, weeks: weeks), updatedAt: updatedAt)
     }
 }
 
-/// The player card: who, since when, how far up the ladder, and four headline numbers.
-struct PlayerCard: Sendable, Equatable {
-    let name: String
-    let since: String?             // the first session's day
-    let plan: String?
-    let output: Int64              // all-time output tokens, all models
-    let level: ModelLevel
-    let levelName: String
-    let milestones: [Milestone]
-    let streak: Int
-    let topModel: String?
-    let sessions: Int
-    let longestSessionMs: Int64?
+/// The back of the card: a contribution-style log of the last weeks, one square a day (Sunday on top), like the
+/// Stats overview's calendar. Levels are the overview's quartiles of messages; `pending` marks a day Clepso saw
+/// activity on that the statistics file doesn't cover yet.
+struct CardActivity: Sendable, Equatable {
+    struct Day: Sendable, Equatable {
+        let date: String
+        let level: Int             // 0 none … 4 busiest
+        let pending: Bool
+        /// Before the first session: drawn faintly, not counted.
+        var beforeFirst = false
+    }
+    static let weeks = 30
+    /// Columns of seven; nil after today.
+    let columns: [[Day?]]
+    let activeDays: Int
+    let days: Int
 
-    static func make(file: ClaudeCodeStats, summary: StatsSummary, name: String, plan: String?) -> PlayerCard {
-        let output = file.models.map(\.output).reduce(0, +)
-        let level = ModelLevel(output: output)
-        return PlayerCard(name: name, since: file.firstSessionDate, plan: plan, output: output, level: level,
-                          levelName: LevelName.of(level.level), milestones: Milestones.make(file: file, summary: summary),
-                          streak: summary.currentStreak, topModel: summary.favorite?.name, sessions: summary.sessions,
-                          longestSessionMs: summary.longestSessionMs)
+    static func make(file: ClaudeCodeStats, summary: StatsSummary, weeks: Int) -> CardActivity {
+        let today = summary.today
+        let weekday = StatsSummary.Day.date(today).map { StatsSummary.Day.calendar.component(.weekday, from: $0) - 1 } ?? 0
+        let count = 7 * (max(1, weeks) - 1) + weekday + 1             // starts on a Sunday, ends today
+        let grid = StatsCalendar.recent(count, stats: file, levels: summary.heatmap, today: today,
+                                        firstDay: file.firstSessionDate ?? file.days.first?.date)
+        var active = 0, days = 0
+        let columns: [[Day?]] = grid.weeks.map { week in
+            week.map { cell in
+                guard let cell, cell.date <= today else { return nil }
+                guard case .level(let level) = cell.state else { return Day(date: cell.date, level: 0, pending: false, beforeFirst: true) }
+                let pending = summary.seenActive.contains(cell.date)
+                days += 1
+                if level > 0 || pending { active += 1 }
+                return Day(date: cell.date, level: level, pending: pending)
+            }
+        }
+        return CardActivity(columns: columns, activeDays: active, days: days)
     }
 }
 
