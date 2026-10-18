@@ -1,4 +1,4 @@
-"""Builds Pulse Mono Regular, Medium and Bold (TTF, OTF, WOFF2). Usage: python build_mono_font.py <out dir>"""
+"""Builds Clepso Mono Regular, Medium and Bold (TTF, OTF, WOFF2). Usage: python build_mono_font.py <out dir>"""
 import sys
 from pathlib import Path
 
@@ -17,8 +17,8 @@ from build_pixel_font import glyph_name
 from geom import union
 from pixel_glyphs import ACCENTED
 
-FAMILY = "Pulse Mono"
-PS = "PulseMono"
+FAMILY = "Clepso Mono"
+PS = "ClepsoMono"
 WEIGHTS = {"Regular": (400, 90, 76), "Medium": (500, 110, 92), "Bold": (700, 140, 116)}
 
 
@@ -97,7 +97,7 @@ def build_weight(style, weight, wv, wh, out_dir):
         fb.setupHorizontalMetrics(metrics)
         fontmeta.setup_common(fb, family=FAMILY, ps=PS, style=style, weight=weight,
                               ascender=960, descender=-240, line_gap=0, cap=M.CAP, x_height=M.XH, mono=True,
-                              description="Pulse Mono: the body face of the Pulse identity, a monospace "
+                              description="Clepso Mono: the body face of the Clepso identity, a monospace "
                                           "constructed from rounded rectangles.")
         addOpenTypeFeaturesFromString(fb.font, "languagesystem DFLT dflt;\nlanguagesystem latn dflt;\n")
         if flavour == "ttf":

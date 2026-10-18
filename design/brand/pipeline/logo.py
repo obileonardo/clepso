@@ -1,4 +1,4 @@
-"""The Pulse logo: symbol, wordmark and lockups, drawn on one pixel grid.
+"""The Clepso logo: symbol, wordmark and lockups, drawn on one pixel grid.
 
 Unit: p = one grid pixel = 1/16 of the symbol's height. Every element sits on whole p, and every raster
 render uses a whole number of device pixels per p, so the mark is never resampled.
@@ -76,7 +76,7 @@ def symbol_cells(rows=SYMBOL, x=0, y=0):
 
 
 def wordmark_rows():
-    letters = [pixel_glyphs.G[ch][1] for ch in "PULSE"]
+    letters = [pixel_glyphs.G[ch][1] for ch in "CLEPSO"]
     h = len(letters[0])
     rows = [""] * h
     for i, glyph in enumerate(letters):
@@ -101,9 +101,9 @@ def layout(kind):
         on = symbol_cells() | symbol_cells(WORDMARK, x=16 + LOCKUP_GAP, y=WORD_TOP)
         return on, 16 + LOCKUP_GAP + WORD_W, 16
     if kind == "stacked":
-        # The wordmark is 33 p wide and the symbol 16 p: the symbol sits half a p right of centre's grid line,
-        # so both stay on whole p (see NOTES.md). Rendered at even pixel scales only below 64 px.
-        sx = (WORD_W - 16) // 2 + 1
+        # Centre the 16 p symbol over the wordmark; when the widths differ by an odd number the symbol sits half a p
+        # right of the true centre, so both stay on whole p (see NOTES.md). Even pixel scales only below 64 px.
+        sx = (WORD_W - 16) // 2 + (WORD_W - 16) % 2
         on = symbol_cells(x=sx) | symbol_cells(WORDMARK, y=16 + STACK_GAP)
         return on, WORD_W, 16 + STACK_GAP + WORD_H
     raise KeyError(kind)
@@ -115,8 +115,8 @@ def svg(kind, colour, scale=1, pad=0, background=None):
     d = svg_path(trace(flipped), scale=scale, dx=pad * scale, dy=pad * scale, height=h)
     W, H = (w + 2 * pad) * scale, (h + 2 * pad) * scale
     bg = f'<rect width="{W}" height="{H}" fill="{background}"/>' if background else ""
-    title = {"symbol": "Pulse symbol", "symbol-small": "Pulse symbol, small", "wordmark": "Pulse wordmark",
-             "horizontal": "Pulse logo, horizontal", "stacked": "Pulse logo, stacked"}[kind]
+    title = {"symbol": "Clepso symbol", "symbol-small": "Clepso symbol, small", "wordmark": "Clepso wordmark",
+             "horizontal": "Clepso logo, horizontal", "stacked": "Clepso logo, stacked"}[kind]
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
             f'shape-rendering="crispEdges" role="img" aria-label="{title}"><title>{title}</title>{bg}'
             f'<path d="{d}" fill="{colour}" fill-rule="nonzero"/></svg>\n')
@@ -147,23 +147,23 @@ def write_logo(out: Path):
     written = []
     for kind in ("symbol", "symbol-small", "wordmark", "horizontal", "stacked"):
         for cname, colour in COLOURS.items():
-            p = svg_dir / f"pulse-{kind}-{cname}.svg"
+            p = svg_dir / f"clepso-{kind}-{cname}.svg"
             p.write_text(svg(kind, colour))
             written.append(p)
         # Reversed on the brand's dark and light grounds, with clear space included.
-        (svg_dir / f"pulse-{kind}-on-ink.svg").write_text(svg(kind, COLOURS["phosphor"], pad=CLEAR, background=INK))
-        (svg_dir / f"pulse-{kind}-on-paper.svg").write_text(svg(kind, COLOURS["deep"], pad=CLEAR, background=PAPER))
+        (svg_dir / f"clepso-{kind}-on-ink.svg").write_text(svg(kind, COLOURS["phosphor"], pad=CLEAR, background=INK))
+        (svg_dir / f"clepso-{kind}-on-paper.svg").write_text(svg(kind, COLOURS["deep"], pad=CLEAR, background=PAPER))
     # Rasters at whole-pixel scales.
     for kind, scales in (("symbol", (1, 2, 4, 8, 16, 32, 64)), ("symbol-small", (1, 2, 4)),
                          ("wordmark", (2, 4, 8, 16)), ("horizontal", (2, 4, 8, 16)), ("stacked", (2, 4, 8, 16))):
         for s in scales:
             on, w, h = layout(kind)
             for cname in ("phosphor", "black", "white"):
-                png(kind, hex_rgba(COLOURS[cname]), s).save(png_dir / f"pulse-{kind}-{cname}-{w * s}.png")
+                png(kind, hex_rgba(COLOURS[cname]), s).save(png_dir / f"clepso-{kind}-{cname}-{w * s}.png")
             png(kind, hex_rgba(COLOURS["phosphor"]), s, pad=CLEAR, background=hex_rgba(INK)).save(
-                png_dir / f"pulse-{kind}-on-ink-{(w + 2 * CLEAR) * s}.png")
+                png_dir / f"clepso-{kind}-on-ink-{(w + 2 * CLEAR) * s}.png")
             png(kind, hex_rgba(COLOURS["deep"]), s, pad=CLEAR, background=hex_rgba(PAPER)).save(
-                png_dir / f"pulse-{kind}-on-paper-{(w + 2 * CLEAR) * s}.png")
+                png_dir / f"clepso-{kind}-on-paper-{(w + 2 * CLEAR) * s}.png")
     return written
 
 
@@ -198,7 +198,7 @@ def write_menubar(out: Path):
                 x0, y0 = (x + pad) * scale, (y + pad) * scale
                 d.rectangle([x0, y0, x0 + scale - 1, y0 + scale - 1], fill=black)
             suffix = "" if scale == 1 else "@2x"
-            img.save(out / f"PulseMenuBarTemplate-{size}{suffix}.png")
+            img.save(out / f"ClepsoMenuBarTemplate-{size}{suffix}.png")
     for name, (_, cells_) in menubar_states().items():
         for scale in (1, 2):
             img = Image.new("RGBA", (16 * scale, 16 * scale), (0, 0, 0, 0))
@@ -208,14 +208,14 @@ def write_menubar(out: Path):
             img.save(out / f"state-{name}{'' if scale == 1 else '@2x'}.png")
     rows = "\n".join(SYMBOL)
     coords = sorted((x, y) for x, y in on if (x, y) not in symbol_cells(RING_ONLY))
-    (out / "pulse-menubar-matrix.txt").write_text(
-        "Pulse menu bar symbol, 16 x 16, row 0 at the top, '#' = opaque black (template image).\n"
+    (out / "clepso-menubar-matrix.txt").write_text(
+        "Clepso menu bar symbol, 16 x 16, row 0 at the top, '#' = opaque black (template image).\n"
         "The ring is identical to MenuBarIcon.ring; the beat replaces the 2 x 2 'lit core' of the .ring state.\n\n"
         f"{rows}\n\nBeat pixels (x, y), y down, for MenuBarIcon.mark(.ring):\n{coords}\n")
     swift_pairs = ", ".join(f"({x}, {y})" for x, y in coords)
     (out / "MenuBarBeat.swift.txt").write_text(
         "// Drop-in for Sources/DesignSystem/Theme/MenuBarIcon.swift, `mark(_:)` (not applied: DesignSystem is being\n"
-        "// changed by another engineer). Replaces the 2 x 2 lit core of `.ring` with the Pulse beat.\n"
+        "// changed by another engineer). Replaces the 2 x 2 lit core of `.ring` with the Clepso beat.\n"
         f"case .ring: return [{swift_pairs}]\n")
 
 
@@ -265,7 +265,7 @@ def app_icon_svg():
             elif _inside_screen(x, y):
                 rects_dim.append(r)
     return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {cv} {cv}" width="{cv}" height="{cv}">
-<title>Pulse app icon</title>
+<title>Clepso app icon</title>
 <defs>
   <linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{c['top']}"/><stop offset="1" stop-color="{c['bottom']}"/></linearGradient>
   <radialGradient id="screen" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="{c['lit']}" stop-opacity="0.16"/><stop offset="1" stop-color="{c['lit']}" stop-opacity="0"/></radialGradient>
@@ -380,13 +380,13 @@ def _app_icon_small(size):
 
 def write_app_icon(out: Path):
     out.mkdir(parents=True, exist_ok=True)
-    (out / "pulse-app-icon.svg").write_text(app_icon_svg())
-    iconset = out / "Pulse.iconset"
+    (out / "clepso-app-icon.svg").write_text(app_icon_svg())
+    iconset = out / "Clepso.iconset"
     iconset.mkdir(exist_ok=True)
     cache = {}
     for s in (16, 32, 64, 128, 256, 512, 1024):
         cache[s] = app_icon_png(s)
-        cache[s].save(out / f"pulse-app-icon-{s}.png")
+        cache[s].save(out / f"clepso-app-icon-{s}.png")
     appiconset = out / "AppIcon.appiconset"
     appiconset.mkdir(exist_ok=True)
     images = []

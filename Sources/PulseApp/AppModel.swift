@@ -149,6 +149,10 @@ public final class AppModel {
         await refreshAccount()
         await purgeIfDue()
         if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
+        // The status line's wrapper names the helper by its full path; after the app moves or is renamed (Pulse.app →
+        // Clepso.app) it points at nothing and Claude Code quietly falls back. Re-point it, like the hooks above.
+        let statusLine = Self.installer(environment, forwardCost: forwardCost)
+        if statusLine.needsRepair() { try? statusLine.repair() }
         listen()
         let interval = environment.tickInterval
         tasks.append(Task { [weak self] in

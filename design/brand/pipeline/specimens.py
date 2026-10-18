@@ -15,7 +15,7 @@ BIN = HERE / ".build" / "render"
 
 INK, SURF, LINE = "#060907", "#0D1410", "#2C4034"
 TEXT, TEXT2, ACCENT, AMBER, RUST = "#EAF7EE", "#93B9A0", "#4DFF8F", "#FFC04D", "#FF6B5E"
-PX, MR, MM, MB = "PulsePixel-Regular", "PulseMono-Regular", "PulseMono-Medium", "PulseMono-Bold"
+PX, MR, MM, MB = "ClepsoPixel-Regular", "ClepsoMono-Regular", "ClepsoMono-Medium", "ClepsoMono-Bold"
 
 
 def renderer():
@@ -56,7 +56,7 @@ class Page:
 
 def pixel_specimen():
     p = Page(1600, 1560)
-    p.head("Pulse brand · Type 01 · Display", "PULSE PIXEL", PX, 80,
+    p.head("Clepso brand · Type 01 · Display", "CLEPSO PIXEL", PX, 80,
            "The display face. Capitals 7 pixels tall on a 10-pixel em (one pixel = 100 units), drawn so a number can "
            "never be misread: dotted zero, flagged one, square-shouldered five. Tabular figures; kerning computed so "
            "open shapes tuck in and no two strokes ever touch. Replaces Silkscreen.")
@@ -98,12 +98,12 @@ def pixel_specimen():
     p.r(620, y + 56, 916, 190, SURF)
     p.t(PX, 50, 644, y + 84, "YOUR LIMITS,", TEXT)
     p.t(PX, 50, 644, y + 144, "BEFORE YOU HIT THEM.", ACCENT)
-    p.save("pulse-pixel-specimen")
+    p.save("clepso-pixel-specimen")
 
 
 def mono_specimen():
     p = Page(1600, 1610)
-    p.head("Pulse brand · Type 02 · Body", "Pulse Mono", MM, 72,
+    p.head("Clepso brand · Type 02 · Body", "Clepso Mono", MM, 72,
            "The body face. A monospace constructed from the same rounded rectangle as the pixel face's chamfered "
            "corners, drawn at high resolution. Vertical strokes heavier than horizontal for an even colour; Regular, "
            "Medium and Bold are one drawing at three stroke widths. Replaces SF Mono for sentences.")
@@ -121,7 +121,7 @@ def mono_specimen():
     y = 760
     p.r(64, y, 1472, 1, LINE)
     p.t(MM, 12, 64, y + 24, "TEXT SIZES", TEXT2, tracking=2)
-    sample = ("Pulse reads the status line Claude Code already sends, on your Mac. It never reads your prompts, files or "
+    sample = ("Clepso reads the status line Claude Code already sends, on your Mac. It never reads your prompts, files or "
               "transcript, makes no AI calls and costs no tokens. Missing is never zero: a value that has not arrived says so.")
     yy = y + 56
     for s, lh, ps in ((12, 17, MR), (13, 19, MM), (15, 24, MR), (20, 30, MR)):
@@ -136,20 +136,20 @@ def mono_specimen():
     p.r(64, y, 1472, 1, LINE)
     p.t(MM, 12, 64, y + 24, "BESIDE SF MONO AT THE APP'S SIZES (2×)", TEXT2, tracking=2)
     lines = ["Approaching limit · just now", "Resets 20:01 · in 2h 14m", "Estimate: at this pace, 100% around 18:29"]
-    for col, (font, label) in enumerate(((MM, "Pulse Mono Medium 13"), ("system-mono-medium", "SF Mono Medium 13"))):
+    for col, (font, label) in enumerate(((MM, "Clepso Mono Medium 13"), ("system-mono-medium", "SF Mono Medium 13"))):
         x = 64 + col * 740
         p.r(x, y + 50, 720, 150, SURF)
         p.t(MR, 12, x + 20, y + 64, label.upper(), TEXT2, tracking=1.5)
         for i, l in enumerate(lines):
             p.t(font, 13, x + 20, y + 94 + i * 30, l)
-    p.save("pulse-mono-specimen")
+    p.save("clepso-mono-specimen")
 
 
 def type_system_sheet():
     rows = len(APP) + len(WEB)
     p = Page(1600, 360 + rows * 92 + 120)
-    p.head("Pulse brand · Type 03 · System", "TYPE SYSTEM", PX, 50,
-           "Two faces, one geometry. Pulse Pixel speaks in numbers and labels; Pulse Mono explains. Pixel sizes are "
+    p.head("Clepso brand · Type 03 · System", "TYPE SYSTEM", PX, 50,
+           "Two faces, one geometry. Clepso Pixel speaks in numbers and labels; Clepso Mono explains. Pixel sizes are "
            "multiples of 5 pt in the app (whole device pixels on Retina) and of 10 px on the web.")
     y = 250
 

@@ -1,11 +1,11 @@
 # Security policy
 
-Pulse installs a helper that Claude Code runs on every status-line refresh, edits `~/.claude/settings.json`, listens on
+Clepso installs a helper that Claude Code runs on every status-line refresh, edits `~/.claude/settings.json`, listens on
 a local socket, and can optionally sync daily counts to a hosted backend. Reports about any of these are very welcome.
 
 ## Supported versions
 
-Pulse has not had a public release. Security fixes are made on `main`; once releases exist, only the latest release
+Clepso has not had a public release. Security fixes are made on `main`; once releases exist, only the latest release
 will receive fixes.
 
 | Version | Supported |
@@ -47,7 +47,7 @@ In scope, for example:
 
 - Data leaving the helper that the field allowlist should have blocked (paths, prompts, ids, secrets).
 - Ways to make the helper alter, delay beyond its budget, or break the user's own status-line output.
-- Ways to corrupt or lose the user's `~/.claude/settings.json`, or to make Pulse write outside its own files.
+- Ways to corrupt or lose the user's `~/.claude/settings.json`, or to make Clepso write outside its own files.
 - Local privilege or trust-boundary problems in the Unix socket (`~/Library/Application Support/Pulse/run/`).
 - Injection through the `dev.tokone.pulse://` URL scheme or the sign-in flow.
 - A build from source (no `Config/Sync.local.xcconfig`) that signs in or makes any network request.
@@ -56,7 +56,7 @@ In scope, for example:
 
 Out of scope:
 
-- Anything that requires an attacker who already runs code as the same macOS user, *unless* Pulse makes that
+- Anything that requires an attacker who already runs code as the same macOS user, *unless* Clepso makes that
   attacker meaningfully more powerful (such a process can already read and edit `~/.claude` directly).
 - Values that Claude Code itself reports incorrectly.
 - Denial of service against the hosted backend by volume, and findings from automated scanners without a
@@ -65,7 +65,7 @@ Out of scope:
 
 ## Security design notes
 
-How Pulse limits what it can see and do is described in
+How Clepso limits what it can see and do is described in
 [`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md). Known gaps that are planned work rather than
 vulnerabilities:
 

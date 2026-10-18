@@ -1,6 +1,6 @@
-# Contributing to Pulse
+# Contributing to Clepso
 
-Thank you for your interest. Pulse is a small, privacy-sensitive macOS app: the helper it installs runs inside every
+Thank you for your interest. Clepso is a small, privacy-sensitive macOS app: the helper it installs runs inside every
 Claude Code session of the people who use it. That shapes how changes are proposed, reviewed and tested here.
 
 > The project is pre-release. Some items below (labels, branch protection, hosted CI) describe how the project will
@@ -9,10 +9,10 @@ Claude Code session of the people who use it. That shapes how changes are propos
 ## Ways to contribute
 
 - **Report a bug**: open an issue with the *Bug report* form. Include your macOS version, Claude Code version
-  (`claude --version`), Pulse version (shown under the name in the Dashboard sidebar), what you expected and what
+  (`claude --version`), Clepso version (shown under the name in the Dashboard sidebar), what you expected and what
   happened. If the diagnostics log (Settings › Diagnostics) helps, copy the relevant lines and **read them before
   posting**; the log is designed to hold no paths, prompts or ids, but you are the judge of what you share.
-- **Propose a feature**: open an issue with the *Feature request* form first. Changes that make Pulse read a new
+- **Propose a feature**: open an issue with the *Feature request* form first. Changes that make Clepso read a new
   source, forward a new field, or touch the network need agreement on the design before code (see
   [Changes that need a design discussion](#changes-that-need-a-design-discussion)).
 - **Improve documentation**: the *Documentation* form, or a pull request directly for small fixes.
@@ -101,7 +101,7 @@ Open an issue before writing code for any of these:
 - Anything that sends data off the machine, or changes what `Sync` uploads or the backend schema. Never commit an
   accounts project's host or key: they belong in the uncommitted `Config/Sync.local.xcconfig` (`make ci` checks).
 - Changes to how `~/.claude/settings.json` is modified, backed up or restored.
-- New dependencies. Pulse has one third-party package (GRDB); each new one needs a reason, a licence check and an
+- New dependencies. Clepso has one third-party package (GRDB); each new one needs a reason, a licence check and an
   exact pin in `Package.resolved`.
 - Database migrations (`Sources/Storage/`): they must keep every existing row and come with a migration test.
 

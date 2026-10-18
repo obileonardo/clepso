@@ -11,7 +11,7 @@ visibility. **At public** = only available, or only free, once the repository is
 | Setting | Observed | Target |
 |---|---|---|
 | Visibility | Private | Public, only after the Stage A blockers and owner questions are resolved |
-| Description | "Pulse: local AI capacity monitor for Claude Code (macOS menu bar)" | Keep; mention Codex once public |
+| Description | "Clepso: local AI capacity monitor for Claude Code (macOS menu bar)" | Keep; mention Codex once public |
 | Repository name | `tokone` | Rename to `pulse` deferred until after a trademark check (owner decision) |
 | Homepage, topics | None | Add (see below) |
 | Default branch | `main`, **not protected** | Protected by a ruleset |
@@ -89,7 +89,7 @@ Add a tag ruleset for `v*`: restrict creation, update and deletion to the owner.
   one). Until a ruleset protects `main` (§3, at public), write access includes pushing directly to `main`.
 - Confirm two-factor authentication on the owner account.
 - Labels for contributors: `good first issue`, `help wanted`, `triage`, `bug`, `enhancement`, `documentation`,
-  `privacy` (changes that touch what Pulse reads or sends), `security` (for advisories, not public issues).
+  `privacy` (changes that touch what Clepso reads or sends), `security` (for advisories, not public issues).
 
 ### 6. Releases — Later
 

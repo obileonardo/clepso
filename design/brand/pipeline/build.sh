@@ -1,5 +1,5 @@
 #!/bin/sh
-# Rebuilds every Pulse brand asset: fonts, logo, app icon, menu bar icon, favicon, sheets and specimens,
+# Rebuilds every Clepso brand asset: fonts, logo, app icon, menu bar icon, favicon, sheets and specimens,
 # then validates the fonts (scripted checks + the OpenType Sanitizer that browsers use).
 # Usage, from anywhere:  design/brand/pipeline/build.sh [fonts|logo|sheets|specimens ...]
 # The virtualenv lives in $PULSE_BRAND_VENV (default: design/brand/.venv, git-ignored), pinned by requirements.txt.

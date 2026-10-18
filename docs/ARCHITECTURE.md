@@ -1,6 +1,6 @@
 # Architecture
 
-How Pulse is put together. Section numbers are stable: code comments cite them (for example `ARCHITECTURE §3`).
+How Clepso is put together. Section numbers are stable: code comments cite them (for example `ARCHITECTURE §3`).
 Related: [`DATA_MODEL.md`](DATA_MODEL.md) (types, schema, state machines) and
 [`PRIVACY_AND_SECURITY.md`](PRIVACY_AND_SECURITY.md) (what is read, kept and sent).
 
@@ -8,8 +8,8 @@ Related: [`DATA_MODEL.md`](DATA_MODEL.md) (types, schema, state machines) and
 
 | Process | What it is | Lifetime | Responsibilities |
 |---|---|---|---|
-| `Pulse.app` | Menu bar-only SwiftUI app (`LSUIElement`, `MenuBarExtra`) | Long-lived; optionally launched at login through `SMAppService.mainApp` after the user agrees | Owns the socket listener, the database, the engine, notifications, the settings installers and the interface |
-| `pulse-statusline` | Signed helper inside `Pulse.app/Contents/Helpers/` | Started by Claude Code on every status-line refresh (and, with hooks on, every hook event); exits within its time budget | Runs the user's original status-line command, builds one allowlisted frame and sends it to the app |
+| `Clepso.app` | Menu bar-only SwiftUI app (`LSUIElement`, `MenuBarExtra`) | Long-lived; optionally launched at login through `SMAppService.mainApp` after the user agrees | Owns the socket listener, the database, the engine, notifications, the settings installers and the interface |
+| `pulse-statusline` | Signed helper inside `Clepso.app/Contents/Helpers/` | Started by Claude Code on every status-line refresh (and, with hooks on, every hook event); exits within its time budget | Runs the user's original status-line command, builds one allowlisted frame and sends it to the app |
 | `~/.claude/pulse/statusline.sh` | Small POSIX `sh` wrapper that Claude Code runs | Per refresh | Runs the helper if it exists and is executable, otherwise the user's original command (or exits 0 if there was none) |
 
 There is no separate background agent: the app is the local agent. The installed command is a script that wraps the
@@ -71,7 +71,7 @@ with its own read time, because the status-line payload carries no timestamp.
 3. While the child runs: load `~/.claude/pulse/config.json`, build the frame (must finish within 10 ms of start),
    connect without blocking (within 20 ms, never later than 45 ms after start) and write (finished by 48 ms).
 4. Never read a reply, never retry, never write to disk. If the app is not running the frame is dropped: an honest gap.
-5. If the user had no status line, print Pulse's own one-line summary instead.
+5. If the user had no status line, print Clepso's own one-line summary instead.
 
 Signals (`SIGTERM`, `SIGINT`, `SIGHUP`) are forwarded to the child. The budget is enforced on the maintainer's Mac by
 `make perf`: helper overhead at most 20 ms p95 over 200 release-build runs.
@@ -114,7 +114,7 @@ Claude Code ──stdin JSON──► statusline.sh ──exec──► pulse-st
                                                      │                          /bin/sh -c <original command>
                                                      └──◄ stdout + exit status ◄──────┘  (unchanged to Claude Code)
 
-Pulse.app
+Clepso.app
   IngestSocket ──AsyncStream──► Ingestor ──► FrameMapper ──► Store (one transaction per batch)
      peer check, rate limit,                 observations       ledger policy → observations
      size limit, decode                                         UsageEngine → pool_snapshots, events

@@ -1,4 +1,4 @@
-/* Pulse docs site behaviour. No libraries. Everything here is progressive: the pages read fine without it.
+/* Clepso docs site behaviour. No libraries. Everything here is progressive: the pages read fine without it.
    The three playgrounds mirror Swift code exactly; each names its source, and build-site.py prints that source beside it. */
 (() => {
   "use strict";

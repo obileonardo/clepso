@@ -1,4 +1,4 @@
-"""Builds every Pulse brand asset from source. Usage (from the repo root):
+"""Builds every Clepso brand asset from source. Usage (from the repo root):
 
     design/brand/pipeline/build.sh            # creates the pinned venv if needed, then runs this
 
@@ -26,9 +26,9 @@ def main(only=None):
     want = set(only or ["fonts", "logo", "sheets", "specimens"])
     fonts = BRAND / "fonts"
     if "fonts" in want:
-        step("Pulse Pixel")
+        step("Clepso Pixel")
         build_pixel_font.build(fonts)
-        step("Pulse Mono (Regular, Medium, Bold)")
+        step("Clepso Mono (Regular, Medium, Bold)")
         for style, (w, wv, wh) in build_mono_font.WEIGHTS.items():
             build_mono_font.build_weight(style, w, wv, wh, fonts)
     if "logo" in want:
@@ -38,9 +38,9 @@ def main(only=None):
         logo.write_menubar(BRAND / "menubar")
         step("app icon")
         logo.write_app_icon(BRAND / "app-icon")
-        icns = BRAND / "app-icon" / "Pulse.icns"
-        if subprocess.run(["iconutil", "-c", "icns", str(BRAND / "app-icon" / "Pulse.iconset"), "-o", str(icns)]).returncode:
-            print("  iconutil not available: Pulse.icns not built")
+        icns = BRAND / "app-icon" / "Clepso.icns"
+        if subprocess.run(["iconutil", "-c", "icns", str(BRAND / "app-icon" / "Clepso.iconset"), "-o", str(icns)]).returncode:
+            print("  iconutil not available: Clepso.icns not built")
         step("favicon")
         logo.write_favicon(BRAND / "favicon")
     if "sheets" in want:

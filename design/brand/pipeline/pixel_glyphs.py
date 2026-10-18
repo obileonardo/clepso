@@ -1,4 +1,4 @@
-"""Pulse Pixel: the display face, drawn here pixel by pixel.
+"""Clepso Pixel: the display face, drawn here pixel by pixel.
 
 Grid: one pixel = 100 font units, em = 10 pixels. Cap height and ascenders 7 px, x-height 5 px, descenders 2 px,
 accents up to 10 px. Each entry is (top, rows): `top` is the y of the first row (baseline = 0, y up), rows run top

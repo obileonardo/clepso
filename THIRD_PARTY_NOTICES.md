@@ -1,10 +1,10 @@
 # Third-party notices and brand assets
 
-Pulse's source code is licensed under the MIT License (see [`LICENSE`](LICENSE)). The components below keep their own
-licences. Inside the app, `Pulse.app/Contents/Resources/Acknowledgements.txt` carries GRDB's licence and points to the
+Clepso's source code is licensed under the MIT License (see [`LICENSE`](LICENSE)). The components below keep their own
+licences. Inside the app, `Clepso.app/Contents/Resources/Acknowledgements.txt` carries GRDB's licence and points to the
 font licences bundled beside the fonts.
 
-## Shipped in Pulse.app
+## Shipped in Clepso.app
 
 ### GRDB.swift 7.11.1
 
@@ -14,7 +14,7 @@ font licences bundled beside the fonts.
 - Licence: MIT. Copyright (C) 2015-2025 Gwendal Roué. The full text is reproduced in
   `App/PulseMac/Acknowledgements.txt`, which ships in the app.
 - GRDB links the SQLite library that ships with macOS. Its `SQLiteCustom/src` git submodule is fetched by Swift
-  Package Manager but not compiled into Pulse.
+  Package Manager but not compiled into Clepso.
 
 ### Fonts under the SIL Open Font License 1.1
 
@@ -28,7 +28,7 @@ full licence sits beside it and ships with it.
 | Pixelify Sans | Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans) | `PixelifySans-OFL.txt` |
 | VT323 | Copyright 2011, The VT323 Project Authors | `VT323-OFL.txt` |
 
-Since Pulse's own typefaces arrived, these three are still bundled but no longer used by the interface. The OFL allows
+Since Clepso's own typefaces arrived, these three are still bundled but no longer used by the interface. The OFL allows
 bundling with software; the fonts may not be sold on their own, and their licence must travel with them.
 
 ## Used by the documentation website only (`site/`, `scripts/site/`)
@@ -51,21 +51,21 @@ bundling with software; the fonts may not be sold on their own, and their licenc
 | XcodeGen | 2.46.0 | MIT | `scripts/bootstrap.sh` downloads the release zip and checks its SHA-256 |
 | Supabase CLI and local stack | Not pinned here | Apache-2.0 (CLI); components vary | Installed by the developer, only for `make backend-test` |
 
-## Pulse brand assets
+## Clepso brand assets
 
-The Pulse name, the Pulse mark and logo, the app icon and the menu bar mark (`design/brand/`,
-`App/PulseMac/Assets.xcassets/`), and the **Pulse Pixel** and **Pulse Mono** typefaces (`design/brand/fonts/`,
-`Sources/DesignSystem/Resources/Fonts/PulsePixel-*` and `PulseMono-*`, and copies under `site/design-system/brand/`)
+The Clepso name, the Clepso mark and logo, the app icon and the menu bar mark (`design/brand/`,
+`App/PulseMac/Assets.xcassets/`), and the **Clepso Pixel** and **Clepso Mono** typefaces (`design/brand/fonts/`,
+`Sources/DesignSystem/Resources/Fonts/ClepsoPixel-*` and `ClepsoMono-*`, and copies under `site/design-system/brand/`)
 are original works made for this project.
 
-**Typefaces: open.** Pulse Pixel and Pulse Mono are licensed under the **SIL Open Font License 1.1** with the Reserved
-Font Names "Pulse Pixel" and "Pulse Mono" (`design/brand/fonts/OFL.txt`, shipped in the app as
-`PulseFonts-OFL.txt`). You may use, modify and redistribute them under the OFL; a modified version must be renamed.
+**Typefaces: open.** Clepso Pixel and Clepso Mono are licensed under the **SIL Open Font License 1.1** with the Reserved
+Font Names "Clepso Pixel" and "Clepso Mono" (`design/brand/fonts/OFL.txt`, shipped in the app as
+`ClepsoFonts-OFL.txt`). You may use, modify and redistribute them under the OFL; a modified version must be renamed.
 
-**Name, logo and icons: reserved.** The Pulse name, the Pulse mark and logo, the app icon and the menu bar mark are not
+**Name, logo and icons: reserved.** The Clepso name, the Clepso mark and logo, the app icon and the menu bar mark are not
 covered by the MIT licence or the OFL. See [TRADEMARKS.md](TRADEMARKS.md).
 
-"Pulse" is a working name; no trademark search has been done.
+"Clepso" is a working name; no trademark search has been done.
 
 ## Third-party data and text
 
@@ -80,6 +80,6 @@ covered by the MIT licence or the OFL. See [TRADEMARKS.md](TRADEMARKS.md).
 
 Claude and Claude Code are trademarks of Anthropic, PBC. Codex and ChatGPT are trademarks of OpenAI. Gemini is a
 trademark of Google LLC. Grok is a trademark of xAI. Cursor, GitHub Copilot, Windsurf and other product names are
-trademarks of their respective owners. They are used only to identify the tools Pulse works with or describes; Pulse
+trademarks of their respective owners. They are used only to identify the tools Clepso works with or describes; Clepso
 is not affiliated with or endorsed by them. The app shows sign-in providers as pixel monograms rather than their
 logos, and no third-party logo image files were found in this repository.

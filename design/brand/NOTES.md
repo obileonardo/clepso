@@ -1,11 +1,11 @@
-# Pulse identity: design notes
+# Clepso identity: design notes
 
 Working notes behind the brand kit: what was decided, why, and what remains open. The public version of this is the
 Brand section of the design-system page (`site/design-system/`).
 
 ## 1. The idea
 
-Pulse watches a limit you cannot see and tells you before you hit it. Two things matter: **the limit** (a
+Clepso watches a limit you cannot see and tells you before you hit it. Two things matter: **the limit** (a
 container that fills) and **the live signal** (a reading that keeps arriving, or stops). The mark puts one inside
 the other: **a heartbeat inside a ring**. The ring is the existing 16 px menu bar ring, so the logo and the status
 icon are one object. The beat is the live reading. The same ring can hold other marks (warning, flatline, clock),
@@ -32,7 +32,7 @@ icon. The final beat floats with a 2 p margin and spans x 3–12, y 3–12: cent
 
 - Unit **p** = 1/16 of the symbol. Every edge on whole p. Stroke 1 p everywhere.
 - Ring: the app's menu bar ring (`MenuBarIcon.ring`) unchanged, keyline circle r = 8 p.
-- Wordmark: PULSE in Pulse Pixel capitals (7 p), tracked 2 p. Horizontal lockup gap 5 p, cap top 4 p below the
+- Wordmark: CLEPSO in Clepso Pixel capitals (7 p), tracked 2 p. Horizontal lockup gap 5 p, cap top 4 p below the
   symbol's top. Stacked: 4 p gap; the symbol sits at 9 p from the left (half a p right of true centre, because
   33 − 16 is odd); render at even scales below 64 px.
 - Clear space 4 p on every side. Minimums: symbol 16 px (print 6 mm), horizontal lockup 54 × 16 px (print 20 mm).
@@ -60,14 +60,14 @@ INTEGRATION.md).
 the U and S in the site's hero), and the founder already hit legibility problems with pixel figures ("8.5B" read as
 "8.SB" in Pixelify Sans, increment 1.8). A monitoring product lives on its numbers.
 
-**Pulse Pixel** (display): 7-pixel capitals, 5-pixel x-height, 2-pixel descenders on a 10-pixel em. Designed
+**Clepso Pixel** (display): 7-pixel capitals, 5-pixel x-height, 2-pixel descenders on a 10-pixel em. Designed
 around disambiguation: dotted 0 vs O, flagged 1 with a foot vs serifed I vs tailed l, square-shouldered 5 vs
 chamfered S, round 8 vs flat-backed B, 6/G and 9/g by their spurs. Figures, %, +, −, = are tabular (6 px). Kerning
 is computed, not hand-listed: a pair tightens by 1 px only when no pixel of one glyph would touch the other
 (8-connected), so open shapes (T, L, Y, F, P, r, quotes) tuck in and strokes never merge. 218 characters including
 Latin-1 letters, arrows and ⌘ ⌥ ⇧ ⏎.
 
-**Pulse Mono** (body): monospace, 600-unit cell, built from the same rounded rectangle as the pixel face's
+**Clepso Mono** (body): monospace, 600-unit cell, built from the same rounded rectangle as the pixel face's
 chamfered corners, at high resolution. Vertical strokes heavier than horizontal (Regular 90/76) so the texture is
 even; diagonals between. Weight is a parameter: Regular, Medium and Bold are one drawing.
 
@@ -81,16 +81,16 @@ keeps every disambiguation, and gives the product its own voice. Limits, stated 
   outside the set.
 - **No optical-size masters, no type-designer review.** Joins and terminals are geometric, not hand-corrected.
 
-Recommendation: use Pulse Mono on the website now, and in the app for labels and short sentences (the tokens in
+Recommendation: use Clepso Mono on the website now, and in the app for labels and short sentences (the tokens in
 INTEGRATION.md). Before it becomes the only text face of a shipping product, have a type designer review it
 (1–2 weeks) and extend coverage. If that is not possible, the best licensed alternative for this language is
 **JetBrains Mono** (SIL OFL 1.1, large Latin/Greek/Cyrillic coverage, hinted, weights 100–800); keep SF Mono as the
 in-app fallback either way.
 
 **Pairing rule.** Pixel speaks in numbers and labels (short, uppercase or figures); Mono explains (sentences,
-captions, data). Never set a sentence in Pulse Pixel; never set a big figure in Pulse Mono.
+captions, data). Never set a sentence in Clepso Pixel; never set a big figure in Clepso Mono.
 
-**Pixel-snapping rule.** Pulse Pixel's pixel is 1/10 em. Sizes whose tenth is a whole number of device pixels render
+**Pixel-snapping rule.** Clepso Pixel's pixel is 1/10 em. Sizes whose tenth is a whole number of device pixels render
 without blur: multiples of 5 pt in the app on Retina (15, 20, 25, 30, 35, 40), multiples of 10 px on the web.
 
 ## 6. Voice
@@ -116,10 +116,10 @@ available, direct when a limit is near, factual (not apologetic) when data is mi
 
 ## 8. Open
 
-- **Name.** "Pulse" is a working name and a crowded word in software; no trademark search has been done. The
+- **Name.** "Clepso" is a working name and a crowded word in software; no trademark search has been done. The
   symbol does not depend on the name; the wordmark and the font names do (one constant each in `logo.py` and
   `fontmeta.py`).
 - **Font licence.** The faces are original (no OFL source). Founder decision, 17 Oct 2026: released under the SIL OFL
-  1.1 with Reserved Font Names "Pulse Pixel" and "Pulse Mono"; the logo, name and icons stay reserved (TRADEMARKS.md).
+  1.1 with Reserved Font Names "Clepso Pixel" and "Clepso Mono"; the logo, name and icons stay reserved (TRADEMARKS.md).
 - **Menu bar status family.** The flatline / warning / clock / broken-ring set is a proposal; `MenuBarIcon` in the
   app still draws its own marks.

@@ -52,7 +52,7 @@ struct OverviewProjectionTests {
         #expect(snap.icon == .ok && !snap.iconStaleMark && snap.iconShape == .ring)
         #expect(snap.iconText == "41%")
         #expect(snap.aggregateLine == "Reported limits available · updated 1m ago")
-        #expect(snap.iconAccessibilityLabel == "Pulse: Reported limits available · updated 1m ago")
+        #expect(snap.iconAccessibilityLabel == "\(Product.name): Reported limits available · updated 1m ago")
         #expect(snap.provider?.unreadLimitWindows == 0)
         #expect(snap.provider?.pools.map(\.model.scope) == ["5-hour", "7-day"])
         #expect(snap.provider?.pools.first?.providerField == "rate_limits.five_hour.used_percentage")

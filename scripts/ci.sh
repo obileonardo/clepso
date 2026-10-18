@@ -87,7 +87,7 @@ helper_linkage() {
     echo "no networking libraries or symbols"
 }
 
-# Optional Pulse accounts make HTTPS calls from the Sync module, and only from there.
+# Optional Clepso accounts make HTTPS calls from the Sync module, and only from there.
 no_networking_code() {
     local hits
     hits=$(grep -rnE 'URLSession|NWConnection|NWListener|CFSocketCreate|import Network\b' Sources | grep -v '^Sources/Sync/' || true)
@@ -153,7 +153,7 @@ no_committed_sync_project() {
 # Strict mode also requires a real signing identity, hardened runtime and a configured accounts project.
 app_bundle() {
     make app >/dev/null || return 1
-    local app=build/DerivedData/Build/Products/Debug/Pulse.app
+    local app=build/DerivedData/Build/Products/Debug/Clepso.app
     codesign --verify --deep --strict "$app" || return 1
     local helper="$app/Contents/Helpers/pulse-statusline"
     [ -x "$helper" ] || { echo "helper missing"; return 1; }
@@ -181,7 +181,7 @@ app_bundle() {
     [ "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" = "dev.tokone.pulse" ] || { echo "sign-in URL scheme missing"; return 1; }
     local ack="$app/Contents/Resources/Acknowledgements.txt"
     grep -q 'Gwendal Rou' "$ack" 2>/dev/null && grep -q 'Permission is hereby granted' "$ack" || { echo "third-party licences missing: $ack"; return 1; }
-    for font in PulseFonts Silkscreen PixelifySans VT323; do
+    for font in ClepsoFonts Silkscreen PixelifySans VT323; do
         [ -f "$app/Contents/Resources/Tokone_DesignSystem.bundle/Contents/Resources/Fonts/$font-OFL.txt" ] || { echo "$font licence missing"; return 1; }
     done
     local sync

@@ -1,4 +1,4 @@
-Copyright 2026 The Pulse Project Authors, with Reserved Font Names "Pulse Pixel" and "Pulse Mono".
+Copyright 2026 The Clepso Project Authors, with Reserved Font Names "Clepso Pixel" and "Clepso Mono".
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

@@ -34,8 +34,8 @@ targets:
     info:
       path: App/PulseMac/Info.plist
       properties:
-        CFBundleName: Pulse
-        CFBundleDisplayName: Pulse
+        CFBundleName: Clepso
+        CFBundleDisplayName: Clepso
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true              # menu bar only: no Dock icon, no main menu
@@ -50,7 +50,7 @@ targets:
       properties: {}                   # empty: no sandbox (Pulse edits ~/.claude), no network entitlement, no exceptions
     settings:
       base:
-        PRODUCT_NAME: Pulse
+        PRODUCT_NAME: Clepso
         PRODUCT_BUNDLE_IDENTIFIER: dev.tokone.pulse
         ENABLE_APP_SANDBOX: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # 1.16: the Pulse mark (design/brand/app-icon)

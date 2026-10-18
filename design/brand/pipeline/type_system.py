@@ -1,13 +1,13 @@
-"""The Pulse type system as data: used by the specimens, the design-system page and the app integration note.
+"""The Clepso type system as data: used by the specimens, the design-system page and the app integration note.
 
-Pixel rule: Pulse Pixel's pixel is 1/10 em, so a size whose tenth is a whole number of device pixels renders without
+Pixel rule: Clepso Pixel's pixel is 1/10 em, so a size whose tenth is a whole number of device pixels renders without
 blur. On a 2× display that is every multiple of 5 pt (15, 20, 25 …); on 1× and the web at 1×, multiples of 10.
 """
 
 FAMILIES = {
-    "pixel": {"family": "Pulse Pixel", "ps": {"Regular": "PulsePixel-Regular"},
+    "pixel": {"family": "Clepso Pixel", "ps": {"Regular": "ClepsoPixel-Regular"},
               "role": "Display: figures, titles, labels, buttons, the wordmark"},
-    "mono": {"family": "Pulse Mono", "ps": {"Regular": "PulseMono-Regular", "Medium": "PulseMono-Medium", "Bold": "PulseMono-Bold"},
+    "mono": {"family": "Clepso Mono", "ps": {"Regular": "ClepsoMono-Regular", "Medium": "ClepsoMono-Medium", "Bold": "ClepsoMono-Bold"},
              "role": "Body: sentences, captions, data labels, code"},
 }
 

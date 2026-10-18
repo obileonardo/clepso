@@ -2,13 +2,13 @@ import CoreText
 import Foundation
 
 /// The bundled faces (Resources/Fonts, pinned in its README). Registered once, for this process only.
-/// 1.16: Pulse's own faces (design/brand): Pulse Pixel for display, Pulse Mono for text. PostScript names, which are
+/// 1.16: the product's own faces (design/brand): Pulse Pixel for display, Pulse Mono for text. PostScript names, which are
 /// unambiguous where family names are not. Silkscreen, Pixelify Sans and VT323 stay bundled but are no longer used.
 public enum PixelFonts {
-    public static let display = "PulsePixel-Regular"    // titles, figures, tags, buttons, menu bar text
-    public static let body = "PulseMono-Regular"        // supporting text
-    public static let bodyMedium = "PulseMono-Medium"   // labels and micro
-    public static let bodyBold = "PulseMono-Bold"
+    public static let display = "ClepsoPixel-Regular"    // titles, figures, tags, buttons, menu bar text
+    public static let body = "ClepsoMono-Regular"        // supporting text
+    public static let bodyMedium = "ClepsoMono-Medium"   // labels and micro
+    public static let bodyBold = "ClepsoMono-Bold"
     public static let number = "Pixelify Sans"          // pixel numerals that stay legible at large sizes
     public static let terminal = "VT323"                // terminal face for the Matrix-style details
 

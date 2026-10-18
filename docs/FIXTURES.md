@@ -1,6 +1,6 @@
 # Fixture corpus
 
-Fixtures pin down how Pulse handles Claude Code's status-line JSON, end to end: what the helper forwards, which
+Fixtures pin down how Clepso handles Claude Code's status-line JSON, end to end: what the helper forwards, which
 observations the app derives, and the resulting state. They live in
 `Sources/TestFixtures/Resources/claude-code/`, are listed in `manifest.json`, and are used by
 `Tests/ShimIntegrationTests/` (which runs the built helper against a temporary `HOME`) and

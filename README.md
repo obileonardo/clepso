@@ -1,23 +1,23 @@
-# Pulse
+# Clepso
 
 **A local-first macOS menu bar app that shows how much of your AI coding agent's usage limits you have left, and when they reset.**
 
-Pulse is a working name. This repository is `tokone`; the app it builds is `Pulse.app`.
+Clepso is a working name. This repository is `tokone`; the app it builds is `Clepso.app`.
 
-> **Status: pre-release (v0.1.0).** Pulse runs daily on its maintainer's Mac against real Claude Code sessions, but
+> **Status: pre-release (v0.1.0).** Clepso runs daily on its maintainer's Mac against real Claude Code sessions, but
 > there are no signed builds and no releases yet. The source code is MIT-licensed (see [Licence](#licence)); the first
 > public pre-release is planned as `v0.1.0-alpha`.
 
-![The Pulse menu bar panel with demo data: 5-hour limit at 83% (approaching), 7-day limit at 21%, and the current session's figures](design/screens/popover-overview.png)
+![The Clepso menu bar panel with demo data: 5-hour limit at 83% (approaching), 7-day limit at 21%, and the current session's figures](design/screens/popover-overview.png)
 
-<sub>All screenshots show Pulse's built-in demo scenario (every screen is badged DEMO) with a synthetic statistics file and
+<sub>All screenshots show Clepso's built-in demo scenario (every screen is badged DEMO) with a synthetic statistics file and
 the made-up profile name "Sam", rendered by the app itself (see [Run it safely](#run-it-safely)).</sub>
 
 ---
 
 ## Contents
 
-- [Why Pulse exists](#why-pulse-exists)
+- [Why Clepso exists](#why-pulse-exists)
 - [What it does today](#what-it-does-today)
 - [Screenshots](#screenshots)
 - [Privacy model](#privacy-model)
@@ -37,14 +37,14 @@ the made-up profile name "Sam", rendered by the app itself (see [Run it safely](
 
 ---
 
-## Why Pulse exists
+## Why Clepso exists
 
 Subscription plans for AI coding agents meter usage in rolling windows (for Claude Code: a 5-hour window and a
 7-day window). Hitting a limit mid-task is disruptive, and the built-in view is a command you have to remember to
-run. Pulse keeps the numbers in the menu bar, says how fresh they are, estimates where your current pace is heading,
+run. Clepso keeps the numbers in the menu bar, says how fresh they are, estimates where your current pace is heading,
 and keeps a local history, without sending your prompts, code or file paths anywhere.
 
-Pulse reports only what the agent itself reports. When a value is missing it says so instead of showing "0%", and it
+Clepso reports only what the agent itself reports. When a value is missing it says so instead of showing "0%", and it
 never guesses your plan from your usage.
 
 ## What it does today
@@ -75,19 +75,19 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
   connection (connect / remove), opt-ins (statistics file, agents per task, Codex), export, demo data, diagnostics
   log, delete all.
 
-The interface is set in Pulse's own pixel typefaces, Pulse Pixel and Pulse Mono, and the app has its own icon.
+The interface is set in Clepso's own pixel typefaces, Clepso Pixel and Clepso Mono, and the app has its own icon.
 
 **Data controls**
 - **Export my data**: a JSON file (permissions 0600) of the local tables, with every string re-checked by the same
   scrubber the helper uses.
-- **Delete all**: removes Pulse's database and its files under `~/.claude/pulse`, and restores your Claude Code
+- **Delete all**: removes Clepso's database and its files under `~/.claude/pulse`, and restores your Claude Code
   settings; optionally also deletes the settings backups.
 - **Retention**: limit readings and engine events are kept 90 days; sessions, agent tasks and notification receipts 30 days.
 - **Demo mode**: a fixed scenario run through the real engine and store, so you can explore without connecting anything.
 
-**Sources Pulse can read**
+**Sources Clepso can read**
 
-| Source | What Pulse reads | Default |
+| Source | What Clepso reads | Default |
 |---|---|---|
 | Claude Code status line | An allowlisted subset of the JSON Claude Code sends to its status-line command: limits, model, context, token and cache counts, durations, line counts, and the cost estimate (which you can switch off) | On once you connect it in onboarding or Settings |
 | Claude Code hooks | For `UserPromptSubmit`, `SubagentStart`, `SubagentStop` and `Stop`: the event name, keyed hashes of the session and agent ids, and the built-in agent type ("custom" otherwise) | Off (*opt-in*; shows the exact entry before writing it) |
@@ -114,7 +114,7 @@ More in [`design/screens/`](design/screens/). The images are captured by the app
 
 ## Privacy model
 
-Pulse is built so that the part Claude Code runs cannot leak what it sees, and so that every change it makes to your
+Clepso is built so that the part Claude Code runs cannot leak what it sees, and so that every change it makes to your
 machine can be undone.
 
 - **Allowlist, not blocklist.** The helper copies only named fields, each with a type and range check
@@ -131,19 +131,19 @@ machine can be undone.
 - **Your Claude Code settings are changed reversibly.** Connecting changes exactly one key, `statusLine.command`,
   in `~/.claude/settings.json`, after writing a byte-exact backup to `~/.claude/pulse-backups/`. Writes are
   compare-and-swap with an atomic rename, and an interrupted install can be recovered. If you already had a status
-  line, it keeps running and its output reaches Claude Code unchanged. Removing Pulse restores the original bytes.
+  line, it keeps running and its output reaches Claude Code unchanged. Removing Clepso restores the original bytes.
 - **Local IPC is restricted to your user.** The app listens on a Unix socket at
   `~/Library/Application Support/Pulse/run/agent.sock` (folder 0700, socket 0600), accepts only peers running as
   your user id, frames of at most 4 KiB, and at most 20 frames per second.
 - **Logs are redacted by type.** Values wrapped in `Redacted<T>` cannot be encoded; `make ci` audits every place that
   unwraps one.
-- **If you sign in** (optional, official builds), Pulse uploads once an hour: your profile name and plan label, and per-day counts
+- **If you sign in** (optional, official builds), Clepso uploads once an hour: your profile name and plan label, and per-day counts
   (messages, sessions, active day, tokens per model, model totals by token kind, 5-hour peak and 7-day end %, agents
   per task by built-in type, goal targets and results). No prompts, replies, paths, project names or raw ids. Every
   table is protected by row-level security, and deleting your account deletes every row
   ([`backend/supabase/migrations/`](backend/supabase/migrations/)).
 
-What Pulse does **not** do: read your prompts or replies, read transcripts, or send anything anywhere unless you sign in.
+What Clepso does **not** do: read your prompts or replies, read transcripts, or send anything anywhere unless you sign in.
 The full design is in [`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md).
 
 ## How it works
@@ -155,12 +155,12 @@ flowchart LR
         HK["hook events<br/>(opt-in)"]
     end
 
-    subgraph Helper["pulse-statusline<br/>(Pulse.app/Contents/Helpers)"]
+    subgraph Helper["pulse-statusline<br/>(Clepso.app/Contents/Helpers)"]
         RUN["runs your original<br/>status-line command"]
         AL["field allowlist + scrub<br/>HMAC of session ids"]
     end
 
-    subgraph App["Pulse.app (menu bar)"]
+    subgraph App["Clepso.app (menu bar)"]
         SOCK["IngestSocket<br/>same-user peers, 4 KiB, 20/s"]
         MAP["FrameMapper → observations"]
         DB[("SQLite via GRDB<br/>~/Library/Application Support/Pulse")]
@@ -185,7 +185,7 @@ flowchart LR
 ```
 
 1. Claude Code runs its status-line command on every refresh and pipes a JSON description of the session to it.
-   Connecting Pulse points that command at a small wrapper script (`~/.claude/pulse/statusline.sh`) that runs the
+   Connecting Clepso points that command at a small wrapper script (`~/.claude/pulse/statusline.sh`) that runs the
    helper embedded in the app bundle, or your original command if the app has been removed.
 2. The helper starts your original status-line command (if any) with the exact input bytes, so your status line looks
    the same. Meanwhile it builds an allowlisted *frame* and sends it to the app over a Unix socket within a fixed time
@@ -198,7 +198,7 @@ flowchart LR
 5. The SwiftUI layer reads a projection of that state. Colours, spacing and type come only from the `Theme` tokens in
    `DesignSystem`, and icons are pixel glyphs (both enforced by `make ci`).
 
-Pulse is a menu bar-only app (`LSUIElement`). It is not sandboxed, because it has to read and edit files under
+Clepso is a menu bar-only app (`LSUIElement`). It is not sandboxed, because it has to read and edit files under
 `~/.claude`; it has no entitlements beyond the debug-only `get-task-allow`, and official builds use hardened runtime.
 More: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
 
@@ -226,10 +226,10 @@ sudo xcode-select -s /Applications/Xcode.app   # point at your Xcode 27.1 instal
 
 swift build        # all libraries and command-line tools
 swift test         # the full suite: no network, never touches your real ~/.claude
-make app           # Pulse.app: XcodeGen → xcodebuild → codesign --verify
+make app           # Clepso.app: XcodeGen → xcodebuild → codesign --verify
 ```
 
-`make app` writes `build/DerivedData/Build/Products/Debug/Pulse.app`. The Xcode project (`Pulse.xcodeproj`) is
+`make app` writes `build/DerivedData/Build/Products/Debug/Clepso.app`. The Xcode project (`Pulse.xcodeproj`) is
 generated from `project.yml` and is not committed; `Package.swift` is the source of truth for all code.
 
 **Local configuration** (all optional; the files are gitignored, each has a committed `.example` template in
@@ -255,11 +255,11 @@ generated from `project.yml` and is not committed; `Package.swift` is the source
 
 ## Run it safely
 
-Debug builds accept two launch arguments that redirect everything Pulse reads and writes, so you can try it without
+Debug builds accept two launch arguments that redirect everything Clepso reads and writes, so you can try it without
 touching your real `~/.claude` or Application Support folder:
 
 ```sh
-build/DerivedData/Build/Products/Debug/Pulse.app/Contents/MacOS/Pulse \
+build/DerivedData/Build/Products/Debug/Clepso.app/Contents/MacOS/Clepso \
     -PulseDataDirectory /tmp/pulse-data -PulseHome /tmp/pulse-home
 ```
 
@@ -269,7 +269,7 @@ Keep the data folder path short: the socket path inside it must stay under the 1
 panel reports that it isn't receiving updates.
 
 To connect a real Claude Code, launch normally and use **Connect** in onboarding or the Claude Code connection in
-**Settings**. Pulse shows the exact change to `settings.json` before writing anything. The headless CLI does the same
+**Settings**. Clepso shows the exact change to `settings.json` before writing anything. The headless CLI does the same
 and only previews unless you pass `--confirm`:
 
 ```sh
@@ -284,7 +284,7 @@ swift run pulse recover                                             # finish or 
 
 ```sh
 python3 -I scripts/probe-home.py /tmp/pulse-home                 # synthetic ~/.claude/stats-cache.json, fixed seed
-build/DerivedData/Build/Products/Debug/Pulse.app/Contents/MacOS/Pulse \
+build/DerivedData/Build/Products/Debug/Clepso.app/Contents/MacOS/Clepso \
     -PulseDataDirectory /tmp/pulse-data -PulseHome /tmp/pulse-home \
     -PulseProbeOutput /tmp/pulse-shots -PulseProbeDemo YES &       # add -PulseProbeLight YES for light mode
 swift scripts/probe-popover.swift /tmp/pulse-shots 40
@@ -314,7 +314,7 @@ accounts project.
 | redaction audit | `unsafeReveal` only in `Storage` and the helper; `Redacted` is never `Codable` |
 | secret scan | No secret-shaped strings in the tree (a regex stand-in for a full scanner) |
 | no committed accounts project | No Supabase project host or publishable key in tracked files, and no `Config/*.local.xcconfig` tracked |
-| app bundle | `Pulse.app` builds and is signed, embeds the helper under its identifier, has no unexpected entitlements, runs as a menu bar app, registers the sign-in URL scheme, ships the third-party licences, and its helper links no networking. Strict mode also requires a real signature, hardened runtime and a configured accounts project |
+| app bundle | `Clepso.app` builds and is signed, embeds the helper under its identifier, has no unexpected entitlements, runs as a menu bar app, registers the sign-in URL scheme, ships the third-party licences, and its helper links no networking. Strict mode also requires a real signature, hardened runtime and a configured accounts project |
 
 There is no hosted CI yet. A proposed GitHub Actions workflow is in
 [`docs/open-source/proposed/ci.yml`](docs/open-source/proposed/ci.yml); it is not active.
@@ -344,7 +344,7 @@ Sources/
 Tests/                     Swift Testing suites per module, plus integration tests that run the built helper
 backend/supabase/          Accounts schema with row-level security, pgTAP tests, local Supabase config
 design/screens/            App screenshots (demo data, synthetic statistics)
-design/brand/              The Pulse mark, app icon, typefaces and their build pipeline
+design/brand/              The Clepso mark, app icon, typefaces and their build pipeline
 docs/                      Architecture, data model, privacy and security, fixtures, open-source readiness
 scripts/                   ci.sh, bootstrap.sh, site generators, fixture oracle, probe driver and synthetic home
 site/                      Generated documentation website (static HTML)
@@ -352,7 +352,7 @@ site/                      Generated documentation website (static HTML)
 
 ## Optional accounts backend
 
-`backend/supabase` holds the schema for optional Pulse accounts: eight tables of daily counts keyed by the signed-in
+`backend/supabase` holds the schema for optional Clepso accounts: eight tables of daily counts keyed by the signed-in
 user, each with forced row-level security (`user_id = auth.uid()`), no grants to anonymous users, and a
 `delete_account()` function whose deletion cascades to every row. `make backend-test` runs 16 pgTAP checks against
 a local stack.
@@ -364,7 +364,7 @@ dashboard is not built yet.
 
 **No accounts project is compiled in.** The app reads one from its Info.plist, which gets it from
 `Config/Sync.local.xcconfig` at build time. A build from source has none: the Account page says accounts aren't
-available in this build, Home never suggests signing in, and Pulse makes no network request at all. To use your own
+available in this build, Home never suggests signing in, and Clepso makes no network request at all. To use your own
 backend, apply `backend/supabase/migrations/` to your Supabase project and copy `Config/Sync.local.xcconfig.example`
 with your project's host and **publishable** key (the app refuses secret keys).
 
@@ -377,7 +377,7 @@ with your project's host and **publishable** key (the app refuses secret keys).
 | 1.9 Agents per task through Claude Code hooks | Done (opt-in) |
 | 2.0 Accounts: schema with row-level security and Mac sign-in and upload (done); web dashboard | In progress |
 | 3.4 Codex limits: reader, store, panel, Limits page and Settings switch | Done (opt-in) |
-| 1.15–1.16 Five colour themes; Pulse's own typefaces, app icon and menu bar mark | Done |
+| 1.15–1.16 Five colour themes; Clepso's own typefaces, app icon and menu bar mark | Done |
 | M2 Limit notifications, reset reminders, time-travel test harness | Planned (today: permission and a test notification only) |
 | M3 More providers (manual snapshots, Gemini) | Planned |
 | M4 Signing and notarization; iPhone, Watch and widgets | Planned |
@@ -388,9 +388,9 @@ are read automatically today.
 ## Known limitations
 
 - Claude Code's status line carries only the 5-hour and 7-day limits. Per-model weekly limits that `/usage` shows are
-  not visible to Pulse; it says so and counts the limit windows it cannot read.
-- Readings arrive only while Claude Code refreshes its status line, so Pulse shows how old each value is.
-- Pulse always uses `~/.claude`. A custom `CLAUDE_CONFIG_DIR` is supported by the installer code but not yet wired
+  not visible to Clepso; it says so and counts the limit windows it cannot read.
+- Readings arrive only while Claude Code refreshes its status line, so Clepso shows how old each value is.
+- Clepso always uses `~/.claude`. A custom `CLAUDE_CONFIG_DIR` is supported by the installer code but not yet wired
   into the app.
 - Limit notifications are not implemented yet.
 - No signed or notarized builds and no auto-update; only Apple silicon has been tested.
@@ -404,11 +404,11 @@ are read automatically today.
 |---|---|
 | `make ci` fails at "toolchain pinned" or "app bundle" | That is the strict mode. Use `make ci-contributor` unless you build official releases |
 | `make app` fails with a signing error | Remove or fix `Config/Signing.local.xcconfig`; without it the app is signed ad hoc |
-| The panel says Pulse isn't receiving updates (debug run) | The `-PulseDataDirectory` path is too long for a Unix socket; use a shorter one |
+| The panel says Clepso isn't receiving updates (debug run) | The `-PulseDataDirectory` path is too long for a Unix socket; use a shorter one |
 | Account says accounts aren't available | Expected in builds from source (see [Optional accounts backend](#optional-accounts-backend)) |
 | The panel says "not connected" | Claude Code only runs the status line while a session is open; check Settings for the connection state and the diagnostics log |
 | My old status line disappeared | It should keep running. Run `swift run pulse status`, then `swift run pulse uninstall --confirm` to restore the backed-up bytes, and open an issue |
-| Want to see what Pulse stored | Settings › Export my data writes a JSON copy |
+| Want to see what Clepso stored | Settings › Export my data writes a JSON copy |
 
 ## Contributing, security and conduct
 
@@ -420,12 +420,12 @@ are read automatically today.
 
 The source code is released under the [MIT License](LICENSE), copyright (c) 2026 Elvis Obi. Third-party components keep
 their own licences, listed in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) and shipped inside the app in
-`Acknowledgements.txt`. The Pulse name, logo, app icon and the Pulse Pixel and Pulse Mono typefaces are brand assets;
+`Acknowledgements.txt`. The Clepso name, logo, app icon and the Clepso Pixel and Clepso Mono typefaces are brand assets;
 their terms are described in `THIRD_PARTY_NOTICES.md`.
 
 Claude and Claude Code are trademarks of Anthropic; Codex and ChatGPT of OpenAI; Gemini of Google; other product
-names belong to their owners. Pulse is an independent project, not affiliated with or endorsed by any of them; the
-names are used only to say which tools Pulse works with.
+names belong to their owners. Clepso is an independent project, not affiliated with or endorsed by any of them; the
+names are used only to say which tools Clepso works with.
 
 ## Acknowledgements
 

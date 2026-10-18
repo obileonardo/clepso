@@ -1,4 +1,4 @@
-"""Builds the Pulse documentation website around the design-system page.
+"""Builds the Clepso documentation website around the design-system page.
 
 Pages: Overview, Progress, Metrics, Architecture, Privacy, Screens, Changelog and the Design system (built by
 build-design-site.py, which runs first; this script adds the site's header, menu and search to it). Content comes from
@@ -42,7 +42,7 @@ DOC_PAGES = [("metrics/", "Metrics"), ("architecture/", "Architecture"), ("priva
 
 # ------------------------------------------------------------------------------------------------------------ shell
 
-# The Pulse mark (design/brand): the 12 p symbol on an ink tile, the same drawing as the favicon.
+# The Clepso mark (design/brand): the 12 p symbol on an ink tile, the same drawing as the favicon.
 LOGO = (repo / "design/brand/favicon/favicon.svg").read_text().strip().replace("<svg ", '<svg aria-hidden="true" ', 1)
 
 
@@ -50,7 +50,7 @@ def header(current):
     here = ' aria-current="page"'
     pill = "".join(f'<a href="/{p}"{here if p == current else ""}>{e(n)}</a>' for p, n in NAV)
     return (f'<a class="px-skip" href="#main">Skip to content</a>'
-            f'<header class="px-head"><a class="px-brand" href="/" aria-label="Pulse docs, home">{LOGO}PULSE<small>docs</small></a>'
+            f'<header class="px-head"><a class="px-brand" href="/" aria-label="Clepso docs, home">{LOGO}CLEPSO<small>docs</small></a>'
             f'<div class="px-pill" role="navigation" aria-label="Main">{pill}</div>'
             '<div class="px-actions"><button class="px-btn" type="button" data-search-open aria-label="Search the docs (⌘K)">'
             '<span class="px-label">Search</span><kbd>⌘K</kbd></button>'
@@ -69,7 +69,7 @@ def menu(current):
             rows.append(f'<a href="/{path}"{cur}><span>{n:02d}</span><b>{e(name)}</b><i aria-hidden="true">→</i></a>')
     return (f'<div class="px-menu" id="px-menu" role="dialog" aria-modal="true" aria-label="Site menu" hidden>'
             f'<div class="px-menu-art"><canvas data-dither data-w="150" data-h="190" aria-hidden="true"></canvas>'
-            f'<p>Pulse · build {e(COMMIT)}</p></div>'
+            f'<p>Clepso · build {e(COMMIT)}</p></div>'
             f'<div class="px-menu-list">{"".join(rows)}</div>'
             f'<button class="px-btn px-close" type="button" data-menu-close>Close <kbd>esc</kbd></button></div>')
 
@@ -102,9 +102,9 @@ def village():
     buttons = "".join(f'<button type="button" data-agent="{i}" aria-pressed="false"><i style="background:{c}"></i>{e(n)}'
                       f'<small class="s-{s}">{VILLAGE_STATUS[s]}</small></button>' for i, n, c, s, _ in VILLAGE)
     return (f'<section class="village" aria-labelledby="village-title"><div class="wrap village-head">'
-            f'<div><p class="eyebrow" id="village-title">The village · <b>agents Pulse reads, and the ones moving in</b></p>'
-            f'<p class="village-sub">Tokens from agents Pulse can read join the tower\'s glow; the others fall back until it learns to read them. '
-            f'Product names belong to their owners; Pulse is independent.</p></div>'
+            f'<div><p class="eyebrow" id="village-title">The village · <b>agents Clepso reads, and the ones moving in</b></p>'
+            f'<p class="village-sub">Tokens from agents Clepso can read join the tower\'s glow; the others fall back until it learns to read them. '
+            f'Product names belong to their owners; Clepso is independent.</p></div>'
             f'<div class="village-roster" role="group" aria-label="Agents in the village">{buttons}</div></div>'
             f'<div class="village-stage"><canvas aria-hidden="true"></canvas><span class="village-label" hidden></span>'
             f'<div class="village-card" role="status" aria-live="polite" hidden></div>'
@@ -117,10 +117,10 @@ def footer():
     cols = "".join(f'<div><p>{e(group)}</p><ul>' + "".join(f'<li><a href="/{p}">{e(n)}</a></li>' for p, n in items) + "</ul></div>"
                    for group, items in MENU)
     return (f'<div class="stripes" aria-hidden="true"></div><footer class="foot"><div class="wrap">'
-            f'<div class="foot-cols"><div><p>Pulse</p><ul><li>A macOS menu bar monitor for coding-agent limits: Claude Code and Codex.</li>'
-            f'<li>Pulse is a working name.</li></ul></div>{cols}'
+            f'<div class="foot-cols"><div><p>Clepso</p><ul><li>A macOS menu bar monitor for coding-agent limits: Claude Code and Codex.</li>'
+            f'<li>Clepso is a working name.</li></ul></div>{cols}'
             f'<div><p>Build</p><ul><li>Commit <code>{e(COMMIT)}</code></li><li>{e(COMMIT_DATE)}</li><li>{len(GATES)} gates per commit</li></ul></div></div>'
-            f'<div class="foot-word" aria-hidden="true"><small>PULSE.wordmark</small><b>PULSE</b><i></i><i></i><i></i><i></i></div></div>'
+            f'<div class="foot-word" aria-hidden="true"><small>CLEPSO.wordmark</small><b>CLEPSO</b><i></i><i></i><i></i><i></i></div></div>'
             f'{village()}'
             f'<div class="wrap foot-base"><span>Generated by <code>scripts/build-site.py</code> from the repository.</span>'
             f'<a href="#main">Back to top ↑</a></div></footer>')
@@ -134,7 +134,7 @@ def page(path, title, description, body, kind="wide"):
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{e(title)} · Pulse docs</title><meta name="description" content="{e(description)}">
+<title>{e(title)} · Clepso docs</title><meta name="description" content="{e(description)}">
 <meta name="theme-color" content="#060907"><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>document.documentElement.classList.add("js")</script>
 </head><body class="k-{kind}">{header(path)}<main id="main">{body}</main>{footer()}
@@ -404,7 +404,7 @@ for ms in MILESTONES:
 roadmap_text = (docs / "ROADMAP.md").read_text()
 roadmap_map = re.search(r"## 2\. The map\s+```text\n(.*?)```", roadmap_text, re.S)
 
-page("progress/", "Progress", "Every increment of Pulse with its status, how it is built and how it is proven.", f"""
+page("progress/", "Progress", "Every increment of Clepso with its status, how it is built and how it is proven.", f"""
 <div class="wrap">
 <section class="section" style="padding-top:40px"><p class="eyebrow">Project / <b>Progress</b></p>
 <h1>Progress <span class="code-voice">// {done}/{total}</span></h1>
@@ -466,13 +466,13 @@ PACE_DEMO = ('<label><span>Used now <output></output></span><input type="range" 
              '<label><span>Reset in <output></output></span><input type="range" min="0" max="300" step="5" value="150" aria-label="Minutes until the reset, 0 for unknown"></label>'
              '<p class="play-out" aria-live="polite"></p><p class="play-note"></p>')
 
-docs_page("metrics/", "Metrics", "How Pulse defines every number it shows: limits, pace, tokens, levels, specialty, calendars and charts.",
-          "How every number in Pulse is defined, where it comes from, and what it does not mean. These rules are the code's rules: "
+docs_page("metrics/", "Metrics", "How Clepso defines every number it shows: limits, pace, tokens, levels, specialty, calendars and charts.",
+          "How every number in Clepso is defined, where it comes from, and what it does not mean. These rules are the code's rules: "
           "each section names the files that implement it, and the three playgrounds run the same rules beside the code.", f"""
 <h2 id="sources">Where the numbers come from</h2>
-<div class="table-wrap"><table><thead><tr><th>Source</th><th>What it gives</th><th>How fresh</th><th>Kept by Pulse</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>Source</th><th>What it gives</th><th>How fresh</th><th>Kept by Clepso</th></tr></thead><tbody>
 <tr><td>Claude Code status line</td><td>5-hour and 7-day usage with reset times, current model, context window, session cost estimate, durations, lines changed, prompt-cache counts</td><td>Every status refresh while Claude Code runs</td><td>Yes, on this Mac only, after an allowlist removes everything else (paths, prompts, ids)</td></tr>
-<tr><td>Codex session files (<code>~/.codex/sessions</code>, optional)</td><td>5-hour and weekly used % with reset times, plan type, model; only <code>token_count</code> events, from the last 256 KB of the three newest files</td><td>Each time Pulse checks, about every 30 seconds while on</td><td>Yes, the limits only, on this Mac. Prompts and replies in the same files are skipped without being parsed</td></tr>
+<tr><td>Codex session files (<code>~/.codex/sessions</code>, optional)</td><td>5-hour and weekly used % with reset times, plan type, model; only <code>token_count</code> events, from the last 256 KB of the three newest files</td><td>Each time Clepso checks, about every 30 seconds while on</td><td>Yes, the limits only, on this Mac. Prompts and replies in the same files are skipped without being parsed</td></tr>
 <tr><td>Claude Code statistics file (<code>~/.claude/stats-cache.json</code>, the data behind <code>/stats</code>)</td><td>Messages and sessions per day, tokens per model per day, tokens by kind per model (all time), sessions by hour</td><td>Up to yesterday: Claude Code folds each day in afterwards</td><td>No. Read when you open Stats, only if you turn it on; never stored or exported</td></tr>
 </tbody></table></div>
 
@@ -516,7 +516,7 @@ each one differs.</p>
 
 <h2 id="agents">Agents per task</h2>
 <p>Optional, off until you turn it on in Settings. A <strong>task</strong> is one prompt: from the moment you send
-it until Claude stops. Pulse adds four background hooks to Claude Code (prompt submitted, subagent started, subagent stopped,
+it until Claude stops. Clepso adds four background hooks to Claude Code (prompt submitted, subagent started, subagent stopped,
 Claude stopped) and counts the subagents each task starts, nested ones included.</p>
 <div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
 <tr><td>Agents</td><td>Subagents started during the task. Each one counts once, matched by a hashed id, even if its events arrive out of order.</td></tr>
@@ -534,7 +534,7 @@ hashed session and agent ids and the type, and drops the rest before anything le
 <div class="table-wrap"><table><thead><tr><th>State</th><th>When</th></tr></thead><tbody>
 <tr><td>Available</td><td>Under 80% used</td></tr><tr><td>Approaching limit</td><td>80% or more</td></tr>
 <tr><td>Nearly exhausted</td><td>95% or more</td></tr><tr><td>Limit reached</td><td>100%</td></tr>
-<tr><td>Reset expected</td><td>The reset time has passed but no fresh reading has confirmed it. Pulse never says “ready” without one.</td></tr>
+<tr><td>Reset expected</td><td>The reset time has passed but no fresh reading has confirmed it. Clepso never says “ready” without one.</td></tr>
 <tr><td>Stale</td><td>No reading recently; the last value is shown as “last seen” with its age.</td></tr>
 </tbody></table></div>
 <p>A state clears only after usage drops 3 points below its threshold, so it does not flicker.</p>
@@ -546,7 +546,7 @@ than 8 times the history it rests on, so an hour of readings cannot predict two 
 reaches 100%, it says roughly how much will be used by the reset.</p>
 {play("pace", "Try it: a steady rise through the readings", PACE_DEMO, pace_code, PACE_SRC)}
 <p>The Limits chart spans the limit's own window, from reset minus its length to the reset. The hatched span before the first
-reading is time Pulse was not yet watching.</p>
+reading is time Clepso was not yet watching.</p>
 {sources(LIMIT_SRC + " (EngineConfig, classify)", PACE_SRC)}
 
 <h2 id="session">Session figures</h2>
@@ -611,7 +611,7 @@ def pixel_icon(name, colour="#4DFF8F"):
 
 gate_rows = "".join(f"<tr><td>{e(g[:1].upper() + g[1:])}</td><td>{e(GATE_NOTES.get(g, ''))}</td></tr>" for g in GATES)
 
-docs_page("architecture/", "Architecture", "How Pulse is put together: processes, data flow, modules and quality gates.",
+docs_page("architecture/", "Architecture", "How Clepso is put together: processes, data flow, modules and quality gates.",
           "A native macOS menu bar app (Swift 6, SwiftUI) that reads what Claude Code already reports about itself, on your Mac. "
           "It works fully without an account; signing in is optional and uploads daily counts only (see <a href=\"/privacy/\">Privacy</a>).", f"""
 <h2 id="flow-at-a-glance">A reading's path</h2>
@@ -620,7 +620,7 @@ docs_page("architecture/", "Architecture", "How Pulse is put together: processes
 
 <h2 id="processes">Processes</h2>
 <div class="table-wrap"><table><thead><tr><th>Process</th><th>Role</th></tr></thead><tbody>
-<tr><td><code>Pulse.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it. If you sign in, it uploads daily counts once an hour.</td></tr>
+<tr><td><code>Clepso.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it. If you sign in, it uploads daily counts once an hour.</td></tr>
 <tr><td><code>pulse-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app. It links no networking at all.</td></tr>
 <tr><td><code>hook.sh</code> (optional)</td><td>Installed only when you turn on agents per task. Claude Code runs it in the background on four events; it runs the helper in hook mode, which sends counts only and always exits silently, so it can never block or change what Claude Code does.</td></tr>
 <tr><td><code>statusline.sh</code></td><td>The installed command. Runs the helper if the app is there, otherwise your original status line, so removing the app never breaks Claude Code.</td></tr>
@@ -658,15 +658,15 @@ docs_page("architecture/", "Architecture", "How Pulse is put together: processes
 
 # ----------------------------------------------------------------------------------------------------------- privacy
 
-docs_page("privacy/", "Privacy", "What Pulse reads, what it keeps on your Mac, and what it uploads if you sign in.",
-          "Pulse works fully on your Mac without an account. If you choose to sign in, it uploads daily counts so you can see your "
+docs_page("privacy/", "Privacy", "What Clepso reads, what it keeps on your Mac, and what it uploads if you sign in.",
+          "Clepso works fully on your Mac without an account. If you choose to sign in, it uploads daily counts so you can see your "
           "goals and usage elsewhere. This page lists every field. Draft, 17 October 2026.", """
 <h2 id="mac">On your Mac</h2>
-<p>Pulse reads Claude Code's status line (limits, model, context, session cost estimate, durations, lines changed), and, only if you turn them
+<p>Clepso reads Claude Code's status line (limits, model, context, session cost estimate, durations, lines changed), and, only if you turn them
 on, Claude Code's statistics file, four background hooks that count subagents per task, and Codex's session files (only the
 limit and plan lines; prompts and replies in them are skipped unread). A helper drops everything else (prompts, replies,
 file paths, project names) before anything reaches the app. Readings stay in a local database for 90 days (sessions and tasks 30).
-Delete all removes everything Pulse stored and restores Claude Code's settings.</p>
+Delete all removes everything Clepso stored and restores Claude Code's settings.</p>
 
 <h2 id="upload">If you sign in: what is uploaded</h2>
 <p>Once an hour, the last 14 days, to a database in Frankfurt (Supabase, EU), readable only with your sign-in:</p>
@@ -684,7 +684,7 @@ ids, per-session cost, your Claude account details or anything about other apps.
 
 <h2 id="account">Your account</h2>
 <p>Sign-in is by email link (Apple, Google and GitHub to follow). Your email is held by the sign-in service to send links; it is not stored
-with your counts. <strong>Delete account</strong> (Pulse › Account) deletes the account and every row stored with it, at once. Signing out
+with your counts. <strong>Delete account</strong> (Clepso › Account) deletes the account and every row stored with it, at once. Signing out
 stops uploads; deleting the account removes what was uploaded. Nothing is sold or shared, and there is no advertising or tracking.</p>
 
 <h2 id="security">Security</h2>
@@ -719,9 +719,9 @@ GROUPS = [
         "details-card": ("Card", "The player card: name, first session, plan, milestone stamps, output total, named level; copy, save or share."),
     }),
     ("Setup and safety", {
-        "onboarding-3-consent": ("Onboarding consent", "What Pulse reads and keeps, before anything is installed."),
+        "onboarding-3-consent": ("Onboarding consent", "What Clepso reads and keeps, before anything is installed."),
         "settings-diagnostics": ("Diagnostics", "Redacted log, export and delete-all."),
-        "settings-delete-all-sheet": ("Delete all", "Removes Pulse's data and restores Claude Code's settings."),
+        "settings-delete-all-sheet": ("Delete all", "Removes Clepso's data and restores Claude Code's settings."),
     }),
 ]
 (site / "screens" / "img").mkdir(parents=True, exist_ok=True)
@@ -745,7 +745,7 @@ for gi, (group, shots) in enumerate(GROUPS):
         dock.append(f'<button role="tab" class="px-btn" id="dock-{key}" aria-controls="thumbs-{key}" aria-selected="{"true" if gi == 1 else "false"}" type="button">{e(group)}</button>')
         stage_panels.append(f'<div class="thumbs" role="tabpanel" id="thumbs-{key}" aria-labelledby="dock-{key}"{"" if gi == 1 else " hidden"}>{"".join(buttons)}</div>')
 
-page("screens/", "Screens", "Screenshots of the running Pulse app with demo data.", f"""
+page("screens/", "Screens", "Screenshots of the running Clepso app with demo data.", f"""
 <div class="wrap">
 <section class="section" style="padding-top:40px"><p class="eyebrow">Project / <b>Screens</b></p>
 <h1>Screens <span class="code-voice">// demo data</span></h1>
@@ -795,7 +795,7 @@ kinds = [("", "All"), ("increment", "Increments"), ("site", "Site"), ("design", 
 chips = "".join(f'<button class="chip" type="button" data-tag="{k}" aria-pressed="{"true" if not k else "false"}">{e(n)}</button>' for k, n in kinds)
 gates_list = "".join(f"<span>{e(g)}</span>" for g in GATES)
 
-page("changelog/", "Changelog", "Every commit to Pulse, newest first.", f"""
+page("changelog/", "Changelog", "Every commit to Clepso, newest first.", f"""
 <div class="wrap" data-changelog>
 <section class="section" style="padding-top:40px"><p class="eyebrow">Project / <b>Changelog</b></p>
 <h1>Changelog <span class="code-voice">// {len(log)} commits</span></h1>
@@ -865,17 +865,17 @@ ENTRIES = [("metrics/", "metrics", "Metrics", "Every number defined, with three 
            ("screens/", "screens", "Screens", "The running app, with demo data."),
            ("design-system/", "design", "Design system", "Tokens, themes and components, rendered from the Swift code.")]
 entries = "".join(f'<a class="entry" href="/{p}">{wire(k)}<div><h3>{e(t)}</h3><p>{e(d)}</p></div></a>' for p, k, t, d in ENTRIES)
-boot_lines = json.dumps(["PULSE DOCUMENTATION SYSTEM", f"BUILD {COMMIT} · {COMMIT_DATE}", f"{done}/{total} INCREMENTS · {len(GATES)} GATES",
+boot_lines = json.dumps(["CLEPSO DOCUMENTATION SYSTEM", f"BUILD {COMMIT} · {COMMIT_DATE}", f"{done}/{total} INCREMENTS · {len(GATES)} GATES",
                          "READING CLAUDE CODE STATUS LINE … OK"])
 hero_shot = "popover-overview" if (screens / "popover-overview.png").exists() else None
 home_shot = "details-stats-arena" if (screens / "details-stats-arena.png").exists() else None
 
-page("", "Overview", "Technical documentation and progress for Pulse, a macOS menu bar monitor for Claude Code usage limits.", f"""
-<div class="boot" aria-hidden="true" data-lines='{e(boot_lines)}'><div class="boot-screen"><div class="boot-logo">PULSE</div>
+page("", "Overview", "Technical documentation and progress for Clepso, a macOS menu bar monitor for Claude Code usage limits.", f"""
+<div class="boot" aria-hidden="true" data-lines='{e(boot_lines)}'><div class="boot-screen"><div class="boot-logo">CLEPSO</div>
 <div class="boot-lines"></div><div class="boot-bar">{"<i></i>" * 20}</div><div class="boot-skip">Click or press any key to skip</div></div></div>
 <section class="hero"><canvas class="hero-canvas" data-dither data-beat data-w="180" data-h="180" aria-hidden="true"></canvas>
-<div class="wrap hero-inner"><p class="eyebrow">Pulse docs · build <b>{e(COMMIT)}</b> · {done}/{total} increments done</p>
-<h1 class="wordmark" data-text="PULSE">PULSE</h1>
+<div class="wrap hero-inner"><p class="eyebrow">Clepso docs · build <b>{e(COMMIT)}</b> · {done}/{total} increments done</p>
+<h1 class="wordmark" data-text="CLEPSO">CLEPSO</h1>
 <p class="headline focus-in-later">{words("Your coding-agent limits,")} <span class="w code-voice" style="animation-delay:.3s">//before</span> {words("you hit them.", .36)}</p>
 <p class="lede">A macOS menu bar app that shows how much of your Claude Code and Codex limits you have used, when they reset and how
 fast you are going, from what those agents report on your own Mac. These pages document how it is built, what every number means and where the work stands.</p>
@@ -970,7 +970,7 @@ if design_page.exists():
 (assets / "search.json").write_text(json.dumps(SEARCH, ensure_ascii=False, separators=(",", ":")))
 
 (site / "404.html").write_text(f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Not found · Pulse docs</title><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>Not found · Clepso docs</title><link rel="stylesheet" href="/assets/site.css"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/assets/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>document.documentElement.classList.add("js")</script></head><body>{header("404")}
 <main id="main"><div class="wrap lost"><p class="eyebrow">Error 404 · <b>signal lost</b></p><h1 class="wordmark" data-text="404">404</h1>
 <p class="lede">That page doesn't exist. <a href="/">Back to the overview</a>, or press ⌘K to search.</p></div></main>{footer()}

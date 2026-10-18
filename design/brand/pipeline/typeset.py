@@ -1,4 +1,4 @@
-"""Text set in the Pulse faces as SVG outlines (HarfBuzz shaping, so kerning applies). Sheets and logo files never
+"""Text set in the Clepso faces as SVG outlines (HarfBuzz shaping, so kerning applies). Sheets and logo files never
 depend on fonts being installed on the machine that opens them."""
 from functools import lru_cache
 

@@ -1,4 +1,4 @@
-"""Constructive geometry for Pulse Mono: rounded rectangles, rings with separate vertical and horizontal stroke
+"""Constructive geometry for Clepso Mono: rounded rectangles, rings with separate vertical and horizontal stroke
 weights, slanted strokes with flat cuts, and boolean operations (skia-pathops). Curves are exact cubic quarter
 ellipses, so outlines stay smooth at any size; overlaps are removed by the final union."""
 import math

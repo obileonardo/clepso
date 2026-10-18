@@ -1,5 +1,5 @@
 """Presentation sheets: logo, construction grid, explorations, app icon, menu bar. SVG with every word set in the
-Pulse faces as outlines (typeset.py), rendered to PNG at 2× with cairosvg. Sources: sheets/*.svg, renders:
+Clepso faces as outlines (typeset.py), rendered to PNG at 2× with cairosvg. Sources: sheets/*.svg, renders:
 sheets/*.png."""
 import base64
 import io
@@ -10,14 +10,16 @@ import cairosvg
 from PIL import Image
 
 import logo
+HORIZ_W = logo.layout("horizontal")[1]
+STACK_W, STACK_H = logo.layout("stacked")[1:]
 from logo import SYMBOL, SYMBOL_SMALL, RING_ONLY, symbol_cells
 from pixels import svg_path, trace
 from typeset import svg_text, width
 
 BRAND = Path(__file__).resolve().parent.parent
-PIX = BRAND / "fonts" / "PulsePixel-Regular.ttf"
-MONO = BRAND / "fonts" / "PulseMono-Regular.ttf"
-MONO_M = BRAND / "fonts" / "PulseMono-Medium.ttf"
+PIX = BRAND / "fonts" / "ClepsoPixel-Regular.ttf"
+MONO = BRAND / "fonts" / "ClepsoMono-Regular.ttf"
+MONO_M = BRAND / "fonts" / "ClepsoMono-Medium.ttf"
 
 INK, SURF, MUTED, LINE = "#060907", "#0D1410", "#16211A", "#2C4034"
 TEXT, TEXT2, ACCENT, AMBER, RUST, PAPER = "#EAF7EE", "#93B9A0", "#4DFF8F", "#FFC04D", "#FF6B5E", "#F3F1E7"
@@ -107,7 +109,7 @@ def panel(x, y, w, h, fill=SURF, stroke=LINE):
 # --------------------------------------------------------------------------------------------- logo sheet
 def logo_sheet():
     W, H = 1600, 1270
-    o = [header(W, "Pulse brand · 01 Logo", "THE MARK", "A heartbeat inside a ring: the ring is the limit, the beat is the "
+    o = [header(W, "Clepso brand · 01 Logo", "THE MARK", "A heartbeat inside a ring: the ring is the limit, the beat is the "
          "live reading. Symbol, wordmark and two lockups, drawn on one 16-unit pixel grid and shown here at whole-pixel scales.")]
     y0 = 236
     o.append(panel(64, y0, 1472, 430, INK))
@@ -126,7 +128,7 @@ def logo_sheet():
     for i, (name, bg, fg, cap) in enumerate(ways):
         x = 64 + i * (cw + 16)
         o.append(f'<rect x="{x}" y="{y1 + 16}" width="{cw}" height="230" fill="{bg}" stroke="{LINE}"/>')
-        o.append(kind_path("horizontal", 5, x + (cw - 54 * 5) / 2, y1 + 16 + 75, fg))
+        o.append(kind_path("horizontal", 5, x + (cw - HORIZ_W * 5) / 2, y1 + 16 + 75, fg))
         o.append(T(name, 13, x + 20, y1 + 16 + 205, cap))
     # themes
     y2 = y1 + 290
@@ -135,7 +137,7 @@ def logo_sheet():
     for i, (name, bg, acc, txt) in enumerate(THEMES):
         x = 64 + i * (tw + 16)
         o.append(f'<rect x="{x}" y="{y2 + 16}" width="{tw}" height="200" fill="{bg}" stroke="{LINE}"/>')
-        o.append(kind_path("stacked", 3, x + (tw - 33 * 3) / 2, y2 + 16 + 40, acc))
+        o.append(kind_path("stacked", 3, x + (tw - logo.WORD_W * 3) / 2, y2 + 16 + 40, acc))
         o.append(T(name, 13, x + 16, y2 + 16 + 150, txt))
         o.append(T(acc, 12, x + 16, y2 + 16 + 174, txt, opacity=0.7))
     save("logo-sheet", W, H, "".join(o))
@@ -144,7 +146,7 @@ def logo_sheet():
 # --------------------------------------------------------------------------------------------- construction
 def construction_sheet():
     W, H = 1600, 1730
-    o = [header(W, "Pulse brand · 02 Construction", "CONSTRUCTION GRID",
+    o = [header(W, "Clepso brand · 02 Construction", "CONSTRUCTION GRID",
                 "Unit p = 1/16 of the symbol. Every edge falls on whole p; the ring approximates a circle of radius 8 p "
                 "with the stepped profile of the app's 16 px menu bar ring; the beat spans 10 × 10 p and is centred on both axes.")]
     p, gx, gy = 40, 104, 290
@@ -189,14 +191,14 @@ def construction_sheet():
     lx, ly0, q = 840, 250, 9
     o.append(panel(lx, ly0, 696, 440, INK))
     o.append(T("HORIZONTAL LOCKUP · CLEAR SPACE", 12, lx + 24, ly0 + 34, TEXT2, tracking=2))
-    ox, oy = lx + (696 - (54 + 8) * q) / 2, ly0 + 92
-    o.append(f'<rect x="{ox}" y="{oy}" width="{(54 + 8) * q}" height="{(16 + 8) * q}" fill="{AMBER}" fill-opacity="0.08" '
+    ox, oy = lx + (696 - (HORIZ_W + 8) * q) / 2, ly0 + 92
+    o.append(f'<rect x="{ox}" y="{oy}" width="{(HORIZ_W + 8) * q}" height="{(16 + 8) * q}" fill="{AMBER}" fill-opacity="0.08" '
              f'stroke="{AMBER}" stroke-dasharray="5 4"/>')
-    o.append(f'<rect x="{ox + 4 * q}" y="{oy + 4 * q}" width="{54 * q}" height="{16 * q}" fill="{INK}"/>')
+    o.append(f'<rect x="{ox + 4 * q}" y="{oy + 4 * q}" width="{HORIZ_W * q}" height="{16 * q}" fill="{INK}"/>')
     o.append(kind_path("horizontal", q, ox + 4 * q, oy + 4 * q, ACCENT))
     o.append(dim_h(ox, ox + 4 * q, oy + (16 + 8) * q + 22, "4 p", small=True))
     o.append(dim_h(ox + 20 * q, ox + 25 * q, oy + (16 + 8) * q + 22, "5 p", small=True))
-    o.append(dim_v(ox + (54 + 8) * q + 16, oy + 8 * q, oy + 15 * q, "7 p", small=True))
+    o.append(dim_v(ox + (HORIZ_W + 8) * q + 16, oy + 8 * q, oy + 15 * q, "7 p", small=True))
     o.append(T("tracking 2 p", 12, ox + 32 * q, oy + 3 * q - 6, TEXT2))
     s, _ = para("Clear space is 4 p on every side (a quarter of the symbol). The wordmark's cap height is 7 p and sits "
                 "4 p below the symbol's top, its centre half a p above the symbol's, which reads as level.", 13, lx + 24, ly0 + 372, 648)
@@ -207,12 +209,14 @@ def construction_sheet():
     o.append(T("STACKED LOCKUP", 12, lx + 24, sy0 + 34, TEXT2, tracking=2))
     q2 = 6
     sx = lx + 60
-    o.append(f'<rect x="{sx}" y="{sy0 + 56}" width="{(33 + 8) * q2}" height="{(27 + 8) * q2}" fill="{AMBER}" fill-opacity="0.08" '
+    o.append(f'<rect x="{sx}" y="{sy0 + 56}" width="{(logo.WORD_W + 8) * q2}" height="{(STACK_H + 8) * q2}" fill="{AMBER}" fill-opacity="0.08" '
              f'stroke="{AMBER}" stroke-dasharray="5 4"/>')
-    o.append(f'<rect x="{sx + 4 * q2}" y="{sy0 + 56 + 4 * q2}" width="{33 * q2}" height="{27 * q2}" fill="{INK}"/>')
+    o.append(f'<rect x="{sx + 4 * q2}" y="{sy0 + 56 + 4 * q2}" width="{logo.WORD_W * q2}" height="{STACK_H * q2}" fill="{INK}"/>')
     o.append(kind_path("stacked", q2, sx + 4 * q2, sy0 + 56 + 4 * q2, ACCENT))
-    s, _ = para("Symbol over wordmark, 4 p apart. The wordmark is 33 p wide, the symbol 16 p, so the symbol's left edge "
-                "sits at 9 p: on the grid, half a p right of true centre. Below 64 px wide, render it at even scales only.",
+    sx_p = (logo.WORD_W - 16) // 2 + (logo.WORD_W - 16) % 2
+    centred = "exactly centred" if (logo.WORD_W - 16) % 2 == 0 else "on the grid, half a p right of true centre"
+    s, _ = para(f"Symbol over wordmark, 4 p apart. The wordmark is {logo.WORD_W} p wide, the symbol 16 p, so the symbol's "
+                f"left edge sits at {sx_p} p: {centred}. Below 64 px wide, render it at even scales only.",
                 13, lx + 360, sy0 + 80, 300)
     o.append(s)
 
@@ -238,8 +242,8 @@ def construction_sheet():
     o.append(panel(64, my, 1472, 330, INK))
     o.append(T("MINIMUM SIZES · SHOWN AT ACTUAL SIZE (1 p = 1 px, 2 px)", 12, 88, my + 34, TEXT2, tracking=2))
     items = [("symbol", 1, "Symbol 16 px", "menu bar, favicon"), ("symbol", 2, "Symbol 32 px", "@2x"),
-             ("horizontal", 1, "Lockup 54 × 16 px", "smallest digital"), ("horizontal", 2, "Lockup 108 × 32 px", "@2x"),
-             ("stacked", 2, "Stacked 66 × 54 px", "smallest stacked")]
+             ("horizontal", 1, f"Lockup {HORIZ_W} × 16 px", "smallest digital"), ("horizontal", 2, f"Lockup {HORIZ_W * 2} × 32 px", "@2x"),
+             ("stacked", 2, f"Stacked {STACK_W * 2} × {STACK_H * 2} px", "smallest stacked")]
     x = 88
     for kind, sc, name, note in items:
         on, w, h = logo.layout(kind)
@@ -353,7 +357,7 @@ def menubar_strip(on, scale=1, light=True):
 
 def explorations_sheet():
     W, H = 1600, 1180
-    o = [header(W, "Pulse brand · 03 Process", "HOW THE MARK CAME ABOUT",
+    o = [header(W, "Clepso brand · 03 Process", "HOW THE MARK CAME ABOUT",
                 "Six directions were drawn on the same 16 px grid and judged at actual menu bar size first, large second. "
                 "The brief: one idea a person gets in a glance, legible at 16 px in one colour, able to show status.")]
     cw, gap = (1472 - 5 * 16) / 6, 16
@@ -393,7 +397,7 @@ def explorations_sheet():
 # --------------------------------------------------------------------------------------------- app icon
 def app_icon_sheet():
     W, H = 1600, 970
-    o = [header(W, "Pulse brand · 04 App icon", "APP ICON",
+    o = [header(W, "Clepso brand · 04 App icon", "APP ICON",
                 "The symbol as a lit dot matrix on a phosphor screen: unlit pixels inside the ring, the beat glowing. "
                 "Every size is drawn on whole device pixels; 16 and 32 px use hand-placed pixels, not a scaled master.")]
     ic = BRAND / "app-icon"
@@ -403,7 +407,7 @@ def app_icon_sheet():
         x = 96
         for s, shown in ((1024, 256), (512, 160), (256, 128), (128, 128), (64, 64), (32, 32), (16, 16)):
             yy = y0 + 50 + (256 - shown) / 2
-            o.append(image(ic / f"pulse-app-icon-{s}.png", x, yy, shown, shown, pixelated=s <= 64))
+            o.append(image(ic / f"clepso-app-icon-{s}.png", x, yy, shown, shown, pixelated=s <= 64))
             o.append(T(f"{s} px" if s == shown else f"{s} px (shown {shown})", 12, x, y0 + 320,
                        "#44564A" if y0 == 240 else TEXT2))
             x += shown + 60
@@ -414,9 +418,9 @@ def app_icon_sheet():
 # --------------------------------------------------------------------------------------------- menu bar
 def menubar_sheet():
     W, H = 1600, 1060
-    o = [header(W, "Pulse brand · 05 Menu bar", "MENU BAR",
+    o = [header(W, "Clepso brand · 05 Menu bar", "MENU BAR",
                 "A template image: black pixels on transparency, tinted by macOS for light, dark and tinted menu bars. "
-                "Shape carries the meaning. Shown at 2× with the percentage set in Pulse Pixel at 10 pt (1 pixel = 1 pt).")]
+                "Shape carries the meaning. Shown at 2× with the percentage set in Clepso Pixel at 10 pt (1 pixel = 1 pt).")]
     on = symbol_cells()
     for i, (light, label) in enumerate(((True, "LIGHT MENU BAR"), (False, "DARK MENU BAR"))):
         y0 = 250 + i * 150

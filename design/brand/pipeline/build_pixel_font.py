@@ -1,4 +1,4 @@
-"""Builds Pulse Pixel (TTF, OTF, WOFF2) from pixel_glyphs.py. Usage: python build_pixel_font.py <out dir>"""
+"""Builds Clepso Pixel (TTF, OTF, WOFF2) from pixel_glyphs.py. Usage: python build_pixel_font.py <out dir>"""
 import sys
 from pathlib import Path
 
@@ -14,8 +14,8 @@ from pixels import cells, draw, trace
 
 PX = 100                     # font units per pixel
 UPM = 1000
-FAMILY = "Pulse Pixel"
-PS = "PulsePixel"
+FAMILY = "Clepso Pixel"
+PS = "ClepsoPixel"
 
 
 def glyph_name(ch):
@@ -67,7 +67,7 @@ def build(out_dir: Path):
         fb.setupHorizontalMetrics(metrics)
         fontmeta.setup_common(fb, family=FAMILY, ps=PS, style="Regular", weight=400,
                               ascender=1000, descender=-200, line_gap=0, cap=700, x_height=500,
-                              description="Pulse Pixel: the pixel display face of the Pulse identity. "
+                              description="Clepso Pixel: the pixel display face of the Clepso identity. "
                                           "Drawn on a 7-pixel cap grid; one pixel is 100 units.")
         fea = kerning_fea(set(order))
         addOpenTypeFeaturesFromString(fb.font, fea)

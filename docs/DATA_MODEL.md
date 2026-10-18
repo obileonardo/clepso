@@ -1,6 +1,6 @@
 # Data model
 
-How Pulse represents what it reads, how it stores it, and how it derives the states it shows. Section numbers are
+How Clepso represents what it reads, how it stores it, and how it derives the states it shows. Section numbers are
 stable: code comments cite them (for example `DATA_MODEL §5.1`).
 
 Source of truth: the code. Types live in `Sources/Domain`, the schema and migrations in `Sources/Storage`, the state
@@ -8,7 +8,7 @@ machines in `Sources/UsageEngine`, and the frame mapping in `Sources/ClaudeCodeA
 
 ## 1. The invariant
 
-Every value Pulse shows traces back to one immutable observation that carries its source, its scope and the instant
+Every value Clepso shows traces back to one immutable observation that carries its source, its scope and the instant
 it was measured. A missing value is recorded as a fact ("absent, and why") and is never shown as zero.
 
 Two layers follow from that:
@@ -36,7 +36,7 @@ All domain types are `Sendable` value types in `Sources/Domain` and import neith
 | `officialAnnouncement` | A provider announcement | 30 |
 | `userSelectedUnverified` | A plan the user picked that no source has confirmed | 20 |
 | `thirdPartyUnverified` | Someone else's report | 10 |
-| `inferred` | Derived by Pulse's engine; never provider truth | 0 |
+| `inferred` | Derived by Clepso's engine; never provider truth | 0 |
 
 Priority only breaks ties between observations with the same `observedAt` (§6.1). `Quality` is `verified`,
 `reported`, `estimated` or `unknown`. An `Account` has a provider id and a user-chosen label (never an email); a
@@ -102,7 +102,7 @@ Instants are `INTEGER` epoch milliseconds (UTC). Projections store a JSON snapsh
 ### 3.1 Migration v3: agents per task
 
 `agent_tasks(id, connection_id, session_ref, started_at, ended_at, from_prompt)`: one row per prompt; `from_prompt` is
-0 when a subagent arrived before Pulse saw a prompt for that session. `agent_runs(task_id, agent_ref, agent_type,
+0 when a subagent arrived before Clepso saw a prompt for that session. `agent_runs(task_id, agent_ref, agent_type,
 started_at, stopped_at)`, primary key `(task_id, agent_ref)`, with `agent_type` limited to Claude Code's built-in
 names plus `custom` and `unknown`. A prompt closes the session's open task and opens a new one; `Stop` closes the
 latest open task; a subagent joins the session's latest task that started before it; a run is matched by
@@ -114,7 +114,7 @@ latest open task; a subagent joins the session's latest task that started before
 2. Additive first: new columns are nullable or defaulted.
 3. The ledger is sacred: no migration reinterprets `observations` rows; a new encoding adds a value kind.
 4. Projections are disposable: they can be truncated and rebuilt (§9). Receipts are never truncated.
-5. Backup before migrate: when a pending migration would touch an existing database, Pulse first writes a
+5. Backup before migrate: when a pending migration would touch an existing database, Clepso first writes a
    `VACUUM INTO` copy beside it. Delete all removes those copies.
 6. Every migration has a test; v2 is checked row for row (every row and rowid kept).
 

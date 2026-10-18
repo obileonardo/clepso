@@ -60,13 +60,13 @@
   ".....######....."
  ],
  "wordmark": [
-  "####...#...#..#.......####..#####",
-  "#...#..#...#..#......#......#....",
-  "#...#..#...#..#......#......#....",
-  "####...#...#..#.......###...####.",
-  "#......#...#..#..........#..#....",
-  "#......#...#..#..........#..#....",
-  "#.......###...#####..####...#####"
+  ".###...#......#####..####....####...###.",
+  "#...#..#......#......#...#..#......#...#",
+  "#......#......#......#...#..#......#...#",
+  "#......#......####...####....###...#...#",
+  "#......#......#......#..........#..#...#",
+  "#...#..#......#......#..........#..#...#",
+  ".###...#####..#####..#......####....###."
  ],
  "colours": {
   "phosphor": "#4DFF8F",
@@ -433,18 +433,18 @@
  "type": {
   "families": {
    "pixel": {
-    "family": "Pulse Pixel",
+    "family": "Clepso Pixel",
     "ps": {
-     "Regular": "PulsePixel-Regular"
+     "Regular": "ClepsoPixel-Regular"
     },
     "role": "Display: figures, titles, labels, buttons, the wordmark"
    },
    "mono": {
-    "family": "Pulse Mono",
+    "family": "Clepso Mono",
     "ps": {
-     "Regular": "PulseMono-Regular",
-     "Medium": "PulseMono-Medium",
-     "Bold": "PulseMono-Bold"
+     "Regular": "ClepsoMono-Regular",
+     "Medium": "ClepsoMono-Medium",
+     "Bold": "ClepsoMono-Bold"
     },
     "role": "Body: sentences, captions, data labels, code"
    }
@@ -613,37 +613,37 @@
  },
  "fonts": [
   {
-   "file": "PulseMono-Bold",
-   "family": "Pulse Mono",
+   "file": "ClepsoMono-Bold",
+   "family": "Clepso Mono",
    "style": "Bold",
-   "postscript": "PulseMono-Bold",
+   "postscript": "ClepsoMono-Bold",
    "weight": 700,
    "characters": 211,
    "version": "Version 1.000"
   },
   {
-   "file": "PulseMono-Medium",
-   "family": "Pulse Mono",
+   "file": "ClepsoMono-Medium",
+   "family": "Clepso Mono",
    "style": "Medium",
-   "postscript": "PulseMono-Medium",
+   "postscript": "ClepsoMono-Medium",
    "weight": 500,
    "characters": 211,
    "version": "Version 1.000"
   },
   {
-   "file": "PulseMono-Regular",
-   "family": "Pulse Mono",
+   "file": "ClepsoMono-Regular",
+   "family": "Clepso Mono",
    "style": "Regular",
-   "postscript": "PulseMono-Regular",
+   "postscript": "ClepsoMono-Regular",
    "weight": 400,
    "characters": 211,
    "version": "Version 1.000"
   },
   {
-   "file": "PulsePixel-Regular",
-   "family": "Pulse Pixel",
+   "file": "ClepsoPixel-Regular",
+   "family": "Clepso Pixel",
    "style": "Regular",
-   "postscript": "PulsePixel-Regular",
+   "postscript": "ClepsoPixel-Regular",
    "weight": 400,
    "characters": 217,
    "version": "Version 1.000"

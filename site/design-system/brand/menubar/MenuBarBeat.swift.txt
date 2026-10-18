@@ -1,3 +1,3 @@
 // Drop-in for Sources/DesignSystem/Theme/MenuBarIcon.swift, `mark(_:)` (not applied: DesignSystem is being
-// changed by another engineer). Replaces the 2 x 2 lit core of `.ring` with the Pulse beat.
+// changed by another engineer). Replaces the 2 x 2 lit core of `.ring` with the Clepso beat.
 case .ring: return [(3, 8), (4, 8), (5, 4), (5, 5), (5, 6), (5, 7), (5, 8), (6, 3), (7, 4), (7, 5), (7, 6), (7, 7), (7, 8), (7, 9), (7, 10), (7, 11), (8, 12), (9, 9), (9, 10), (9, 11), (10, 8), (11, 8), (12, 8)]

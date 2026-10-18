@@ -2,7 +2,7 @@ import Foundation
 
 /// Working product name. Expected to change; every user-visible use reads this constant.
 public enum Product {
-    public static let name = "Pulse"
+    public static let name = "Clepso"
 }
 
 /// One provenance vocabulary for every value (DATA_MODEL §2.1, departure D5).

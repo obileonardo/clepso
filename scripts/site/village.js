@@ -1,6 +1,6 @@
 /* The footer village (founder request, 17 Oct 2026, after Corgi's painted footer on Mobbin, 12.13): coding agents
-   living together around the Pulse tower. A voxel diorama in Three.js, rendered at a low resolution and scaled up so it
-   reads as pixel art. Only agents Pulse can read today add to the tower's glow; the rest bring tokens Pulse can't read
+   living together around the Clepso tower. A voxel diorama in Three.js, rendered at a low resolution and scaled up so it
+   reads as pixel art. Only agents Clepso can read today add to the tower's glow; the rest bring tokens Clepso can't read
    yet, which fall back grey. Statuses come from the page (build-site.py VILLAGE), never from here.
    Loaded on demand by site.js when the footer comes near; respects Reduce Motion (one still frame, redrawn on input). */
 import * as THREE from "./vendor/three.module.min.js";
@@ -79,7 +79,7 @@ export function start(root) {
   scene.add(ground);
   cube(scene, C.soil, W1 - W0, 2, D1 - D0, 0, -2, (D0 + D1) / 2, 0, false);
 
-  // ----------------------------------------------------------------------------------------- tower (Pulse)
+  // ----------------------------------------------------------------------------------------- tower (Clepso)
   const tower = new THREE.Group(); tower.position.copy(TOWER); scene.add(tower);
   cube(tower, C.stone, 4, 0.6, 4, 0, 0.3, 0);
   cube(tower, 0x1c2b23, 1.8, 5.2, 1.8, 0, 3.2, 0);
@@ -189,7 +189,7 @@ export function start(root) {
         a.state = "deliver"; a.carry.visible = true;
         const side = a.home < 0 ? -1.6 : 1.6;
         a.path = route(at, new THREE.Vector3(TOWER.x + side, 0, TOWER.z + 3));
-        a.activity = supported(a) ? "Carrying tokens to the Pulse tower" : "Bringing tokens Pulse can't read yet";
+        a.activity = supported(a) ? "Carrying tokens to the Clepso tower" : "Bringing tokens Clepso can't read yet";
       } else if (r < 0.8) {
         const o = others[Math.floor(rand() * others.length)];
         a.state = "visit"; a.with = o; a.path = route(at, door(o).add(new THREE.Vector3(rand() < 0.5 ? -1 : 1, 0, 0.6)));
@@ -340,7 +340,7 @@ export function start(root) {
     select(selected === agents[i] ? null : i);
   }));
 
-  const STATUS = { today: "Pulse reads it today", planned: "On the roadmap", requested: "Requested, not yet planned" };
+  const STATUS = { today: "Clepso reads it today", planned: "On the roadmap", requested: "Requested, not yet planned" };
   function select(i) {
     selected = i == null ? null : agents[i];
     roster.forEach(b => b.setAttribute("aria-pressed", String(selected?.id === b.dataset.agent)));
@@ -358,7 +358,7 @@ export function start(root) {
       const a = selected;
       card.replaceChildren(el("b", a.name), el("span", STATUS[a.status], "village-chip s-" + a.status), el("p", a.note), el("p", "Now: " + a.activity, "village-now"));
     } else if (kind === "tower") {
-      card.replaceChildren(el("b", "The Pulse tower"), el("p", "Every agent's tokens come here. The ones Pulse can read join the glow and stay on your Mac; the rest fall back until Pulse learns to read them."));
+      card.replaceChildren(el("b", "The Clepso tower"), el("p", "Every agent's tokens come here. The ones Clepso can read join the glow and stay on your Mac; the rest fall back until Clepso learns to read them."));
     } else {
       card.replaceChildren(el("b", "An empty plot"), el("p", "Saved for the next agent. Tell us which one you use."));
     }

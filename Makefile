@@ -38,14 +38,14 @@ design-site:
 # The documentation website (Overview, Progress, Metrics, Architecture, Screens, Changelog, Design system).
 site: design-site
 
-# Pulse.app: pinned XcodeGen, then xcodebuild. Signed ad hoc unless Config/Signing.local.xcconfig names an identity.
-# Output: build/DerivedData/Build/Products/Debug/Pulse.app
+# Clepso.app: pinned XcodeGen, then xcodebuild. Signed ad hoc unless Config/Signing.local.xcconfig names an identity.
+# Output: build/DerivedData/Build/Products/Debug/Clepso.app
 app:
 	scripts/bootstrap.sh
 	.tools/xcodegen/bin/xcodegen --quiet
 	xcodebuild -project Pulse.xcodeproj -scheme PulseMac -configuration Debug -derivedDataPath build/DerivedData build -quiet
-	codesign --verify --deep --strict build/DerivedData/Build/Products/Debug/Pulse.app
-	@echo "Built and verified: build/DerivedData/Build/Products/Debug/Pulse.app"
+	codesign --verify --deep --strict build/DerivedData/Build/Products/Debug/Clepso.app
+	@echo "Built and verified: build/DerivedData/Build/Products/Debug/Clepso.app"
 
 # Accounts backend: starts the local Supabase database and runs the pgTAP isolation tests in its container.
 # Needs Docker; not part of `make ci`, which must run without it.

@@ -1,4 +1,4 @@
-"""Pulse Mono: the body face, constructed from rounded rectangles on the same logic as the pixel face.
+"""Clepso Mono: the body face, constructed from rounded rectangles on the same logic as the pixel face.
 
 Every glyph sits in a 600-unit cell (UPM 1000). Bowls are rounded rectangles: the pixel face's chamfered corners,
 drawn at high resolution. Vertical strokes are heavier than horizontal ones (wv > wh) so the colour stays even; diagonals

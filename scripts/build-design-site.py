@@ -1,4 +1,4 @@
-"""Builds the Pulse brand and design-system page (increment 1.3; rebuilt as brand guidelines on brand/identity).
+"""Builds the Clepso brand and design-system page (increment 1.3; rebuilt as brand guidelines on brand/identity).
 
 Input: a folder written by `pulse-design-render` (design.json + img/), the brand kit in design/brand (built by
 design/brand/pipeline/build.sh), and read-only Swift sources for the themes (Theme/Tokens.swift) and the pixel icon
@@ -45,9 +45,9 @@ for sub_dir in ("logo/svg", "logo/png", "menubar", "favicon"):
     for f in sorted((brand_src / sub_dir).iterdir()):
         if f.is_file():
             shutil.copy(f, kit / sub_dir / f.name)
-for f in sorted((brand_src / "app-icon").glob("pulse-app-icon*")):
+for f in sorted((brand_src / "app-icon").glob("clepso-app-icon*")):
     shutil.copy(f, kit / "app-icon" / f.name)
-shutil.copy(brand_src / "app-icon" / "Pulse.icns", kit / "app-icon" / "Pulse.icns")
+shutil.copy(brand_src / "app-icon" / "Clepso.icns", kit / "app-icon" / "Clepso.icns")
 for f in sorted((brand_src / "sheets").glob("*.png")):
     shutil.copy(f, kit / "sheets" / f.name)
 for f in sorted((brand_src / "specimens").glob("*.png")):
@@ -69,20 +69,20 @@ def make_zip(name, files):
 
 
 def tree(folder, prefix):
-    """Files under folder for a download, without the iconset (Pulse.icns and AppIcon.appiconset carry the same
+    """Files under folder for a download, without the iconset (Clepso.icns and AppIcon.appiconset carry the same
     images) and without sheet SVGs (they embed their PNGs; the PNGs are included)."""
     return [(p, prefix + "/" + p.relative_to(folder).as_posix()) for p in sorted(folder.rglob("*")) if p.is_file()
-            and not p.name.startswith(".") and "Pulse.iconset" not in p.parts
+            and not p.name.startswith(".") and "Clepso.iconset" not in p.parts
             and not (p.parent.name == "sheets" and p.suffix == ".svg")]
 
 
-notes = [(brand_src / n, "Pulse-brand/" + n) for n in ("README.md", "NOTES.md", "INTEGRATION.md")]
+notes = [(brand_src / n, "Clepso-brand/" + n) for n in ("README.md", "NOTES.md", "INTEGRATION.md")]
 zips = {
-    "fonts": make_zip("pulse-fonts.zip", tree(brand_src / "fonts", "Pulse-fonts")),
-    "logo": make_zip("pulse-logo.zip", tree(brand_src / "logo", "Pulse-logo")),
-    "appicon": make_zip("pulse-app-icon.zip", tree(brand_src / "app-icon", "Pulse-app-icon") + tree(brand_src / "favicon", "Pulse-app-icon/favicon")),
-    "kit": make_zip("pulse-brand-kit.zip", notes + [x for d in ("fonts", "logo", "app-icon", "menubar", "favicon", "sheets", "specimens")
-                                                    for x in tree(brand_src / d, "Pulse-brand/" + d)]),
+    "fonts": make_zip("clepso-fonts.zip", tree(brand_src / "fonts", "Clepso-fonts")),
+    "logo": make_zip("clepso-logo.zip", tree(brand_src / "logo", "Clepso-logo")),
+    "appicon": make_zip("clepso-app-icon.zip", tree(brand_src / "app-icon", "Clepso-app-icon") + tree(brand_src / "favicon", "Clepso-app-icon/favicon")),
+    "kit": make_zip("clepso-brand-kit.zip", notes + [x for d in ("fonts", "logo", "app-icon", "menubar", "favicon", "sheets", "specimens")
+                                                    for x in tree(brand_src / d, "Clepso-brand/" + d)]),
 }
 
 
@@ -142,8 +142,8 @@ def pix(rows, scale, label, cls="pix", style=""):
 
 def mark(kind, scale, label=None, cls="pix", style=""):
     rows, w, h = LOCKUPS[kind]
-    return pix(rows, scale, label or {"symbol": "Pulse symbol", "wordmark": "Pulse wordmark",
-                                      "horizontal": "Pulse logo", "stacked": "Pulse logo, stacked"}[kind], cls, style)
+    return pix(rows, scale, label or {"symbol": "Clepso symbol", "wordmark": "Clepso wordmark",
+                                      "horizontal": "Clepso logo", "stacked": "Clepso logo, stacked"}[kind], cls, style)
 
 
 # ------------------------------------------------------------------------------------------------ themes (Tokens.swift)
@@ -314,8 +314,8 @@ def logo_section():
         ("Fill it with a gradient", f'<svg class="pix" viewBox="0 0 16 16" width="80" height="80" shape-rendering="crispEdges" aria-hidden="true"><defs><linearGradient id="mg" x1="0" x2="1"><stop offset="0" stop-color="#FF6B5E"/><stop offset="1" stop-color="#7FA8FF"/></linearGradient></defs><path d="{runs(sym)}" fill="url(#mg)"/></svg>'),
         ("Outline it", f'<svg class="pix" viewBox="-0.5 -0.5 17 17" width="85" height="85" aria-hidden="true"><path d="{runs(sym)}" fill="none" stroke="currentColor" stroke-width="0.12"/></svg>'),
         ("Add glows, shadows or bevels", mark("symbol", 5, style="filter:drop-shadow(0 0 6px currentColor) drop-shadow(3px 4px 0 #000)")),
-        ("Resample it off the grid", '<img src="brand/logo/png/pulse-symbol-phosphor-16.png" width="83" height="83" alt="" style="image-rendering:auto;filter:blur(.6px)">'),
-        ("Retype the wordmark", '<span class="retype">Pulse</span>'),
+        ("Resample it off the grid", '<img src="brand/logo/png/clepso-symbol-phosphor-16.png" width="83" height="83" alt="" style="image-rendering:auto;filter:blur(.6px)">'),
+        ("Retype the wordmark", '<span class="retype">Clepso</span>'),
         ("Rearrange the lockup", pix(compose((WORD, 0, G["wordTop"]), (SYMBOL, WW + 5, 0))[0], 2, "")),
         ("Set it on low contrast", f'<span class="lowc">{mark("symbol", 5)}</span>'),
     ]
@@ -323,7 +323,7 @@ def logo_section():
     states = "".join(f'<li><div class="art">{pix(s["rows"], 4, s["label"])}</div><div class="mb" aria-hidden="true">'
                      f'<span class="mb-l">{pix(s["rows"], 1, "", "pix one")}</span><span class="mb-d">{pix(s["rows"], 1, "", "pix one")}</span></div>'
                      f'<p><b>{e(s["key"])}</b>{e(s["label"])}</p></li>' for s in brand["states"])
-    sizes = "".join(f'<li>{img(f"brand/app-icon/pulse-app-icon-{s}.png", f"Pulse app icon, {s} px", min(s, 128), min(s, 128), pixelated=s <= 64)}<span>{s} px{" · shown 128" if s > 128 else ""}</span></li>'
+    sizes = "".join(f'<li>{img(f"brand/app-icon/clepso-app-icon-{s}.png", f"Clepso app icon, {s} px", min(s, 128), min(s, 128), pixelated=s <= 64)}<span>{s} px{" · shown 128" if s > 128 else ""}</span></li>'
                     for s in (1024, 256, 128, 64, 32, 16))
     cw, ch = png_size(brand_src / "sheets" / "construction.png")
     ew, eh = png_size(brand_src / "sheets" / "explorations.png")
@@ -331,10 +331,10 @@ def logo_section():
 <section class="block" aria-labelledby="logo">
 {section_head("01", "logo", "Logo", "A heartbeat inside a ring. The ring is the limit, the same ring that sits in the menu bar; the beat is the live reading. One idea that reads at 16 pixels, in one colour, in any theme.")}
 <div class="concept">
-  <div class="concept-art">{mark("symbol", 16, "Pulse symbol, enlarged", cls="pix concept-mark")}
+  <div class="concept-art">{mark("symbol", 16, "Clepso symbol, enlarged", cls="pix concept-mark")}
     <span class="callout c1" aria-hidden="true"><i></i>Ring · the limit</span><span class="callout c2" aria-hidden="true"><i></i>Beat · the live reading</span></div>
   <div class="concept-copy">
-    <p>Pulse watches something you cannot see, a usage limit, and tells you before you hit it. The mark puts the two things that matter one inside the other: <b>the container that fills</b> and <b>the signal that keeps arriving</b>.</p>
+    <p>Clepso watches something you cannot see, a usage limit, and tells you before you hit it. The mark puts the two things that matter one inside the other: <b>the container that fills</b> and <b>the signal that keeps arriving</b>.</p>
     <p>Because the ring is the existing menu bar ring, the logo and the status icon are one object. The beat is the "available" state; the same ring can hold a warning, a flatline or a clock without the brand changing shape.</p>
     <p>It is drawn on a 16-pixel grid with a 1-pixel stroke, the way the original Macintosh icons were drawn: judged at actual size first, large second.</p>
   </div>
@@ -346,7 +346,7 @@ def logo_section():
 {sub("Lockups", "logo-lockups", "The horizontal lockup is primary. Use the stacked lockup where width is scarce, and the symbol alone where the name is already present: the menu bar, the app icon, a favicon.")}
 {lockups}
 {sub("Construction", "logo-construction", "Unit <b>p</b> is 1/16 of the symbol. Every edge falls on whole p; the stroke is 1 p everywhere. Wordmark capitals are 7 p, tracked 2 p; the horizontal gap is 5 p; clear space is 4 p on every side.")}
-{plate("brand/sheets/construction.png", "Construction grid: the symbol on its 16 p grid with keylines, the lockups with clear space, the small symbol and minimum sizes", 'Construction sheet · <a href="brand/sheets/construction.png">full size</a> · <a href="brand/logo/svg/pulse-symbol-phosphor.svg">symbol SVG</a>', cw // 2, ch // 2)}
+{plate("brand/sheets/construction.png", "Construction grid: the symbol on its 16 p grid with keylines, the lockups with clear space, the small symbol and minimum sizes", 'Construction sheet · <a href="brand/sheets/construction.png">full size</a> · <a href="brand/logo/svg/clepso-symbol-phosphor.svg">symbol SVG</a>', cw // 2, ch // 2)}
 <div class="rules">
   <div><h4>Clear space</h4><p>4 p on every side: a quarter of the symbol's height. Nothing else enters it, including the edge of the screen or page.</p></div>
   <div><h4>Minimum size</h4><p>Symbol 16 px (1 p = 1 px). Horizontal lockup 54 × 16 px. In print, symbol 6 mm, lockup 20 mm wide.</p></div>
@@ -361,7 +361,7 @@ def logo_section():
 <ul class="misuse">{misuse_html}</ul>
 {sub("App icon", "logo-app-icon", "The symbol as a lit dot matrix on a phosphor screen. Every size is drawn on whole device pixels; 16 and 32 px are placed by hand, not scaled.")}
 <div class="appicon">
-  <div class="appicon-hero">{img("brand/app-icon/pulse-app-icon-512.png", "Pulse app icon", 256, 256)}</div>
+  <div class="appicon-hero">{img("brand/app-icon/clepso-app-icon-512.png", "Clepso app icon", 256, 256)}</div>
   <ul class="appicon-sizes">{sizes}</ul>
 </div>
 {sub("Menu bar", "logo-menu-bar", "A template image: opaque pixels on transparency, tinted by macOS for light, dark and tinted menu bars. The beat is the brand; the proposed family keeps the ring and changes what is inside.")}
@@ -370,7 +370,7 @@ def logo_section():
   <div class="mbar dark">{pix(SYMBOL, 2, "", "pix")}<span>83%</span></div>
 </div>
 <ul class="states">{states}</ul>
-<p class="fine">Template images: <a href="brand/menubar/PulseMenuBarTemplate-16.png">16 pt</a>, <a href="brand/menubar/PulseMenuBarTemplate-16@2x.png">@2x</a>, <a href="brand/menubar/PulseMenuBarTemplate-18.png">18 pt</a>, <a href="brand/menubar/PulseMenuBarTemplate-18@2x.png">@2x</a>, <a href="brand/menubar/pulse-menubar-matrix.txt">pixel matrix</a>. Favicon: <a href="brand/favicon/favicon.svg">SVG</a>, <a href="brand/favicon/favicon.ico">ICO</a>.</p>
+<p class="fine">Template images: <a href="brand/menubar/ClepsoMenuBarTemplate-16.png">16 pt</a>, <a href="brand/menubar/ClepsoMenuBarTemplate-16@2x.png">@2x</a>, <a href="brand/menubar/ClepsoMenuBarTemplate-18.png">18 pt</a>, <a href="brand/menubar/ClepsoMenuBarTemplate-18@2x.png">@2x</a>, <a href="brand/menubar/clepso-menubar-matrix.txt">pixel matrix</a>. Favicon: <a href="brand/favicon/favicon.svg">SVG</a>, <a href="brand/favicon/favicon.ico">ICO</a>.</p>
 <details class="more"><summary>The exploration sheet</summary>{plate("brand/sheets/explorations.png", "Exploration sheet: six directions and four refinements", '<a href="brand/sheets/explorations.png">Full size</a>', ew // 2, eh // 2)}</details>
 </section>"""
 
@@ -421,7 +421,7 @@ def colour_section():
 def type_section():
     T = brand["type"]
     fonts = {f["file"]: f for f in brand["fonts"]}
-    px, mono = fonts.get("PulsePixel-Regular", {}), fonts.get("PulseMono-Regular", {})
+    px, mono = fonts.get("ClepsoPixel-Regular", {}), fonts.get("ClepsoMono-Regular", {})
 
     def scale_rows(rows, unit, app):
         out_rows = []
@@ -449,25 +449,25 @@ def type_section():
     def dl(stem):
         return " · ".join(f'<a href="brand/fonts/{stem}.{x}" download>{x.upper()}</a>' for x in ("otf", "ttf", "woff2"))
 
-    pw, ph = png_size(brand_src / "specimens" / "pulse-pixel-specimen.png")
-    mw, mh = png_size(brand_src / "specimens" / "pulse-mono-specimen.png")
+    pw, ph = png_size(brand_src / "specimens" / "clepso-pixel-specimen.png")
+    mw, mh = png_size(brand_src / "specimens" / "clepso-mono-specimen.png")
     return f"""
 <section class="block" aria-labelledby="type">
-{section_head("03", "type", "Typography", "Two faces drawn for Pulse, one geometry. Pulse Pixel speaks in numbers and labels; Pulse Mono explains. Both are built in code from the same grid logic, so the display face and the body face share corners, rhythm and figures.")}
+{section_head("03", "type", "Typography", "Two faces drawn for Clepso, one geometry. Clepso Pixel speaks in numbers and labels; Clepso Mono explains. Both are built in code from the same grid logic, so the display face and the body face share corners, rhythm and figures.")}
 <div class="faces">
   <article class="face">
     <p class="eyebrow">Display</p><p class="face-big px" aria-hidden="true">Aa 0123</p>
-    <h4>Pulse Pixel</h4>
+    <h4>Clepso Pixel</h4>
     <p>Capitals 7 pixels tall on a 10-pixel em. Drawn so a number is never misread: dotted 0, flagged 1 with a foot, square-shouldered 5. Tabular figures; kerning that tucks open shapes in without ever touching a stroke.</p>
     <dl><dt>Weights</dt><dd>Regular</dd><dt>Characters</dt><dd>{px.get("characters", "")}, incl. Latin-1 letters, arrows, ⌘ ⌥ ⇧</dd><dt>Use</dt><dd>Figures, titles, labels, buttons, the wordmark</dd><dt>Replaces</dt><dd>Silkscreen</dd></dl>
-    <p class="fine">{dl("PulsePixel-Regular")}</p>
+    <p class="fine">{dl("ClepsoPixel-Regular")}</p>
   </article>
   <article class="face">
     <p class="eyebrow">Body</p><p class="face-big mono" aria-hidden="true">Aa 0123</p>
-    <h4>Pulse Mono</h4>
+    <h4>Clepso Mono</h4>
     <p>A monospace constructed from the rounded rectangle behind the pixel face's chamfered corners. Vertical strokes heavier than horizontal for an even texture; three weights from one drawing.</p>
     <dl><dt>Weights</dt><dd>Regular · <span style="font-weight:500">Medium</span> · <b>Bold</b></dd><dt>Characters</dt><dd>{mono.get("characters", "")}, ASCII and Latin-1 letters</dd><dt>Use</dt><dd>Sentences, captions, data labels</dd><dt>Replaces</dt><dd>SF Mono for sentences (kept as fallback)</dd></dl>
-    <p class="fine">Regular {dl("PulseMono-Regular")}<br>Medium {dl("PulseMono-Medium")}<br>Bold {dl("PulseMono-Bold")}</p>
+    <p class="fine">Regular {dl("ClepsoMono-Regular")}<br>Medium {dl("ClepsoMono-Medium")}<br>Bold {dl("ClepsoMono-Bold")}</p>
   </article>
 </div>
 {sub("Try them", "type-tester")}
@@ -479,19 +479,19 @@ def type_section():
 </div>
 {sub("Never misread", "type-legibility", "The figures were drawn around the confusions a monitor cannot afford. The founder's own review found “8.5B” read as “8.SB” in the previous pixel face.")}
 <div class="pairs"><p class="px">0O 1Il 5S 8B 6G 9g</p><p class="mono">Il1| 0Oo 5S 8B 6G 9g rn m</p></div>
-{sub("Scale · app", "type-scale", "The app's typography tokens. Pixel sizes are multiples of 5 pt, so on a Retina display every pixel of Pulse Pixel lands on whole device pixels.")}
+{sub("Scale · app", "type-scale", "The app's typography tokens. Pixel sizes are multiples of 5 pt, so on a Retina display every pixel of Clepso Pixel lands on whole device pixels.")}
 <div class="table-wrap"><table class="scale"><thead><tr><th scope="col">Token</th><th scope="col">Sample</th><th scope="col">Face · size / line</th></tr></thead><tbody>{scale_rows(T["app"], "pt", True)}</tbody></table></div>
 {sub("Scale · web", None, "On the web, pixel sizes are multiples of 10 px. Headings drop a step on phones (h1 50 → 30).")}
 <div class="table-wrap"><table class="scale"><thead><tr><th scope="col">Token</th><th scope="col">Sample</th><th scope="col">Face · size / line</th></tr></thead><tbody>{scale_rows(T["web"], "px", False)}</tbody></table></div>
 <div class="rules">
-  <div><h4>Pairing</h4><p>Pixel for numbers and short labels, usually uppercase. Mono for anything that is a sentence. Never a sentence in Pulse Pixel; never a big figure in Pulse Mono.</p></div>
-  <div><h4>Pixel snapping</h4><p>Pulse Pixel's pixel is 1/10 em. Use 15, 20, 25, 30, 35, 40 pt in the app and 10, 20, 30, 50, 60, 80 px on the web; anything else blurs.</p></div>
+  <div><h4>Pairing</h4><p>Pixel for numbers and short labels, usually uppercase. Mono for anything that is a sentence. Never a sentence in Clepso Pixel; never a big figure in Clepso Mono.</p></div>
+  <div><h4>Pixel snapping</h4><p>Clepso Pixel's pixel is 1/10 em. Use 15, 20, 25, 30, 35, 40 pt in the app and 10, 20, 30, 50, 60, 80 px on the web; anything else blurs.</p></div>
   <div><h4>No faux styles</h4><p>No synthetic bold or italic of the pixel face, no tracking on it (its spacing is in whole pixels already), no outlines or shadows on type.</p></div>
-  <div><h4>Fallback</h4><p>Pulse Mono covers ASCII and Latin-1. Keep the system monospace behind it: names outside the set fall back per character.</p></div>
+  <div><h4>Fallback</h4><p>Clepso Mono covers ASCII and Latin-1. Keep the system monospace behind it: names outside the set fall back per character.</p></div>
 </div>
 <div class="plates two">
-{plate("brand/specimens/pulse-pixel-specimen.png", "Pulse Pixel specimen rendered by CoreText", 'Pulse Pixel specimen, rendered by CoreText · <a href="brand/specimens/pulse-pixel-specimen.png">full size</a>', pw // 2, ph // 2)}
-{plate("brand/specimens/pulse-mono-specimen.png", "Pulse Mono specimen rendered by CoreText, with SF Mono beside it", "Pulse Mono specimen, beside SF Mono at the app’s sizes · <a href='brand/specimens/pulse-mono-specimen.png'>full size</a>", mw // 2, mh // 2)}
+{plate("brand/specimens/clepso-pixel-specimen.png", "Clepso Pixel specimen rendered by CoreText", 'Clepso Pixel specimen, rendered by CoreText · <a href="brand/specimens/clepso-pixel-specimen.png">full size</a>', pw // 2, ph // 2)}
+{plate("brand/specimens/clepso-mono-specimen.png", "Clepso Mono specimen rendered by CoreText, with SF Mono beside it", "Clepso Mono specimen, beside SF Mono at the app’s sizes · <a href='brand/specimens/clepso-mono-specimen.png'>full size</a>", mw // 2, mh // 2)}
 </div>
 </section>"""
 
@@ -531,7 +531,7 @@ PH_NOTES = {
     "PixelLineChart": "History drawn as steps snapped to a pixel grid, with dotted 80/95/100 guides, NOW, and the dashed pace projection. VoiceOver reads a sentence instead of the drawing.",
     "PixelHeatmap": "Activity like Claude Code's /stats: one column per week, Monday on top, four levels plus empty.",
     "PixelPanel": "The frame every pixel screen sits in: stepped corners, an outer frame and an inner rule; glass behind it in the app.",
-    "Typography": "Rendered with the faces the app bundles today (Silkscreen); Pulse Pixel replaces it when the integration lands.",
+    "Typography": "Rendered with the faces the app bundles today (Silkscreen); Clepso Pixel replaces it when the integration lands.",
 }
 SCREENS = [("popover-overview", "Menu bar popover"), ("popover-detail", "Provider detail"), ("popover-inspector", "Where this number comes from"),
            ("details-limits", "Details · Limits: history and pace"), ("details-session", "Details · Session"),
@@ -636,13 +636,13 @@ def voice_section():
 def downloads_section():
     kits = [("kit", "Brand kit", "Everything below plus the guideline notes, sheets and specimens."),
             ("logo", "Logo", "Symbol, small symbol, wordmark and lockups: SVG masters in six colourways, PNGs at whole-pixel scales."),
-            ("fonts", "Fonts", "Pulse Pixel and Pulse Mono (Regular, Medium, Bold) as OTF, TTF and WOFF2."),
+            ("fonts", "Fonts", "Clepso Pixel and Clepso Mono (Regular, Medium, Bold) as OTF, TTF and WOFF2."),
             ("appicon", "App icon", "Layered SVG master, PNG 16–1024, iconset, ICNS, favicon SVG/ICO/PNG, Apple touch icon.")]
     cards = "".join(f'<li><a class="kit" href="brand/{zips[k].name}" download><b>{e(t)}</b><span>{e(d)}</span><em>ZIP · {size_of(zips[k])}</em></a></li>' for k, t, d in kits)
-    singles = [("Symbol · SVG", "brand/logo/svg/pulse-symbol-phosphor.svg"), ("Horizontal lockup · SVG", "brand/logo/svg/pulse-horizontal-phosphor.svg"),
-               ("Stacked lockup · SVG", "brand/logo/svg/pulse-stacked-phosphor.svg"), ("Lockup on ink · PNG", "brand/logo/png/pulse-horizontal-on-ink-496.png"),
-               ("App icon 1024 · PNG", "brand/app-icon/pulse-app-icon-1024.png"), ("App icon · ICNS", "brand/app-icon/Pulse.icns"),
-               ("Menu bar template @2x · PNG", "brand/menubar/PulseMenuBarTemplate-16@2x.png"), ("Favicon · SVG", "brand/favicon/favicon.svg"),
+    singles = [("Symbol · SVG", "brand/logo/svg/clepso-symbol-phosphor.svg"), ("Horizontal lockup · SVG", "brand/logo/svg/clepso-horizontal-phosphor.svg"),
+               ("Stacked lockup · SVG", "brand/logo/svg/clepso-stacked-phosphor.svg"), ("Lockup on ink · PNG", "brand/logo/png/" + sorted((brand_src / "logo" / "png").glob("clepso-horizontal-on-ink-*.png"), key=lambda q: int(q.stem.rsplit("-", 1)[1]))[-2].name),
+               ("App icon 1024 · PNG", "brand/app-icon/clepso-app-icon-1024.png"), ("App icon · ICNS", "brand/app-icon/Clepso.icns"),
+               ("Menu bar template @2x · PNG", "brand/menubar/ClepsoMenuBarTemplate-16@2x.png"), ("Favicon · SVG", "brand/favicon/favicon.svg"),
                ("Logo sheet · PNG", "brand/sheets/logo-sheet.png"), ("Construction · PNG", "brand/sheets/construction.png")]
     lis = "".join(f'<li><a href="{p}" download>{e(n)}</a><span>{size_of(staging / p)}</span></li>' for n, p in singles)
     return f"""
@@ -650,7 +650,7 @@ def downloads_section():
 {section_head("07", "downloads", "Downloads", "Every file is generated by <code>design/brand/pipeline/build.sh</code> from source in the repository, so the downloads always match these guidelines.")}
 <ul class="kits">{cards}</ul>
 <ul class="files">{lis}</ul>
-<p class="fine">The Pulse faces are original drawings, proprietary to Pulse and free to use in Pulse products and materials. “Pulse” is a working name.</p>
+<p class="fine">The Clepso faces are original drawings, proprietary to Clepso and free to use in Clepso products and materials. “Clepso” is a working name.</p>
 </section>"""
 
 
@@ -665,11 +665,11 @@ facts = [(str(len(THEMES)), "theme appearances"), (str(len(GLYPHS)), "pixel icon
          (f"{worst_all:.2f}:1", "worst text contrast")]
 
 CSS = """
-@font-face{font-family:"Pulse Pixel";src:url("brand/fonts/PulsePixel-Regular.woff2") format("woff2");font-display:swap}
-@font-face{font-family:"Pulse Mono";src:url("brand/fonts/PulseMono-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
-@font-face{font-family:"Pulse Mono";src:url("brand/fonts/PulseMono-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
-@font-face{font-family:"Pulse Mono";src:url("brand/fonts/PulseMono-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
-:root{%(default)s --px:"Pulse Pixel",ui-monospace,monospace;--mono:"Pulse Mono",ui-monospace,"SF Mono",Menlo,monospace;--head:var(--p-head,76px)}
+@font-face{font-family:"Clepso Pixel";src:url("brand/fonts/ClepsoPixel-Regular.woff2") format("woff2");font-display:swap}
+@font-face{font-family:"Clepso Mono";src:url("brand/fonts/ClepsoMono-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Clepso Mono";src:url("brand/fonts/ClepsoMono-Medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Clepso Mono";src:url("brand/fonts/ClepsoMono-Bold.woff2") format("woff2");font-weight:700;font-display:swap}
+:root{%(default)s --px:"Clepso Pixel",ui-monospace,monospace;--mono:"Clepso Mono",ui-monospace,"SF Mono",Menlo,monospace;--head:var(--p-head,76px)}
 %(themes)s
 *{box-sizing:border-box}
 html{scroll-padding-top:calc(var(--head) + 64px);-webkit-text-size-adjust:100%%}
@@ -966,10 +966,10 @@ td.glyph img{width:30px;height:auto}
 """
 
 hero = f"""<section class="hero" aria-labelledby="ds-title">
-  <p class="eyebrow"><b>Pulse</b> · Brand and design system · v1.0</p>
-  {mark("horizontal", 8, "Pulse")}
+  <p class="eyebrow"><b>Clepso</b> · Brand and design system · v1.0</p>
+  {mark("horizontal", 8, "Clepso")}
   <h1 id="ds-title">The limit, and <em>the live signal.</em></h1>
-  <p class="lede">The identity, type, colour, icons, components and voice of Pulse, the menu bar monitor for AI coding-agent limits. Every logo, glyph and colour on this page is generated from the same source the app and the downloads are built from.</p>
+  <p class="lede">The identity, type, colour, icons, components and voice of Clepso, the menu bar monitor for AI coding-agent limits. Every logo, glyph and colour on this page is generated from the same source the app and the downloads are built from.</p>
   <ul class="facts">{''.join(f'<li><b>{e(a)}</b><span>{e(b)}</span></li>' for a, b in facts)}</ul>
   <div class="hero-themes"><p>Preview the page in a theme</p><div class="tps">{theme_buttons}</div></div>
 </section>"""
@@ -979,11 +979,11 @@ page = f"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Brand and design system · Pulse docs</title>
-<meta name="description" content="The Pulse identity and design system: logo and construction, colour across themes, the Pulse Pixel and Pulse Mono typefaces, pixel icons, components, voice and downloads.">
+<title>Brand and design system · Clepso docs</title>
+<meta name="description" content="The Clepso identity and design system: logo and construction, colour across themes, the Clepso Pixel and Clepso Mono typefaces, pixel icons, components, voice and downloads.">
 <meta name="theme-color" content="#060907">
-<link rel="preload" href="brand/fonts/PulsePixel-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="brand/fonts/PulseMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="brand/fonts/ClepsoPixel-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="brand/fonts/ClepsoMono-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <script>(function(){{try{{var t=localStorage.getItem("pulse-ds-theme"),m={theme_meta};if(t&&m.hasOwnProperty(t)){{document.documentElement.setAttribute("data-ds-theme",t);if(m[t])document.documentElement.classList.add("ds-light")}}}}catch(e){{}}}})()</script>
 <style>{CSS % {"default": default_vars, "themes": theme_css}}</style>
 </head>
@@ -1056,9 +1056,9 @@ staging.rename(out)
 if not (site / "index.html").exists():
     (site / "index.html").write_text("""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pulse</title><meta http-equiv="refresh" content="0; url=/design-system/">
+<title>Clepso</title><meta http-equiv="refresh" content="0; url=/design-system/">
 <style>:root{color-scheme:light dark}body{font:16px -apple-system,system-ui,sans-serif;margin:0;padding:48px 16px;background:Canvas;color:CanvasText}</style>
-</head><body><p>Pulse. <a href="/design-system/">Design system</a></p></body></html>
+</head><body><p>Clepso. <a href="/design-system/">Design system</a></p></body></html>
 """)
 (site / "vercel.json").write_text(json.dumps({"trailingSlash": True}, indent=2) + "\n")
 n_files = sum(1 for p in out.rglob("*") if p.is_file())

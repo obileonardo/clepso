@@ -1,8 +1,8 @@
-Pulse — third-party acknowledgements
+Clepso — third-party acknowledgements
 ====================================
 
-Pulse includes the following third-party software and fonts. Each is used under its own licence, reproduced or
-referenced below. Pulse's own source code is licensed under the MIT License (see LICENSE in the source repository).
+Clepso includes the following third-party software and fonts. Each is used under its own licence, reproduced or
+referenced below. Clepso's own source code is licensed under the MIT License (see LICENSE in the source repository).
 
 
 GRDB.swift 7.11.1 (https://github.com/groue/GRDB.swift), linked into the app
@@ -20,14 +20,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 Fonts (SIL Open Font License 1.1), bundled in Tokone_DesignSystem.bundle/Contents/Resources/Fonts/
 ---------------------------------------------------------------------------------------------------
 
-Pulse Pixel,     Copyright 2026 The Pulse Project Authors, with Reserved Font Names "Pulse Pixel" and "Pulse Mono"
-Pulse Mono
+Clepso Pixel,     Copyright 2026 The Clepso Project Authors, with Reserved Font Names "Clepso Pixel" and "Clepso Mono"
+Clepso Mono
 Silkscreen       Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen)
 Pixelify Sans    Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
 VT323            Copyright 2011, The VT323 Project Authors
 
-The full licence text for each font sits beside it in that folder: PulseFonts-OFL.txt, Silkscreen-OFL.txt,
+The full licence text for each font sits beside it in that folder: ClepsoFonts-OFL.txt, Silkscreen-OFL.txt,
 PixelifySans-OFL.txt and VT323-OFL.txt. The fonts may be bundled with software; they may not be sold on their own.
 
-The Pulse name, logo, app icon and menu bar mark are not covered by these licences (see TRADEMARKS.md in the source
+The Clepso name, logo, app icon and menu bar mark are not covered by these licences (see TRADEMARKS.md in the source
 repository).

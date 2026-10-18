@@ -1,4 +1,4 @@
-"""Names, vertical metrics and tables shared by both Pulse faces.
+"""Names, vertical metrics and tables shared by both Clepso faces.
 
 Vertical metrics follow the 'webfont strategy' used by Google Fonts: hhea = typo = win, USE_TYPO_METRICS set, so
 macOS, Windows and browsers lay lines out identically. Names avoid every Reserved Font Name of the OFL faces the app
@@ -10,10 +10,10 @@ from fontTools.ttLib import TTFont
 VERSION = "1.000"
 RELEASED = "Sat Oct 17 12:00:00 2026"
 VENDOR = "PULS"
-# Founder decision (17 Oct 2026): the faces are open (SIL OFL 1.1) with their names reserved; the Pulse logo, name and app
+# Founder decision (17 Oct 2026): the faces are open (SIL OFL 1.1) with their names reserved; the Clepso logo, name and app
 # icon are not covered (see TRADEMARKS.md).
-COPYRIGHT = 'Copyright 2026 The Pulse Project Authors, with Reserved Font Names "Pulse Pixel" and "Pulse Mono"'
-DESIGNER = "Pulse brand team"
+COPYRIGHT = 'Copyright 2026 The Clepso Project Authors, with Reserved Font Names "Clepso Pixel" and "Clepso Mono"'
+DESIGNER = "Clepso brand team"
 LICENSE = ("This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a "
            "FAQ at: https://openfontlicense.org")
 LICENSE_URL = "https://openfontlicense.org"
@@ -30,7 +30,7 @@ def setup_common(fb, *, family, ps, style, weight, ascender, descender, line_gap
         "fullName": full,
         "version": f"Version {VERSION}",
         "psName": f"{ps}-{style}",
-        "manufacturer": "Pulse",
+        "manufacturer": "Clepso",
         "designer": DESIGNER,
         "description": description,
         "licenseDescription": LICENSE,

@@ -211,7 +211,7 @@ enum Copy {
         static func lastDay(_ tokens: String, _ day: String) -> String { "+\(tokens) on \(day)" }
         static func watched(_ sessions: Int) -> String { "\(sessions) Claude Code session\(sessions == 1 ? "" : "s") watched" }
         static let limits = "LIMITS", latestTask = "LATEST TASK", goals = "GOALS", level = "LEVEL", lastYear = "LAST 12 MONTHS"
-        static let connectTitle = "CONNECT CLAUDE CODE", connectBody = "Pulse reads Claude Code's status line on this Mac to show your limits."
+        static let connectTitle = "CONNECT CLAUDE CODE", connectBody = "\(product) reads Claude Code's status line on this Mac to show your limits."
         static let agentsTitle = "COUNT AGENTS PER TASK", agentsBody = "See how many subagents each prompt starts, by type. Counts only."
         static let statsTitle = "SHOW YOUR CLAUDE CODE STATS", statsBody = "Your activity calendar, levels and the player card come from Claude Code's statistics file."
         static let turnOn = "Turn on", connect = "Connect…"
@@ -225,7 +225,7 @@ enum Copy {
     /// Account page (1.12, after the founder's Twenty, Rive and GitBook picks).
     enum AccountPage {
         static let profile = "Profile", profileSub = "The name Home greets you with and the card shows."
-        static let plan = "Plan", planSub = "The plan you chose. Pulse never guesses it from usage."
+        static let plan = "Plan", planSub = "The plan you chose. \(product) never guesses it from usage."
         static let signIn = "Sign in", signInSub = "Optional. Sign in to see goals and usage on the web."
         static let sync = "Upload"
         static let year = "Your year", yearSub = "Every day you used Claude Code this year."
@@ -233,7 +233,7 @@ enum Copy {
         static let connected = "CONNECTED", soon = "Soon", soonSub = "Being set up"
         static let danger = "DANGER ZONE", signOutSub = "Stops uploads from this Mac. What's on the server stays."
         static let deleteTitle = "Delete account"
-        static let dangerSignedOut = "Nothing to delete: you aren't signed in. To remove Pulse's data from this Mac, use Settings › Delete all."
+        static let dangerSignedOut = "Nothing to delete: you aren't signed in. To remove \(product)'s data from this Mac, use Settings › Delete all."
     }
 
     /// Card page milestones (1.12, after the founder's Tripadvisor pick).
@@ -325,7 +325,7 @@ enum Copy {
         static let limitCritical = "Nearly used up. New work may be refused until the reset."
         static func goal(_ name: String, _ over: Bool) -> String { (over ? "Goal missed: " : "Goal at risk: ") + name.lowercased() }
         static func running(_ agents: Int) -> String { agents == 0 ? "A task is running" : "A task is running with \(agents) agent\(agents == 1 ? "" : "s")" }
-        static let signInTitle = "See Pulse anywhere", signInBody = "Sign in to check your goals and usage on the web.", signIn = "Sign in"
+        static let signInTitle = "See \(product) anywhere", signInBody = "Sign in to check your goals and usage on the web.", signIn = "Sign in"
         static let allClear = "ALL CLEAR", allClearBody = "Nothing needs you right now."
         static let view = "View"
         static let connectTitle = "Connect Claude Code", statsTitle = "Show your Claude Code stats", agentsTitle = "Count agents per task"
@@ -390,7 +390,7 @@ enum Copy {
     /// Pulse accounts.
     enum Sync {
         static let title = "PULSE ACCOUNT"
-        static let explainer = "Sign in to see your goals and usage on the web (and later on iPhone). Once an hour Pulse uploads daily counts only: messages, sessions and tokens per model per day (when Claude Code stats are on), each day's limit peaks, agents per task (when counting is on), your goals and your name and plan. Never prompts, replies, file paths, project names or session ids. Delete the account at any time and everything on the server goes with it."
+        static let explainer = "Sign in to see your goals and usage on the web (and later on iPhone). Once an hour \(product) uploads daily counts only: messages, sessions and tokens per model per day (when Claude Code stats are on), each day's limit peaks, agents per task (when counting is on), your goals and your name and plan. Never prompts, replies, file paths, project names or session ids. Delete the account at any time and everything on the server goes with it."
         static let emailPlaceholder = "you@example.com"
         static let emailMe = "Email me a link"
         static func linkSent(_ email: String) -> String { "Check \(email): open the link on this Mac to sign in. It works once and expires within the hour." }
@@ -400,7 +400,7 @@ enum Copy {
         static func lastSynced(_ when: String) -> String { "Last uploaded \(when)" }
         static let neverSynced = "Not uploaded yet"
         static let syncNow = "Upload now", signOut = "Sign out", deleteAccount = "Delete account…"
-        static let deleteTitle = "Delete your Pulse account?"
+        static let deleteTitle = "Delete your \(product) account?"
         static let deleteBody = "This deletes the account and every count stored with it on the server. Nothing on this Mac changes. It can't be undone."
         static let deleteConfirm = "Delete account"
         static let signedIn = "Signed in. Your counts are uploading."
@@ -410,10 +410,10 @@ enum Copy {
         static let notSignedIn = "You're signed out. Sign in again to keep uploading."
         static let noPending = "That link was sent from a different sign-in attempt. Ask for a new one."
         static let linkFailed = "The sign-in link didn't work. Ask for a new one."
-        static let unavailable = "Accounts aren't available in this build. Builds made from source don't connect to Pulse's accounts service, so nothing leaves this Mac."
+        static let unavailable = "Accounts aren't available in this build. Builds made from source don't connect to \(product)'s accounts service, so nothing leaves this Mac."
         static func serverError(_ status: Int, _ code: String?) -> String { "The server said no (\(status)\(code.map { ", \($0)" } ?? "")). Try again later." }
         static let badResponse = "The server's answer didn't make sense. Try again later."
-        static let offline = "Couldn't reach the server. Pulse will try again within the hour."
+        static let offline = "Couldn't reach the server. \(product) will try again within the hour."
         static let demoNote = "Uploads are paused while demo data is showing."
     }
 
@@ -431,20 +431,20 @@ enum Copy {
     }
 
     enum SettingsPage {
-        static let title = "Settings", subtitle = "How Pulse runs on this Mac"
+        static let title = "Settings", subtitle = "How \(product) runs on this Mac"
         static let general = "GENERAL", claudeCode = "CLAUDE CODE", codex = "CODEX", notifications = "NOTIFICATIONS", data = "YOUR DATA", diagnostics = "DIAGNOSTICS"
-        static let exportSub = "Everything Pulse stores on this Mac, as one JSON file", exportAction = "Export…"
+        static let exportSub = "Everything \(product) stores on this Mac, as one JSON file", exportAction = "Export…"
         static let demoSub = "Sample numbers, clearly marked DEMO; uploads pause"
-        static let deleteSub = "Removes all of Pulse's data and restores Claude Code's settings", deleteAction = "Delete…"
+        static let deleteSub = "Removes all of \(product)'s data and restores Claude Code's settings", deleteAction = "Delete…"
         static let showLog = "Show log", hideLog = "Hide log"
         static func groupLine(_ title: String) -> String {
             switch title {
-            case general: "How Pulse looks and starts."
+            case general: "How \(product) looks and starts."
             case notifications: "Alerts when a limit gets close."
-            case claudeCode: "What Pulse reads from Claude Code, and what it keeps."
+            case claudeCode: "What \(product) reads from Claude Code, and what it keeps."
             case codex: "Codex's own limits, read from its session files on this Mac."
-            case data: "Everything Pulse stores is on this Mac."
-            case diagnostics: "What Pulse received, for troubleshooting."
+            case data: "Everything \(product) stores is on this Mac."
+            case diagnostics: "What \(product) received, for troubleshooting."
             default: ""
             }
         }
@@ -471,7 +471,7 @@ enum Copy {
         }
         static let selected = "Selected"
         static let system = "System", light = "Light", dark = "Dark"
-        static let loginSub = "Start Pulse when you log in"
+        static let loginSub = "Start \(product) when you log in"
         static let percentSub = "The highest limit's % next to the icon"
         static let notificationsTitle = "Notifications"
         static let allowed = "Allowed", notAllowed = "Not allowed yet", allow = "Allow…"
@@ -492,9 +492,9 @@ enum Copy {
         static func finished(_ done: Int, of total: Int) -> String { "\(done) of \(total) finished" }
         static let tasks = "Tasks", withAgents = "Used agents", average = "Agents per task", most = "Most in one task"
         static let noTasks = "No tasks yet. Send Claude Code a prompt; it appears here when Claude starts working on it."
-        static let missedPrompt = "Started before Pulse saw the prompt"
+        static let missedPrompt = "Started before \(product) saw the prompt"
         static let offTitle = "COUNT AGENTS PER TASK?"
-        static let offBody = "Pulse can count how many subagents Claude Code starts for each prompt, by type (Explore, Plan, General; your own agents as Custom). It adds four background hooks to Claude Code's settings, with a backup first. The hooks send only the event, hashed ids and the type, never your prompts, replies or file names. Turn it on in Settings › Providers."
+        static let offBody = "\(product) can count how many subagents Claude Code starts for each prompt, by type (Explore, Plan, General; your own agents as Custom). It adds four background hooks to Claude Code's settings, with a backup first. The hooks send only the event, hashed ids and the type, never your prompts, replies or file names. Turn it on in Settings › Providers."
         static let openSettings = "Open Settings…"
         static func strip(_ n: Int, _ types: String) -> String { n == 0 ? "Last task: no subagents" : "Last task: \(n == 1 ? "1 agent" : "\(n) agents") · \(types)" }
         static let toggle = "Count subagents per task"
@@ -534,7 +534,7 @@ enum Copy {
         static let openUsageShort = "Usage"
         static let coverage = "5-hour & 7-day only"
         static func unreadShort(_ n: Int) -> String { n == 1 ? "1 limit not read" : "\(n) limits not read" }
-        static let moreInfo = "More about which limits Pulse reads"
+        static let moreInfo = "More about which limits \(product) reads"
         /// Say what the source covers, so "available" is never read as "every limit".
         static let otherLimits = "Claude Code's status line reports the 5-hour and 7-day limits only. Others, such as a weekly limit for one model, appear in /\u{2060}usage in Claude Code."          // word joiner: never break "/usage" across lines
         static func unreadLimits(_ n: Int) -> String {

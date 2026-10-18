@@ -330,7 +330,7 @@ public struct SettingsInstaller: Sendable {
         }
         guard (object["statusLine"] as? [String: Any])?["command"] as? String == paths.commandValue else {
             try removePulseFiles()
-            return .leftUnchanged(reason: "the status line no longer points to Pulse")
+            return .leftUnchanged(reason: "the status line no longer points to this app")
         }
 
         // Surgical: put back the original statusLine (or remove ours), keep every other byte.
