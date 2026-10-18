@@ -72,7 +72,7 @@ chamfered corners, at high resolution. Vertical strokes heavier than horizontal 
 even; diagonals between. Weight is a parameter: Regular, Medium and Bold are one drawing.
 
 **Is the body face good enough?** Assessed honestly against SF Mono at the app's real sizes (13 pt Medium, 12 pt
-Regular, 2× display, CoreText; see `specimens/pulse-mono-specimen.png`): it is as legible in the app's sentences,
+Regular, 2× display, CoreText; see `specimens/clepso-mono-specimen.png`): it is as legible in the app's sentences,
 keeps every disambiguation, and gives the product its own voice. Limits, stated plainly:
 
 - **Unhinted.** Fine on Retina Macs (macOS ignores hinting anyway); on 1× Windows screens it will look soft.

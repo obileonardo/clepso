@@ -50,11 +50,11 @@ struct HooksInstallerTests {
             #expect(text.components(separatedBy: "\n").count == text.components(separatedBy: "\r\n").count, "\(file): mixed line endings")
         }
         #expect(box.mode(box.settings) == 0o640)
-        #expect(box.mode(box.claude.appendingPathComponent("pulse/hook.sh")) == 0o700)
+        #expect(box.mode(box.claude.appendingPathComponent("clepso/hook.sh")) == 0o700)
 
         #expect(try installer.uninstall() == .restoredExactly)
         #expect(box.bytes(box.settings) == withStatusLine, "\(file): not byte-identical after removing the hooks")
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse/hook.sh")))
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso/hook.sh")))
         #expect(try box.installer().uninstall() == .restoredExactly)
         #expect(box.bytes(box.settings) == original, "\(file): status line uninstall no longer exact")
     }
@@ -74,7 +74,7 @@ struct HooksInstallerTests {
 
     """
 
-    @Test("The user's own hooks stay, Pulse's entry is appended after them, and only Pulse's comes out")
+    @Test("The user's own hooks stay, Clepso's entry is appended after them, and only Clepso's comes out")
     func coexists() throws {
         let box = try Sandbox(); defer { box.cleanUp() }
         try write(Self.withUserHooks, to: box)
@@ -90,9 +90,9 @@ struct HooksInstallerTests {
         #expect(stop.count == 2)
         #expect(((stop[0]["hooks"] as? [Any])?.first as? [String: Any])?["command"] as? String == "afplay /System/Library/Sounds/Glass.aiff")
         #expect(entries(object, "Stop", command: installer.commandValue) == 1)
-        #expect((hooks["PreToolUse"] as? [Any])?.count == 1, "an event Pulse doesn't use was changed")
+        #expect((hooks["PreToolUse"] as? [Any])?.count == 1, "an event Clepso doesn't use was changed")
 
-        // The user edits another setting afterwards: only Pulse's entries come out, the edit stays, bytes elsewhere unchanged.
+        // The user edits another setting afterwards: only Clepso's entries come out, the edit stays, bytes elsewhere unchanged.
         let installed = String(decoding: installedBytes, as: UTF8.self)
         try write(installed.replacingOccurrences(of: "\"theme\": \"dark\"", with: "\"theme\": \"light\""), to: box)
         #expect(try installer.uninstall() == .removedEntries(formattingChanged: false))
@@ -100,7 +100,7 @@ struct HooksInstallerTests {
         #expect(box.bytes(box.settings).map { String(decoding: $0, as: UTF8.self) } == expected)
     }
 
-    @Test("Removal after the user deleted Pulse's entries by hand changes nothing")
+    @Test("Removal after the user deleted Clepso's entries by hand changes nothing")
     func alreadyGone() throws {
         let box = try Sandbox(); defer { box.cleanUp() }
         try write(Self.withUserHooks, to: box)

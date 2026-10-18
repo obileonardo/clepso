@@ -1,14 +1,14 @@
 #!/usr/bin/env python3 -I
 """Builds a synthetic home folder for the screenshot probe: no real usage data, same result on every run.
 
-Writes <home>/.claude/stats-cache.json shaped like the file Claude Code keeps for /stats (only the fields Pulse's
+Writes <home>/.claude/stats-cache.json shaped like the file Claude Code keeps for /stats (only the fields Clepso's
 StatsReader reads, plus a fake longest-session id it must ignore), covering about 14 months up to yesterday.
 Every number comes from a fixed random seed.
 
 Usage: python3 -I scripts/probe-home.py <home dir> [YYYY-MM-DD]   (the date defaults to today)
 
-Then launch a debug build with -PulseHome <home dir> -PulseDataDirectory <data dir> -PulseProbeOutput <dir>
--PulseProbeDemo YES (see README, "Run it safely").
+Then launch a debug build with -ClepsoHome <home dir> -ClepsoDataDirectory <data dir> -ClepsoProbeOutput <dir>
+-ClepsoProbeDemo YES (see README, "Run it safely").
 """
 import json
 import random

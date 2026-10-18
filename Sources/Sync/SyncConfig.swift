@@ -1,11 +1,11 @@
 import Foundation
 
-/// Where Pulse accounts live. The publishable key is meant to ship inside apps: it identifies the project and grants
+/// Where Clepso accounts live. The publishable key is meant to ship inside apps: it identifies the project and grants
 /// nothing by itself; every table is protected by row-level security, so a signed-in user's token reaches only that
 /// user's rows. The project's secret key is never in the app.
 ///
-/// No project is compiled in. Official builds get the host and key as Info.plist values (`PulseSyncHost`,
-/// `PulseSyncPublishableKey`) from a local, uncommitted `Config/Sync.local.xcconfig`; see
+/// No project is compiled in. Official builds get the host and key as Info.plist values (`ClepsoSyncHost`,
+/// `ClepsoSyncPublishableKey`) from a local, uncommitted `Config/Sync.local.xcconfig`; see
 /// `Config/Sync.local.xcconfig.example`. A build from source without that file has no `SyncConfig`, and Sync stays
 /// off: it never signs in and never makes a request.
 public struct SyncConfig: Sendable, Equatable {
@@ -23,8 +23,8 @@ public struct SyncConfig: Sendable, Equatable {
     public static let urlScheme = "clepso"
     public static let redirectURL = URL(string: "\(urlScheme)://auth-callback")!
 
-    public static let hostKey = "PulseSyncHost"
-    public static let publishableKeyKey = "PulseSyncPublishableKey"
+    public static let hostKey = "ClepsoSyncHost"
+    public static let publishableKeyKey = "ClepsoSyncPublishableKey"
 
     /// The configuration in an app's Info.plist, or nil when the build carries none (every build from source, unless
     /// its builder supplies their own project). Values that are empty, unexpanded (`$(…)`) or malformed count as none.

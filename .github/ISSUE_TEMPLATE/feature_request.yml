@@ -1,11 +1,11 @@
 name: Feature request
-description: Suggest something Pulse should do.
+description: Suggest something Clepso should do.
 labels: ["enhancement", "triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Pulse reads only what coding agents report, keeps data on your Mac by default, and sends nothing unless you
+        Clepso reads only what coding agents report, keeps data on your Mac by default, and sends nothing unless you
         sign in. Requests that would read a new source or send new data are welcome, but need a design discussion
         first (see CONTRIBUTING.md).
   - type: textarea
@@ -27,7 +27,7 @@ body:
     attributes:
       label: Data it would need
       description: |
-        Which files, fields or services would Pulse have to read or contact? Is that data documented by the tool that
+        Which files, fields or services would Clepso have to read or contact? Is that data documented by the tool that
         produces it? Leave blank if none.
   - type: textarea
     id: alternatives

@@ -2,7 +2,7 @@ import CoreText
 import Foundation
 
 /// The bundled faces (Resources/Fonts, pinned in its README). Registered once, for this process only.
-/// 1.16: the product's own faces (design/brand): Pulse Pixel for display, Pulse Mono for text. PostScript names, which are
+/// 1.16: the product's own faces (design/brand): Clepso Pixel for display, Clepso Mono for text. PostScript names, which are
 /// unambiguous where family names are not. Silkscreen, Pixelify Sans and VT323 stay bundled but are no longer used.
 public enum PixelFonts {
     public static let display = "ClepsoPixel-Regular"    // titles, figures, tags, buttons, menu bar text

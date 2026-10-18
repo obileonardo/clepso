@@ -10,17 +10,17 @@ and after any change to a control style, a chart, the calendar, the card or an a
 | `motion through tokens` | `scripts/ci.sh` | Every `withAnimation` / `.animation(` goes through `theme.motion(<MotionToken>, reduceMotion:)`; animation curves live only in `Tokens.swift`; every `TimelineView` pauses under Reduce Motion; nothing reads the system's Reduce Motion setting except `ReduceMotionRoot`. |
 | `keyboard reachable` | `scripts/ci.sh` | No `.buttonStyle(.plain)` (use `PixelPlainButtonStyle`, which draws the focus ring); `.focusEffectDisabled()` only where the pixel ring is drawn; every tap gesture is on a view that takes focus and answers keys; every hover readout is also reachable with `chartKeyboard` (decorative hover is marked `hover-ok`). |
 | `Theme` tests | `Tests/DesignSystemTests` | Under Reduce Motion every motion token is nil except the card flip, which is a crossfade of at most 0.25 s; the window root's override reaches views. |
-| `KeyboardTests` | `Tests/PulseAppTests` | The chart cursor starts at the latest bar and holds at the ends; the calendar cursor moves by day and week over days with data only and walks a real year end to end. |
+| `KeyboardTests` | `Tests/ClepsoAppTests` | The chart cursor starts at the latest bar and holds at the ends; the calendar cursor moves by day and week over days with data only and walks a real year end to end. |
 
-Probe evidence (debug build, no key events are ever posted; see `Sources/PulseApp/Debug/PopoverProbe.swift`):
+Probe evidence (debug build, no key events are ever posted; see `Sources/ClepsoApp/Debug/PopoverProbe.swift`):
 
-- `-PulseProbeAX YES` with `swift scripts/probe-ax.swift <dir>`: the accessibility tree of every popover page,
+- `-ClepsoProbeAX YES` with `swift scripts/probe-ax.swift <dir>`: the accessibility tree of every popover page,
   Dashboard page, the delete-all sheet and every onboarding step, read-only, with counts of controls that offer
   AXPress (Return/Space/VoiceOver can activate them) and AXIncrement (adjustable). It also lists the app menu's key
   equivalents (⌘, Settings…, ⌘W Close).
-- `-PulseProbeFlipFrames YES` (add `-PulseProbeReduceMotion YES` for the reduced run): six frames of the player card
+- `-ClepsoProbeFlipFrames YES` (add `-ClepsoProbeReduceMotion YES` for the reduced run): six frames of the player card
   turning over.
-- `-PulseProbeFocusGallery YES`: every self-drawn control focused in turn through `@FocusState`, captured. Buttons and
+- `-ClepsoProbeFocusGallery YES`: every self-drawn control focused in turn through `@FocusState`, captured. Buttons and
   toggles take focus only while **Keyboard navigation** is on in System Settings, which the probe cannot turn on for
   itself; run it with the setting on to see every button's ring.
 
@@ -67,7 +67,7 @@ place below, press Tab repeatedly (Shift-Tab back) and check:
       **Escape closes it** (Cancel); Return triggers the lit button only where that is safe (never Delete).
 - [ ] **⌘W closes the Dashboard**; ⌘, reopens it on Settings.
 
-### Onboarding (first launch; for a rerun, launch a debug build with a fresh `-PulseDataDirectory`)
+### Onboarding (first launch; for a rerun, launch a debug build with a fresh `-ClepsoDataDirectory`)
 
 - [ ] Each step: Tab reaches every button, the plan menu, the switches; Return takes the lit primary button.
 - [ ] The last step: the Launch at login switch, then OPEN.

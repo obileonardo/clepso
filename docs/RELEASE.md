@@ -10,8 +10,8 @@ never need it, and nothing here is required to build from source (`make app` sig
 ## 1. What a release is
 
 - A Developer ID signed, hardened-runtime, notarized and stapled `Clepso.app` in a signed, notarized DMG.
-- No App Sandbox, no entitlement exceptions: `App/PulseMac/PulseMac.entitlements` is an empty dictionary, and the
-  helper (`Contents/Helpers/pulse-statusline`) has no entitlements file.
+- No App Sandbox, no entitlement exceptions: `App/ClepsoMac/ClepsoMac.entitlements` is an empty dictionary, and the
+  helper (`Contents/Helpers/clepso-statusline`) has no entitlements file.
 - No auto-update in alpha: an update check would be network traffic by default. Testers reinstall from the DMG.
 - Version: `MARKETING_VERSION` (numeric semver, `0.1.0`) and `CURRENT_PROJECT_VERSION` (`git rev-list --count HEAD`
   on `main`) in `project.yml`. The channel (`alpha`) lives in the git tag and DMG name only: `v0.1.0-alpha.1`.
@@ -23,7 +23,7 @@ never need it, and nothing here is required to build from source (`make app` sig
 | Developer ID Application certificate (DECISIONS A6) | **Present** in the maintainer's login keychain (`security find-identity -v -p codesigning`) | Export the `.p12` once and keep it in the password manager: Apple can't re-issue a lost private key |
 | Team ID and bundle prefix (A7) | **Decided** 18 Oct 2026: `com.elvisobi` (app `com.elvisobi.clepso`, helper `com.elvisobi.clepso.statusline`, sign-in scheme `clepso://`) | When the planned code-signature peer check (PRIVACY_AND_SECURITY §3) is built, its designated requirement names `com.elvisobi.clepso.statusline` |
 | Notary credentials | Not set up | An App Store Connect API key (Developer role) is preferred over an Apple ID: `xcrun notarytool store-credentials clepso-notary --key <AuthKey.p8> --key-id <id> --issuer <issuer>` stores it in the keychain |
-| `Config/Signing.local.xcconfig` | Present on the maintainer's Mac (gitignored) | For a release build set `PULSE_CODE_SIGN_IDENTITY = Developer ID Application` and `PULSE_DEVELOPMENT_TEAM = <TEAMID>` |
+| `Config/Signing.local.xcconfig` | Present on the maintainer's Mac (gitignored) | For a release build set `CLEPSO_CODE_SIGN_IDENTITY = Developer ID Application` and `CLEPSO_DEVELOPMENT_TEAM = <TEAMID>` (files written before the rename may still say `PULSE_…`; `Config/Clepso.xcconfig` reads both, `CLEPSO_…` wins) |
 
 ## 3. Build, sign, notarize
 
@@ -36,7 +36,7 @@ make ci > build/ci.log 2>&1; echo "ci exit $?"      # must print 0; read the sum
 scripts/bootstrap.sh && .tools/xcodegen/bin/xcodegen --quiet
 
 V=0.1.0; B=$(git rev-list --count HEAD)
-xcodebuild -project Pulse.xcodeproj -scheme PulseMac -configuration Release \
+xcodebuild -project Clepso.xcodeproj -scheme ClepsoMac -configuration Release \
   -archivePath build/Clepso.xcarchive MARKETING_VERSION=$V CURRENT_PROJECT_VERSION=$B ONLY_ACTIVE_ARCH=NO archive
 xcodebuild -exportArchive -archivePath build/Clepso.xcarchive -exportPath build/export \
   -exportOptionsPlist build/ExportOptions.plist     # method developer-id, signingStyle manual, teamID <TEAMID>
@@ -62,8 +62,8 @@ APP=build/export/Clepso.app
 codesign --verify --deep --strict --verbose=2 "$APP"
 codesign -dvv "$APP" 2>&1 | grep -E 'Authority=Developer ID Application|flags=0x10000\(runtime\)|Timestamp='
 codesign -d --entitlements - --xml "$APP" | grep -c 'com.apple.security' # must print 0
-codesign -dvv "$APP/Contents/Helpers/pulse-statusline" 2>&1 | grep -E 'Identifier=|flags=0x10000\(runtime\)'
-lipo -archs "$APP/Contents/Helpers/pulse-statusline"                    # arm64 x86_64: Claude Code may run under Rosetta
+codesign -dvv "$APP/Contents/Helpers/clepso-statusline" 2>&1 | grep -E 'Identifier=|flags=0x10000\(runtime\)'
+lipo -archs "$APP/Contents/Helpers/clepso-statusline"                    # arm64 x86_64: Claude Code may run under Rosetta
 ```
 
 Notarize, staple, package:

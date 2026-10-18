@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 import Security
 
-/// Pulse accounts: signing in and uploading daily counts to Supabase. Optional, and off in any build without a
+/// Clepso accounts: signing in and uploading daily counts to Supabase. Optional, and off in any build without a
 /// `SyncConfig` (see SyncConfig.swift): then every call below fails with `SyncError.unavailable` before a request is made.
 ///
 /// The only module allowed to make network calls (`make ci`, "networking only in Sync"). It talks to two Supabase
@@ -71,6 +71,8 @@ public protocol AuthStore: Sendable {
 /// The Keychain, one generic-password item holding JSON, this device only.
 public struct KeychainAuthStore: AuthStore {
     let service: String
+    /// Kept from before the rename to Clepso: the Keychain item already saved under it is the signed-in session, and
+    /// a new name would sign everyone out.
     let account = "pulse-account"
     public init(service: String = "com.elvisobi.clepso.account") { self.service = service }
 
@@ -165,7 +167,7 @@ public actor SyncClient {
 
     // Sign-in
 
-    /// Emails a one-time sign-in link that opens Pulse (`redirectURL`). PKCE: the link is useless without the verifier
+    /// Emails a one-time sign-in link that opens Clepso (`redirectURL`). PKCE: the link is useless without the verifier
     /// kept in this Mac's Keychain.
     public func requestEmailLink(_ email: String) async throws {
         let config = try requireConfig()

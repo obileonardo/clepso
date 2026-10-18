@@ -5,7 +5,7 @@
 ## How it was verified
 
 <!-- Paste the `make ci-contributor` summary (maintainers: `make ci`). Describe any manual checks, using a throwaway
--PulseHome / -PulseDataDirectory. -->
+-ClepsoHome / -ClepsoDataDirectory. -->
 
 ```
 make ci-contributor summary here

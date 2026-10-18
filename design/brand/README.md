@@ -7,7 +7,7 @@ design/brand/pipeline/build.sh            # everything, then font checks and the
 design/brand/pipeline/build.sh fonts      # or one stage: fonts | logo | sheets | specimens
 ```
 
-The script creates a virtualenv (`$PULSE_BRAND_VENV`, default `design/brand/.venv`, git-ignored) from
+The script creates a virtualenv (`$CLEPSO_BRAND_VENV`, default `design/brand/.venv`, git-ignored) from
 `pipeline/requirements.txt`. Builds are deterministic: fonts carry a fixed timestamp, so an unchanged source gives
 byte-identical files.
 
@@ -29,7 +29,7 @@ byte-identical files.
 | Folder | Contents |
 |---|---|
 | `fonts/` | Clepso Pixel Regular; Clepso Mono Regular, Medium, Bold. Each as `.ttf`, `.otf`, `.woff2` |
-| `logo/svg/` | `pulse-{symbol,symbol-small,wordmark,horizontal,stacked}-{phosphor,deep,black,white,on-ink,on-paper}.svg` |
+| `logo/svg/` | `clepso-{symbol,symbol-small,wordmark,horizontal,stacked}-{phosphor,deep,black,white,on-ink,on-paper}.svg` |
 | `logo/png/` | the same at whole-pixel scales; file name ends in the pixel width. Plus `clepso-logo-email-244.png`, the account emails' header logo (copied to `site/assets/email/`, see `docs/EMAIL.md`) |
 | `app-icon/` | `clepso-app-icon.svg` (layered master), PNG 16–1024, `Clepso.iconset`, `Clepso.icns` |
 | `menubar/` | `ClepsoMenuBarTemplate-16.png`, `-16@2x`, `-18`, `-18@2x`; status family `state-*.png` (seven states, two stale variants); `clepso-menubar-matrix.txt`; `MenuBarBeat.swift.txt` |

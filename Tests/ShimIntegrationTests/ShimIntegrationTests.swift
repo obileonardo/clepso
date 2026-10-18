@@ -18,7 +18,7 @@ let f08Stdin = Data(#"""
 """#.utf8)
 
 /// Each test owns its temporary HOME; `.serialized` keeps process-heavy tests from skewing timings.
-@Suite("pulse-statusline as a real process", .serialized)
+@Suite("clepso-statusline as a real process", .serialized)
 struct ShimIntegrationTests {
     @Test("The user's command receives the exact stdin bytes and its output is passed through unchanged")
     func passthroughIsByteIdentical() throws {
@@ -139,8 +139,8 @@ func waitUntil(timeout: Double = 2, _ condition: () -> Bool) throws {
 }
 
 /// ARCHITECTURE §3 budget: shim-added overhead ≤ 20 ms p95, ≤ 50 ms max, measured baseline-relative.
-/// Opt-in because it spawns 600 processes: `PULSE_PERF=1 swift test -c release --filter Overhead`.
-@Suite("Overhead budget", .serialized, .enabled(if: ProcessInfo.processInfo.environment["PULSE_PERF"] == "1"))
+/// Opt-in because it spawns 600 processes: `CLEPSO_PERF=1 swift test -c release --filter Overhead`.
+@Suite("Overhead budget", .serialized, .enabled(if: ProcessInfo.processInfo.environment["CLEPSO_PERF"] == "1"))
 struct OverheadTests {
     @Test("200 interleaved runs: baseline, app absent, app present")
     func overhead() throws {
@@ -184,15 +184,15 @@ struct EndToEndTests {
         let settings = h.home.appendingPathComponent(".claude/settings.json")
         let original = Data("{\n  \"statusLine\": {\n    \"type\": \"command\",\n    \"command\": \"printf 'mine'\"\n  }\n}\n".utf8)
         try original.write(to: settings)
-        // The harness pre-creates ~/.claude/pulse; the installer must start from a clean slate.
-        try FileManager.default.removeItem(at: h.home.appendingPathComponent(".claude/pulse"))
+        // The harness pre-creates ~/.claude/clepso; the installer must start from a clean slate.
+        try FileManager.default.removeItem(at: h.home.appendingPathComponent(".claude/clepso"))
 
         let installer = SettingsInstaller(paths: .init(home: h.home), shimPath: ShimHarness.shimURL.path,
                                           socketPath: h.socketPath)
         _ = try installer.install()
         let agent = try FakeAgent(path: h.socketPath, mode: .readAll); defer { agent.stop() }
 
-        let wrapper = h.home.appendingPathComponent(".claude/pulse/statusline.sh")
+        let wrapper = h.home.appendingPathComponent(".claude/clepso/statusline.sh")
         let result = try h.run(stdin: f08Stdin, executable: URL(fileURLWithPath: "/bin/sh"), arguments: [wrapper.path])
         #expect(result.text == "mine")
         #expect(result.status == 0)

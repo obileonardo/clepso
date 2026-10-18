@@ -69,7 +69,7 @@ code, so the two implementations check each other.
 ## 5. Adding a fixture
 
 1. Synthetic: write `meta.json` and `stdin/` by hand with obviously fake values (paths under `/fixture/…`).
-2. Captured: record with `pulse-fixture listen`/`capture-shim`, then run `pulse-fixture scrub`; read every remaining
+2. Captured: record with `clepso-fixture listen`/`capture-shim`, then run `clepso-fixture scrub`; read every remaining
    string before committing. Never commit an unscrubbed capture.
 3. Write `expected.json` and add the id to `manifest.json`. `python3 -I scripts/fixture-oracle.py --check` exits
    non-zero if the oracle disagrees with any `expected.json` (without `--check` it rewrites the rows it owns).

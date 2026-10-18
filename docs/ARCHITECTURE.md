@@ -9,8 +9,8 @@ Related: [`DATA_MODEL.md`](DATA_MODEL.md) (types, schema, state machines) and
 | Process | What it is | Lifetime | Responsibilities |
 |---|---|---|---|
 | `Clepso.app` | Menu bar-only SwiftUI app (`LSUIElement`, `MenuBarExtra`) | Long-lived; optionally launched at login through `SMAppService.mainApp` after the user agrees | Owns the socket listener, the database, the engine, notifications, the settings installers and the interface |
-| `pulse-statusline` | Signed helper inside `Clepso.app/Contents/Helpers/` | Started by Claude Code on every status-line refresh (and, with hooks on, every hook event); exits within its time budget | Runs the user's original status-line command, builds one allowlisted frame and sends it to the app |
-| `~/.claude/pulse/statusline.sh` | Small POSIX `sh` wrapper that Claude Code runs | Per refresh | Runs the helper if it exists and is executable, otherwise the user's original command (or exits 0 if there was none) |
+| `clepso-statusline` | Signed helper inside `Clepso.app/Contents/Helpers/` | Started by Claude Code on every status-line refresh (and, with hooks on, every hook event); exits within its time budget | Runs the user's original status-line command, builds one allowlisted frame and sends it to the app |
+| `~/.claude/clepso/statusline.sh` | Small POSIX `sh` wrapper that Claude Code runs | Per refresh | Runs the helper if it exists and is executable, otherwise the user's original command (or exits 0 if there was none) |
 
 There is no separate background agent: the app is the local agent. The installed command is a script that wraps the
 binary because a moved or deleted app must not break the user's status line, while the binary (not `/bin/sh`) is what
@@ -34,7 +34,7 @@ everything except bundle-only behaviour.
 | `Domain` | — | Value types, provenance, `Redacted<T>`, the injected clock. No I/O, no clock reads |
 | `ShimProtocol` | — | Frame v1, the field allowlist, the string scrubber, hook frames. Foundation only |
 | `StatusLineShim` | ShimProtocol | The helper's run loop: stdin, child process, frame, socket send |
-| `pulse-statusline` | StatusLineShim | The helper executable (one-line `main`) |
+| `clepso-statusline` | StatusLineShim | The helper executable (one-line `main`) |
 | `UsageEngine` | Domain | Pure limit, reset, session and pace state machines |
 | `Storage` | Domain, UsageEngine, GRDB | Schema, migrations, ledger policy, the `Store` actor, retention, export queries |
 | `ClaudeCodeAdapter` | Domain, ShimProtocol | Settings and hooks installers, ingest socket, frame mapper, statistics reader |
@@ -42,20 +42,20 @@ everything except bundle-only behaviour.
 | `SubscriptionCatalog` | — | The bundled plan catalog |
 | `DesignSystem` | Domain | Theme tokens, status styles, pixel components and glyphs, bundled fonts |
 | `Sync` | — | Optional accounts: PKCE sign-in, Keychain session, upload. The only module allowed to use the network |
-| `PulseApp` | all of the above | Composition root, `AppModel`, projections, SwiftUI views, copy, diagnostics, export |
-| `pulse` | ClaudeCodeAdapter | Headless CLI: install, uninstall, status, recover |
-| `FixtureTools`, `pulse-fixture` | ShimProtocol | Developer-only capture listener and scrubber; never shipped |
-| `pulse-design-render` | DesignSystem, Domain | Developer-only: renders the real components for the design-system page |
+| `ClepsoApp` | all of the above | Composition root, `AppModel`, projections, SwiftUI views, copy, diagnostics, export |
+| `clepso` | ClaudeCodeAdapter | Headless CLI: install, uninstall, status, recover |
+| `FixtureTools`, `clepso-fixture` | ShimProtocol | Developer-only capture listener and scrubber; never shipped |
+| `clepso-design-render` | DesignSystem, Domain | Developer-only: renders the real components for the design-system page |
 | `TestFixtures` | — | The fixture corpus as test resources |
 
 Rules enforced by `make ci`: no direct `Date()` in `Domain`, `ClaudeCodeAdapter`, `ShimProtocol`, `UsageEngine`,
-`Storage` or `PulseApp` (the clock is injected); networking APIs only in `Sync`, and `Sync` imported only by `PulseApp`;
+`Storage` or `ClepsoApp` (the clock is injected); networking APIs only in `Sync`, and `Sync` imported only by `ClepsoApp`;
 components and screens take colour, spacing and type from `Theme` only; the release helper links only Foundation,
 CryptoKit and system libraries.
 
 ## 3. IPC and the helper's time budget
 
-**Transport**: a Unix-domain stream socket at `~/Library/Application Support/Pulse/run/agent.sock` (folder 0700,
+**Transport**: a Unix-domain stream socket at `~/Library/Application Support/Clepso/run/agent.sock` (folder 0700,
 socket 0600). The app binds; the helper connects. A stream socket rather than a datagram socket because the local
 datagram limit (2 KiB on macOS) is below the 4 KiB frame limit, and because a connection is what lets the app check its
 peer ([`PRIVACY_AND_SECURITY.md`](PRIVACY_AND_SECURITY.md) §3).
@@ -68,7 +68,7 @@ with its own read time, because the status-line payload carries no timestamp.
 1. Read stdin (at most 1 MiB; anything beyond never reaches the child).
 2. Start the user's original command with `/bin/sh -c` and the exact bytes on its stdin. Its stdout and stderr are
    inherited, so Claude Code sees exactly what it would have seen; its exit status becomes the helper's.
-3. While the child runs: load `~/.claude/pulse/config.json`, build the frame (must finish within 10 ms of start),
+3. While the child runs: load `~/.claude/clepso/config.json`, build the frame (must finish within 10 ms of start),
    connect without blocking (within 20 ms, never later than 45 ms after start) and write (finished by 48 ms).
 4. Never read a reply, never retry, never write to disk. If the app is not running the frame is dropped: an honest gap.
 5. If the user had no status line, print Clepso's own one-line summary instead.
@@ -82,7 +82,7 @@ token bucket, reads at most 4 KiB with a 100 ms timeout, decodes, and publishes 
 
 ## 4. Storage
 
-GRDB over the system SQLite. The app is the only writer: `~/Library/Application Support/Pulse/pulse.sqlite`, folder
+GRDB over the system SQLite. The app is the only writer: `~/Library/Application Support/Clepso/clepso.sqlite`, folder
 0700, file 0600. No SQLCipher: the data is usage percentages, counts, model ids and keyed hashes of session ids; file
 permissions and FileVault protect it at rest.
 
@@ -97,7 +97,7 @@ Swift 6 language mode (strict concurrency) for every target; warnings are errors
 
 | Component | Isolation |
 |---|---|
-| `pulse-statusline` | Single-threaded, synchronous, no Swift concurrency runtime (start-up cost is part of the budget) |
+| `clepso-statusline` | Single-threaded, synchronous, no Swift concurrency runtime (start-up cost is part of the budget) |
 | `IngestSocket` | A class whose mutable state is confined to one private serial dispatch queue |
 | `Ingestor` | `actor`: frames → mapped batches → the sink |
 | `Store` | `actor` over the database |
@@ -108,7 +108,7 @@ Swift 6 language mode (strict concurrency) for every target; warnings are errors
 ## 6. Data flow
 
 ```text
-Claude Code ──stdin JSON──► statusline.sh ──exec──► pulse-statusline
+Claude Code ──stdin JSON──► statusline.sh ──exec──► clepso-statusline
                                                      │ allowlist + HMAC              │ exact bytes
                                                      ├──► frame ──► run/agent.sock    ▼
                                                      │                          /bin/sh -c <original command>

@@ -1,25 +1,25 @@
-# Generates Pulse.xcodeproj (gitignored). Package.swift stays the source of truth for all code.
+# Generates Clepso.xcodeproj (gitignored). Package.swift stays the source of truth for all code.
 # Run: scripts/bootstrap.sh && .tools/xcodegen/bin/xcodegen   (or: make app)
-name: Pulse
+name: Clepso
 options:
   bundleIdPrefix: com.elvisobi        # decided 18 Oct 2026 (A7): a domain the maintainer owns
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
-# Signing and the optional accounts project come from Config/Pulse.xcconfig, which includes the uncommitted
+# Signing and the optional accounts project come from Config/Clepso.xcconfig, which includes the uncommitted
 # Config/*.local.xcconfig files when they exist. Without them: ad-hoc signing and Sync off.
 configFiles:
-  Debug: Config/Pulse.xcconfig
-  Release: Config/Pulse.xcconfig
+  Debug: Config/Clepso.xcconfig
+  Release: Config/Clepso.xcconfig
 settings:
   base:
     SWIFT_VERSION: "6.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
     GCC_TREAT_WARNINGS_AS_ERRORS: YES
-    DEVELOPMENT_TEAM: $(PULSE_DEVELOPMENT_TEAM)          # empty unless Config/Signing.local.xcconfig sets it
+    DEVELOPMENT_TEAM: $(CLEPSO_DEVELOPMENT_TEAM)          # empty unless Config/Signing.local.xcconfig sets it
     CODE_SIGN_STYLE: Manual
-    CODE_SIGN_IDENTITY: $(PULSE_CODE_SIGN_IDENTITY)      # "-" (ad hoc) unless Config/Signing.local.xcconfig sets it
+    CODE_SIGN_IDENTITY: $(CLEPSO_CODE_SIGN_IDENTITY)      # "-" (ad hoc) unless Config/Signing.local.xcconfig sets it
     ENABLE_HARDENED_RUNTIME: YES       # on every target
     MARKETING_VERSION: 0.1.0
     CURRENT_PROJECT_VERSION: 1
@@ -27,12 +27,12 @@ packages:
   Clepso:
     path: .
 targets:
-  PulseMac:
+  ClepsoMac:
     type: application
     platform: macOS
-    sources: [App/PulseMac]
+    sources: [App/ClepsoMac]
     info:
-      path: App/PulseMac/Info.plist
+      path: App/ClepsoMac/Info.plist
       properties:
         CFBundleName: Clepso
         CFBundleDisplayName: Clepso
@@ -43,33 +43,33 @@ targets:
         CFBundleURLTypes:              # optional accounts: the sign-in link returns to clepso://auth-callback
           - CFBundleURLName: com.elvisobi.clepso.auth
             CFBundleURLSchemes: [clepso]
-        PulseSyncHost: $(PULSE_SYNC_HOST)                        # empty in builds from source: Sync stays off
-        PulseSyncPublishableKey: $(PULSE_SYNC_PUBLISHABLE_KEY)
+        ClepsoSyncHost: $(CLEPSO_SYNC_HOST)                        # empty in builds from source: Sync stays off
+        ClepsoSyncPublishableKey: $(CLEPSO_SYNC_PUBLISHABLE_KEY)
     entitlements:
-      path: App/PulseMac/PulseMac.entitlements
-      properties: {}                   # empty: no sandbox (Pulse edits ~/.claude), no network entitlement, no exceptions
+      path: App/ClepsoMac/ClepsoMac.entitlements
+      properties: {}                   # empty: no sandbox (Clepso edits ~/.claude), no network entitlement, no exceptions
     settings:
       base:
         PRODUCT_NAME: Clepso
         PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso
         ENABLE_APP_SANDBOX: NO
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # 1.16: the Pulse mark (design/brand/app-icon)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # 1.16: the Clepso mark (design/brand/app-icon)
     dependencies:
       - package: Clepso
-        product: PulseApp
-      - target: pulse-statusline
+        product: ClepsoApp
+      - target: clepso-statusline
         embed: true
         codeSign: true
         copy:
           destination: wrapper
           subpath: Contents/Helpers
-  pulse-statusline:
+  clepso-statusline:
     type: tool
     platform: macOS
-    sources: [Sources/pulse-statusline]
+    sources: [Sources/clepso-statusline]
     settings:
       base:
-        PRODUCT_NAME: pulse-statusline
+        PRODUCT_NAME: clepso-statusline
         PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso.statusline   # <bundle-prefix>.clepso.statusline
         SKIP_INSTALL: YES
         GENERATE_INFOPLIST_FILE: YES        # embedded __info_plist: codesign then uses the bundle id as the identifier,

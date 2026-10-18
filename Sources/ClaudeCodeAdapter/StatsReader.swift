@@ -2,7 +2,7 @@ import Foundation
 
 /// Claude Code's local usage statistics, the data behind `/stats` (increment 1.7d). Read from
 /// `~/.claude/stats-cache.json`, a file Claude Code writes and Anthropic does not document, so every field passes an
-/// allowlist: dates, counts, model ids and token totals only. The longest session's id is never read. Pulse reads
+/// allowlist: dates, counts, model ids and token totals only. The longest session's id is never read. Clepso reads
 /// the file on demand after the user turns the feature on, and does not copy it into its own database.
 public struct ClaudeCodeStats: Sendable, Equatable {
     public struct Day: Sendable, Equatable {

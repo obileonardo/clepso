@@ -74,8 +74,8 @@ all_tests() { swift test; }            # non-zero exit on any failing test
 
 # The helper Claude Code runs must not be able to reach the network.
 helper_linkage() {
-    swift build -c release --product pulse-statusline || return 1
-    local bin=".build/release/pulse-statusline"
+    swift build -c release --product clepso-statusline || return 1
+    local bin=".build/release/clepso-statusline"
     echo "linked libraries:"; otool -L "$bin" | tail -n +2
     local unexpected
     unexpected=$(otool -L "$bin" | tail -n +2 | awk '{print $1}' | grep -v -E \
@@ -92,14 +92,14 @@ no_networking_code() {
     local hits
     hits=$(grep -rnE 'URLSession|NWConnection|NWListener|CFSocketCreate|import Network\b' Sources | grep -v '^Sources/Sync/' || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
-    hits=$(grep -rln 'import Sync' Sources | grep -vE '^Sources/(PulseApp|Sync)/' || true)
+    hits=$(grep -rln 'import Sync' Sources | grep -vE '^Sources/(ClepsoApp|Sync)/' || true)
     [ -z "$hits" ] || { echo "Sync imported outside the app: $hits"; return 1; }
     echo "networking APIs only in Sources/Sync/, used only by the app"
 }
 
 no_direct_clock() {
     local hits
-    hits=$(grep -rn 'Date()' Sources/Domain Sources/ClaudeCodeAdapter Sources/ShimProtocol Sources/UsageEngine Sources/Storage Sources/PulseApp 2>/dev/null \
+    hits=$(grep -rn 'Date()' Sources/Domain Sources/ClaudeCodeAdapter Sources/ShimProtocol Sources/UsageEngine Sources/Storage Sources/ClepsoApp 2>/dev/null \
         | grep -v 'clock-ok' | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' || true)   # comments may mention it
     [ -z "$hits" ] || { echo "inject the clock instead:"; echo "$hits"; return 1; }
     echo "no direct clock reads outside SystemClock"
@@ -109,10 +109,10 @@ no_direct_clock() {
 design_tokens_only() {
     local hits
     hits=$(grep -rnE 'Color\((red|\.sRGB|white|hue)|Color\.(red|blue|green|orange|yellow|gray|primary|secondary|black|white)|\.padding\([[:space:]]*[0-9]|Font\.system\(size:|Date\(\)' \
-        Sources/DesignSystem/Components Sources/DesignSystem/Pixel Sources/PulseApp 2>/dev/null || true)
+        Sources/DesignSystem/Components Sources/DesignSystem/Pixel Sources/ClepsoApp 2>/dev/null || true)
     [ -z "$hits" ] || { echo "$hits"; return 1; }
     # Icons are pixel glyphs (PixelIcon), never the system's smooth symbols.
-    hits=$(grep -rnE 'Image\(systemName|systemImage:' Sources/DesignSystem Sources/PulseApp 2>/dev/null || true)
+    hits=$(grep -rnE 'Image\(systemName|systemImage:' Sources/DesignSystem Sources/ClepsoApp 2>/dev/null || true)
     [ -z "$hits" ] || { echo "use PixelIcon / PixelLabel:"; echo "$hits"; return 1; }
     echo "components use Theme tokens and pixel icons only"
 }
@@ -121,7 +121,7 @@ design_tokens_only() {
 # Reduce Motion from `\.reduceMotion` (set once per window by `ReduceMotionRoot`). Animation curves live only in
 # Tokens.swift; an explicit `.animation(nil…)` is allowed (it turns animation off).
 motion_tokens_only() {
-    local scope=(Sources/DesignSystem Sources/PulseApp) hits
+    local scope=(Sources/DesignSystem Sources/ClepsoApp) hits
     hits=$(grep -rnE 'withAnimation[[:space:]]*\(|\.animation[[:space:]]*\(|Transaction\(animation:|\.animation[[:space:]]*=' "${scope[@]}" \
         | grep -v '^Sources/DesignSystem/Theme/Tokens.swift:' | grep -v 'motion(' | grep -vE '\.animation\(nil|TimelineView\(' \
         | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' || true)
@@ -142,7 +142,7 @@ motion_tokens_only() {
 # pixel ring itself; a tap gesture sits on a view that also takes focus and answers keys; and information shown on hover
 # is also reachable by keyboard (`chartKeyboard`) unless the hover is decorative (marked `hover-ok`).
 keyboard_reachable() {
-    local scope=(Sources/DesignSystem Sources/PulseApp) hits file
+    local scope=(Sources/DesignSystem Sources/ClepsoApp) hits file
     hits=$(grep -rn 'buttonStyle(\.plain)\|buttonStyle(PlainButtonStyle())' "${scope[@]}" || true)
     [ -z "$hits" ] || { echo "use PixelPlainButtonStyle (it draws the focus ring):"; echo "$hits"; return 1; }
     for file in $(grep -rl 'focusEffectDisabled' "${scope[@]}"); do
@@ -205,8 +205,10 @@ app_bundle() {
     make app >/dev/null || return 1
     local app=build/DerivedData/Build/Products/Debug/Clepso.app
     codesign --verify --deep --strict "$app" || return 1
-    local helper="$app/Contents/Helpers/pulse-statusline"
+    local helper="$app/Contents/Helpers/clepso-statusline"
     [ -x "$helper" ] || { echo "helper missing"; return 1; }
+    local helpers; helpers=$(ls "$app/Contents/Helpers")
+    [ "$helpers" = "clepso-statusline" ] || { echo "unexpected files in Contents/Helpers: $helpers"; return 1; }
     # Capture first, then match: `cmd | grep -q` under pipefail fails when grep closes the pipe early.
     local info
     info=$(codesign -dv "$helper" 2>&1)
@@ -235,7 +237,7 @@ app_bundle() {
         [ -f "$app/Contents/Resources/Clepso_DesignSystem.bundle/Contents/Resources/Fonts/$font-OFL.txt" ] || { echo "$font licence missing"; return 1; }
     done
     local sync
-    sync=$(plutil -extract PulseSyncHost raw "$app/Contents/Info.plist" 2>/dev/null || true)
+    sync=$(plutil -extract ClepsoSyncHost raw "$app/Contents/Info.plist" 2>/dev/null || true)
     if [ "$MODE" = strict ]; then
         [ -n "$sync" ] || { echo "no accounts project in strict mode (add Config/Sync.local.xcconfig)"; return 1; }
     fi

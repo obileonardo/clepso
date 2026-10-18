@@ -58,7 +58,7 @@ public final class IngestSocket: @unchecked Sendable {
     public let path: String
     public let frames: AsyncStream<ReceivedFrame>
     private let continuation: AsyncStream<ReceivedFrame>.Continuation
-    private let queue = DispatchQueue(label: "pulse.ingest-socket")
+    private let queue = DispatchQueue(label: "clepso.ingest-socket")
     private let listenFD: Int32
     private let boundInode: ino_t
     private let wallClock: @Sendable () -> Date
@@ -199,7 +199,7 @@ public actor Ingestor {
         public var unmappable = 0
         public var droppedSessionObservations = 0
         public var skewFlagged = 0
-        /// From the newest frame: how many limit windows Claude Code sent that Pulse does not read.
+        /// From the newest frame: how many limit windows Claude Code sent that Clepso does not read.
         public var unknownRateLimitWindows = 0
         /// Hook events received (agents per task) and hook frames that failed validation.
         public var hookEvents = 0

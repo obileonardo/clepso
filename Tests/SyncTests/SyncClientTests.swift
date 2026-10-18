@@ -31,7 +31,7 @@ func query(_ r: URLRequest, _ name: String) -> String? { URLComponents(url: r.ur
 struct SyncConfigTests {
     @Test("Read from Info.plist values: host and publishable key; https and the app's redirect")
     func fromInfoPlist() throws {
-        let c = try #require(SyncConfig(infoDictionary: ["PulseSyncHost": "abcd.supabase.co", "PulseSyncPublishableKey": "sb_publishable_x"]))
+        let c = try #require(SyncConfig(infoDictionary: ["ClepsoSyncHost": "abcd.supabase.co", "ClepsoSyncPublishableKey": "sb_publishable_x"]))
         #expect(c.projectURL.absoluteString == "https://abcd.supabase.co")
         #expect(c.publishableKey == "sb_publishable_x" && c.redirectURL.absoluteString == "clepso://auth-callback")
     }
@@ -39,15 +39,15 @@ struct SyncConfigTests {
     @Test("Missing, empty, unexpanded or malformed values mean no configuration (Sync off)",
           arguments: [
             [:],
-            ["PulseSyncHost": "abcd.supabase.co"],
-            ["PulseSyncPublishableKey": "sb_publishable_x"],
-            ["PulseSyncHost": "", "PulseSyncPublishableKey": ""],
-            ["PulseSyncHost": "$(PULSE_SYNC_HOST)", "PulseSyncPublishableKey": "$(PULSE_SYNC_PUBLISHABLE_KEY)"],
-            ["PulseSyncHost": "https://abcd.supabase.co", "PulseSyncPublishableKey": "sb_publishable_x"],
-            ["PulseSyncHost": "abcd.supabase.co/path", "PulseSyncPublishableKey": "sb_publishable_x"],
-            ["PulseSyncHost": "localhost", "PulseSyncPublishableKey": "sb_publishable_x"],
-            ["PulseSyncHost": "abcd.supabase.co", "PulseSyncPublishableKey": "sb_secret_x"],
-            ["PulseSyncHost": "abcd.supabase.co", "PulseSyncPublishableKey": "two words"],
+            ["ClepsoSyncHost": "abcd.supabase.co"],
+            ["ClepsoSyncPublishableKey": "sb_publishable_x"],
+            ["ClepsoSyncHost": "", "ClepsoSyncPublishableKey": ""],
+            ["ClepsoSyncHost": "$(CLEPSO_SYNC_HOST)", "ClepsoSyncPublishableKey": "$(CLEPSO_SYNC_PUBLISHABLE_KEY)"],
+            ["ClepsoSyncHost": "https://abcd.supabase.co", "ClepsoSyncPublishableKey": "sb_publishable_x"],
+            ["ClepsoSyncHost": "abcd.supabase.co/path", "ClepsoSyncPublishableKey": "sb_publishable_x"],
+            ["ClepsoSyncHost": "localhost", "ClepsoSyncPublishableKey": "sb_publishable_x"],
+            ["ClepsoSyncHost": "abcd.supabase.co", "ClepsoSyncPublishableKey": "sb_secret_x"],
+            ["ClepsoSyncHost": "abcd.supabase.co", "ClepsoSyncPublishableKey": "two words"],
           ] as [[String: String]])
     func refused(_ values: [String: String]) {
         #expect(SyncConfig(infoDictionary: values) == nil)

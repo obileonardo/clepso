@@ -423,7 +423,7 @@ that proves it works; an increment is done only when that proof exists.</p></sec
 
 # ----------------------------------------------------------------------------------------------------------- metrics
 
-# Mirrors ModelLevel.targets in Sources/PulseApp/Views/Details/ModelsSection.swift (a test there pins the same list).
+# Mirrors ModelLevel.targets in Sources/ClepsoApp/Views/Details/ModelsSection.swift (a test there pins the same list).
 TARGETS = [d * m for d in (10 ** k for k in range(3, 16)) for m in (1, 2, 5)]
 
 
@@ -444,7 +444,7 @@ ex_out = 18_200_000
 ex_lv, ex_floor, ex_next = level_of(ex_out)
 ex_pct = round(100 * (ex_out - ex_floor) / (ex_next - ex_floor))
 
-LEVEL_SRC = "Sources/PulseApp/Views/Details/ModelsSection.swift"
+LEVEL_SRC = "Sources/ClepsoApp/Views/Details/ModelsSection.swift"
 LIMIT_SRC = "Sources/UsageEngine/PoolReducer.swift"
 PACE_SRC = "Sources/UsageEngine/Pace.swift"
 level_code = excerpt(LEVEL_SRC, "static let targets: [Int64]", "self.next = reached")
@@ -567,7 +567,7 @@ reading is time Clepso was not yet watching.</p>
 faintest green, the busiest quarter the brightest. A day with no messages is dark; a day before your first session or after
 today is an outline marked “no data”. All time shows one calendar year (January to December) with a year switcher;
 30 days shows a month calendar; 7 days shows a column per day.</p>
-{sources("Sources/PulseApp (StatsCalendar, StatsSummary)")}
+{sources("Sources/ClepsoApp (StatsCalendar, StatsSummary)")}
 
 <h2 id="charts">Charts</h2>
 <p>Tokens per day are stacked by model on a real date axis: days with nothing stay on the axis. Past 120 days the bars become
@@ -582,7 +582,7 @@ flow = re.search(r"## 6\. Data flow\s+```text\n(.*?)```", arch, re.S)
 
 STEPS = [
     ("Claude Code", "Status line", "Runs your status line command on every refresh and hands it a JSON description of the session."),
-    ("Helper", "statusline.sh · pulse-statusline", "Passes the input to your own status line unchanged, keeps only allowlisted fields, sends them on."),
+    ("Helper", "statusline.sh · clepso-statusline", "Passes the input to your own status line unchanged, keeps only allowlisted fields, sends them on."),
     ("Ingest", "Socket · Ingestor", "Local socket, peer checks and a rate limit; each frame becomes readings with source and freshness."),
     ("Store", "SQLite · UsageEngine", "One transaction per frame: insert the reading, work out each limit's state, keep the history."),
     ("Show", "Menu bar · Dashboard", "Renders snapshots it is handed and never computes a state itself."),
@@ -624,7 +624,7 @@ docs_page("architecture/", "Architecture", "How Clepso is put together: processe
 <h2 id="processes">Processes</h2>
 <div class="table-wrap"><table><thead><tr><th>Process</th><th>Role</th></tr></thead><tbody>
 <tr><td><code>Clepso.app</code></td><td>The menu bar app. Listens on a local socket, keeps readings in a local database, works out each limit's state and shows it. If you sign in, it uploads daily counts once an hour.</td></tr>
-<tr><td><code>pulse-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app. It links no networking at all.</td></tr>
+<tr><td><code>clepso-statusline</code></td><td>A small signed helper inside the app that Claude Code runs on every status refresh. It passes the input to your own status line unchanged, keeps only allowlisted fields and sends them to the app. It links no networking at all.</td></tr>
 <tr><td><code>hook.sh</code> (optional)</td><td>Installed only when you turn on agents per task. Claude Code runs it in the background on four events; it runs the helper in hook mode, which sends counts only and always exits silently, so it can never block or change what Claude Code does.</td></tr>
 <tr><td><code>statusline.sh</code></td><td>The installed command. Runs the helper if the app is there, otherwise your original status line, so removing the app never breaks Claude Code.</td></tr>
 </tbody></table></div>
@@ -641,7 +641,7 @@ docs_page("architecture/", "Architecture", "How Clepso is put together: processe
 <tr><td><code>Storage</code></td><td>SQLite (GRDB): one writer, a ledger of readings, migrations with a backup first, retention.</td></tr>
 <tr><td><code>Sync</code></td><td>Optional sign-in by email link and the hourly upload of daily counts. The only module that may use the network, and only the app imports it.</td></tr>
 <tr><td><code>DesignSystem</code></td><td>Tokens, themes (Phosphor dark and light), pixel glyphs and components, accessibility formatting.</td></tr>
-<tr><td><code>PulseApp</code></td><td>The app: menu bar panel, Dashboard (Home, Limits, Session, Stats, Goals, Account, Settings), onboarding, diagnostics.</td></tr>
+<tr><td><code>ClepsoApp</code></td><td>The app: menu bar panel, Dashboard (Home, Limits, Session, Stats, Goals, Account, Settings), onboarding, diagnostics.</td></tr>
 <tr><td><code>SubscriptionCatalog</code></td><td>Plan names, never used to infer usage.</td></tr>
 </tbody></table></div>
 
@@ -988,7 +988,9 @@ def accounts_config():
                 if "=" in line:
                     k, v = line.split("=", 1)
                     values[k.strip()] = v.strip()
-        host, key = values.get("PULSE_SYNC_HOST", ""), values.get("PULSE_SYNC_PUBLISHABLE_KEY", "")
+        # The names from before the rename to Clepso (PULSE_…) still count; CLEPSO_… wins, as in Config/Clepso.xcconfig.
+        host = values.get("CLEPSO_SYNC_HOST") or values.get("PULSE_SYNC_HOST", "")
+        key = values.get("CLEPSO_SYNC_PUBLISHABLE_KEY") or values.get("PULSE_SYNC_PUBLISHABLE_KEY", "")
         url = f"https://{host}" if re.fullmatch(r"(?=.{4,253}$)[a-z0-9-]+(\.[a-z0-9-]+)+", host) else ""
     url_ok = re.fullmatch(r"https://[a-z0-9-]+(\.[a-z0-9-]+)+|http://(127\.0\.0\.1|localhost):\d{1,5}", url)
     key_ok = 0 < len(key) <= 512 and not re.search(r"\s|\$\(", key) and not key.startswith("sb_secret_")

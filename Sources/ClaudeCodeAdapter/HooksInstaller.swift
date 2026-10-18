@@ -5,9 +5,9 @@ import Foundation
 /// Agents per task (increment 1.9): adds four entries to `hooks` in Claude Code's settings.json and takes them
 /// out again, with the guarantees of `SettingsInstaller` (backup first, compare-and-swap, verify, exact restore).
 ///
-/// Each entry runs `~/.claude/pulse/hook.sh` in the background (`async`), which execs the signed helper in hook
+/// Each entry runs `~/.claude/clepso/hook.sh` in the background (`async`), which execs the signed helper in hook
 /// mode. The command itself checks the script is there and always ends `exit 0`, so a removed app can never make
-/// a hook fail or block Claude Code. Hooks the user already has are left as they are: Pulse's entry is appended to
+/// a hook fail or block Claude Code. Hooks the user already has are left as they are: Clepso's entry is appended to
 /// an event's list, and only that entry is removed later. Requires the status-line connection (its config,
 /// socket and session key).
 public struct HooksInstaller: Sendable {
@@ -24,8 +24,8 @@ public struct HooksInstaller: Sendable {
     public enum UninstallOutcome: Sendable, Equatable {
         case notInstalled
         case restoredExactly                         // settings.json is byte-identical to before the hooks were added
-        case removedEntries(formattingChanged: Bool) // the user edited settings since; only Pulse's entries were taken out
-        case entriesAlreadyGone                      // nothing of Pulse's was left in settings.json
+        case removedEntries(formattingChanged: Bool) // the user edited settings since; only Clepso's entries were taken out
+        case entriesAlreadyGone                      // nothing of Clepso's was left in settings.json
     }
 
     public let paths: SettingsInstaller.Paths
@@ -46,14 +46,14 @@ public struct HooksInstaller: Sendable {
 
     public static let events = ["UserPromptSubmit", "SubagentStart", "SubagentStop", "Stop"]
 
-    var script: URL { paths.pulseDir.appendingPathComponent("hook.sh") }
-    var recordURL: URL { paths.pulseDir.appendingPathComponent("hooks-state.json") }
+    var script: URL { paths.clepsoDir.appendingPathComponent("hook.sh") }
+    var recordURL: URL { paths.clepsoDir.appendingPathComponent("hooks-state.json") }
 
     /// The shell command in each entry. `~` is expanded by the shell, so it is left unquoted (the path has no spaces);
     /// a custom config folder is quoted instead.
     public var commandValue: String {
-        let path = paths.commandValue.hasPrefix("~/") ? "~/.claude/pulse/hook.sh"
-            : SettingsInstaller.singleQuoted(paths.pulseDir.appendingPathComponent("hook.sh").path)
+        let path = paths.commandValue.hasPrefix("~/") ? "~/.claude/\(paths.folderName)/hook.sh"
+            : SettingsInstaller.singleQuoted(paths.clepsoDir.appendingPathComponent("hook.sh").path)
         return "[ -x \(path) ] && exec \(path); exit 0"
     }
 
@@ -145,7 +145,7 @@ public struct HooksInstaller: Sendable {
         }
     }
 
-    /// Settings bytes with Pulse's entry added under each event. Every other byte is the original's.
+    /// Settings bytes with Clepso's entry added under each event. Every other byte is the original's.
     func compose(_ original: [UInt8]) throws -> [UInt8] {
         var bytes = original
         guard let document = JSONObjectLayout.parseDocument(bytes) else { throw InstallError.settingsInvalidJSON }
@@ -239,8 +239,8 @@ public struct HooksInstaller: Sendable {
         return Self.events.contains { (hooks[$0] as? [Any])?.contains(where: isOurs) ?? false }
     }
 
-    /// Settings without Pulse's entries, editing bytes in place when the scanner can, else reformatting (and saying
-    /// so). Events and the `hooks` key Pulse created go too once empty. Nil when no entry of ours is left.
+    /// Settings without Clepso's entries, editing bytes in place when the scanner can, else reformatting (and saying
+    /// so). Events and the `hooks` key Clepso created go too once empty. Nil when no entry of ours is left.
     func removingEntries(_ original: [UInt8], object: [String: Any], record: Record) -> ([UInt8], Bool)? {
         guard containsEntry(object) else { return nil }
         var bytes = original
@@ -292,7 +292,7 @@ public struct HooksInstaller: Sendable {
     // MARK: - Script
 
     func writeScript() throws {
-        try FileOps.ensureRealDirectory(paths.pulseDir, mode: 0o700)
+        try FileOps.ensureRealDirectory(paths.clepsoDir, mode: 0o700)
         try FileOps.atomicReplace(script, with: Array(scriptText().utf8), mode: 0o700)
     }
 
@@ -305,17 +305,17 @@ public struct HooksInstaller: Sendable {
     public func needsRepair() -> Bool {
         guard isInstalled else { return false }
         let text = FileOps.readBytes(script).map { String(decoding: $0, as: UTF8.self) } ?? ""
-        return !text.contains("PULSE_SHIM=\(SettingsInstaller.singleQuoted(shimPath))\n")
+        return !text.contains("CLEPSO_SHIM=\(SettingsInstaller.singleQuoted(shimPath))\n")
     }
 
     func scriptText() -> String {
         """
         #!/bin/sh
-        # Pulse hook wrapper v1. Generated \(FileOps.basicISO8601(now())). Do not edit; Pulse regenerates it.
+        # Clepso hook wrapper v1. Generated \(FileOps.basicISO8601(now())). Do not edit; Clepso regenerates it.
         # Counts subagents per task: sends the event name, hashed ids and a built-in agent type, never content.
-        PULSE_SHIM=\(SettingsInstaller.singleQuoted(shimPath))
-        if [ -x "$PULSE_SHIM" ]; then
-          exec "$PULSE_SHIM" --hook
+        CLEPSO_SHIM=\(SettingsInstaller.singleQuoted(shimPath))
+        if [ -x "$CLEPSO_SHIM" ]; then
+          exec "$CLEPSO_SHIM" --hook
         fi
         exit 0
 

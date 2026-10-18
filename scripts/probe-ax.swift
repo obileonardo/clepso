@@ -1,5 +1,5 @@
-// Developer tool: reads the accessibility tree of a probe run of Clepso (Sources/PulseApp/Debug/PopoverProbe.swift),
-// read-only, at each checkpoint the app announces with `-PulseProbeAX YES`. It never sets an attribute, performs an
+// Developer tool: reads the accessibility tree of a probe run of Clepso (Sources/ClepsoApp/Debug/PopoverProbe.swift),
+// read-only, at each checkpoint the app announces with `-ClepsoProbeAX YES`. It never sets an attribute, performs an
 // action or posts an event: it only reads AXRole, AXTitle, AXDescription, AXValue, AXEnabled, AXFocused and whether
 // AXFocused is settable (the system's own "can take keyboard focus" answer), and writes one file per checkpoint.
 //

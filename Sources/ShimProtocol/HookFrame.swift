@@ -10,7 +10,7 @@ import Foundation
 public enum HookFrame {
     public static let kind = "claude_code.hook"
 
-    /// The four events Pulse registers: a task starts with the prompt and ends when Claude stops; subagents start
+    /// The four events Clepso registers: a task starts with the prompt and ends when Claude stops; subagents start
     /// and stop in between.
     public enum Event: String, Sendable, CaseIterable {
         case promptSubmitted = "UserPromptSubmit"

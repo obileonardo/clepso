@@ -24,7 +24,7 @@ Report privately through GitHub: open the repository's **Security** tab and choo
 
 Please include:
 
-- What is affected (the helper `pulse-statusline`, the app, the settings installer, the `pulse` CLI, the Sync client,
+- What is affected (the helper `clepso-statusline`, the app, the settings installer, the `clepso` CLI, the Sync client,
   the Supabase schema, or the documentation site), and the commit or version.
 - Steps to reproduce, and what an attacker needs (another local user? a process running as the same user? a
   malicious web page? network position?).
@@ -48,7 +48,7 @@ In scope, for example:
 - Data leaving the helper that the field allowlist should have blocked (paths, prompts, ids, secrets).
 - Ways to make the helper alter, delay beyond its budget, or break the user's own status-line output.
 - Ways to corrupt or lose the user's `~/.claude/settings.json`, or to make Clepso write outside its own files.
-- Local privilege or trust-boundary problems in the Unix socket (`~/Library/Application Support/Pulse/run/`).
+- Local privilege or trust-boundary problems in the Unix socket (`~/Library/Application Support/Clepso/run/`).
 - Injection through the `clepso://` URL scheme or the sign-in flow.
 - A build from source (no `Config/Sync.local.xcconfig`) that signs in or makes any network request.
 - Row-level-security bypasses or cross-account access in `backend/supabase`.

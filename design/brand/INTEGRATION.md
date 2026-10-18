@@ -71,8 +71,8 @@ mark the asset "Render As: Template Image".
 ## 4. App icon
 
 There is no app icon today (`project.yml` has no asset catalog). Copy `design/brand/app-icon/AppIcon.appiconset` into
-`App/PulseMac/Assets.xcassets/` (with the catalog's own `Contents.json`: `{"info":{"author":"xcode","version":1}}`),
-add the catalog to the `PulseMac` target's sources in `project.yml`, and set
+`App/ClepsoMac/Assets.xcassets/` (with the catalog's own `Contents.json`: `{"info":{"author":"xcode","version":1}}`),
+add the catalog to the `ClepsoMac` target's sources in `project.yml`, and set
 `ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon`. `Clepso.icns` is there for anything that needs a single file.
 The app is `LSUIElement` (no Dock icon), so the icon shows in Finder, Launchpad, Spotlight, System Settings
 (Login Items) and notifications.
