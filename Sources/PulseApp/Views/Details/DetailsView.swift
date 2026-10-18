@@ -285,7 +285,7 @@ struct WindowFitter: NSViewRepresentable {
         }
 
         /// The visible area, or the window's minimum size centred in it on a screen too small for that.
-        static func frame(for visible: NSRect, minimum: NSSize) -> NSRect {
+        nonisolated static func frame(for visible: NSRect, minimum: NSSize) -> NSRect {
             let w = max(visible.width, minimum.width), h = min(max(visible.height, minimum.height), visible.height)
             return NSRect(x: visible.midX - w / 2, y: visible.maxY - h, width: w, height: h).integral
         }
