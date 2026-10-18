@@ -213,7 +213,7 @@ struct LegacyLayoutMigrationTests {
         // The compare-and-swap sees a change and stops after the records were saved; putting the bytes back leaves
         // exactly what a crash at that point leaves.
         let settings = box.settings
-        let outcome = migration(box, beforeWrite: { try? Data("{}".utf8).write(to: settings) }).run()
+        let outcome = migration(box, beforeWrite: { try? Data("{}".utf8).write(to: settings) }).attempt()
         #expect(outcome == .settingsChanged)
         try Data(old).write(to: box.settings)
         #expect(migration(box).run() == .migrated)
@@ -233,7 +233,7 @@ struct LegacyLayoutMigrationTests {
             var text = String(decoding: (try? Data(contentsOf: settings)) ?? Data(), as: UTF8.self)
             text = text.replacingOccurrences(of: "{", with: "{\n  \"theme\": \"dark\",", options: [], range: text.range(of: "{"))
             try? Data(text.utf8).write(to: settings)
-        }).run() == .settingsChanged)
+        }).attempt() == .settingsChanged)
         let edited = try settingsBytes(box)
         #expect(edited != old)
         #expect(migration(box).run() == .migrated)
@@ -244,6 +244,24 @@ struct LegacyLayoutMigrationTests {
         #expect(object["theme"] as? String == "dark")
         #expect((object["statusLine"] as? [String: Any])?["command"] as? String != Self.newStatus)
         #expect(!String(decoding: try settingsBytes(box), as: UTF8.self).contains(".claude/clepso"))
+    }
+
+    @Test("Claude Code writes settings.json during the move: the same launch tries again and keeps that write")
+    func raceRetried() throws {
+        let box = try Sandbox(settingsFixture: "existing-statusline.json"); defer { box.cleanUp() }
+        let old = try installOldLayout(box, hooks: true)
+        let settings = box.settings
+        let once = OnceFlag()
+        #expect(migration(box, beforeWrite: {
+            guard once.first() else { return }
+            var text = String(decoding: (try? Data(contentsOf: settings)) ?? Data(), as: UTF8.self)
+            text = text.replacingOccurrences(of: "{", with: "{\n  \"theme\": \"dark\",", options: [], range: text.range(of: "{"))
+            try? Data(text.utf8).write(to: settings)
+        }).run() == .migrated)
+        let migrated = try settingsBytes(box)
+        #expect(jsonObject(migrated)?["theme"] as? String == "dark")
+        #expect(!String(decoding: migrated, as: UTF8.self).contains("~/.claude/pulse/"))
+        #expect(migrated != old)
     }
 
     @Test("Backups merge into an existing clepso-backups without overwriting a file")
@@ -283,4 +301,11 @@ extension Sandbox {
         }
         return result
     }
+}
+
+/// True the first time only.
+final class OnceFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var used = false
+    func first() -> Bool { lock.withLock { defer { used = true }; return !used } }
 }

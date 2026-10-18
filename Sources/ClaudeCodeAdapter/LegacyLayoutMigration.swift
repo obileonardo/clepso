@@ -58,7 +58,18 @@ public struct LegacyLayoutMigration: Sendable {
         FileOps.isRealDirectory(legacy.clepsoDir) || FileOps.isRealDirectory(legacy.backupsDir)
     }
 
+    /// Claude Code writes settings.json itself, so a compare-and-swap can lose a race; once the folder has moved,
+    /// settings.json must follow it now rather than at the next launch, so the whole (idempotent) run is tried again.
     public func run() -> Outcome {
+        var outcome = Outcome.nothingToDo
+        for _ in 0..<3 {
+            outcome = attempt()
+            guard outcome == .settingsChanged else { return outcome }
+        }
+        return outcome
+    }
+
+    func attempt() -> Outcome {
         do {
             return try migrate()
         } catch Failure.unreadable {
