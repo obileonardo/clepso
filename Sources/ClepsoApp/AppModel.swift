@@ -123,11 +123,26 @@ public final class AppModel {
     private var lastPurge: Date?
     private var tasks: [Task<Void, Never>] = []
     private var generation = 0
+    /// The move from the layout before the rename to Clepso, done in `init` before any file in the data folder or
+    /// `~/.claude/clepso` is read, and reported in Diagnostics once by `start()`.
+    @ObservationIgnored private let dataMigration: LegacyDataMigration.Outcome
+    @ObservationIgnored private var unreportedMigrations: [(step: String, outcome: String)] = []
 
     public init(environment: AppEnvironment) {
         self.environment = environment
+        let data = LegacyDataMigration(legacy: environment.legacyDataDirectory, current: environment.dataDirectory).run()
+        // While the data folder is in use by another copy or half moved, ~/.claude stays as it is too: the next launch
+        // moves both.
+        let claude = data.blocksStore ? .nothingToDo : Self.legacyLayout(environment).run()
+        self.dataMigration = data
+        self.unreportedMigrations = [("data", data.rawValue), ("claudeCode", claude.rawValue)].filter { $0.1 != "nothingToDo" }
         self.catalog = try? PlanCatalog.bundled()
-        self.diagnostics = DiagnosticsLog(url: environment.diagnosticsURL, clock: environment.clock)
+        // While the data folder can't be used, this launch's diagnostics go to a temporary file: writing them into the
+        // data folder would create it, and the next launch would then find both folders and leave the old one alone.
+        let diagnosticsURL = data.blocksStore
+            ? FileManager.default.temporaryDirectory.appendingPathComponent("\(Product.name)-diagnostics-\(UUID().uuidString).jsonl")
+            : environment.diagnosticsURL
+        self.diagnostics = DiagnosticsLog(url: diagnosticsURL, clock: environment.clock)
         self.preview = Self.installer(environment, forwardCost: true).preview()
         self.snapshot = OverviewProjection.make(OverviewInput(), now: environment.clock.now(), staleAfter: Freshness.localTelemetryTTL,
                                                 zone: environment.timeZone, locale: environment.locale)
@@ -141,6 +156,12 @@ public final class AppModel {
         PixelFonts.ensureRegistered()                    // before the first popover open, not during it
         let now = environment.clock.now()
         diagnostics.record(.appStarted(version: environment.appVersion))
+        for (step, outcome) in unreportedMigrations { diagnostics.record(.legacyLayout(step: step, outcome: outcome)) }
+        unreportedMigrations = []
+        guard !dataMigration.blocksStore else {
+            problem = .storage(dataMigration.rawValue)
+            return
+        }
         do {
             let store = try Store.onDisk(at: environment.databaseURL, now: now)
             self.store = store
@@ -418,9 +439,7 @@ public final class AppModel {
     public func uninstall() async -> RemoveOutcome {
         defer { refreshPreview() }
         do {
-            // The hooks call the helper through Clepso's folder, so they come out before it goes.
-            if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
-            let outcome = try Self.installer(environment, forwardCost: forwardCost).uninstall()
+            let outcome = try removeFromClaudeCode()
             diagnostics.record(.removed(outcome: Self.caseName(outcome)))
             await refresh()
             switch outcome {
@@ -679,6 +698,39 @@ public final class AppModel {
                           socketPath: environment.socketPath, forwardCost: forwardCost, now: { [clock = environment.clock] in clock.now() })
     }
 
+    // MARK: - The layout from before the rename to Clepso
+
+    static func legacyLayout(_ environment: AppEnvironment) -> LegacyLayoutMigration {
+        LegacyLayoutMigration(home: environment.home, now: { [clock = environment.clock] in clock.now() })
+    }
+
+    /// An install still in `~/.claude/pulse`, when the move couldn't happen (`keptBoth`, `settingsUnreadable`).
+    static func legacyInstaller(_ environment: AppEnvironment, forwardCost: Bool) -> SettingsInstaller {
+        SettingsInstaller(paths: .legacy(home: environment.home), shimPath: environment.shimPath,
+                          socketPath: environment.socketPath, forwardCost: forwardCost, now: { [clock = environment.clock] in clock.now() })
+    }
+
+    static func legacyHooks(_ environment: AppEnvironment) -> HooksInstaller {
+        HooksInstaller(paths: .legacy(home: environment.home), shimPath: environment.shimPath, now: { [clock = environment.clock] in clock.now() })
+    }
+
+    /// Takes Clepso out of Claude Code's settings: the hooks first (they call the helper through Clepso's folder), then
+    /// the status line. One more try at moving an old layout first; whatever of it is still there (both folders existed,
+    /// or settings.json couldn't be edited) is removed by its own install records, the same way, so Remove and Delete
+    /// work from either layout. Each installer touches settings.json only where its own record or command matches.
+    func removeFromClaudeCode() throws -> SettingsInstaller.UninstallOutcome {
+        _ = Self.legacyLayout(environment).run()
+        if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
+        var outcome = try Self.installer(environment, forwardCost: forwardCost).uninstall()
+        let legacy = Self.legacyInstaller(environment, forwardCost: forwardCost)
+        if Self.isRealDirectory(legacy.paths.clepsoDir) {
+            if Self.legacyHooks(environment).isInstalled { _ = try Self.legacyHooks(environment).uninstall() }
+            let legacyOutcome = try legacy.uninstall()
+            if outcome == .notInstalled { outcome = legacyOutcome }
+        }
+        return outcome
+    }
+
     /// `copy.explainer.installFailed` {{reason}}: plain words, never an enum name.
     static func reason(_ error: SettingsInstaller.InstallError) -> String {
         switch error {
@@ -834,16 +886,19 @@ public final class AppModel {
         // Claude Code's settings first. If they can't be restored safely, stop with everything intact: the backup and
         // the sidecar are what make the restore possible.
         if items.contains(.claudeCode) {
+            let legacy = Self.legacyInstaller(environment, forwardCost: forwardCost)
             if case .needsUserDecision = installer.recover() {
                 return DeleteReport(failure: Copy.DeleteAll.restoreFailed(paths.backupsDir.path))
             }
+            if Self.isRealDirectory(legacy.paths.clepsoDir), case .needsUserDecision = legacy.recover() {
+                return DeleteReport(failure: Copy.DeleteAll.restoreFailed(legacy.paths.backupsDir.path))
+            }
             do {
-                if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
-                _ = try installer.uninstall()
+                _ = try removeFromClaudeCode()
             } catch {
                 return DeleteReport(failure: Copy.DeleteAll.restoreFailed(paths.backupsDir.path))
             }
-            if Self.isRealDirectory(paths.clepsoDir) { try? fm.removeItem(at: paths.clepsoDir) }
+            for folder in [paths.clepsoDir, legacy.paths.clepsoDir] where Self.isRealDirectory(folder) { try? fm.removeItem(at: folder) }
         }
         if items.contains(.notifications) { await environment.notifications.removeAll() }
         if items.contains(.account) {
@@ -861,15 +916,22 @@ public final class AppModel {
             try? await store?.close()
             store = nil
             ingestor = nil
-            let data = environment.dataDirectory
-            let migrationBackups = ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0.hasPrefix("pulse.sqlite.pre-") && $0.hasSuffix(".bak") }
-            var names = ["pulse.sqlite", "pulse.sqlite-wal", "pulse.sqlite-shm", "pulse.sqlite-journal", "run/agent.sock"] + migrationBackups
-            if items.contains(.diagnostics) { names.append("diagnostics.jsonl") }
-            for name in names { try? fm.removeItem(at: data.appendingPathComponent(name)) }
-            for folder in [data.appendingPathComponent("run"), data] where (try? fm.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {
-                try? fm.removeItem(at: folder)
+            // The data folder, and the one from before the rename to Clepso if it is still there (it was in use, or both
+            // existed): the same files under either database name, and nothing the app didn't create.
+            var leftovers: [String] = []
+            for data in [environment.dataDirectory, environment.legacyDataDirectory].compactMap({ $0 }) where Self.isRealDirectory(data) {
+                let databases = [LegacyDataMigration.databaseName, LegacyDataMigration.legacyDatabaseName]
+                let contents = (try? fm.contentsOfDirectory(atPath: data.path)) ?? []
+                let migrationBackups = contents.filter { name in databases.contains { name.hasPrefix("\($0).pre-") } && name.hasSuffix(".bak") }
+                var names = databases.flatMap { db in [db] + LegacyDataMigration.companions.map { db + $0 } } + ["run/agent.sock"] + migrationBackups
+                if items.contains(.diagnostics) { names.append("diagnostics.jsonl") }
+                for name in names { try? fm.removeItem(at: data.appendingPathComponent(name)) }
+                for folder in [data.appendingPathComponent("run"), data] where (try? fm.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {
+                    try? fm.removeItem(at: folder)
+                }
+                leftovers += ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0 != "diagnostics.jsonl" }
             }
-            report.leftovers = ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0 != "diagnostics.jsonl" }.sorted()
+            report.leftovers = leftovers.sorted()
             reset()
             refreshPreview()
             if relaunch { await start() }
@@ -877,9 +939,10 @@ public final class AppModel {
             await refresh()                                // e.g. "not connected" once Claude Code's settings are restored
         }
 
-        // Settings backups only when that box was ticked (default off).
-        if includeBackups, Self.isRealDirectory(paths.backupsDir) {
-            report.backupsRemoved = (try? fm.removeItem(at: paths.backupsDir)) != nil
+        // Settings backups only when that box was ticked (default off); the old layout's folder too if it is still there.
+        if includeBackups {
+            let folders = [paths.backupsDir, SettingsInstaller.Paths.legacy(home: environment.home).backupsDir].filter(Self.isRealDirectory)
+            report.backupsRemoved = !folders.isEmpty && folders.allSatisfy { (try? fm.removeItem(at: $0)) != nil }
         }
         return report
     }

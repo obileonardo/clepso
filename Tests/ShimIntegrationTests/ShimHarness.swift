@@ -21,7 +21,7 @@ struct ShimHarness {
         signal(SIGPIPE, SIG_IGN)
         let short = String(UUID().uuidString.prefix(8))
         home = FileManager.default.temporaryDirectory.appendingPathComponent("tk-\(short)")
-        try FileManager.default.createDirectory(at: home.appendingPathComponent(".claude/pulse"),
+        try FileManager.default.createDirectory(at: home.appendingPathComponent(".claude/clepso"),
                                                 withIntermediateDirectories: true)
         socketPath = home.appendingPathComponent("a.sock").path
     }
@@ -29,12 +29,12 @@ struct ShimHarness {
     func cleanUp() { try? FileManager.default.removeItem(at: home) }
 
     func writeConfig(originalCommand: String?, forwardCost: Bool = true, withKey: Bool = true) throws {
-        let keyPath = home.appendingPathComponent(".claude/pulse/session.key").path
+        let keyPath = home.appendingPathComponent(".claude/clepso/session.key").path
         if withKey { try Data(repeating: 7, count: 32).write(to: URL(fileURLWithPath: keyPath)) }
         var config: [String: Any] = ["v": 1, "socket": socketPath, "forward_cost": forwardCost, "hmac_key_file": keyPath]
         config["original_command"] = originalCommand ?? NSNull()
         let data = try JSONSerialization.data(withJSONObject: config)
-        try data.write(to: home.appendingPathComponent(".claude/pulse/config.json"))
+        try data.write(to: home.appendingPathComponent(".claude/clepso/config.json"))
     }
 
     struct Result {

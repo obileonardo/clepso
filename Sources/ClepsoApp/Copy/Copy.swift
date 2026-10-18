@@ -662,7 +662,7 @@ enum Copy {
     enum DeleteAll {
         static let title = "Delete \(product) data"
         static let body = "Choose what to delete. Everything is ticked; untick what you want to keep."
-        static let backups = "Also delete settings backups (~/.claude/pulse-backups)"
+        static let backups = "Also delete settings backups (~/.claude/clepso-backups)"
         static let confirm = "Delete All"
         static func confirmSome(_ n: Int) -> String { n == 1 ? "Delete 1 item" : "Delete \(n) items" }
         static let selectAll = "Select all", selectNone = "Select none"

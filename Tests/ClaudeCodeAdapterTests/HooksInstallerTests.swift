@@ -50,11 +50,11 @@ struct HooksInstallerTests {
             #expect(text.components(separatedBy: "\n").count == text.components(separatedBy: "\r\n").count, "\(file): mixed line endings")
         }
         #expect(box.mode(box.settings) == 0o640)
-        #expect(box.mode(box.claude.appendingPathComponent("pulse/hook.sh")) == 0o700)
+        #expect(box.mode(box.claude.appendingPathComponent("clepso/hook.sh")) == 0o700)
 
         #expect(try installer.uninstall() == .restoredExactly)
         #expect(box.bytes(box.settings) == withStatusLine, "\(file): not byte-identical after removing the hooks")
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse/hook.sh")))
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso/hook.sh")))
         #expect(try box.installer().uninstall() == .restoredExactly)
         #expect(box.bytes(box.settings) == original, "\(file): status line uninstall no longer exact")
     }

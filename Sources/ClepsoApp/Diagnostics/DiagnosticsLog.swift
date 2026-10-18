@@ -29,11 +29,15 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case account(event: String)                       // signed in / signed out / account deleted (never the email)
     case alertShown(kind: String, level: Int?)        // 2.1: an `AlertKind` case name and threshold
     case alertsExpired(count: Int)                    // 2.4: alerts due while asleep, too old to show (`expired_stale`)
+    /// The move from the layout before the rename to Clepso: `step` is "data" or "claudeCode", `outcome` a
+    /// `LegacyDataMigration` / `LegacyLayoutMigration` outcome name.
+    case legacyLayout(step: String, outcome: String)
 
     var level: DiagnosticsLog.Entry.Level {
         switch self {
         case .socketFailed, .storageFailed, .installRefused: .error
         case .ingestRejected, .clockSkew, .unreadLimitWindows: .warning
+        case .legacyLayout(_, let outcome): outcome == "migrated" ? .info : .warning
         default: .info
         }
     }
@@ -61,10 +65,21 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .account: "account.changed"
         case .alertShown: "alerts.shown"
         case .alertsExpired: "alerts.expired"
+        case .legacyLayout: "migration.legacyLayout"
         }
     }
 
     /// Plain ASCII so every line passes the same scrub the helper applies.
+    static func legacyLayoutText(_ outcome: String) -> String {
+        switch outcome {
+        case "migrated": "moved to the new location"
+        case "keptBoth", "keptBothDatabases": "the old and the new both exist; the old one was left in place"
+        case "legacyInUse": "another copy of the app is still using the old folder; quit it and reopen \(Product.name)"
+        case "settingsUnreadable": "settings.json names the old folder but can't be edited safely; nothing was moved"
+        default: "not finished (\(outcome)); the next launch tries again"
+        }
+    }
+
     var text: String {
         switch self {
         case .appStarted(let version): "\(Product.name) \(version) started"
@@ -92,6 +107,9 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .account(let event): "\(Product.name) account: \(event)"
         case let .alertShown(kind, level): "Limit alert shown: \(kind)" + (level.map { " at \($0)%" } ?? "")
         case .alertsExpired(let n): "\(n) limit alert(s) were due while the Mac was asleep and are too old to show"
+        case let .legacyLayout(step, outcome):
+            "Files from before the rename to \(Product.name) (\(step == "data" ? "data folder" : "Claude Code folder")): "
+                + Self.legacyLayoutText(outcome)
         }
     }
 }

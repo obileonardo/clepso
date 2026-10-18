@@ -71,6 +71,8 @@ public protocol AuthStore: Sendable {
 /// The Keychain, one generic-password item holding JSON, this device only.
 public struct KeychainAuthStore: AuthStore {
     let service: String
+    /// Kept from before the rename to Clepso: the Keychain item already saved under it is the signed-in session, and
+    /// a new name would sign everyone out.
     let account = "pulse-account"
     public init(service: String = "com.elvisobi.clepso.account") { self.service = service }
 

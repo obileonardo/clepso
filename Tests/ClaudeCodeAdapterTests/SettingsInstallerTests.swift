@@ -85,7 +85,7 @@ struct SettingsInstallerTests {
             #expect((value as AnyObject).isEqual(installedObject[key]), "\(file): \(key) changed")
         }
         let statusLine = try #require(installedObject["statusLine"] as? [String: Any])
-        #expect(statusLine["command"] as? String == "~/.claude/pulse/statusline.sh")
+        #expect(statusLine["command"] as? String == "~/.claude/clepso/statusline.sh")
         let region = changedRegion(original, installed)
         if let previous = before["statusLine"] as? [String: Any] {
             #expect(report.hadExistingStatusLine)
@@ -93,7 +93,7 @@ struct SettingsInstallerTests {
             let oldLiteral = try literal(try #require(previous["command"] as? String))
             let originalText = String(decoding: original, as: UTF8.self)
             #expect(originalText.components(separatedBy: oldLiteral).count == 2, "\(file): old command literal not unique")
-            let expected = originalText.replacingOccurrences(of: oldLiteral, with: try literal("~/.claude/pulse/statusline.sh"))
+            let expected = originalText.replacingOccurrences(of: oldLiteral, with: try literal("~/.claude/clepso/statusline.sh"))
             #expect(String(decoding: installed, as: UTF8.self) == expected, "\(file): more than the command value changed: \(region)")
             for (key, value) in previous where key != "command" {
                 #expect((value as AnyObject).isEqual(statusLine[key]), "\(file): statusLine.\(key) changed")
@@ -119,7 +119,7 @@ struct SettingsInstallerTests {
         #expect(restored == original, "\(file): not byte-identical after uninstall")
         #expect(sha(restored) == sha(original))
         #expect(box.mode(box.settings) == 0o640)
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse")), "Clepso's files must be removed")
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso")), "Clepso's files must be removed")
         #expect(box.exists(URL(fileURLWithPath: backup)), "backups are kept for 30 days")
     }
 
@@ -129,8 +129,8 @@ struct SettingsInstallerTests {
         let original = box.bytes(box.settings)
         #expect(throws: SettingsInstaller.InstallError.self) { try box.installer().install() }
         #expect(box.bytes(box.settings) == original)
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse")))
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse-backups")))
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso")))
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso-backups")))
     }
 
     @Test("Without settings.json, install creates it and uninstall deletes it again")
@@ -189,11 +189,11 @@ struct SettingsInstallerTests {
         let box = try Sandbox(settingsFixture: "plain.json"); defer { box.cleanUp() }
         _ = try box.installer().install()
         let text = String(decoding: try #require(box.bytes(box.settings)), as: UTF8.self)
-            .replacingOccurrences(of: "~/.claude/pulse/statusline.sh", with: "echo mine")
+            .replacingOccurrences(of: "~/.claude/clepso/statusline.sh", with: "echo mine")
         try Data(text.utf8).write(to: box.settings)
         guard case .leftUnchanged = try box.installer().uninstall() else { Issue.record("expected leftUnchanged"); return }
         #expect(String(decoding: try #require(box.bytes(box.settings)), as: UTF8.self) == text)
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse")))
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso")))
     }
 
     @Test("A settings change during install aborts without overwriting it")
@@ -210,7 +210,7 @@ struct SettingsInstallerTests {
         let after = String(decoding: try #require(box.bytes(box.settings)), as: UTF8.self)
         #expect(after.hasSuffix("}\n "), "the concurrent edit must be preserved")
         #expect(!after.contains("statusLine"))
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse")))
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso")))
     }
 
     @Test("Symlinked settings or backup folder are refused")
@@ -223,9 +223,9 @@ struct SettingsInstallerTests {
         #expect(box.bytes(target) == Array("{}\n".utf8))
 
         let box2 = try Sandbox(settingsFixture: "plain.json"); defer { box2.cleanUp() }
-        try FileManager.default.createSymbolicLink(at: box2.claude.appendingPathComponent("pulse-backups"),
+        try FileManager.default.createSymbolicLink(at: box2.claude.appendingPathComponent("clepso-backups"),
                                                    withDestinationURL: box2.home)
-        #expect(throws: SettingsInstaller.InstallError.symlinkRefused(path: box2.claude.appendingPathComponent("pulse-backups").path)) {
+        #expect(throws: SettingsInstaller.InstallError.symlinkRefused(path: box2.claude.appendingPathComponent("clepso-backups").path)) {
             try box2.installer().install()
         }
     }
@@ -241,20 +241,20 @@ struct SettingsInstallerTests {
     func generatedFiles() throws {
         let box = try Sandbox(settingsFixture: "existing-statusline.json"); defer { box.cleanUp() }
         _ = try box.installer().install()
-        let pulse = box.claude.appendingPathComponent("pulse")
-        #expect(box.mode(pulse) == 0o700)
-        #expect(box.mode(box.claude.appendingPathComponent("pulse-backups")) == 0o700)
-        #expect(box.mode(pulse.appendingPathComponent("statusline.sh")) == 0o700)
+        let clepso = box.claude.appendingPathComponent("clepso")
+        #expect(box.mode(clepso) == 0o700)
+        #expect(box.mode(box.claude.appendingPathComponent("clepso-backups")) == 0o700)
+        #expect(box.mode(clepso.appendingPathComponent("statusline.sh")) == 0o700)
         for name in ["config.json", "session.key", "original-statusline.json", "install-state.json"] {
-            #expect(box.mode(pulse.appendingPathComponent(name)) == 0o600, "\(name) mode")
+            #expect(box.mode(clepso.appendingPathComponent(name)) == 0o600, "\(name) mode")
         }
-        #expect(box.bytes(pulse.appendingPathComponent("session.key"))?.count == 32)
-        let configBytes = try #require(box.bytes(pulse.appendingPathComponent("config.json")))
+        #expect(box.bytes(clepso.appendingPathComponent("session.key"))?.count == 32)
+        let configBytes = try #require(box.bytes(clepso.appendingPathComponent("config.json")))
         let config = try #require(jsonObject(configBytes))
         #expect(config["v"] as? Int == 1)
         #expect(config["original_command"] as? String == "~/bin/my-status.sh --color 'auto'")
         #expect(config["forward_cost"] as? Bool == true)
-        let sidecar = String(decoding: try #require(box.bytes(pulse.appendingPathComponent("original-statusline.json"))), as: UTF8.self)
+        let sidecar = String(decoding: try #require(box.bytes(clepso.appendingPathComponent("original-statusline.json"))), as: UTF8.self)
         #expect(sidecar.hasPrefix("{\n    \"type\": \"command\""), "sidecar keeps the original bytes verbatim")
     }
 }
@@ -262,7 +262,7 @@ struct SettingsInstallerTests {
 @Suite("Recovery and repair", .serialized)
 struct RecoveryTests {
     func rewriteRecord(_ box: Sandbox, _ change: (inout [String: Any]) -> Void) throws {
-        let url = box.claude.appendingPathComponent("pulse/install-state.json")
+        let url = box.claude.appendingPathComponent("clepso/install-state.json")
         let raw = try #require(box.bytes(url))
         var record = try #require(jsonObject(raw))
         change(&record)
@@ -275,12 +275,12 @@ struct RecoveryTests {
         let original = box.bytes(box.settings)
         _ = try box.installer().install()
         _ = try box.installer().uninstall()                       // back to the original bytes
-        try FileManager.default.createDirectory(at: box.claude.appendingPathComponent("pulse"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: box.claude.appendingPathComponent("clepso"), withIntermediateDirectories: true)
         let record: [String: Any] = ["state": "files_written", "h0": sha(original ?? []), "createdByPulse": false, "formattingChanged": false]
-        try JSONSerialization.data(withJSONObject: record).write(to: box.claude.appendingPathComponent("pulse/install-state.json"))
+        try JSONSerialization.data(withJSONObject: record).write(to: box.claude.appendingPathComponent("clepso/install-state.json"))
         #expect(box.installer().recover() == .cleanedUp)
         #expect(box.bytes(box.settings) == original)
-        #expect(!box.exists(box.claude.appendingPathComponent("pulse")))
+        #expect(!box.exists(box.claude.appendingPathComponent("clepso")))
     }
 
     @Test("Interrupted after settings were written: verify and complete")
@@ -312,7 +312,7 @@ struct RecoveryTests {
         try moved.repair()
         #expect(!moved.needsRepair())
         #expect(box.bytes(box.settings) == settingsBefore, "repair must not touch settings.json")
-        let wrapper = String(decoding: try #require(box.bytes(box.claude.appendingPathComponent("pulse/statusline.sh"))), as: UTF8.self)
+        let wrapper = String(decoding: try #require(box.bytes(box.claude.appendingPathComponent("clepso/statusline.sh"))), as: UTF8.self)
         #expect(wrapper.contains("CLEPSO_SHIM='/Users/Shared/Clepso.app/Contents/Helpers/clepso-statusline'"))
     }
 }
@@ -341,7 +341,7 @@ struct WrapperScriptTests {
         try Data("#!/bin/sh\nprintf SHIM\n".utf8).write(to: fakeShim)
         chmod(fakeShim.path, 0o755)
         _ = try box.installer(shim: fakeShim.path).install()
-        #expect(try run(box.claude.appendingPathComponent("pulse/statusline.sh"), stdin: "{}") == ("SHIM", 0))
+        #expect(try run(box.claude.appendingPathComponent("clepso/statusline.sh"), stdin: "{}") == ("SHIM", 0))
     }
 
     @Test("Shim missing: the wrapper runs the user's original command with the same stdin")
@@ -349,13 +349,13 @@ struct WrapperScriptTests {
         let box = try Sandbox(); defer { box.cleanUp() }
         try Data(#"{"statusLine": {"type": "command", "command": "printf '%s: ' \"it's\"; cat"}}"#.utf8).write(to: box.settings)
         _ = try box.installer(shim: box.home.appendingPathComponent("missing").path).install()
-        #expect(try run(box.claude.appendingPathComponent("pulse/statusline.sh"), stdin: "{\"x\":1}") == ("it's: {\"x\":1}", 0))
+        #expect(try run(box.claude.appendingPathComponent("clepso/statusline.sh"), stdin: "{\"x\":1}") == ("it's: {\"x\":1}", 0))
     }
 
     @Test("Shim missing and no original command: prints nothing, exits 0")
     func silentFallback() throws {
         let box = try Sandbox(settingsFixture: "plain.json"); defer { box.cleanUp() }
         _ = try box.installer(shim: box.home.appendingPathComponent("missing").path).install()
-        #expect(try run(box.claude.appendingPathComponent("pulse/statusline.sh"), stdin: "{}") == ("", 0))
+        #expect(try run(box.claude.appendingPathComponent("clepso/statusline.sh"), stdin: "{}") == ("", 0))
     }
 }

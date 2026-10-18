@@ -12,7 +12,7 @@ public enum FrameBuilder {
     public struct Options: Sendable {
         public var shimVersion: String
         public var forwardCost: Bool          // On by default
-        public var hmacKey: Data?             // 32 bytes from ~/.claude/pulse/session.key
+        public var hmacKey: Data?             // 32 bytes from ~/.claude/clepso/session.key
         public var originalPresent: Bool
         public var truncated: Bool
 

@@ -101,7 +101,7 @@ public enum StatusLineShim {
     // MARK: - Config and stdin
 
     static func loadConfig(home: String) -> Config? {
-        let url = URL(fileURLWithPath: home).appendingPathComponent(".claude/pulse/config.json")
+        let url = URL(fileURLWithPath: home).appendingPathComponent(".claude/clepso/config.json")
         guard let data = try? Data(contentsOf: url), let config = try? JSONDecoder().decode(Config.self, from: data),
               config.v == 1 else { return nil }
         return config

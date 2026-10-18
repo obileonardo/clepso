@@ -52,7 +52,7 @@ struct CanaryLeakTests {
         """.utf8)
     }
 
-    @Test("Hostile payload → real helper → app: no marker in pulse.sqlite, the export or diagnostics.jsonl")
+    @Test("Hostile payload → real helper → app: no marker in clepso.sqlite, the export or diagnostics.jsonl")
     func noCanaryAnywhere() async throws {
         let h = try ShimHarness(); defer { h.cleanUp() }
         let model = AppModel(environment: AppEnvironment(
@@ -61,11 +61,11 @@ struct CanaryLeakTests {
         await model.start(); defer { model.stop() }
 
         // The helper's config points at the app's socket; the session key is the installer's kind of file.
-        let keyPath = h.home.appendingPathComponent(".claude/pulse/session.key")
+        let keyPath = h.home.appendingPathComponent(".claude/clepso/session.key")
         try Data((0..<32).map { _ in UInt8.random(in: 0...255) }).write(to: keyPath)
         let config: [String: Any] = ["v": 1, "socket": model.environment.socketPath, "forward_cost": true,
                                      "hmac_key_file": keyPath.path, "original_command": NSNull()]
-        try JSONSerialization.data(withJSONObject: config).write(to: h.home.appendingPathComponent(".claude/pulse/config.json"))
+        try JSONSerialization.data(withJSONObject: config).write(to: h.home.appendingPathComponent(".claude/clepso/config.json"))
 
         let result = try h.run(stdin: Self.payload(nowSeconds: ShimHarness.fixtureNowMs / 1000))
         #expect(result.status == 0)

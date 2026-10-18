@@ -95,7 +95,7 @@ struct SchemaV1Tests {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let pool = try Migrations.openPool(at: dir.appendingPathComponent("pulse.sqlite").path)
+        let pool = try Migrations.openPool(at: dir.appendingPathComponent("clepso.sqlite").path)
         #expect(try pool.read { try String.fetchOne($0, sql: "PRAGMA journal_mode") } == "wal")
     }
 }

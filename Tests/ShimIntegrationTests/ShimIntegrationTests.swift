@@ -184,15 +184,15 @@ struct EndToEndTests {
         let settings = h.home.appendingPathComponent(".claude/settings.json")
         let original = Data("{\n  \"statusLine\": {\n    \"type\": \"command\",\n    \"command\": \"printf 'mine'\"\n  }\n}\n".utf8)
         try original.write(to: settings)
-        // The harness pre-creates ~/.claude/pulse; the installer must start from a clean slate.
-        try FileManager.default.removeItem(at: h.home.appendingPathComponent(".claude/pulse"))
+        // The harness pre-creates ~/.claude/clepso; the installer must start from a clean slate.
+        try FileManager.default.removeItem(at: h.home.appendingPathComponent(".claude/clepso"))
 
         let installer = SettingsInstaller(paths: .init(home: h.home), shimPath: ShimHarness.shimURL.path,
                                           socketPath: h.socketPath)
         _ = try installer.install()
         let agent = try FakeAgent(path: h.socketPath, mode: .readAll); defer { agent.stop() }
 
-        let wrapper = h.home.appendingPathComponent(".claude/pulse/statusline.sh")
+        let wrapper = h.home.appendingPathComponent(".claude/clepso/statusline.sh")
         let result = try h.run(stdin: f08Stdin, executable: URL(fileURLWithPath: "/bin/sh"), arguments: [wrapper.path])
         #expect(result.text == "mine")
         #expect(result.status == 0)

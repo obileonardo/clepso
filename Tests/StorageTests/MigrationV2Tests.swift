@@ -89,14 +89,14 @@ struct MigrationV2Tests {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("mig-\(UUID().uuidString.prefix(8))")
         defer { try? FileManager.default.removeItem(at: folder) }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let url = folder.appendingPathComponent("pulse.sqlite")
+        let url = folder.appendingPathComponent("clepso.sqlite")
         do {
             let queue = try DatabaseQueue(path: url.path)
             try Migrations.migrator().migrate(queue, upTo: "v1_initial")
             try queue.write { try $0.execute(sql: "INSERT INTO preferences (key, value_json, updated_at) VALUES ('k', '1', 1)") }
         }
         _ = try Store.onDisk(at: url, now: Self.t0)
-        let backup = folder.appendingPathComponent("pulse.sqlite.pre-v2_value_kinds_count_duration_flag.bak")
+        let backup = folder.appendingPathComponent("clepso.sqlite.pre-v2_value_kinds_count_duration_flag.bak")
         #expect(FileManager.default.fileExists(atPath: backup.path))
         #expect((try FileManager.default.attributesOfItem(atPath: backup.path)[.posixPermissions] as? Int) == 0o600)
         let old = try DatabaseQueue(path: backup.path)

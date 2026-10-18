@@ -100,7 +100,7 @@ struct AppModelTests {
         guard case .installed(let backup, let kept) = outcome else { Issue.record("\(outcome)"); return }
         #expect(kept && backup != nil)
         #expect(model.preview.installed)
-        #expect(String(decoding: try Data(contentsOf: box.settings), as: UTF8.self).contains(".claude/pulse/statusline.sh"))
+        #expect(String(decoding: try Data(contentsOf: box.settings), as: UTF8.self).contains(".claude/clepso/statusline.sh"))
         #expect(model.snapshot.empty == .waitingForFirstReading)
 
         #expect(await model.uninstall() == .restoredExactly)

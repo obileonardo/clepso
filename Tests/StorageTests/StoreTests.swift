@@ -122,7 +122,7 @@ struct StoreTests {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tk-store-\(UUID().uuidString.prefix(8))")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        let path = dir.appendingPathComponent("pulse.sqlite").path
+        let path = dir.appendingPathComponent("clepso.sqlite").path
         let first = try Store(writer: try DatabasePool(path: path), now: t0)
         _ = try await first.ingest(batch(session: "A", used: 42, reset: reset, at: 0), session: meta("A"))
         let second = try Store(writer: try DatabasePool(path: path), now: t0)

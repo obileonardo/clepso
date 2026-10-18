@@ -25,22 +25,22 @@ struct DataLifecycleTests {
         return model
     }
 
-    @Test("Delete all leaves nothing behind: data folder gone, ~/.claude/pulse gone, settings restored byte for byte")
+    @Test("Delete all leaves nothing behind: data folder gone, ~/.claude/clepso gone, settings restored byte for byte")
     func deleteAllLeavesNothing() async throws {
         let box = Sandbox(); defer { box.cleanUp() }
         let login = FakeLoginItem(), notifications = FakeNotifications(), keychain = FakeKeychain()
         let model = try await usedModel(box, login: login, notifications: notifications, keychain: keychain)
         let before = Sandbox.inventory(box.data)
-        #expect(before.contains("pulse.sqlite") && before.contains("diagnostics.jsonl") && before.contains("run/agent.sock"), "\(before)")
-        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse").path))
+        #expect(before.contains("clepso.sqlite") && before.contains("diagnostics.jsonl") && before.contains("run/agent.sock"), "\(before)")
+        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/clepso").path))
 
         let report = await model.deleteAll(includeBackups: false, relaunch: false)
 
         #expect(report == AppModel.DeleteReport(failure: nil, leftovers: [], backupsRemoved: false))
         #expect(!FileManager.default.fileExists(atPath: box.data.path), "left: \(Sandbox.inventory(box.data))")
-        #expect(!FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse").path))
+        #expect(!FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/clepso").path))
         #expect(SHA256.hash(data: try Data(contentsOf: box.settings)) == SHA256.hash(data: Self.original))
-        #expect(!Sandbox.inventory(box.home.appendingPathComponent(".claude/pulse-backups")).isEmpty, "backups kept by default")
+        #expect(!Sandbox.inventory(box.home.appendingPathComponent(".claude/clepso-backups")).isEmpty, "backups kept by default")
         #expect(notifications.removeAllCount == 1 && keychain.sweepCount == 1)
         #expect(login.calls == [true, false], "the login item the user turned on is turned off")
         // First-run state in memory.
@@ -55,7 +55,7 @@ struct DataLifecycleTests {
         let report = await model.deleteAll(includeBackups: true)
         defer { model.stop() }
         #expect(report.failure == nil && report.backupsRemoved)
-        #expect(!FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse-backups").path))
+        #expect(!FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/clepso-backups").path))
         #expect(model.started && !model.onboardingComplete && model.plan == nil)
         let store = try Store.onDisk(at: model.environment.databaseURL, now: t0)
         #expect(try await store.poolStates().isEmpty)
@@ -73,7 +73,7 @@ struct DataLifecycleTests {
         let model = try await usedModel(box, login: FakeLoginItem(), notifications: FakeNotifications(), keychain: FakeKeychain())
         defer { model.stop() }
         // Tamper with the backup: an exact restore would now write the wrong bytes, so uninstall refuses.
-        let backups = box.home.appendingPathComponent(".claude/pulse-backups")
+        let backups = box.home.appendingPathComponent(".claude/clepso-backups")
         let backup = try #require(Sandbox.inventory(backups).first { $0.hasSuffix(".bak") })
         try Data("tampered".utf8).write(to: backups.appendingPathComponent(backup))
         let before = Sandbox.inventory(box.data)
@@ -82,7 +82,7 @@ struct DataLifecycleTests {
 
         #expect(report.failure?.contains("nothing was deleted") == true)
         #expect(Sandbox.inventory(box.data) == before)
-        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse/config.json").path))
+        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/clepso/config.json").path))
         #expect(model.onboardingComplete && model.plan != nil, "state untouched")
         #expect(send(model.environment.socketPath, try frameBytes(at: t0 + 60, fiveHour: 90)), "listening again")
     }
@@ -97,8 +97,8 @@ struct DataLifecycleTests {
         #expect(report == AppModel.DeleteReport(failure: nil, leftovers: [], backupsRemoved: false))
         #expect(notifications.removeAllCount == 1 && keychain.sweepCount == 0 && login.calls == [true])
         #expect(model.diagnostics.entries.isEmpty)
-        #expect(FileManager.default.fileExists(atPath: box.data.appendingPathComponent("pulse.sqlite").path))
-        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse/config.json").path))
+        #expect(FileManager.default.fileExists(atPath: box.data.appendingPathComponent("clepso.sqlite").path))
+        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/clepso/config.json").path))
         #expect(model.onboardingComplete && model.plan != nil)
         #expect(send(model.environment.socketPath, try frameBytes(at: t0 + 60, fiveHour: 91)), "still listening")
         #expect(await eventually { model.snapshot.provider?.pools.first?.model.used.value == 91 })
@@ -113,8 +113,8 @@ struct DataLifecycleTests {
         let report = await model.delete([.claudeCode], includeBackups: false)
         #expect(report.failure == nil)
         #expect(SHA256.hash(data: try Data(contentsOf: box.settings)) == SHA256.hash(data: Self.original))
-        #expect(!FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse").path))
-        #expect(FileManager.default.fileExists(atPath: box.data.appendingPathComponent("pulse.sqlite").path))
+        #expect(!FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/clepso").path))
+        #expect(FileManager.default.fileExists(atPath: box.data.appendingPathComponent("clepso.sqlite").path))
         #expect(model.plan != nil && model.onboardingComplete && keychain.sweepCount == 0)
     }
 
@@ -126,7 +126,7 @@ struct DataLifecycleTests {
         let report = await model.delete([.data], includeBackups: false)
         #expect(report.failure == nil)
         #expect(model.started && !model.onboardingComplete && model.plan == nil)
-        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse/config.json").path))
+        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/clepso/config.json").path))
         let store = try Store.onDisk(at: model.environment.databaseURL, now: t0)
         #expect(try await store.preference("onboarding.completed", as: Bool.self) == nil)
         #expect(send(model.environment.socketPath, try frameBytes(at: t0 + 60, fiveHour: 7)))

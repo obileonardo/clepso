@@ -27,7 +27,7 @@ struct CaptureRehearsalTests {
     func rehearsal() throws {
         let h = try ShimHarness(); defer { h.cleanUp() }
         let fm = FileManager.default
-        try fm.removeItem(at: h.home.appendingPathComponent(".claude/pulse"))
+        try fm.removeItem(at: h.home.appendingPathComponent(".claude/clepso"))
         let settings = h.home.appendingPathComponent(".claude/settings.json")
         // Shaped like this Mac's real settings: valid JSON, no statusLine.
         let original = Data("{\n  \"model\": \"opus\",\n  \"permissions\": {\n    \"allow\": [\"Bash(git status)\"]\n  }\n}\n".utf8)
@@ -44,8 +44,8 @@ struct CaptureRehearsalTests {
         let (preview, previewStatus) = try clepso(["install", "--shim", captureShim.path, "--socket", h.socketPath], home: h.home)
         #expect(previewStatus == 0 && preview.contains("Preview only"))
         #expect(try Data(contentsOf: settings) == original)
-        #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/pulse").path))
-        #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/pulse-backups").path))
+        #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/clepso").path))
+        #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/clepso-backups").path))
 
         // 3. Confirmed install.
         let (installed, installStatus) = try clepso(["install", "--shim", captureShim.path, "--socket", h.socketPath, "--confirm"], home: h.home)
@@ -56,7 +56,7 @@ struct CaptureRehearsalTests {
         let box = FrameBox()
         let thread = Thread { listener.run(limit: 2, onFrame: { box.add($0.frame) }) }
         thread.start()
-        let wrapper = h.home.appendingPathComponent(".claude/pulse/statusline.sh")
+        let wrapper = h.home.appendingPathComponent(".claude/clepso/statusline.sh")
         for _ in 0..<2 {
             let result = try h.run(stdin: f08Stdin, executable: URL(fileURLWithPath: "/bin/sh"), arguments: [wrapper.path])
             #expect(result.text == "[Opus] · ctx 41% · 5h 80% · 7d 20%\n", "no original status line: the helper prints its own")
@@ -83,7 +83,7 @@ struct CaptureRehearsalTests {
         let (removed, removeStatus) = try clepso(["uninstall", "--confirm"], home: h.home)
         #expect(removeStatus == 0 && removed.contains("restoredExactly"), "\(removed)")
         #expect(try Data(contentsOf: settings) == original)
-        #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/pulse").path))
+        #expect(!fm.fileExists(atPath: h.home.appendingPathComponent(".claude/clepso").path))
     }
 }
 

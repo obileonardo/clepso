@@ -5,7 +5,7 @@ import Foundation
 /// Agents per task (increment 1.9): adds four entries to `hooks` in Claude Code's settings.json and takes them
 /// out again, with the guarantees of `SettingsInstaller` (backup first, compare-and-swap, verify, exact restore).
 ///
-/// Each entry runs `~/.claude/pulse/hook.sh` in the background (`async`), which execs the signed helper in hook
+/// Each entry runs `~/.claude/clepso/hook.sh` in the background (`async`), which execs the signed helper in hook
 /// mode. The command itself checks the script is there and always ends `exit 0`, so a removed app can never make
 /// a hook fail or block Claude Code. Hooks the user already has are left as they are: Clepso's entry is appended to
 /// an event's list, and only that entry is removed later. Requires the status-line connection (its config,
@@ -52,7 +52,7 @@ public struct HooksInstaller: Sendable {
     /// The shell command in each entry. `~` is expanded by the shell, so it is left unquoted (the path has no spaces);
     /// a custom config folder is quoted instead.
     public var commandValue: String {
-        let path = paths.commandValue.hasPrefix("~/") ? "~/.claude/pulse/hook.sh"
+        let path = paths.commandValue.hasPrefix("~/") ? "~/.claude/\(paths.folderName)/hook.sh"
             : SettingsInstaller.singleQuoted(paths.clepsoDir.appendingPathComponent("hook.sh").path)
         return "[ -x \(path) ] && exec \(path); exit 0"
     }

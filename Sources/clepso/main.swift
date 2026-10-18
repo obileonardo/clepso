@@ -22,7 +22,7 @@ func option(_ name: String) -> String? {
 let confirmed = arguments.contains("--confirm")
 let home = URL(fileURLWithPath: ProcessInfo.processInfo.environment["HOME"] ?? NSHomeDirectory())
 let paths = SettingsInstaller.Paths(home: home)
-let defaultSocket = home.appendingPathComponent("Library/Application Support/Pulse/run/agent.sock").path
+let defaultSocket = home.appendingPathComponent("Library/Application Support/Clepso/run/agent.sock").path
 
 func installer(shim: String = "", socket: String = defaultSocket) -> SettingsInstaller {
     SettingsInstaller(paths: paths, shimPath: shim, socketPath: socket)

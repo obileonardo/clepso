@@ -17,7 +17,10 @@ import Security
 /// Everything the app touches outside its own memory, injected so tests run against a temporary
 /// home and fakes, and so no system prompt or login-item change happens without an explicit user action.
 public struct AppEnvironment: Sendable {
-    public var dataDirectory: URL                // ~/Library/Application Support/Pulse
+    public var dataDirectory: URL                // ~/Library/Application Support/Clepso
+    /// The data folder from before the rename to Clepso (`~/Library/Application Support/Pulse`), moved into
+    /// `dataDirectory` at launch. nil: nothing to move (tests, and debug runs on an explicit `-ClepsoDataDirectory`).
+    public var legacyDataDirectory: URL?
     public var home: URL                          // where ~/.claude lives
     public var shimPath: String                   // Clepso.app/Contents/Helpers/clepso-statusline
     public var clock: any WallClock
@@ -50,8 +53,9 @@ public struct AppEnvironment: Sendable {
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,
                 keychain: any KeychainCleaning = SystemKeychain(), appVersion: String = "dev",
                 timeZone: TimeZone = .autoupdatingCurrent, locale: Locale = .autoupdatingCurrent, tickInterval: Duration = .seconds(30),
-                fullUserName: String = NSFullUserName(), sync: SyncClient? = nil) {
+                fullUserName: String = NSFullUserName(), sync: SyncClient? = nil, legacyDataDirectory: URL? = nil) {
         self.dataDirectory = dataDirectory
+        self.legacyDataDirectory = legacyDataDirectory
         self.home = home
         self.shimPath = shimPath
         self.clock = clock
@@ -66,38 +70,44 @@ public struct AppEnvironment: Sendable {
         self.sync = sync ?? SyncClient(config: nil, transport: OfflineTransport(), store: MemoryAuthStore(), now: { [clock] in clock.now() })
     }
 
-    public var databaseURL: URL { dataDirectory.appendingPathComponent("pulse.sqlite") }
+    public var databaseURL: URL { dataDirectory.appendingPathComponent(LegacyDataMigration.databaseName) }
     public var diagnosticsURL: URL { dataDirectory.appendingPathComponent("diagnostics.jsonl") }
     /// ARCHITECTURE §3: the helper connects here.
     public var socketPath: String { dataDirectory.appendingPathComponent("run/agent.sock").path }
 
     /// The real app. Debug builds accept `-ClepsoDataDirectory <path>` and `-ClepsoHome <path>` so a
-    /// verification run never touches the real Application Support folder or ~/.claude.
+    /// verification run never touches the real Application Support folder or ~/.claude. `-ClepsoHome` alone stands in
+    /// for the whole home folder: the data folder is then `<home>/Library/Application Support/Clepso`, and an old
+    /// `<home>/Library/Application Support/Pulse` there is migrated like the real one.
     public static func live(bundle: Bundle = .main) -> AppEnvironment {
-        var data = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Pulse")
-        var home = FileManager.default.homeDirectoryForCurrentUser
-        #if DEBUG
-        let defaults = UserDefaults.standard
-        if let path = defaults.string(forKey: "ClepsoDataDirectory") { data = URL(fileURLWithPath: path) }
-        if let path = defaults.string(forKey: "ClepsoHome") { home = URL(fileURLWithPath: path) }
-        #endif
-        // The real account lives in the Keychain; a debug run on another data folder (the probe, demo screenshots) gets a
-        // private in-memory one, so it can never upload to, or sign out of, the user's real account.
-        var authStore: any AuthStore = KeychainAuthStore()
-        #if DEBUG
-        if UserDefaults.standard.string(forKey: "ClepsoDataDirectory") != nil { authStore = MemoryAuthStore() }
-        #endif
+        let homeFlag = debugFlag("ClepsoHome"), dataFlag = debugFlag("ClepsoDataDirectory")
+        let home = homeFlag.map { URL(fileURLWithPath: $0) } ?? FileManager.default.homeDirectoryForCurrentUser
+        let data = dataFlag.map { URL(fileURLWithPath: $0) } ?? home.appendingPathComponent("Library/Application Support/Clepso")
+        let legacyData = dataFlag == nil ? home.appendingPathComponent("Library/Application Support/Pulse") : nil
+        // The real account lives in the Keychain; a debug run on another home or data folder (the probe, demo screenshots)
+        // gets a private in-memory one, so it can never upload to, or sign out of, the user's real account.
+        let authStore: any AuthStore = homeFlag == nil && dataFlag == nil ? KeychainAuthStore() : MemoryAuthStore()
         let shim = bundle.bundleURL.appendingPathComponent("Contents/Helpers/clepso-statusline").path
         let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         var environment = AppEnvironment(dataDirectory: data, home: home, shimPath: shim,
                                           loginItem: SystemLoginItem(), notifications: SystemNotifications(),
                                           keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "com.elvisobi.clepso"), appVersion: version,
                                           sync: SyncClient(config: SyncConfig(infoDictionary: bundle.infoDictionary ?? [:]), store: authStore,
-                                                           now: { SystemClock().now() }))
+                                                           now: { SystemClock().now() }),
+                                          legacyDataDirectory: legacyData)
         #if DEBUG
         environment.calendarActions = UserDefaults.standard.bool(forKey: "ClepsoCalendarActions")
         #endif
         return environment
+    }
+
+    /// A `-Clepso…` launch argument; always nil in release builds.
+    static func debugFlag(_ key: String) -> String? {
+        #if DEBUG
+        UserDefaults.standard.string(forKey: key)
+        #else
+        nil
+        #endif
     }
 }
 

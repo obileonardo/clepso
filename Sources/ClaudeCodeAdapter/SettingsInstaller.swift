@@ -13,10 +13,12 @@ public struct SettingsInstaller: Sendable {
         public let claudeDir: URL
         /// The value written into `statusLine.command`.
         public let commandValue: String
+        /// The app's folder name inside `claudeDir`: `clepso`, or `pulse` in the layout from before the rename.
+        public let folderName: String
 
         public var settings: URL { claudeDir.appendingPathComponent("settings.json") }
-        public var clepsoDir: URL { claudeDir.appendingPathComponent("pulse") }
-        public var backupsDir: URL { claudeDir.appendingPathComponent("pulse-backups") }
+        public var clepsoDir: URL { claudeDir.appendingPathComponent(folderName) }
+        public var backupsDir: URL { claudeDir.appendingPathComponent("\(folderName)-backups") }
         public var wrapper: URL { clepsoDir.appendingPathComponent("statusline.sh") }
         public var sidecar: URL { clepsoDir.appendingPathComponent("original-statusline.json") }
         public var config: URL { clepsoDir.appendingPathComponent("config.json") }
@@ -25,13 +27,24 @@ public struct SettingsInstaller: Sendable {
 
         /// `~/.claude` unless the user runs Claude Code with `CLAUDE_CONFIG_DIR`.
         public init(home: URL, claudeConfigDir: URL? = nil) {
+            self.init(home: home, claudeConfigDir: claudeConfigDir, folderName: "clepso")
+        }
+
+        init(home: URL, claudeConfigDir: URL?, folderName: String) {
+            self.folderName = folderName
             if let custom = claudeConfigDir {
                 claudeDir = custom
-                commandValue = custom.appendingPathComponent("pulse/statusline.sh").path
+                commandValue = custom.appendingPathComponent("\(folderName)/statusline.sh").path
             } else {
                 claudeDir = home.appendingPathComponent(".claude")
-                commandValue = "~/.claude/pulse/statusline.sh"   // Claude Code expands `~` (doc example)
+                commandValue = "~/.claude/\(folderName)/statusline.sh"   // Claude Code expands `~` (doc example)
             }
+        }
+
+        /// Where installs made before the rename to Clepso live: `~/.claude/pulse` and `~/.claude/pulse-backups`, with
+        /// `statusLine.command` = `~/.claude/pulse/statusline.sh`. Read only by `LegacyLayoutMigration`.
+        public static func legacy(home: URL, claudeConfigDir: URL? = nil) -> Paths {
+            Paths(home: home, claudeConfigDir: claudeConfigDir, folderName: "pulse")
         }
     }
 
@@ -385,7 +398,7 @@ public struct SettingsInstaller: Sendable {
         return .restoredStatusLineOnly(backupPath: record.backupPath, formattingChanged: formattingChanged)
     }
 
-    /// Removes `~/.claude/pulse/`. Backups stay for 30 days (PRIVACY_AND_SECURITY §6).
+    /// Removes `~/.claude/clepso/`. Backups stay for 30 days (PRIVACY_AND_SECURITY §6).
     func removeClepsoFiles() throws {
         if FileManager.default.fileExists(atPath: paths.clepsoDir.path) {
             try FileManager.default.removeItem(at: paths.clepsoDir)
