@@ -152,7 +152,8 @@ public enum StatusLineShim {
         posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_SETSIGDEF))
 
         // Typed explicitly: Swift 6.3 (CodeQL's newest supported compiler) can't infer the element type of `map + [nil]`.
-        let argv: [UnsafeMutablePointer<CChar>?] = ["/bin/sh", "-c", command].map { strdup($0) } + [nil]
+        let arguments: [String] = ["/bin/sh", "-c", command]
+        let argv: [UnsafeMutablePointer<CChar>?] = arguments.map { strdup($0) } + [nil]
         let envp: [UnsafeMutablePointer<CChar>?] = environment.map { strdup("\($0.key)=\($0.value)") } + [nil]
         defer { (argv + envp).forEach { free($0) } }
 
