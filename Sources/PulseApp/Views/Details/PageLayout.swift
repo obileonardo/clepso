@@ -11,18 +11,30 @@ import SwiftUI
 /// things from the column (calendars) take the closure form, which hands them the content side's width.
 struct PageColumn<Content: View>: View {
     let content: (CGFloat) -> Content
-    @State private var available: CGFloat = PageMetrics.column
+    /// The pane's width from `DetailsView`, measured where content can't push it wider. A column that measured itself
+    /// read its content's width once content overflowed, so calendars sized from it kept overflowing (Overview at the
+    /// 1100 pt minimum window, main at 5ac329b). Its own measurement is only a fallback outside the Dashboard.
+    @Environment(\.pageWidth) private var pageWidth
+    @State private var measured: CGFloat = 0
+    var available: CGFloat { pageWidth > 0 ? pageWidth : measured }
 
     init(@ViewBuilder content: @escaping () -> Content) { self.content = { _ in content() } }
     init(@ViewBuilder fitting content: @escaping (_ contentWidth: CGFloat) -> Content) { self.content = content }
 
     var body: some View {
         let column = PageMetrics.column(fitting: available)
-        VStack(alignment: .leading, spacing: 0) { content(PageMetrics.content(column)) }
+        // Pages size things (calendars) from the width the column really gets: below 1040 + gutters its frame shrinks
+        // to the window.
+        VStack(alignment: .leading, spacing: 0) { content(PageMetrics.content(min(column, available))) }
             .frame(maxWidth: column, alignment: .leading)
             .frame(maxWidth: .infinity)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { available = $0 }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { measured = $0 }
     }
+}
+
+extension EnvironmentValues {
+    /// The Dashboard page's width, as proposed by the window (see `PageColumn`).
+    @Entry var pageWidth: CGFloat = 0
 }
 
 enum PageMetrics {
@@ -35,13 +47,14 @@ enum PageMetrics {
     static let labelColumn: CGFloat = 260
     /// The content side's width, for things sized from it (calendars).
     static var content: CGFloat { content(column) }
-    static func content(_ column: CGFloat) -> CGFloat { column - labelColumn - 30 }
+    static func content(_ column: CGFloat) -> CGFloat { max(0, column - labelColumn - 30) }
     /// The column for a page `available` points wide. Below 1040 + gutters the column stays 1040 and its frame
     /// shrinks to fit, as it always did.
     static func column(fitting available: CGFloat) -> CGFloat { min(max(available - 2 * gutter, column), maxColumn) }
 }
 
-/// One section: a hairline on top, the name and a line on the left, the content on the right.
+/// One section: a hairline on top, the name and a line on the left, the content on the right. 32 pt of air
+/// (`.section`) above and below, inside the hairlines (founder review, 18 Oct 2026: sections were cramped at 20 pt).
 struct PageSection<Content: View>: View {
     let title: String
     let subtitle: String?
@@ -67,7 +80,7 @@ struct PageSection<Content: View>: View {
             .frame(width: PageMetrics.labelColumn, alignment: .leading)
             content().frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, theme.spacing(.spacious))
+        .padding(.vertical, theme.spacing(.section))
         .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
     }
 }
@@ -145,6 +158,83 @@ struct Figure: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
+}
+
+/// The Dashboard's card: the popover limit cards' language (elevated fill, hairline stepped pixel frame) with the
+/// page's roomier inner padding. For headline figures and live objects only; lists and facts stay on hairlines.
+struct PageCard: ViewModifier {
+    var role: ColorToken = .separator
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View {
+        let px = theme.stroke(.hairline) * 2
+        content
+            .padding(theme.spacing(.spacious))
+            .background(PixelRect(step: px).fill(theme.color(.surfaceElevated, scheme)))
+            .overlay(PixelRect(step: px).strokeBorder(theme.color(role, scheme), lineWidth: theme.stroke(.hairline)))
+    }
+}
+
+extension View {
+    func pageCard(_ role: ColorToken = .separator) -> some View { modifier(PageCard(role: role)) }
+}
+
+/// A headline figure as a card: its small-caps name on top (as the popover's 5-HOUR and 7-DAY cards), the value in
+/// the display face, and an optional line of context under it. Cards in a row share one height (`StatCardRow`).
+struct StatCard: View {
+    let caption: String
+    let value: String
+    var detail: String? = nil
+    var role: ColorToken = .textPrimary
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            Text(caption.uppercased()).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
+                .lineLimit(1).minimumScaleFactor(0.8)
+            Text(value).font(theme.font(.metricHero)).monospacedDigit().foregroundStyle(theme.color(role, scheme))
+                .lineLimit(1).minimumScaleFactor(0.5)
+                .padding(.vertical, -theme.spacing(.compact))           // the pixel face's tall line box, trimmed as in the popover
+            if let detail {
+                Text(detail).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .pageCard()
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Cards side by side on an even grid, each as tall as the tallest. When they don't all fit across at their natural
+/// size (a narrow window, a long value), they reflow two to a row instead of shrinking or truncating.
+struct StatCardRow: View {
+    let cards: [StatCard]
+    @Environment(\.theme) private var theme
+
+    init(@StatCardBuilder _ cards: () -> [StatCard]) { self.cards = cards() }
+
+    var body: some View {
+        let gap = theme.spacing(.standard) + theme.spacing(.compact)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: gap) { ForEach(cards.indices, id: \.self) { cards[$0] } }
+            Grid(horizontalSpacing: gap, verticalSpacing: gap) {
+                ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { i in
+                    GridRow {
+                        cards[i]
+                        if i + 1 < cards.count { cards[i + 1] } else { Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]) }
+                    }
+                }
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+@resultBuilder
+enum StatCardBuilder {
+    static func buildBlock(_ cards: StatCard...) -> [StatCard] { cards }
 }
 
 /// 1.15: a few figures in a row, each over its small-caps caption, columns set off by hairlines. Replaces a sentence

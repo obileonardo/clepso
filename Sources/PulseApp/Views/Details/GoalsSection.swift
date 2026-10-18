@@ -50,7 +50,8 @@ struct GoalsSection: View {
         return HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
             VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                 HStack(alignment: .lastTextBaseline, spacing: theme.spacing(.standard)) {
-                    Text(status?.value ?? "—").font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    Text(status?.value ?? "—").font(theme.font(.metricHero)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                        .padding(.vertical, -theme.spacing(.compact))           // the pixel face's tall line box, trimmed
                     if let status {
                         Text("/ " + status.target).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
                         StateTag(state: status.state)
@@ -76,7 +77,7 @@ struct GoalsSection: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            editor(kind).frame(width: PageMetrics.labelColumn * 0.7, alignment: .topLeading)
+            editor(kind).frame(width: PageMetrics.labelColumn * 0.7, alignment: .topLeading).pageCard()
         }
     }
 

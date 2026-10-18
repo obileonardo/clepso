@@ -102,6 +102,14 @@ struct ThemeTests {
         #expect(Theme.named("no-such-theme").name == "phosphor")
     }
 
+    @Test("Every theme defines every spacing token, so none falls back to the silent default; sections get 32 pt of air")
+    func spacingComplete() {
+        for theme in Theme.all {
+            for token in SpacingToken.allCases { #expect(theme.spacingValues[token] != nil, "\(theme.name) lacks \(token)") }
+            #expect(theme.spacing(.section) == 32, "\(theme.name)")
+        }
+    }
+
     @Test("The bundled pixel faces register and resolve to their own families, not a fallback")
     func pixelFonts() {
         #expect(PixelFonts.ensureRegistered())

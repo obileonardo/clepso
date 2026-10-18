@@ -272,6 +272,7 @@ enum Copy {
     enum ModelsPage {
         static let distribution = "USAGE DISTRIBUTION", tokens = "TOKENS"
         static let distributionTitle = "Distribution", distributionSub = "Each model's share of all tokens in this range."
+        static let chartTitle = "Tokens over time"
         static let chartSub = "Stacked by model; every day on the axis, quiet ones included."
         static func ofTotal(_ pct: String) -> String { "\(pct)% of all tokens" }
     }
@@ -284,6 +285,8 @@ enum Copy {
         static let kindsTitle = "Tokens by kind", tokensTitle = "Tokens per day", tokensSub = "All models together."
         static func summary(_ range: String) -> String { range.uppercased() + " AT A GLANCE" }
         static let pickDay = "Choose a day in the calendar to see it here."
+        /// A secondary fact as a card's context line: "Longest session: 4h 12m".
+        static func fact(_ label: String, _ value: String) -> String { "\(label): \(value)" }
     }
 
     /// Session page (1.12, after the founder's Adaline and Gumloop picks).
@@ -300,7 +303,7 @@ enum Copy {
 
     /// Limits page (1.12, after the founder's Remote, StackAI and Sprig picks).
     enum LimitsPage {
-        static let allLimits = "ALL LIMITS", plan = "Plan", left = "LEFT"
+        static let allLimits = "ALL LIMITS", plan = "Plan", left = "LEFT", used = "used"
         static let planSub = "What you're on, and where these numbers come from."
         static let planName = "Plan", source = "Source", lastReading = "Last reading", sessions = "Sessions seen"
         static func usage(_ scope: String) -> String { "\(scope) usage" }
@@ -540,7 +543,7 @@ enum Copy {
     enum Agents {
         static let lastTaskShort = "Agents, last task"
         static let statShort = "Agents"
-        static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom", unknown = "Unknown"
+        static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom"
         static let title = "AGENTS PER TASK", titleShort = "Agents per task"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
         static func count(_ n: Int) -> String { n == 1 ? "1 agent" : "\(n) agents" }
@@ -548,6 +551,12 @@ enum Copy {
         static let running = "Running", taskLabel = "A task is one prompt: from sending it until Claude stops."
         static func finished(_ done: Int, of total: Int) -> String { "\(done) of \(total) finished" }
         static let tasks = "Tasks", withAgents = "Used agents", average = "Agents per task", most = "Most in one task"
+        /// The 30-day cards' context lines and the recent-tasks table (founder review, 18 Oct 2026).
+        static let last30 = "Last 30 days", oneTask = "In a single prompt"
+        static func ofTasks(_ n: Int, _ total: Int) -> String { "\(n) of \(total) tasks" }
+        static func inAll(_ n: Int) -> String { n == 1 ? "1 agent in all" : "\(n) agents in all" }
+        static func started(_ time: String) -> String { "Started \(time)" }
+        static let colStarted = "Started", colAgents = "Agents", colTypes = "Types", colDuration = "Duration", done = "Done"
         static let noTasks = "No tasks yet. Send Claude Code a prompt; it appears here when Claude starts working on it."
         static let missedPrompt = "Started before \(product) saw the prompt"
         static let offTitle = "COUNT AGENTS PER TASK?"

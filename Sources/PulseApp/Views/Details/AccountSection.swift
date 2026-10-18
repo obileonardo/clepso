@@ -98,19 +98,10 @@ struct AccountSection: View {
         }
     }
 
-    /// Rive's layout: the section's name and a line on the left, its content on the right.
+    /// Rive's layout, now the shared `PageSection`: the section's name and a line on the left, its content on the right.
     func section(_ title: String, _ subtitle: String, @ViewBuilder _ content: () -> some View) -> some View {
         let body = content()
-        return HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
-            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                Text(title.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)).accessibilityAddTraits(.isHeader)
-                Text(subtitle).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(width: PageMetrics.labelColumn, alignment: .leading)
-            body.frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.vertical, theme.spacing(.spacious))
-        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
+        return PageSection(title, subtitle) { body }
     }
 
     /// GitBook's sign-in rows: each method with its state and one action.

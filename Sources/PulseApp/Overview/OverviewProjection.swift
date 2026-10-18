@@ -98,7 +98,15 @@ public enum OverviewProjection {
                                   lastSeen: input.codexPools.compactMap(\.lastSeen).max())
     }
 
-    static let agentTypeOrder = ["Explore", "Plan", "general-purpose", "claude-code-guide", "statusline-setup", "custom", "unknown"]
+    static let agentTypeOrder = ["Explore", "Plan", "general-purpose", "claude-code-guide", "statusline-setup", "custom"]
+
+    /// The stored type of a run whose hook event carried no agent type. Claude Code fires SubagentStop, with an empty
+    /// `agent_type` and no SubagentStart before it, when one of its own internal agents finishes (prompt suggestions,
+    /// /btw side questions; Claude Code hooks reference, "SubagentStop input"). Every subagent Claude starts with the
+    /// Agent tool carries its type, so a run without one is not a subagent of the task and isn't counted. On the
+    /// founder's Mac, 18 Oct 2026: 370 such runs against 15 typed ones, each created by a stop alone, most of them
+    /// minutes after Claude had already stopped.
+    static let internalAgentType = "unknown"
 
     /// Display names for the stored types.
     static func agentTypeName(_ type: String) -> String {
@@ -107,18 +115,20 @@ public enum OverviewProjection {
         case "claude-code-guide": Copy.Agents.guide
         case "statusline-setup": Copy.Agents.statusLine
         case "custom": Copy.Agents.custom
-        case "unknown": Copy.Agents.unknown
         default: type
         }
     }
 
-    /// A task with no stop for 6 hours is treated as finished (Claude Code was closed mid-task).
+    /// A task with no stop for 6 hours is treated as finished (Claude Code was closed mid-task). Claude Code's internal
+    /// agents (`internalAgentType`) are left out of every count; they're stored only when a stop arrives, so each one
+    /// is also one of the task's finished runs.
     static func agents(_ tasks: [Store.AgentTask], now: Date) -> AgentsSummary {
         let mapped = tasks.sorted { $0.startedAt > $1.startedAt }.map { t in
-            AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
-                               running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
-                               agents: t.agents, finished: t.finished,
-                               byType: agentTypeOrder.compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
+            let internalRuns = t.byType[internalAgentType] ?? 0
+            return AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
+                                      running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
+                                      agents: t.agents - internalRuns, finished: max(0, t.finished - internalRuns),
+                                      byType: agentTypeOrder.compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
         }
         let month = mapped.filter { now.timeIntervalSince($0.startedAt) <= 30 * 86_400 }
         return AgentsSummary(latest: mapped.first, recent: Array(mapped.prefix(8)), tasks: month.count,

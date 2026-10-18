@@ -68,17 +68,17 @@ struct SessionSection: View {
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
             VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
                 HStack(alignment: .lastTextBaseline) {
-                    Text(Copy.Details.context.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    Text(Copy.Details.context.uppercased()).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
                     Spacer()
-                    Text(contextLine(s)).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    Text(contextLine(s)).font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
                 }
                 PixelBar(fraction: s.contextPct.map { NSDecimalNumber(decimal: $0).doubleValue / 100 }, role: .accent, pattern: .solid, segments: 40)
             }
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                Figure(value: s.costUSD.map(money) ?? "—", caption: Copy.Details.costEstimate)
-                Figure(value: lines(s), caption: Copy.Details.lines)
-                Figure(value: s.cacheHitPct.map(Formatting.percent) ?? "—", caption: Copy.Details.cacheHits)
-                Figure(value: s.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", caption: Copy.Details.apiTime)
+            StatCardRow {
+                StatCard(caption: Copy.Details.costEstimate, value: s.costUSD.map(money) ?? "—")
+                StatCard(caption: Copy.Details.lines, value: lines(s))
+                StatCard(caption: Copy.Details.cacheHits, value: s.cacheHitPct.map(Formatting.percent) ?? "—")
+                StatCard(caption: Copy.Details.apiTime, value: s.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—")
             }
             PixelLabel(Copy.Details.costNote, glyph: .info).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                 .fixedSize(horizontal: false, vertical: true)

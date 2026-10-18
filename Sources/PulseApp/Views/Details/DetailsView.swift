@@ -9,6 +9,7 @@ import UsageEngine
 /// section's controls, and content laid out to use the window's width.
 public struct DetailsView: View {
     @Bindable var model: AppModel
+    @State private var pageWidth: CGFloat = 0
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
@@ -20,7 +21,11 @@ public struct DetailsView: View {
             DetailsSidebar(model: model)
             Rectangle().fill(theme.color(.separator, scheme)).frame(width: theme.stroke(.hairline)).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                header
+                // Zero height and as wide as the pane offers: its width is the window's, never the content's.
+                Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { pageWidth = $0 }
+                    .padding(.bottom, -theme.spacing(.spacious))
+                PageColumn { header }                   // the title and controls share the page column's edges
                 ScrollView {
                     Group {
                         switch model.detailsSection {
@@ -45,6 +50,7 @@ public struct DetailsView: View {
             }
             .padding(theme.spacing(.spacious))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .environment(\.pageWidth, pageWidth)
         }
         .frame(minWidth: DetailsMetrics.minWidth, minHeight: DetailsMetrics.minHeight, alignment: .topLeading)
         .background(WindowFitter())
@@ -229,7 +235,7 @@ struct StatsGate<Content: View>: View {
                         .foregroundStyle(theme.color(.textSecondary, scheme))
                 case .success(let file)?:
                     if let summary = model.statsSummary(model.statsRange) {
-                        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                        VStack(alignment: .leading, spacing: 0) {    // the last section's own air sits above the rule
                             content(summary, file)
                             if let through = summary.computedThrough {
                                 PageColumn {                                                        // the rule spans the column

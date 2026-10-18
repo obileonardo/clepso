@@ -172,7 +172,7 @@ public struct AgentsSummary: Sendable, Equatable {
         public let running: Bool                 // no stop seen yet and recent
         public let agents: Int
         public let finished: Int
-        /// Display order: Explore, Plan, General, other built-ins, Custom, Unknown; zero counts left out.
+        /// Display order: Explore, Plan, General, other built-ins, Custom; zero counts and Claude Code's internal agents left out.
         public let byType: [(name: String, count: Int)]
         public static func == (a: Task, b: Task) -> Bool {
             a.id == b.id && a.startedAt == b.startedAt && a.endedAt == b.endedAt && a.running == b.running && a.agents == b.agents
