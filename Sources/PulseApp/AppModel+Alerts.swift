@@ -15,11 +15,16 @@ extension AppModel {
         guard let history = try? await store.alertHistory(since: now.addingTimeInterval(-30 * 86_400)) else { return }
         let context = AlertPlanner.Context(delivered: history.delivered, deliveredKinds: history.kinds,
                                            snoozedUntil: alertsSnoozedUntil, enabled: alertsEnabled, isDemo: demo)
-        for alert in AlertPlanner.plan(events, context: context, now: now) {
+        let decision = AlertPlanner.decide(events, context: context, now: now)
+        for alert in decision.alerts {
             await environment.notifications.deliver(notification(for: alert, now: now))
             try? await store.recordAlert(alert, at: now)
             diagnostics.record(.alertShown(kind: alert.kind.rawValue, level: alert.level))
         }
+        // Due while the Mac slept, now too old to be news: one receipt each (never planned again), one line in all.
+        guard !decision.expired.isEmpty else { return }
+        for alert in decision.expired { try? await store.recordAlert(alert, at: now, outcome: .staleDropped) }
+        diagnostics.record(.alertsExpired(count: decision.expired.count))
     }
 
     /// The text for one alert, from the snapshot the events came with.

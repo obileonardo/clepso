@@ -28,6 +28,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case agentsCounting(outcome: String)              // a `HooksInstaller` outcome or error case name
     case account(event: String)                       // signed in / signed out / account deleted (never the email)
     case alertShown(kind: String, level: Int?)        // 2.1: an `AlertKind` case name and threshold
+    case alertsExpired(count: Int)                    // 2.4: alerts due while asleep, too old to show (`expired_stale`)
 
     var level: DiagnosticsLog.Entry.Level {
         switch self {
@@ -59,6 +60,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .agentsCounting: "agents.hooks"
         case .account: "account.changed"
         case .alertShown: "alerts.shown"
+        case .alertsExpired: "alerts.expired"
         }
     }
 
@@ -89,6 +91,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .agentsCounting(let outcome): "Agents per task hooks: \(outcome)"
         case .account(let event): "\(Product.name) account: \(event)"
         case let .alertShown(kind, level): "Limit alert shown: \(kind)" + (level.map { " at \($0)%" } ?? "")
+        case .alertsExpired(let n): "\(n) limit alert(s) were due while the Mac was asleep and are too old to show"
         }
     }
 }

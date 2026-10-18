@@ -56,8 +56,32 @@ struct AlertPlannerTests {
         let ctx = AlertPlanner.Context(deliveredKinds: [window: [.exhausted]], snoozedUntil: t0.addingTimeInterval(3600))
         #expect(AlertPlanner.plan([event(.thresholdCrossed, .warning)], context: ctx, now: t0).isEmpty)
         #expect(AlertPlanner.plan([event(.readyAgain)], context: ctx, now: t0).count == 1)
-        // After the snooze ends, alerts flow again.
-        #expect(AlertPlanner.plan([event(.thresholdCrossed, .warning)], context: ctx, now: t0.addingTimeInterval(3601)).count == 1)
+        // After the snooze ends, new crossings alert again.
+        #expect(AlertPlanner.plan([event(.thresholdCrossed, .warning, at: 60.02)], context: ctx, now: t0.addingTimeInterval(3601)).count == 1)
+    }
+
+    @Test("Freshness caps (§3.5, §2): an alert whose event is too old for its kind is held back as expired, not shown")
+    func tooOldIsExpiredNotShown() {
+        let shown: Set<AlertKind> = [.exhausted]
+        let ctx = AlertPlanner.Context(deliveredKinds: [window: shown])
+        // The cap itself still alerts; one second past it does not.
+        for (kind, event) in [(AlertKind.resetExpected, event(.resetExpected)), (.readyAgain, event(.readyAgain)),
+                              (.approaching, event(.thresholdCrossed, .warning)), (.exhausted, event(.exhausted))] {
+            let atCap = AlertPlanner.decide([event], context: ctx, now: t0.addingTimeInterval(kind.maxAge))
+            #expect(atCap.alerts.map(\.kind) == [kind] && atCap.expired.isEmpty)
+            let late = AlertPlanner.decide([event], context: ctx, now: t0.addingTimeInterval(kind.maxAge + 1))
+            #expect(late.alerts.isEmpty && late.expired.map(\.kind) == [kind])
+        }
+        #expect([AlertKind.readyAgain, .resetExpected, .approaching, .exhausted].map(\.maxAge) == [600, 900, 1800, 1800])
+        // A weekend asleep: Friday's reset reached on Monday is expired, with the key it would have had.
+        let monday = AlertPlanner.decide([event(.resetExpected)], context: ctx, now: t0.addingTimeInterval(3 * 86_400))
+        #expect(monday.alerts.isEmpty && monday.expired.first?.dedupKey == AlertPlanner.key(poolKey: pool, windowID: window, kind: .resetExpected, level: nil))
+        // A clock stepped back (event "in the future") is fresh, not expired.
+        #expect(AlertPlanner.decide([event(.exhausted, at: 2)], context: ctx, now: t0).alerts.count == 1)
+        // Guards and receipts come first: a window that never hit its limit, or an already decided key, is neither.
+        #expect(AlertPlanner.decide([event(.resetExpected)], context: .init(), now: t0.addingTimeInterval(86_400)) == .init())
+        let decided = AlertPlanner.Context(delivered: [monday.expired[0].dedupKey], deliveredKinds: [window: shown])
+        #expect(AlertPlanner.decide([event(.resetExpected)], context: decided, now: t0.addingTimeInterval(86_400)) == .init())
     }
 
     @Test func offOrDemoMeansSilence() {
