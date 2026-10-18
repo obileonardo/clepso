@@ -41,7 +41,30 @@ struct OverviewSection: View {
             PageSection(Copy.OverviewPage.glance, rangeName) { glance }
             PageSection(Copy.OverviewPage.hoursTitle, Copy.OverviewPage.hoursSub) { HourChart(counts: summary.hourCounts, showsTitle: false) }
             PageSection(Copy.OverviewPage.kindsTitle, Copy.Stats.allTimeNote) { tokenBreakdown }
+            if model.codexEnabled, let days = model.codexDays {
+                if let codex = CodexStats.make(days, range: summary.range, today: summary.today) {
+                    PageSection(Copy.OverviewPage.codexTitle, Copy.OverviewPage.codexSub) { codexView(codex) }
+                }
+            } else if model.codexEnabled {
+                PageSection(Copy.OverviewPage.codexTitle, Copy.OverviewPage.codexSub) {
+                    Text(Copy.OverviewPage.codexReading).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                }
+            }
         })
+    }
+
+    /// Increment 3.4b: Codex's figures for the same range, then its tokens per day by model.
+    func codexView(_ codex: CodexStats) -> some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+            StatCardRow {
+                StatCard(caption: Copy.Stats.totalTokens, value: Formatting.compact(codex.total), detail: rangeName)
+                StatCard(caption: Copy.OverviewPage.codexOutput, value: Formatting.compact(codex.output), detail: Copy.OverviewPage.codexOutputDetail)
+                StatCard(caption: Copy.Stats.activeDays, value: "\(codex.activeDays)/\(codex.dayCount)", detail: rangeName)
+                StatCard(caption: Copy.OverviewPage.codexTop, value: codex.topModel ?? "—",
+                         detail: codex.topModel == nil ? rangeName : Copy.OverviewPage.codexShare(codex.topShare))
+            }
+            StackedModelChart(series: codex.series, from: codex.from, to: codex.to, stacked: true, height: DetailsMetrics.chartHeight)
+        }
     }
 
     var activityLine: String {

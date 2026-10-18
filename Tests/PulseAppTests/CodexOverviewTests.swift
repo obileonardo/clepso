@@ -2,6 +2,7 @@ import Domain
 import Foundation
 import Testing
 import UsageEngine
+@testable import CodexAdapter
 @testable import PulseApp
 
 /// Increment 3.4: Codex's pools form their own section and never enter Claude Code's.
@@ -77,5 +78,26 @@ struct CodexOverviewTests {
         let snap = make(input)
         #expect(snap.empty == .notConnected)              // the panel still offers to connect Claude Code
         #expect(snap.icon == .ok && snap.iconText == "62%")
+    }
+}
+
+/// Increment 3.4b: Codex's figures for a Stats range.
+struct CodexStatsTests {
+    func day(_ d: String, _ model: String?, input: Int64, output: Int64) -> CodexUsage.Day {
+        CodexUsage.Day(day: d, model: model, tokens: .init(input: input, cachedInput: 0, cacheWrite: 0, output: output, reasoningOutput: 0))
+    }
+
+    @Test func rangeTotalsAndTopModel() throws {
+        let days = [day("2026-09-01", "gpt-5", input: 1000, output: 100),
+                    day("2026-10-15", "gpt-5-codex", input: 300, output: 30), day("2026-10-15", nil, input: 50, output: 5),
+                    day("2026-10-17", "gpt-5-codex", input: 600, output: 60)]
+        let week = try #require(CodexStats.make(days, range: .last7, today: "2026-10-18"))
+        #expect(week.from == "2026-10-12" && week.total == 1045 && week.output == 95)
+        #expect(week.activeDays == 2 && week.dayCount == 7)
+        #expect(week.topModel == "gpt-5-codex" && week.topShare == 95)
+        #expect(week.series.names == ["gpt-5-codex", Copy.Codex.unknownModel])
+        let all = try #require(CodexStats.make(days, range: .allTime, today: "2026-10-18"))
+        #expect(all.from == "2026-09-01" && all.total == 2145 && all.topModel == "gpt-5")
+        #expect(CodexStats.make([], range: .last30, today: "2026-10-18") == nil)
     }
 }

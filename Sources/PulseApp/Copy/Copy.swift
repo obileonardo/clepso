@@ -287,6 +287,11 @@ enum Copy {
         static let pickDay = "Choose a day in the calendar to see it here."
         /// A secondary fact as a card's context line: "Longest session: 4h 12m".
         static func fact(_ label: String, _ value: String) -> String { "\(label): \(value)" }
+        static let codexTitle = "Codex", codexSub = "Tokens from Codex's own session files on this Mac, by model."
+        static let codexOutput = "Output tokens", codexTop = "Top model"
+        static func codexShare(_ pct: Int) -> String { "\(pct)% of Codex tokens" }
+        static let codexReading = "Reading Codex's session files…"
+        static let codexOutputDetail = "Reasoning included"
     }
 
     /// Session page (1.12, after the founder's Adaline and Gumloop picks).
@@ -480,7 +485,8 @@ enum Copy {
     enum Codex {
         static let name = "Codex"
         static let toggle = "Read Codex's session files"
-        static let toggleSublabel = "Its 5-hour and weekly limits and plan; prompts and replies are skipped unread"
+        static let toggleSublabel = "Its 5-hour and weekly limits, plan and tokens per day; prompts and replies are skipped unread"
+        static let unknownModel = "Model not reported"
         static let notFound = "Codex hasn't written a session on this Mac"
         static let waiting = "On. Waiting for Codex's next session to report its limits"
         static let source = "Codex session files"

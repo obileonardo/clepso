@@ -123,8 +123,32 @@ struct ModelLegend: View {
 
 /// Tokens per day (or per week over long ranges) stacked by model, every calendar day on the axis whether or not
 /// there was activity, a labelled scale, and a hover readout of the day under the pointer.
+/// Tokens per day by model, for `StackedModelChart`: Claude Code's from its stats file, Codex's from its session files.
+struct TokenSeries {
+    /// Model ids, largest first, and their display names in the same order.
+    let ids: [String]
+    let names: [String]
+    /// date → model id → tokens.
+    let byDate: [String: [String: Int64]]
+
+    init(ids: [String], names: [String], byDate: [String: [String: Int64]]) {
+        self.ids = ids; self.names = names; self.byDate = byDate
+    }
+
+    init(_ summary: StatsSummary) {
+        self.init(ids: summary.models.map(\.model), names: summary.models.map(\.name),
+                  byDate: Dictionary(summary.dailyTokens.map { ($0.date, $0.byModel) }, uniquingKeysWith: { a, _ in a }))
+    }
+}
+
+extension StackedModelChart {
+    init(summary: StatsSummary, from: String, to: String, stacked: Bool = true, height: CGFloat = DetailsMetrics.chartHeight * 1.5) {
+        self.init(series: TokenSeries(summary), from: from, to: to, stacked: stacked, height: height)
+    }
+}
+
 struct StackedModelChart: View {
-    let summary: StatsSummary
+    let series: TokenSeries
     let from: String
     let to: String
     /// False draws one series (all models together) in the accent colour.
@@ -137,8 +161,8 @@ struct StackedModelChart: View {
     struct Bucket { let start: String; let end: String; let byModel: [Int64] }
 
     var buckets: [Bucket] {
-        let order = summary.models.map(\.model)
-        let byDate = Dictionary(summary.dailyTokens.map { ($0.date, $0.byModel) }, uniquingKeysWith: { a, _ in a })
+        let order = series.ids
+        let byDate = series.byDate
         let days = StatsSummary.Day.between(from, to) + 1
         let width = days > 120 ? 7 : 1
         return stride(from: 0, to: days, by: width).map { offset in
@@ -214,7 +238,7 @@ struct StackedModelChart: View {
             .background(GeometryReader { geo in Color.clear.preference(key: ChartWidthKey.self, value: geo.size.width) })
             .onPreferenceChange(ChartWidthKey.self) { chartWidth = $0 }
             .accessibilityElement()
-            .accessibilityLabel(Copy.Stats.chartSummary(days: StatsSummary.Day.between(from, to) + 1, models: summary.models.count))
+            .accessibilityLabel(Copy.Stats.chartSummary(days: StatsSummary.Day.between(from, to) + 1, models: series.ids.count))
             Text(readout(buckets)).font(theme.font(.label)).monospacedDigit().lineLimit(1).truncationMode(.middle)
                 .foregroundStyle(theme.color(hover == nil ? .textSecondary : .textPrimary, scheme))
                 .accessibilityHidden(hover == nil)
@@ -228,7 +252,7 @@ struct StackedModelChart: View {
         let b = buckets[hover]
         let when = b.start == b.end ? StatsFormat.day(b.start) : "\(StatsFormat.day(b.start))–\(StatsFormat.day(b.end))"
         guard stacked else { return "\(when) · \(Copy.Stats.tokensTotal(Formatting.compact(b.byModel.reduce(0, +))))" }
-        let parts = zip(summary.models, b.byModel).filter { $0.1 > 0 }.map { "\($0.0.name) \(Formatting.compact($0.1))" }
+        let parts = zip(series.names, b.byModel).filter { $0.1 > 0 }.map { "\($0.0) \(Formatting.compact($0.1))" }
         return parts.isEmpty ? "\(when) · \(Copy.Stats.noTokens)" : "\(when) · \(parts.joined(separator: " · "))"
     }
 
