@@ -92,6 +92,7 @@ struct MenuBarLabel: View {
             if await PopoverProbe.runIfRequested(model: model, openWindow: { openWindow(id: PulseScenes.onboardingID) },
                                                 openDetails: { openWindow(id: PulseScenes.detailsID) }) { return }
             #endif
+            PopoverWarmUp.run(model)
             if !model.onboardingComplete {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: PulseScenes.onboardingID)

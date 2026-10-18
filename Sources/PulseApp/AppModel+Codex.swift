@@ -21,8 +21,11 @@ extension AppModel {
     func pollCodex() async -> [EngineEvent] {
         guard codexEnabled, !demo, let store else { return [] }
         scanCodexUsage()
-        let now = environment.clock.now()
-        guard let reading = CodexReader.latest(home: environment.home, now: now) else { return [] }
+        let now = environment.clock.now(), home = environment.home
+        // Item 8: reading the newest files' tails took 35–95 ms on the main actor every tick (synthetic homes; long
+        // sessions cost most), so a click during a tick waited for it. It runs off the main actor now.
+        guard let reading = await Task.detached(priority: .utility, operation: { CodexReader.latest(home: home, now: now) }).value,
+              codexEnabled, !demo else { return [] }        // turned off, or demo turned on, while reading: keep nothing
         codexLatest = reading
         do {
             let connection: UUID

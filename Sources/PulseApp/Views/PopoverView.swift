@@ -225,6 +225,21 @@ public struct PopoverView: View {
     }
 }
 
+/// Item 8: the first popover open after launch paid for one-time work on the main thread: Swift type metadata for the
+/// popover's views, the pixel faces' tables and glyphs, and the first date formatters (Time Profiler, first open ≈ 2× a
+/// later one). Rendering the popover once off screen, right after launch while nothing waits on it, does that work
+/// before the first click (Release, first open p50 132 → 106 ms). Nothing is shown and no state changes; callers throw the
+/// image away (tests look at it).
+@MainActor
+enum PopoverWarmUp {
+    @discardableResult
+    static func run(_ model: AppModel) -> CGImage? {
+        let renderer = ImageRenderer(content: PopoverView(model: model).themed(model))
+        renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
+        return renderer.cgImage
+    }
+}
+
 enum PopoverMetrics {
     /// Wide rather than tall (founder review, 17 Oct): the two limits sit side by side.
     static let width: CGFloat = 580

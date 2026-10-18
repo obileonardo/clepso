@@ -9,7 +9,7 @@ import SwiftUI
 /// screenshots in design/screens.
 ///
 /// Launched with `-PulseProbeOutput <dir>` (plus `-PulseProbeDemo YES`, and optionally `-PulseProbeLight YES`,
-/// `-PulseProbeTheme <name>`, `-PulseProbeName <name>`), then driven by `swift scripts/probe-popover.swift <dir> N`,
+/// `-PulseProbeTheme <name>`, `-PulseProbeName <name>`), then driven by `swift scripts/probe-popover.swift <dir> N [idle s]`,
 /// which times N opens. The app reports the system uptime at which the
 /// window server makes its popover window visible (and emits an OSSignposter event there). Clicks come from
 /// `scripts/probe-popover.swift`, which posts real mouse events and notes the uptime of each click: since macOS 14
@@ -40,14 +40,15 @@ enum PopoverProbe {
         if defaults.bool(forKey: "PulseProbeLight") { await model.setAppearance(.light) }
         if let theme = defaults.string(forKey: "PulseProbeTheme") { await model.setTheme(theme) }   // one colour theme per run
         if defaults.bool(forKey: "PulseProbeCodex") { await model.setCodexEnabled(true) }           // reads the probe home's ~/.codex
+        PopoverWarmUp.run(model)          // as at a launch into this state (the app warms up after start, see PulseScenes)
         try? await Task.sleep(for: .seconds(1))
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
         recorder.start(button)
         recorder.log("login item: SMAppService.mainApp.status=\(SMAppService.mainApp.status.rawValue) model.loginItemEnabled=\(model.loginItemEnabled)")
 
-        // The driver clicks; wait for it (at most three minutes).
+        // The driver clicks; wait for it (at most twenty minutes: idle runs wait between clicks).
         let done = folder.appendingPathComponent("driver-done")
-        for _ in 0..<1800 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(100)) }
+        for _ in 0..<12_000 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(100)) }
 
         // The Details window, each tab; Stats from the probe home's file (synthetic: scripts/probe-home.py).
         await model.setStatsEnabled(true)
