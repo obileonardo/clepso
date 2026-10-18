@@ -90,7 +90,7 @@ public struct PixelTabs<Tab: Hashable>: View {
                         .background(PixelRect(step: px).fill(theme.color(selected ? .accent : .surfaceMuted, scheme)))
                         .overlay(PixelRect(step: px).strokeBorder(theme.color(.separator, scheme), lineWidth: px))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PixelPlainButtonStyle())
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
@@ -328,7 +328,7 @@ public struct PixelSegmented<Option: Hashable>: View {
                         .background(selected ? theme.color(.accent, scheme) : Color.clear)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PixelPlainButtonStyle())
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
@@ -367,7 +367,7 @@ public struct PixelToggleStyle: ToggleStyle {
             .contentShape(Rectangle())
             .opacity(isEnabled ? 1 : 0.4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PixelPlainButtonStyle())
         .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
     }
 }
@@ -384,6 +384,7 @@ public struct PixelQuietButtonStyle: ButtonStyle {
         @Environment(\.theme) private var theme
         @Environment(\.colorScheme) private var scheme
         @Environment(\.isEnabled) private var enabled
+        @Environment(\.isFocused) private var focused
 
         var body: some View {
             let px = theme.stroke(.hairline) * 2
@@ -397,7 +398,8 @@ public struct PixelQuietButtonStyle: ButtonStyle {
                 .background(PixelRect(step: px).fill(theme.color(.surfaceMuted, scheme).opacity(hovering ? 1 : 0)))
                 .opacity(enabled ? 1 : 0.45)
                 .contentShape(Rectangle())
-                .onHover { hovering = $0 }
+                .onHover { hovering = $0 }                  // hover-ok: brightens only; focus has its ring
+                .pixelFocusRing(focused)
         }
     }
 }

@@ -12,16 +12,6 @@ enum ProbeOverrides {
     static let reduceMotion = UserDefaults.standard.bool(forKey: "PulseProbeReduceMotion")
 }
 
-/// Debug probe only: keyboard navigation for this process, whatever the Mac's setting. AppKit and SwiftUI ask
-/// `NSApplication.isFullKeyboardAccessEnabled` whether every control takes focus; the probe answers yes.
-enum KeyboardNavigation {
-    static func forceOn() {
-        guard let method = class_getInstanceMethod(NSApplication.self, #selector(getter: NSApplication.isFullKeyboardAccessEnabled)) else { return }
-        let yes: @convention(block) (AnyObject) -> Bool = { _ in true }
-        method_setImplementation(method, imp_implementationWithBlock(yes))
-    }
-}
-
 /// Verification harness, debug builds only (popover open ≤ 200 ms p95, trigger to first frame), and the source of the
 /// screenshots in design/screens.
 ///
@@ -40,11 +30,11 @@ enum KeyboardNavigation {
 ///
 /// Item 9 (keyboard and Reduce Motion): `-PulseProbeReduceMotion YES` runs every window as if Reduce Motion were on
 /// (`ProbeOverrides`); `-PulseProbeAX YES` pauses on every captured page until `scripts/probe-ax.swift` has read the
-/// accessibility tree (read-only); `-PulseProbeFlipFrames YES` captures the player card mid-flip.
-/// `-PulseProbeKeyboard YES` makes this process alone behave as if System Settings › Keyboard › Keyboard navigation
-/// were on (the Mac's setting is never changed); `-PulseProbeTabWalk N` then moves keyboard focus N times on each
-/// Dashboard page and onboarding step with AppKit's own `selectNextKeyView` (what Tab calls; no key event is
-/// posted), and with `-PulseProbeAX YES` the reader records which element holds focus after each step.
+/// accessibility tree (read-only); `-PulseProbeFlipFrames YES` captures the player card mid-flip;
+/// `-PulseProbeFocusGallery YES` focuses each self-drawn control through `@FocusState` and captures it. No key event
+/// is ever posted. (Buttons take focus only while the Mac's Keyboard navigation setting is on, which the probe
+/// cannot turn on for itself: neither an `-AppleKeyboardUIMode` argument nor answering `isFullKeyboardAccessEnabled`
+/// makes SwiftUI focus them, and `selectNextKeyView` does not move SwiftUI's focus.)
 @MainActor
 enum PopoverProbe {
     static let signposter = OSSignposter(subsystem: "dev.tokone.pulse", category: "popover")
@@ -55,8 +45,6 @@ enum PopoverProbe {
         let folder = URL(fileURLWithPath: output)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let recorder = Recorder(folder: folder, model: model)
-        if defaults.bool(forKey: "PulseProbeKeyboard") { KeyboardNavigation.forceOn() }
-        let tabSteps = defaults.integer(forKey: "PulseProbeTabWalk")
         defer {
             recorder.finish()
             NSApp.terminate(nil)
@@ -72,7 +60,7 @@ enum PopoverProbe {
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
         recorder.start(button)
         recorder.log("login item: SMAppService.mainApp.status=\(SMAppService.mainApp.status.rawValue) model.loginItemEnabled=\(model.loginItemEnabled)")
-        recorder.log("keyboard navigation: \(NSApp.isFullKeyboardAccessEnabled) · reduce motion override: \(ProbeOverrides.reduceMotion)")
+        recorder.log("keyboard navigation (the Mac's setting): \(NSApp.isFullKeyboardAccessEnabled) · reduce motion override: \(ProbeOverrides.reduceMotion)")
 
         // The driver clicks; wait for it (at most twenty minutes: idle runs wait between clicks).
         let done = folder.appendingPathComponent("driver-done")
@@ -114,7 +102,6 @@ enum PopoverProbe {
             await axCheckpoint(folder, "details-\(name)")
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) {
                 recorder.log(shoot(window, folder, "details-\(name)"))
-                await tabWalk(window, steps: tabSteps, folder, "details-\(name)", recorder)
             } else {
                 recorder.log("ERROR no details window")
             }
@@ -144,7 +131,6 @@ enum PopoverProbe {
             await axCheckpoint(folder, "onboarding-\(step.rawValue)-\(step)")
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title.hasPrefix("Welcome to") }) {
                 recorder.log(shoot(window, folder, "onboarding-\(step.rawValue)-\(step)"))
-                await tabWalk(window, steps: tabSteps, folder, "onboarding-\(step.rawValue)-\(step)", recorder)
             } else {
                 recorder.log("ERROR no onboarding window")
             }
@@ -262,22 +248,6 @@ enum PopoverProbe {
         for _ in 0..<100 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(50)) }
     }
 
-    /// Moves keyboard focus `steps` times the way Tab does (`selectNextKeyView`, AppKit's API; no event is posted),
-    /// naming each step for the accessibility reader (`tab-<page>-<n>`), and captures the window at a few steps so the
-    /// focus ring can be seen. Focus starts from the window itself.
-    static func tabWalk(_ window: NSWindow, steps: Int, _ folder: URL, _ page: String, _ recorder: Recorder) async {
-        guard steps > 0 else { return }
-        window.makeKeyAndOrderFront(nil)
-        window.makeFirstResponder(nil)
-        for step in 1...steps {
-            window.selectNextKeyView(nil)
-            try? await Task.sleep(for: .milliseconds(120))
-            await axCheckpoint(folder, "tab-\(page)-\(step)")
-            if step <= 3 || step % 5 == 0 { recorder.log(shoot(window, folder, "tab-\(page)-\(step)")) }
-        }
-        window.makeFirstResponder(nil)
-    }
-
     /// Each self-drawn control focused in turn through `@FocusState` (`FocusGallery`), captured, and whether SwiftUI
     /// reports it focused.
     static func focusGallery(_ model: AppModel, _ recorder: Recorder, _ folder: URL) async {
@@ -294,6 +264,9 @@ enum PopoverProbe {
             state.request = index
             try? await Task.sleep(for: .milliseconds(400))
             recorder.log("focus gallery \(name): requested \(index), focused \(state.reported.map(String.init) ?? "none")")
+            if name == "calendar" {                // what a first arrow does, through the same function the view calls
+                recorder.log("calendar: first arrow chooses \(FocusGallery.grid.day(from: nil, weeks: 1) ?? "none")")
+            }
             recorder.log(shoot(window, folder, "focus-\(index)-\(name)"))
         }
         window.close()

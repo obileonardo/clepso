@@ -294,7 +294,8 @@ public struct ProviderCard: View {
 
 // MARK: - Building blocks
 
-/// A plain button around `content` when there is an action (keyboard focusable, Return activates), else the content alone.
+/// A plain button around `content` when there is an action (keyboard focusable with the pixel focus ring, Return
+/// activates), else the content alone.
 struct Tappable<Content: View>: View {
     let action: (() -> Void)?
     let hint: String
@@ -302,7 +303,7 @@ struct Tappable<Content: View>: View {
     var body: some View {
         if let action {
             Button(action: action) { content().contentShape(Rectangle()) }
-                .buttonStyle(.plain)
+                .buttonStyle(PixelPlainButtonStyle())
                 .accessibilityHint(hint)
         } else {
             content()

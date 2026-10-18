@@ -203,7 +203,8 @@ struct LimitMeterRow: View {
     }
 }
 
-/// Daily bars for one value over a range, a scale, every 7th day labelled, and a hover readout.
+/// Daily bars for one value over a range, a scale, every 7th day labelled, and a readout of the bar under the pointer
+/// or the keyboard cursor (`chartKeyboard`).
 struct DailyBars: View {
     let values: [(day: String, value: Int64)]
     let unit: String
@@ -211,6 +212,11 @@ struct DailyBars: View {
     @State private var width: CGFloat = 0
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
+
+    var readout: String? {
+        guard let hover, hover < values.count else { return nil }
+        return "\(StatsFormat.day(values[hover].day)) · \(Formatting.compact(values[hover].value)) \(unit.lowercased())"
+    }
 
     var body: some View {
         let top = StackedModelChart.niceCeiling(values.map(\.value).max() ?? 0)
@@ -248,7 +254,8 @@ struct DailyBars: View {
             }
             .accessibilityElement()
             .accessibilityLabel(Copy.ForYou.total(Formatting.compact(values.map(\.value).reduce(0, +)), unit))
-            Text(hover.map { "\(StatsFormat.day(values[$0].day)) · \(Formatting.compact(values[$0].value)) \(unit.lowercased())" } ?? Copy.Stats.hoverHint)
+            .chartKeyboard($hover, count: values.count, readout: readout)
+            Text(readout ?? Copy.Stats.hoverHint)
                 .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(hover == nil ? .textSecondary : .textPrimary, scheme))
         }
     }

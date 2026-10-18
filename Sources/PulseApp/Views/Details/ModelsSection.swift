@@ -239,6 +239,7 @@ struct StackedModelChart: View {
             .onPreferenceChange(ChartWidthKey.self) { chartWidth = $0 }
             .accessibilityElement()
             .accessibilityLabel(Copy.Stats.chartSummary(days: StatsSummary.Day.between(from, to) + 1, models: series.ids.count))
+            .chartKeyboard($hover, count: buckets.count, readout: hover == nil ? nil : readout(buckets))
             Text(readout(buckets)).font(theme.font(.label)).monospacedDigit().lineLimit(1).truncationMode(.middle)
                 .foregroundStyle(theme.color(hover == nil ? .textSecondary : .textPrimary, scheme))
                 .accessibilityHidden(hover == nil)

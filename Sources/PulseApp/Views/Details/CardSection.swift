@@ -162,7 +162,7 @@ struct FlipCard: View {
             .animation(theme.motion(.cardTilt, reduceMotion: reduceMotion), value: tilt)
             .animation(theme.motion(.cardTilt, reduceMotion: reduceMotion), value: hovering)
             .contentShape(Rectangle())
-            .onContinuousHover { phase in
+            .onContinuousHover { phase in               // hover-ok: tilt and sheen only; the card is focusable and flips on Return
                 switch phase {
                 case .active(let location):
                     if !hovering { NSCursor.pointingHand.push() }

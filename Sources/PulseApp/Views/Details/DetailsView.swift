@@ -176,7 +176,7 @@ struct DetailsSidebar: View {
                 .overlay(PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(name == nil ? .separator : .accent, scheme),
                                                                                    lineWidth: theme.stroke(.hairline)))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PixelPlainButtonStyle())
         .accessibilityLabel(Copy.Account.plan + ": " + (name ?? Copy.Account.planNotSet))
     }
 
@@ -203,7 +203,7 @@ struct DetailsSidebar: View {
                     }
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PixelPlainButtonStyle())
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }

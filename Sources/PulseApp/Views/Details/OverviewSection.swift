@@ -230,6 +230,7 @@ struct CalendarGridView: View {
     /// Steep's inspector (1.12): a day can be chosen to see it in full beside the calendar.
     var selected: String? = nil
     var onSelect: ((String) -> Void)? = nil
+    @FocusState private var focused: Bool
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
@@ -249,7 +250,38 @@ struct CalendarGridView: View {
         return min(max(fit, theme.spacing(.standard) - theme.stroke(.hairline)), theme.spacing(.spacious) * 1.6)
     }
 
+    /// Item 9: a calendar a day can be chosen in takes keyboard focus as one control (not 365 Tab stops): ← → ↑ ↓
+    /// move the chosen day along the grid as drawn (a week sideways in the year view, a day sideways in the month
+    /// view), from the latest day on the first press; Return or Space chooses the latest day when none is chosen.
     var body: some View {
+        if let onSelect {
+            squares
+                .focusable()
+                .focused($focused)
+                .focusEffectDisabled()                   // the pixel ring instead of the system's rounded one
+                .pixelFocusRing(focused)
+                .onMoveCommand { direction in
+                    let (days, weeks): (Int, Int) = switch direction {
+                    case .left: transposed ? (-1, 0) : (0, -1)
+                    case .right: transposed ? (1, 0) : (0, 1)
+                    case .up: transposed ? (0, -1) : (-1, 0)
+                    case .down: transposed ? (0, 1) : (1, 0)
+                    @unknown default: (0, 0)
+                    }
+                    if let day = grid.day(from: selected, days: days, weeks: weeks) { onSelect(day) }
+                }
+                .onKeyPress(keys: [.space, .return]) { _ in
+                    guard selected == nil, let day = grid.day(from: nil) else { return .ignored }
+                    onSelect(day)
+                    return .handled
+                }
+                .accessibilityElement(children: .contain)
+        } else {
+            squares
+        }
+    }
+
+    @ViewBuilder var squares: some View {
         if transposed {
             VStack(alignment: .leading, spacing: gap) {
                 HStack(spacing: gap) {
@@ -288,37 +320,44 @@ struct CalendarGridView: View {
     static let weekdays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 
     @ViewBuilder func square(_ c: StatsCalendar.Cell?) -> some View {
-        if let c {
-            ZStack {
-                switch c.state {
-                case .noData:
-                    Rectangle().strokeBorder(theme.color(.separator, scheme).opacity(0.6), lineWidth: theme.stroke(.hairline))
-                case .level(let level):
-                    Rectangle().fill(CalendarLegend.color(level, theme: theme, scheme: scheme))
-                }
-                if showDayNumbers {
-                    VStack(spacing: 0) {
-                        Text(String(c.date.suffix(2))).font(theme.font(.micro))
-                        if case .level(let l) = c.state, l > 0 { Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).opacity(0.8) }
-                    }
-                    .foregroundStyle(theme.color(isBright(c) ? .background : .textPrimary, scheme))
-                }
-            }
-            .frame(width: cell, height: cell)
-            .overlay {
-                if selected == c.date {
-                    Rectangle().strokeBorder(theme.color(.textPrimary, scheme), lineWidth: max(theme.stroke(.hairline) * 2, cell * 0.12))
-                }
-            }
-            .contentShape(Rectangle())
-            .onTapGesture { if case .level = c.state { onSelect?(c.date) } }
-            .accessibilityAddTraits(onSelect == nil ? [] : .isButton)
-            .help(tooltip(c))
-            .accessibilityElement()
-            .accessibilityLabel(tooltip(c))
+        if let c, let onSelect, case .level = c.state {
+            // A day that can be chosen is a button for VoiceOver too (its own action, and selected when chosen).
+            dayCell(c).accessibilityAddTraits(selected == c.date ? [.isButton, .isSelected] : .isButton)
+                .accessibilityAction { onSelect(c.date) }
+        } else if let c {
+            dayCell(c)
         } else {
             Color.clear.frame(width: cell, height: cell).accessibilityHidden(true)
         }
+    }
+
+    func dayCell(_ c: StatsCalendar.Cell) -> some View {
+        ZStack {
+            switch c.state {
+            case .noData:
+                Rectangle().strokeBorder(theme.color(.separator, scheme).opacity(0.6), lineWidth: theme.stroke(.hairline))
+            case .level(let level):
+                Rectangle().fill(CalendarLegend.color(level, theme: theme, scheme: scheme))
+            }
+            if showDayNumbers {
+                VStack(spacing: 0) {
+                    Text(String(c.date.suffix(2))).font(theme.font(.micro))
+                    if case .level(let l) = c.state, l > 0 { Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).opacity(0.8) }
+                }
+                .foregroundStyle(theme.color(isBright(c) ? .background : .textPrimary, scheme))
+            }
+        }
+        .frame(width: cell, height: cell)
+        .overlay {
+            if selected == c.date {
+                Rectangle().strokeBorder(theme.color(.textPrimary, scheme), lineWidth: max(theme.stroke(.hairline) * 2, cell * 0.12))
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { if case .level = c.state { onSelect?(c.date) } }
+        .help(tooltip(c))
+        .accessibilityElement()
+        .accessibilityLabel(tooltip(c))
     }
 
     func isBright(_ c: StatsCalendar.Cell) -> Bool { if case .level(let l) = c.state { l >= 3 } else { false } }
@@ -353,7 +392,8 @@ struct CalendarLegend: View {
     }
 }
 
-/// Sessions started per hour of the day, from Claude Code's own counts, with a hover readout.
+/// Sessions started per hour of the day, from Claude Code's own counts, with a readout of the hour under the pointer
+/// or the keyboard cursor (`chartKeyboard`).
 struct HourChart: View {
     let counts: [Int: Int]
     var showsTitle = true
@@ -391,6 +431,7 @@ struct HourChart: View {
             }
             .accessibilityElement()
             .accessibilityLabel(Copy.Stats.hoursSummary(peak: counts.max { $0.value < $1.value }?.key ?? 0))
+            .chartKeyboard($hover, count: 24, readout: hover.map { Copy.Stats.hourTooltip($0, counts[$0] ?? 0) })
             Text(hover.map { Copy.Stats.hourTooltip($0, counts[$0] ?? 0) } ?? Copy.Stats.hoverHint).font(theme.font(.label)).monospacedDigit()
                 .foregroundStyle(theme.color(hover == nil ? .textSecondary : .textPrimary, scheme)).lineLimit(1)
                 .accessibilityHidden(hover == nil)

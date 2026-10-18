@@ -83,15 +83,6 @@ func app() -> NSRunningApplication? {
 func dump(_ name: String) {
     guard let running = app() else { return print("ERROR \(name): the probe app is not running") }
     let root = AXUIElementCreateApplication(running.processIdentifier)
-    // A step of a focus walk: only which element holds keyboard focus.
-    if name.hasPrefix("tab-") {
-        let focused = attribute(root, "AXFocusedUIElement").flatMap { CFGetTypeID($0) == AXUIElementGetTypeID() ? ($0 as! AXUIElement) : nil }
-        let line = "FOCUS \(name): " + (focused.map(describe) ?? "none")
-        let log = folder.appendingPathComponent("focus-walk.txt")
-        if let handle = try? FileHandle(forWritingTo: log) { handle.seekToEndOfFile(); handle.write(Data((line + "\n").utf8)); try? handle.close() }
-        else { try? (line + "\n").write(to: log, atomically: true, encoding: .utf8) }
-        return
-    }
     var lines: [String] = []
     var total = Counts()
     let windows = (attribute(root, "AXWindows") as? [AXUIElement]) ?? []

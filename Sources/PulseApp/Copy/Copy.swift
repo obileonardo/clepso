@@ -163,7 +163,7 @@ enum Copy {
         static func hoursSummary(peak: Int) -> String { "Sessions started by hour of day; the busiest hour is " + String(format: "%02d:00", peak) }
         static let tokensPerWeek = "TOKENS PER WEEK"
         static func tokensTotal(_ n: String) -> String { "\(n) tokens" }
-        static let hoverHint = "Point at a bar for its numbers"
+        static let hoverHint = "Point at a bar, or select the chart and press ← →, for its numbers"
         static let noTokens = "no tokens"
         static let noModels = "No model activity in this range yet."
         static func level(_ n: Int) -> String { "LV \(n)" }
