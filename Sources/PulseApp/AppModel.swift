@@ -31,6 +31,10 @@ public final class AppModel {
     public private(set) var plan: Store.PlanIdentity?
     public private(set) var preview: SettingsInstaller.Preview
     public private(set) var notificationStatus: NotificationAuthorization = .notDetermined
+    /// 2.1: limit alerts (on by default once notifications are allowed), a snooze, and a request to open the Dashboard.
+    public internal(set) var alertsEnabled = true
+    public internal(set) var alertsSnoozedUntil: Date?
+    public internal(set) var dashboardRequests = 0
     /// On only when the user chose it here and the system confirms it. `SMAppService.mainApp.status` was seen
     /// reporting `.enabled` for a development build that never registered, so the system's word alone is not enough.
     public private(set) var loginItemEnabled = false
@@ -132,6 +136,8 @@ public final class AppModel {
             firstRealReadingAt = try await store.preference(Pref.firstReading, as: Date.self)
             statsEnabled = try await store.preference(Pref.readStats, as: Bool.self) ?? false
             codexEnabled = try await store.preference(Pref.readCodex, as: Bool.self) ?? false
+            alertsEnabled = try await store.preference(Pref.alertsEnabled, as: Bool.self) ?? true
+            alertsSnoozedUntil = try await store.preference(Pref.alertsSnoozedUntil, as: Date.self)
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
@@ -162,6 +168,9 @@ public final class AppModel {
             }
         })
         notificationStatus = await environment.notifications.status()
+        environment.notifications.onAction { [weak self] action in
+            Task { @MainActor in await self?.handleAlertAction(action) }
+        }
         await refresh()
     }
 
@@ -184,8 +193,8 @@ public final class AppModel {
         do {
             let socket = try IngestSocket(path: environment.socketPath, wallClock: { [clock = environment.clock] in clock.now() })
             socket.start()
-            let ingestor = Ingestor(connectionID: store.connectionID, sink: StoreSink(store: store) { [weak self] in
-                await self?.didIngest()
+            let ingestor = Ingestor(connectionID: store.connectionID, sink: StoreSink(store: store) { [weak self] events in
+                await self?.didIngest(events: events)
             })
             tasks.append(Task { await ingestor.consume(socket.frames) })
             self.socket = socket
@@ -202,12 +211,13 @@ public final class AppModel {
     }
 
     private func tick() async {
-        await pollCodex()
-        _ = try? await store?.tick(now: environment.clock.now())
+        let codexEvents = await pollCodex()
+        let tickEvents = (try? await store?.tick(now: environment.clock.now())) ?? []
         await purgeIfDue()
         await syncIfDue()
         await recordIngestHealth()
         await refresh()
+        await handleEngineEvents(codexEvents + tickEvents)
     }
 
     /// Retention (PRIVACY_AND_SECURITY §6): at launch, then at most once a day.
@@ -247,13 +257,14 @@ public final class AppModel {
     }
 
     /// A real observation arrived: it ends demo mode and is the first-reading moment of onboarding.
-    private func didIngest() async {
+    private func didIngest(events: [EngineEvent] = []) async {
         let now = environment.clock.now()
         if firstRealReadingAt == nil {
             firstRealReadingAt = now
             try? await store?.setPreference(Pref.firstReading, now, now: now)
         }
         if demo { await setDemo(false) } else { await refresh() }
+        await handleEngineEvents(events)           // after refresh: the alert text reads the current snapshot
     }
 
     // MARK: - Snapshot
@@ -809,6 +820,8 @@ public final class AppModel {
         stats = nil
         codexEnabled = false
         codexLatest = nil
+        alertsEnabled = true
+        alertsSnoozedUntil = nil
         codexConnection = nil
         lastSync = nil
         accountMessage = nil
@@ -840,6 +853,8 @@ public final class AppModel {
         static let lastSync = "account.lastSync"
         static let appearance = "general.appearance"
         static let readCodex = "codex.readSessionFiles"
+        static let alertsEnabled = "alerts.enabled"
+        static let alertsSnoozedUntil = "alerts.snoozedUntil"
         static let theme = "general.theme"
     }
 }
@@ -847,13 +862,13 @@ public final class AppModel {
 /// Ingest → store (ARCHITECTURE §4): one transaction per frame, then a snapshot refresh.
 struct StoreSink: IngestSink {
     let store: Store
-    let didIngest: @Sendable () async -> Void
+    let didIngest: @Sendable ([EngineEvent]) async -> Void
 
     func ingest(_ batch: IngestBatch) async {
         let meta = batch.sessionRef.map { Store.SessionMeta(sessionRef: $0, modelID: batch.modelID, modelDisplayName: batch.modelDisplayName) }
         // Refresh even when nothing new was stored: the frame itself proves the connection is live.
-        guard (try? await store.ingest(batch.observations, session: meta)) != nil else { return }
-        await didIngest()
+        guard let result = try? await store.ingest(batch.observations, session: meta) else { return }
+        await didIngest(result.events)
     }
 
     func ingest(hook: HookFrame.Decoded, at: Date) async {
@@ -865,6 +880,6 @@ struct StoreSink: IngestSink {
         }
         guard (try? await store.record(.init(kind: kind, sessionRef: hook.sessionRef, agentRef: hook.agentRef, agentType: hook.agentType, at: at))) != nil
         else { return }
-        await didIngest()
+        await didIngest([])
     }
 }

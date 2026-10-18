@@ -27,6 +27,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case statsReading(on: Bool)
     case agentsCounting(outcome: String)              // a `HooksInstaller` outcome or error case name
     case account(event: String)                       // signed in / signed out / account deleted (never the email)
+    case alertShown(kind: String, level: Int?)        // 2.1: an `AlertKind` case name and threshold
 
     var level: DiagnosticsLog.Entry.Level {
         switch self {
@@ -57,6 +58,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .statsReading: "stats.reading"
         case .agentsCounting: "agents.hooks"
         case .account: "account.changed"
+        case .alertShown: "alerts.shown"
         }
     }
 
@@ -70,8 +72,8 @@ public enum DiagnosticEvent: Sendable, Equatable {
             "Updates set aside: \(otherUser) from another user, \(malformed) malformed, \(oversize) too large, "
                 + "\(rateLimited) over the rate limit, \(unmappable) unreadable"
         case .clockSkew(let n): "\(n) update(s) had a clock more than 5 minutes off"
-        case .unreadLimitWindows(let n): n == 0 ? "Claude Code no longer sends limits Pulse can't read"
-            : "Claude Code sends \(n) limit(s) Pulse doesn't read yet; see the usage screen in Claude Code"
+        case .unreadLimitWindows(let n): n == 0 ? "Claude Code no longer sends limits \(Product.name) can't read"
+            : "Claude Code sends \(n) limit(s) \(Product.name) doesn't read yet; see the usage screen in Claude Code"
         case .storageFailed(let code): "Data file error" + (code.map { " (SQLite \($0))" } ?? "")
         case let .installed(kept, backup):
             "Connected to Claude Code" + (kept ? ", your status line still runs first" : "") + (backup.map { ", backup \($0)" } ?? "")
@@ -85,7 +87,8 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case let .purged(readings, sessions): "Removed \(readings) reading(s) and \(sessions) session(s) past their keep time"
         case .statsReading(let on): on ? "Reading Claude Code's statistics file: on" : "Reading Claude Code's statistics file: off"
         case .agentsCounting(let outcome): "Agents per task hooks: \(outcome)"
-        case .account(let event): "Pulse account: \(event)"
+        case .account(let event): "\(Product.name) account: \(event)"
+        case let .alertShown(kind, level): "Limit alert shown: \(kind)" + (level.map { " at \($0)%" } ?? "")
         }
     }
 }

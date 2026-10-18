@@ -417,6 +417,21 @@ enum Copy {
         static let demoNote = "Uploads are paused while demo data is showing."
     }
 
+    /// 2.1–2.3: limit alerts. `agent` is "Claude Code" or "Codex"; `scope` is "5-hour" or "7-day".
+    enum Alerts {
+        static func approaching(_ agent: String, _ scope: String, _ level: Int) -> String { "\(agent) · \(scope) limit at \(level)%" }
+        static func exhausted(_ agent: String, _ scope: String) -> String { "\(agent) · \(scope) limit reached" }
+        static func resetExpected(_ agent: String, _ scope: String) -> String { "\(agent) · \(scope) reset time has arrived" }
+        static func readyAgain(_ agent: String, _ scope: String) -> String { "\(agent) · \(scope) limit available again" }
+        static func resets(_ time: String) -> String { "Resets \(time)." }
+        static let noReset = "Reset time not reported."
+        static func notRechecked(_ agent: String) -> String { "Not rechecked yet: it updates with your next \(agent) message." }
+        static func verified(_ pct: Int) -> String { "Verified just now: \(pct)% used." }
+        static let toggle = "Limit alerts", toggleSub = "At 80%, 95% and 100% of a limit, and when a limit you hit is ready again"
+        static func snoozed(_ time: String) -> String { "Snoozed until \(time)" }
+        static let snooze = "Snooze 1 h", unsnooze = "Resume"
+    }
+
     /// Increment 3.4: Codex's limits beside Claude Code's.
     enum Codex {
         static let name = "Codex"
@@ -431,6 +446,7 @@ enum Copy {
     }
 
     enum SettingsPage {
+        static let alertsNeedPermission = "Allow notifications above to get alerts at 80%, 95% and 100%"
         static let title = "Settings", subtitle = "How \(product) runs on this Mac"
         static let general = "GENERAL", claudeCode = "CLAUDE CODE", codex = "CODEX", notifications = "NOTIFICATIONS", data = "YOUR DATA", diagnostics = "DIAGNOSTICS"
         static let exportSub = "Everything \(product) stores on this Mac, as one JSON file", exportAction = "Export…"

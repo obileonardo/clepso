@@ -77,6 +77,10 @@ struct MenuBarLabel: View {
         .accessibilityLabel(snapshot.iconAccessibilityLabel)
         .accessibilityRemoveTraits(.isImage)
         .help(snapshot.aggregateLine)
+        .onChange(of: model.dashboardRequests) {                 // 2.1: a click on a limit alert opens Limits
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: PulseScenes.detailsID)
+        }
         .task {
             await model.start()
             #if DEBUG

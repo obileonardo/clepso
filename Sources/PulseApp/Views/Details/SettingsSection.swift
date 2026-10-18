@@ -40,6 +40,19 @@ struct SettingsSection: View {
             }
             group(Copy.SettingsPage.notifications) {
                 row("bell", Copy.SettingsPage.notificationsTitle, notificationLine) { notificationControl }
+                row("gauge.with.dots.needle.50percent", Copy.Alerts.toggle, alertsLine) {
+                    HStack(spacing: theme.spacing(.standard)) {
+                        if model.alertsEnabled, model.notificationStatus == .authorized {
+                            if snoozed {
+                                Button(Copy.Alerts.unsnooze) { Task { await model.snoozeAlerts(for: nil) } }.buttonStyle(PixelButtonStyle())
+                            } else {
+                                Button(Copy.Alerts.snooze) { Task { await model.snoozeAlerts(for: 3600) } }.buttonStyle(PixelButtonStyle())
+                            }
+                        }
+                        toggle(model.alertsEnabled) { on in Task { await model.setAlertsEnabled(on) } }
+                            .disabled(model.notificationStatus != .authorized)
+                    }
+                }
             }
             group(Copy.SettingsPage.claudeCode) {
                 row("link", Copy.SettingsPage.connection, connectionLine) {
@@ -135,6 +148,18 @@ struct SettingsSection: View {
             return Copy.Settings.providerConnected(Formatting.clock(seen, zone: model.environment.timeZone, locale: model.environment.locale))
         }
         return model.preview.installed ? Copy.Settings.providerInstalled : Copy.Settings.providerNotInstalled
+    }
+
+    var snoozed: Bool { model.alertsSnoozedUntil.map { $0 > model.environment.clock.now() } ?? false }
+
+    /// What the alerts switch does, or why it can't yet.
+    var alertsLine: String {
+        guard model.notificationStatus == .authorized else { return Copy.SettingsPage.alertsNeedPermission }
+        if snoozed, let until = model.alertsSnoozedUntil {
+            return Copy.Alerts.snoozed(Formatting.resetTime(until, now: model.environment.clock.now(),
+                                                             zone: model.environment.timeZone, locale: model.environment.locale))
+        }
+        return Copy.Alerts.toggleSub
     }
 
     var notificationLine: String {

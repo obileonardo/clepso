@@ -115,7 +115,28 @@ public protocol NotificationAuthorizing: Sendable {
     func sendTest(title: String, body: String) async
     /// Delete-all step 2: nothing scheduled or shown survives.
     func removeAll() async
+    /// 2.1: shows one limit alert now.
+    func deliver(_ alert: AlertNotification) async
+    /// 2.1: what to do when the user picks an alert's action ("Snooze 1 h") or clicks it.
+    func onAction(_ handler: @escaping @Sendable (AlertAction) -> Void)
 }
+
+extension NotificationAuthorizing {
+    public func deliver(_ alert: AlertNotification) async {}
+    public func onAction(_ handler: @escaping @Sendable (AlertAction) -> Void) {}
+}
+
+/// One limit alert as the notification center shows it (NOTIFICATIONS_AND_SCHEDULING §1.9).
+public struct AlertNotification: Sendable, Equatable {
+    public let identifier: String          // the dedup key: one crossing is one notification
+    public let title: String
+    public let body: String
+    public let threadID: String            // one thread per pool
+    public let relevance: Double
+    public let snoozable: Bool             // approaching and limit-reached alerts carry "Snooze 1 h"
+}
+
+public enum AlertAction: Sendable, Equatable { case open, snoozeOneHour }
 
 public struct SystemNotifications: NotificationAuthorizing {
     public init() {}
@@ -150,7 +171,59 @@ public struct SystemNotifications: NotificationAuthorizing {
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
         #endif
     }
+
+    #if canImport(UserNotifications)
+    static let limitCategory = "LIMIT_ALERT", infoCategory = "LIMIT_INFO", snoozeAction = "SNOOZE_1H"
+    #endif
+
+    public func deliver(_ alert: AlertNotification) async {
+        #if canImport(UserNotifications)
+        let center = UNUserNotificationCenter.current()
+        let snooze = UNNotificationAction(identifier: Self.snoozeAction, title: "Snooze 1 h", options: [])
+        center.setNotificationCategories([
+            UNNotificationCategory(identifier: Self.limitCategory, actions: [snooze], intentIdentifiers: []),
+            UNNotificationCategory(identifier: Self.infoCategory, actions: [], intentIdentifiers: []),
+        ])
+        let content = UNMutableNotificationContent()
+        content.title = alert.title
+        content.body = alert.body
+        content.threadIdentifier = alert.threadID
+        content.categoryIdentifier = alert.snoozable ? Self.limitCategory : Self.infoCategory
+        content.relevanceScore = alert.relevance
+        content.interruptionLevel = .active
+        content.sound = .default
+        try? await center.add(UNNotificationRequest(identifier: alert.identifier, content: content, trigger: nil))
+        #endif
+    }
+
+    public func onAction(_ handler: @escaping @Sendable (AlertAction) -> Void) {
+        #if canImport(UserNotifications)
+        let delegate = AlertDelegate(handler: handler)
+        AlertDelegate.current = delegate                     // the center holds its delegate weakly
+        UNUserNotificationCenter.current().delegate = delegate
+        #endif
+    }
 }
+
+#if canImport(UserNotifications)
+/// Shows alerts while the app is frontmost too, and turns the user's choice into an `AlertAction`.
+final class AlertDelegate: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+    nonisolated(unsafe) static var current: AlertDelegate?
+    let handler: @Sendable (AlertAction) -> Void
+    init(handler: @escaping @Sendable (AlertAction) -> Void) { self.handler = handler }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async
+        -> UNNotificationPresentationOptions { [.banner, .list, .sound] }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        switch response.actionIdentifier {
+        case SystemNotifications.snoozeAction: handler(.snoozeOneHour)
+        case UNNotificationDefaultActionIdentifier: handler(.open)
+        default: break
+        }
+    }
+}
+#endif
 
 // MARK: - Keychain (delete-all step 4)
 

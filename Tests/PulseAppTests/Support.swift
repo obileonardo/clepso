@@ -38,6 +38,9 @@ final class FakeNotifications: NotificationAuthorizing, @unchecked Sendable {
     private var removals = 0
     var removeAllCount: Int { lock.withLock { removals } }
     func removeAll() async { lock.withLock { removals += 1 } }
+    private var shown: [AlertNotification] = []
+    var delivered: [AlertNotification] { lock.withLock { shown } }
+    func deliver(_ alert: AlertNotification) async { lock.withLock { shown.append(alert) } }
 }
 
 final class FakeKeychain: KeychainCleaning, @unchecked Sendable {

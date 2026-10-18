@@ -1,5 +1,6 @@
 import CodexAdapter
 import Foundation
+import UsageEngine
 
 /// Increment 3.4: Codex's limits from its own session files. Off until the user turns it on;
 /// then read on every tick (the newest files' tails only, about 50 ms) and stored under Codex's own connection.
@@ -15,10 +16,12 @@ extension AppModel {
     }
 
     /// Reads Codex's latest limits and stores them; a reading Pulse already has is a no-op (same dedupe keys).
-    func pollCodex() async {
-        guard codexEnabled, !demo, let store else { return }
+    /// Returns the engine's events for the alerts.
+    @discardableResult
+    func pollCodex() async -> [EngineEvent] {
+        guard codexEnabled, !demo, let store else { return [] }
         let now = environment.clock.now()
-        guard let reading = CodexReader.latest(home: environment.home, now: now) else { return }
+        guard let reading = CodexReader.latest(home: environment.home, now: now) else { return [] }
         codexLatest = reading
         do {
             let connection: UUID
@@ -27,10 +30,11 @@ extension AppModel {
                                                         label: "Codex", now: now)
                 codexConnection = connection
             }
-            _ = try await store.ingest(CodexMapper.observations(reading, connectionID: connection, receivedAt: now),
-                                       session: nil, connection: connection)
+            return try await store.ingest(CodexMapper.observations(reading, connectionID: connection, receivedAt: now),
+                                       session: nil, connection: connection).events
         } catch {
             problem = .storage("\(error)")
+            return []
         }
     }
 }

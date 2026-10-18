@@ -2,6 +2,7 @@ import Domain
 import Foundation
 import Testing
 @testable import Storage
+import UsageEngine
 
 /// Increment 3.4: a second agent (Codex) gets its own account and connection; its pools live beside Claude Code's.
 struct MultiAgentStoreTests {
@@ -69,5 +70,22 @@ struct MultiAgentStoreTests {
             _ = try await store.ingest(codex("codex.rate_limits.five_hour", used: 1, reset: t0, at: 0, connection: UUID()), session: nil, connection: UUID())
         }
         #expect(try await store.count("SELECT count(*) FROM observations") == 0)
+    }
+}
+
+/// 2.1: alert receipts survive restarts and carry the window, for the "ready again" guard.
+struct AlertReceiptTests {
+    @Test func recordedAlertsComeBackAsHistory() async throws {
+        let store = try Store.inMemory(now: t0)
+        let window = UUID()
+        let alert = AlertCandidate(kind: .exhausted, poolKey: "claude-code.rate_limits.five_hour", windowID: window, level: 100, occurredAt: t0,
+                                   dedupKey: AlertPlanner.key(poolKey: "claude-code.rate_limits.five_hour", windowID: window, kind: .exhausted, level: 100))
+        try await store.recordAlert(alert, at: t0)
+        try await store.recordAlert(alert, at: t0.addingTimeInterval(5))          // idempotent
+        let history = try await store.alertHistory(since: t0.addingTimeInterval(-60))
+        #expect(history.delivered == [alert.dedupKey])
+        #expect(history.kinds[window] == [.exhausted])
+        #expect(try await store.count("SELECT count(*) FROM notification_receipts") == 1)
+        #expect(try await store.alertHistory(since: t0.addingTimeInterval(60)).delivered.isEmpty)
     }
 }
