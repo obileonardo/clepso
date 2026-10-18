@@ -309,6 +309,7 @@ public final class AppModel {
         }
         input.sessions = try await store.sessionStates()
         input.sessionSummaries = try await store.sessionSummaries(limit: 20)
+        input.firstSessionSeen = try await store.firstSessionSeenAt()
         for pool in input.pools {
             input.recent[pool.poolKey] = try await store.recentReadings(poolKey: pool.poolKey, kind: .quotaUsedPct, limit: 3)
         }

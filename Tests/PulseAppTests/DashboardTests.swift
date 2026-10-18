@@ -2,6 +2,7 @@
 import DesignSystem
 import Foundation
 import SwiftUI
+import Domain
 import Testing
 import UsageEngine
 @testable import PulseApp
@@ -45,6 +46,28 @@ struct DashboardTests {
         let total = RunningTotal.make(file)
         #expect(total.tokens == file.models.map(\.total).reduce(0, +))
         #expect(total.lastDayDate == file.dailyTokens.map(\.date).max())
+    }
+
+    @Test("Lines: summed over sessions seen in the last 30 days, each at its latest value; the window says where it starts")
+    func codeLines() {
+        let now = Date(timeIntervalSince1970: 1_792_238_400), day: TimeInterval = 86_400
+        func session(_ ref: String, seen: TimeInterval, added: Int64?, removed: Int64?) -> SessionState {
+            func o(_ kind: MetricKind, _ value: MetricValue) -> IncomingObservation {
+                IncomingObservation(subject: .session(sessionRef: ref), sessionRef: ref, modelID: nil, kind: kind, value: value,
+                                    observedAt: now - seen, receivedAt: now - seen, evidence: .officialLocalTelemetry,
+                                    quality: .reported, sourceVersion: "test", dedupeKey: UUID().uuidString)
+            }
+            let readings = [o(.contextUsedPct, .percent(10))] + [added.map { o(.linesAdded, .count($0)) }, removed.map { o(.linesRemoved, .count($0)) }].compactMap { $0 }
+            return SessionReducer.reduce(SessionState(sessionRef: ref), readings)
+        }
+        let sessions = [session("a", seen: 60, added: 1200, removed: 300), session("b", seen: 3 * day, added: 40, removed: nil),
+                        session("old", seen: 31 * day, added: 9999, removed: 9999), session("quiet", seen: day, added: nil, removed: nil)]
+        let full = CodeLines.make(sessions, firstSeen: now - 80 * day, now: now)
+        #expect(full == CodeLines(added: 1240, removed: 300, sessions: 2, since: now - 30 * day, fullWindow: true))
+        // A newer install: the window starts at the first session Clepso saw, and says so.
+        let recent = CodeLines.make(sessions, firstSeen: now - 4 * day, now: now)
+        #expect(recent?.since == now - 4 * day && recent?.fullWindow == false)
+        #expect(CodeLines.make([session("quiet", seen: day, added: nil, removed: nil)], firstSeen: nil, now: now) == nil, "no lines: no figure")
     }
 
     @Test("Goals: active days, today's 5-hour peak with its streak, the week's projected finish")
