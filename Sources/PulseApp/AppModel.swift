@@ -220,6 +220,9 @@ public final class AppModel {
         await handleEngineEvents(codexEvents + tickEvents)
     }
 
+    /// The footer's refresh: everything a tick does, now.
+    public func refreshNow() async { await tick() }
+
     /// Retention (PRIVACY_AND_SECURITY §6): at launch, then at most once a day.
     func purgeIfDue() async {
         let now = environment.clock.now()

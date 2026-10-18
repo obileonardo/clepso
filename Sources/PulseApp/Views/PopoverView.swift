@@ -8,13 +8,14 @@ import SwiftUI
 ///
 /// 1.15 layout: every page has the same frame. A demo strip on top when the data is demo data; the page's header; its
 /// content in cards on one grid; and one action bar at the bottom: DASHBOARD (the only primary), the page's own actions
-/// as secondary buttons of one height, then QUIT as a quiet action at the far end.
+/// as secondary buttons of one height, a refresh beside the freshness line, then QUIT as a framed, unlit button at the end.
 public struct PopoverView: View {
     let model: AppModel
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismiss) private var dismiss
+    @State private var refreshing = false
 
     public init(model: AppModel) { self.model = model }
 
@@ -142,7 +143,7 @@ public struct PopoverView: View {
     // MARK: - Action bar and navigation
 
     /// One row, one height: DASHBOARD is the page's primary action, the page's own actions are secondary, freshness or
-    /// nothing fills the middle, and QUIT sits quietly at the end.
+    /// nothing fills the middle (with a refresh beside it), and QUIT is framed at the end so it reads as an action.
     func actionBar(_ snapshot: OverviewSnapshot) -> some View {
         HStack(spacing: theme.spacing(.standard)) {
             Button { openDashboard(.home) } label: { PixelLabel(Copy.Details.dashboard, glyph: .grid) }
@@ -167,14 +168,36 @@ public struct PopoverView: View {
             }
             Spacer(minLength: 0)
             if model.popoverRoute == .overview, let updated = snapshot.updatedAt {
-                Text(Copy.Header.updated(Formatting.age(of: updated, now: snapshot.now, zone: model.environment.timeZone,
-                                                        locale: model.environment.locale)).uppercased())
-                    .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).lineLimit(1)
+                HStack(spacing: 0) {
+                    Button { refreshNow() } label: { PixelIcon(.refresh).opacity(refreshing ? 0.35 : 1) }
+                        .buttonStyle(PixelQuietButtonStyle()).fixedSize()
+                        .disabled(refreshing)
+                        .help(Copy.Footer.refreshHelp)
+                        .accessibilityLabel(Copy.Footer.refresh)
+                    Text(Copy.Header.updated(Formatting.age(of: updated, now: snapshot.now, zone: model.environment.timeZone,
+                                                            locale: model.environment.locale)).uppercased())
+                        .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme)).lineLimit(1)
+                }
             }
-            Button(Copy.Footer.quit) { NSApp.terminate(nil) }.buttonStyle(PixelQuietButtonStyle()).fixedSize()
+            // Quitting is an action, not a label: framed like DASHBOARD but unlit, so it reads as a button without competing.
+            Button { NSApp.terminate(nil) } label: { PixelLabel(Copy.Footer.quit, glyph: .power) }
+                .buttonStyle(PixelButtonStyle()).fixedSize()
+                .help(Copy.Footer.quitHelp)
         }
         .padding(.top, theme.spacing(.standard) + theme.spacing(.compact))
         .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
+    }
+
+    /// Checks again now instead of at the next tick. Claude Code's limits still arrive only when Claude Code runs; the
+    /// icon stays dimmed for at least half a second so the click is seen even when nothing changed.
+    func refreshNow() {
+        refreshing = true
+        Task {
+            async let minimum: Void = { try? await Task.sleep(for: .milliseconds(500)) }()
+            await model.refreshNow()
+            await minimum
+            refreshing = false
+        }
     }
 
     /// Opens the Dashboard window on a section.

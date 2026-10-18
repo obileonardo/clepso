@@ -59,6 +59,8 @@ extension PixelGlyph {
         .palette: ["....####....", "..##....##..", ".#.##.....#.", "#..##..##..#", "#.......##.#", "#.##.......#", "#.##......#.", "#.......##..", ".#..##.#....", ".#..##.#....", "..#....#....", "...####....."],
         .external: ["......######", "..........##", ".........###", "........##.#", "#####..##..#", "#.....##....", "#....##.....", "#.........#.", "#.........#.", "#.........#.", "#.........#.", "###########."],
         .grid: ["#####..#####", "#...#..#...#", "#...#..#...#", "#...#..#...#", "#####..#####", "............", "............", "#####..#####", "#...#..#...#", "#...#..#...#", "#...#..#...#", "#####..#####"],
+        // Two arrows round a circle: check again now. Distinct from `.reset`, the one arrow beside reset times.
+        .refresh: ["............", "...#####....", "..#.....#...", ".#.......#..", ".#......####", ".........##.", ".##.........", "####......#.", "..#.......#.", "...#.....#..", "....#####...", "............"],
     ]
 
     /// The SF Symbol names Pulse used before 1.13, mapped to their pixel glyphs.
@@ -121,6 +123,6 @@ extension PixelGlyph {
         "questionmark": .question, "creditcard": .dollar, "person": .person,
         "apple.logo": .key,
         "g.circle": .key,
-        "paintpalette": .palette, "arrow.up.forward.square": .external, "square.grid.2x2": .grid,
+        "paintpalette": .palette, "arrow.up.forward.square": .external, "square.grid.2x2": .grid, "arrow.triangle.2.circlepath": .refresh,
     ]
 }

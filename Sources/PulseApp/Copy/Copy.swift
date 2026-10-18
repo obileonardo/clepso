@@ -562,6 +562,9 @@ enum Copy {
         static let notifications = "Notifications…"
         static let settings = "Settings…"
         static let quit = "Quit"
+        static let quitHelp = "Quit \(product). Limits are not tracked until it opens again."
+        static let refresh = "Refresh"
+        static let refreshHelp = "Check again now. Claude Code sends its limits each time it runs; Codex and stats are re-read."
     }
 
     enum Settings {
