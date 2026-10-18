@@ -77,11 +77,57 @@ public enum Formatting {
     /// narrow no-break space before AM/PM; it becomes a plain space, as the fixed patterns wrote it, so notification
     /// bodies, VoiceOver sentences and Diagnostics stay plain text.
     static func format(_ date: Date, template: String, zone: TimeZone, locale: Locale) -> String {
+        DateFormatterCache.shared.string(from: date, template: template, zone: zone, locale: locale)
+            .replacingOccurrences(of: "\u{202F}", with: " ")
+    }
+}
+
+/// One `DateFormatter` per skeleton, zone and locale (item 8, popover open speed). Making one costs about a millisecond
+/// (ICU builds the locale's pattern generator and symbols), and a popover render formats a dozen times; profiling the
+/// first open after launch showed ICU formatter construction on the main thread. A formatter's pattern is fixed when it
+/// is made, so the key holds everything the pattern depends on (the locale's identifier and hour cycle: the Mac's 12/24-
+/// hour setting), each formatter keeps a fixed copy of the zone, and the cache empties when the system locale changes.
+/// Formatting happens under the lock, so a formatter is never used from two threads at once.
+final class DateFormatterCache: @unchecked Sendable {
+    static let shared = DateFormatterCache()
+
+    struct Key: Hashable {
+        let template: String
+        let zone: String
+        let locale: String
+        let hourCycle: Locale.HourCycle
+    }
+
+    private let lock = NSLock()
+    private var formatters: [Key: DateFormatter] = [:]
+    private var observer: NSObjectProtocol?
+
+    init() {
+        observer = NotificationCenter.default.addObserver(forName: NSLocale.currentLocaleDidChangeNotification, object: nil, queue: nil) {
+            [weak self] _ in self?.removeAll()
+        }
+    }
+
+    func string(from date: Date, template: String, zone: TimeZone, locale: Locale) -> String {
+        lock.withLock { formatterLocked(template: template, zone: zone, locale: locale).string(from: date) }
+    }
+
+    /// The cached formatter itself, for tests (identity).
+    func formatter(template: String, zone: TimeZone, locale: Locale) -> DateFormatter {
+        lock.withLock { formatterLocked(template: template, zone: zone, locale: locale) }
+    }
+
+    func removeAll() { lock.withLock { formatters.removeAll() } }
+
+    private func formatterLocked(template: String, zone: TimeZone, locale: Locale) -> DateFormatter {
+        let key = Key(template: template, zone: zone.identifier, locale: locale.identifier, hourCycle: locale.hourCycle)
+        if let formatter = formatters[key] { return formatter }
         let formatter = DateFormatter()
         formatter.locale = locale
-        formatter.timeZone = zone
+        formatter.timeZone = TimeZone(identifier: zone.identifier) ?? zone     // fixed: an autoupdating zone would drift from the key
         formatter.setLocalizedDateFormatFromTemplate(template)
-        return formatter.string(from: date).replacingOccurrences(of: "\u{202F}", with: " ")
+        formatters[key] = formatter
+        return formatter
     }
 }
 

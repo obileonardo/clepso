@@ -218,6 +218,26 @@ struct TextTests {
         #expect(Formatting.countdown(to: now.addingTimeInterval(-1), now: now) == nil, "a passed reset has no countdown")
     }
 
+    @Test("Item 8: date formatters are made once per skeleton, zone and locale, not on every render")
+    func formattersAreCached() {
+        let cache = DateFormatterCache()
+        let gb = Locale(identifier: "en_GB")
+        let first = cache.formatter(template: "jmm", zone: london, locale: us)
+        #expect(cache.formatter(template: "jmm", zone: london, locale: us) === first, "the same key reuses the formatter")
+        #expect(cache.formatter(template: "jmm", zone: london, locale: gb) !== first, "another locale gets its own")
+        #expect(cache.formatter(template: "jmm", zone: TimeZone(identifier: "America/Los_Angeles")!, locale: us) !== first, "so does another zone")
+        #expect(cache.formatter(template: "MMMd", zone: london, locale: us) !== first, "and another skeleton")
+        // A 24-hour override is part of the key: a formatter's pattern is fixed when it is made.
+        var components = Locale.Components(locale: us)
+        components.hourCycle = .zeroToTwentyThree
+        let forced = Locale(components: components)
+        #expect(cache.formatter(template: "jmm", zone: london, locale: forced) !== first)
+        #expect(cache.string(from: reset, template: "jmm", zone: london, locale: us).replacingOccurrences(of: "\u{202F}", with: " ") == "5:15 PM")
+        // Changing the Mac's language or 12/24-hour setting empties the cache, so the next text follows it.
+        NotificationCenter.default.post(name: NSLocale.currentLocaleDidChangeNotification, object: nil)
+        #expect(cache.formatter(template: "jmm", zone: london, locale: us) !== first)
+    }
+
     @Test("AT-02: one sentence per row in the UX order: scope, value, source, freshness, status, reset")
     func voiceOver() {
         let sentence = AccessibilityText.poolRow(pool(83, card: .approaching), now: now, staleAfter: 600, zone: london, locale: us)
