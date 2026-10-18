@@ -573,6 +573,26 @@ public final class AppModel {
         }
     }
 
+    /// Upload on quit: the counts since the last hourly upload are sent before Clepso quits. True when signed in,
+    /// real data shows, and the last upload is more than a minute old.
+    public var uploadsOnQuit: Bool {
+        guard case .signedIn = account, !snapshot.isDemo else { return false }
+        guard let lastSync else { return true }
+        return environment.clock.now().timeIntervalSince(lastSync) >= 60
+    }
+
+    /// One last upload, given at most `limit`: quitting never waits longer, offline or not. True if it finished in time.
+    public func uploadBeforeQuit(limit: Duration = .seconds(3)) async -> Bool {
+        guard uploadsOnQuit else { return true }
+        return await withTaskGroup(of: Bool.self) { group in
+            group.addTask { await self.syncNow(); return true }
+            group.addTask { try? await Task.sleep(for: limit); return false }
+            let first = await group.next() ?? false
+            group.cancelAll()
+            return first
+        }
+    }
+
     /// Once an hour while signed in.
     func syncIfDue() async {
         guard case .signedIn = account else { return }
