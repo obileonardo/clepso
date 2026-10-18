@@ -950,6 +950,8 @@ fonts = repo / "Sources/DesignSystem/Resources/Fonts"
 for name in ("Silkscreen-Regular.ttf", "Silkscreen-Bold.ttf", "Silkscreen-OFL.txt"):
     shutil.copy(fonts / name, assets / "fonts" / name)
 shutil.copy(repo / "design/brand/favicon/favicon.svg", assets / "favicon.svg")
+(assets / "email").mkdir(exist_ok=True)   # account emails link here: keep the name stable (scripts/build-email.py)
+shutil.copy(repo / "design/brand/logo/png/clepso-logo-email-244.png", assets / "email" / "clepso-logo-email-244.png")
 for name in ("favicon.ico", "apple-touch-icon.png"):
     shutil.copy(repo / "design/brand/favicon" / name, site / name)
 

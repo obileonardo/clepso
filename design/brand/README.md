@@ -30,7 +30,7 @@ byte-identical files.
 |---|---|
 | `fonts/` | Clepso Pixel Regular; Clepso Mono Regular, Medium, Bold. Each as `.ttf`, `.otf`, `.woff2` |
 | `logo/svg/` | `pulse-{symbol,symbol-small,wordmark,horizontal,stacked}-{phosphor,deep,black,white,on-ink,on-paper}.svg` |
-| `logo/png/` | the same at whole-pixel scales; file name ends in the pixel width |
+| `logo/png/` | the same at whole-pixel scales; file name ends in the pixel width. Plus `clepso-logo-email-244.png`, the account emails' header logo (copied to `site/assets/email/`, see `docs/EMAIL.md`) |
 | `app-icon/` | `clepso-app-icon.svg` (layered master), PNG 16–1024, `Clepso.iconset`, `Clepso.icns` |
 | `menubar/` | `ClepsoMenuBarTemplate-16.png`, `-16@2x`, `-18`, `-18@2x`; status family `state-*.png`; `clepso-menubar-matrix.txt`; `MenuBarBeat.swift.txt` |
 | `favicon/` | `favicon.svg`, `favicon.ico` (16/32/48), `favicon-{16,32,48}.png`, `apple-touch-icon.png` |
