@@ -81,4 +81,17 @@ struct AgentsTests {
         #expect(summary.tasks == 3 && summary.tasksWithAgents == 2 && summary.totalAgents == 5 && summary.mostInOneTask == 4)
         #expect(abs(summary.averagePerTask - 5.0 / 3) < 1e-9)
     }
+
+    @Test("Claude Code's internal agents (a stop with no type, stored as unknown) aren't counted as a task's subagents")
+    func internalAgentsLeftOut() {
+        func task(_ id: String, _ start: Double, _ types: [String: Int], finished: Int) -> Store.AgentTask {
+            Store.AgentTask(id: id, sessionRef: "s", startedAt: t0 + start, endedAt: t0 + start + 60, fromPrompt: true, byType: types, finished: finished)
+        }
+        let summary = OverviewProjection.agents([task("a", 0, ["Explore": 2, "unknown": 27], finished: 28),
+                                                 task("b", 600, ["unknown": 3], finished: 3)], now: t0 + 3600)
+        #expect(summary.recent.map(\.agents) == [0, 2])
+        #expect(summary.recent.map(\.finished) == [0, 1])
+        #expect(summary.recent.flatMap { $0.byType.map(\.name) } == ["Explore"], "no Unknown chip")
+        #expect(summary.tasks == 2 && summary.tasksWithAgents == 1 && summary.totalAgents == 2 && summary.mostInOneTask == 2)
+    }
 }
