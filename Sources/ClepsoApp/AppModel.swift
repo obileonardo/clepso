@@ -36,6 +36,9 @@ public final class AppModel {
     /// 2.1: limit alerts (on by default once notifications are allowed), a snooze, and a request to open the Dashboard.
     public internal(set) var alertsEnabled = true
     public internal(set) var alertsSnoozedUntil: Date?
+    /// §1.6 quiet hours (off by default) and §2 reset reminders' lead in minutes (nil: off, the default).
+    public internal(set) var quietHours = QuietHours()
+    public internal(set) var reminderLead: Int?
     public internal(set) var dashboardRequests = 0
     /// On only when the user chose it here and the system confirms it. `SMAppService.mainApp.status` was seen
     /// reporting `.enabled` for a development build that never registered, so the system's word alone is not enough.
@@ -174,6 +177,8 @@ public final class AppModel {
             codexEnabled = try await store.preference(Pref.readCodex, as: Bool.self) ?? false
             alertsEnabled = try await store.preference(Pref.alertsEnabled, as: Bool.self) ?? true
             alertsSnoozedUntil = try await store.preference(Pref.alertsSnoozedUntil, as: Date.self)
+            quietHours = try await store.preference(Pref.quietHours, as: QuietHours.self) ?? QuietHours()
+            reminderLead = try await store.preference(Pref.reminderLead, as: Int.self).flatMap { $0 > 0 ? $0 : nil }
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
@@ -208,6 +213,7 @@ public final class AppModel {
             Task { @MainActor in await self?.handleAlertAction(action) }
         }
         await refresh()
+        await alertHousekeeping()                    // launch reconciliation: reminders, and a digest due while quit
     }
 
     public func stop() {
@@ -255,6 +261,7 @@ public final class AppModel {
         reloadStatsIfChanged()
         await refresh()
         await handleEngineEvents(codexEvents + tickEvents)
+        await alertHousekeeping()
     }
 
     /// The footer's refresh: everything a tick does, now.
@@ -964,6 +971,8 @@ public final class AppModel {
         codexLatest = nil
         alertsEnabled = true
         alertsSnoozedUntil = nil
+        quietHours = QuietHours()
+        reminderLead = nil
         codexConnection = nil
         lastSync = nil
         accountMessage = nil
@@ -997,6 +1006,8 @@ public final class AppModel {
         static let readCodex = "codex.readSessionFiles"
         static let alertsEnabled = "alerts.enabled"
         static let alertsSnoozedUntil = "alerts.snoozedUntil"
+        static let quietHours = "alerts.quietHours"
+        static let reminderLead = "alerts.resetReminderLeadMinutes"
         static let theme = "general.theme"
     }
 }

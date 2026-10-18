@@ -4,6 +4,7 @@ import AppKit
 import Domain
 import Foundation
 import Sync
+import enum UsageEngine.ReminderPlanner
 #if canImport(ServiceManagement)
 import ServiceManagement
 #endif
@@ -148,11 +149,19 @@ public protocol NotificationAuthorizing: Sendable {
     func deliver(_ alert: AlertNotification) async
     /// 2.1: what to do when the user picks an alert's action ("Snooze 1 h") or clicks it.
     func onAction(_ handler: @escaping @Sendable (AlertAction) -> Void)
+    /// 2.3: adds a request that fires at `alert.fireAt`; a pending request with the same identifier is replaced.
+    func schedule(_ alert: ScheduledAlert) async
+    /// 2.3: the reset reminders the notification center still holds (`ReminderPlanner.isReminder` identifiers).
+    func pendingReminders() async -> [ScheduledAlert]
+    func removePending(_ identifiers: [String]) async
 }
 
 extension NotificationAuthorizing {
     public func deliver(_ alert: AlertNotification) async {}
     public func onAction(_ handler: @escaping @Sendable (AlertAction) -> Void) {}
+    public func schedule(_ alert: ScheduledAlert) async {}
+    public func pendingReminders() async -> [ScheduledAlert] { [] }
+    public func removePending(_ identifiers: [String]) async {}
 }
 
 /// One limit alert as the notification center shows it (NOTIFICATIONS_AND_SCHEDULING §1.9).
@@ -163,6 +172,14 @@ public struct AlertNotification: Sendable, Equatable {
     public let threadID: String            // one thread per pool
     public let relevance: Double
     public let snoozable: Bool             // approaching and limit-reached alerts carry "Snooze 1 h"
+    /// §1.6: during quiet hours, `.passive` and no sound.
+    public var passive = false
+}
+
+/// A notification the center holds until `fireAt` (a reset reminder, §2).
+public struct ScheduledAlert: Sendable, Equatable {
+    public let notification: AlertNotification
+    public let fireAt: Date
 }
 
 public enum AlertAction: Sendable, Equatable { case open, snoozeOneHour }
@@ -219,9 +236,63 @@ public struct SystemNotifications: NotificationAuthorizing {
         content.threadIdentifier = alert.threadID
         content.categoryIdentifier = alert.snoozable ? Self.limitCategory : Self.infoCategory
         content.relevanceScore = alert.relevance
-        content.interruptionLevel = .active
-        content.sound = .default
+        content.interruptionLevel = alert.passive ? .passive : .active
+        content.sound = alert.passive ? nil : .default
         try? await center.add(UNNotificationRequest(identifier: alert.identifier, content: content, trigger: nil))
+        #endif
+    }
+
+    /// §2: the trigger is the absolute instant written as UTC calendar components, so a zone or daylight-saving change
+    /// on the Mac cannot move it (F16, F17).
+    public static func triggerComponents(for instant: Date) -> DateComponents {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        var components = utc.dateComponents([.year, .month, .day, .hour, .minute, .second], from: instant)
+        components.calendar = utc
+        components.timeZone = utc.timeZone
+        return components
+    }
+
+    static let fireAtKey = "fireAt"
+
+    public func schedule(_ alert: ScheduledAlert) async {
+        #if canImport(UserNotifications)
+        let center = UNUserNotificationCenter.current()
+        let content = UNMutableNotificationContent()
+        let note = alert.notification
+        content.title = note.title
+        content.body = note.body
+        content.threadIdentifier = note.threadID
+        content.categoryIdentifier = Self.infoCategory
+        content.relevanceScore = note.relevance
+        content.interruptionLevel = note.passive ? .passive : .active
+        content.sound = note.passive ? nil : .default
+        content.userInfo = [Self.fireAtKey: alert.fireAt.timeIntervalSince1970]
+        let trigger = UNCalendarNotificationTrigger(dateMatching: Self.triggerComponents(for: alert.fireAt), repeats: false)
+        try? await center.add(UNNotificationRequest(identifier: note.identifier, content: content, trigger: trigger))
+        #endif
+    }
+
+    public func pendingReminders() async -> [ScheduledAlert] {
+        #if canImport(UserNotifications)
+        return await UNUserNotificationCenter.current().pendingNotificationRequests().compactMap { request in
+            guard ReminderPlanner.isReminder(request.identifier),
+                  let seconds = request.content.userInfo[Self.fireAtKey] as? Double else { return nil }
+            let c = request.content
+            return ScheduledAlert(notification: AlertNotification(identifier: request.identifier, title: c.title, body: c.body,
+                                                                  threadID: c.threadIdentifier, relevance: c.relevanceScore,
+                                                                  snoozable: false, passive: c.interruptionLevel == .passive),
+                                  fireAt: Date(timeIntervalSince1970: seconds))
+        }
+        #else
+        return []
+        #endif
+    }
+
+    public func removePending(_ identifiers: [String]) async {
+        #if canImport(UserNotifications)
+        guard !identifiers.isEmpty else { return }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
         #endif
     }
 
@@ -242,7 +313,9 @@ final class AlertDelegate: NSObject, UNUserNotificationCenterDelegate, @unchecke
     init(handler: @escaping @Sendable (AlertAction) -> Void) { self.handler = handler }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async
-        -> UNNotificationPresentationOptions { [.banner, .list, .sound] }
+        -> UNNotificationPresentationOptions {
+        notification.request.content.interruptionLevel == .passive ? [.list] : [.banner, .list, .sound]   // §1.6 quiet hours
+    }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         switch response.actionIdentifier {

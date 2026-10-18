@@ -479,6 +479,25 @@ enum Copy {
         static let toggle = "Limit alerts", toggleSub = "At 80%, 95% and 100% of a limit, and when a limit you hit is ready again"
         static func snoozed(_ time: String) -> String { "Snoozed until \(time)" }
         static let snooze = "Snooze 1 h", unsnooze = "Resume"
+
+        // §1.6 quiet hours and the digest at their end.
+        static let quietHours = "Quiet hours"
+        static let quietHoursSub = "Alerts at 80% and 95% wait for one summary when quiet hours end; the rest arrive without sound"
+        static let quietFrom = "From", quietTo = "To"
+        static let stepEarlier = "−", stepLater = "+"
+        /// The digest: one line per pool held back, its highest crossing ("Claude Code · 5-hour limit at 95%.").
+        static let digestTitle = "While quiet hours were on"
+
+        // §2 reset reminders.
+        static let reminders = "Reset reminders"
+        static let remindersSub = "A notice before a limit resets, at the time Claude Code or Codex reported. Snooze doesn't hold it"
+        static let remindersOff = "Off"
+        static func leadShort(_ minutes: Int) -> String { minutes % 60 == 0 ? "\(minutes / 60) h" : "\(minutes) min" }
+        static func lead(_ minutes: Int) -> String {
+            minutes == 60 ? "1 hour" : minutes % 60 == 0 ? "\(minutes / 60) hours" : "\(minutes) minutes"
+        }
+        static func resetReminder(_ agent: String, _ scope: String, _ minutes: Int) -> String { "\(agent) · \(scope) reset in \(lead(minutes))" }
+        static func reportedReset(_ time: String) -> String { "Reported reset time is \(time)." }
     }
 
     /// 2.5 One-tap Calendar: a weekly reset as a one-shot event the user adds (NOTIFICATIONS §3.1).

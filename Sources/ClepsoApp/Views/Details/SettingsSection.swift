@@ -3,6 +3,7 @@ import DesignSystem
 import Domain
 import SwiftUI
 import UniformTypeIdentifiers
+import UsageEngine
 
 /// Settings, inside the Dashboard (increment 1.11; layout after the founder's Linear and Wise picks): one centred
 /// column of groups; each row a round icon, a title, one line of explanation, and its control on the right.
@@ -53,6 +54,29 @@ struct SettingsSection: View {
                             .disabled(model.notificationStatus != .authorized)
                     }
                 }
+                row("clock", Copy.Alerts.quietHours, Copy.Alerts.quietHoursSub) {
+                    toggle(model.quietHours.enabled) { on in setQuiet { $0.enabled = on } }
+                        .disabled(model.notificationStatus != .authorized)
+                }
+                if model.quietHours.enabled {
+                    HStack(spacing: theme.spacing(.spacious)) {
+                        timeStepper(Copy.Alerts.quietFrom, minute: model.quietHours.start) { minute in setQuiet { $0.start = minute } }
+                        timeStepper(Copy.Alerts.quietTo, minute: model.quietHours.end) { minute in setQuiet { $0.end = minute } }
+                    }
+                    .disabled(model.notificationStatus != .authorized)
+                    .opacity(model.notificationStatus == .authorized ? 1 : 0.4)
+                    .padding(.leading, theme.spacing(.spacious) * 2.8)            // under the row's text, past its icon
+                    .padding(.bottom, theme.spacing(.standard) + theme.spacing(.compact))
+                }
+                row("clock.arrow.circlepath", Copy.Alerts.reminders, Copy.Alerts.remindersSub) { EmptyView() }
+                PixelSegmented(Copy.Alerts.reminders,
+                               options: [(0, Copy.Alerts.remindersOff)] + ReminderPlanner.leads.map { ($0, Copy.Alerts.leadShort($0)) },
+                               selection: Binding(get: { model.reminderLead ?? 0 },
+                                                  set: { minutes in MainActor.assumeIsolated { setLead(minutes) } }))
+                    .disabled(model.notificationStatus != .authorized)
+                    .opacity(model.notificationStatus == .authorized ? 1 : 0.4)
+                    .padding(.leading, theme.spacing(.spacious) * 2.8)
+                    .padding(.bottom, theme.spacing(.standard) + theme.spacing(.compact))
             }
             group(Copy.SettingsPage.claudeCode) {
                 row("link", Copy.SettingsPage.connection, connectionLine) {
@@ -266,6 +290,40 @@ struct SettingsSection: View {
     func note(_ text: String) -> some View {
         Text(text).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
             .fixedSize(horizontal: false, vertical: true).padding(.bottom, theme.spacing(.standard))
+    }
+
+    /// Quiet hours' start or end, in half-hour steps: the time between pixel "−" and "+" buttons, one adjustable
+    /// element for VoiceOver.
+    func timeStepper(_ label: String, minute: Int, set: @escaping @MainActor (Int) -> Void) -> some View {
+        let text = Formatting.clock(Date(timeIntervalSince1970: TimeInterval(minute * 60)), zone: TimeZone(identifier: "UTC")!,
+                                    locale: model.environment.locale)
+        return HStack(spacing: theme.spacing(.standard)) {
+            Text(label.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+            Button(Copy.Alerts.stepEarlier) { set(minute - 30) }.buttonStyle(PixelButtonStyle())
+            Text(text).font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+            Button(Copy.Alerts.stepLater) { set(minute + 30) }.buttonStyle(PixelButtonStyle())
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityValue(text)
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: set(minute + 30)
+            case .decrement: set(minute - 30)
+            @unknown default: break
+            }
+        }
+    }
+
+    func setLead(_ minutes: Int) {
+        Task { await model.setReminderLead(minutes == 0 ? nil : minutes) }
+    }
+
+    func setQuiet(_ change: (inout QuietHours) -> Void) {
+        var value = model.quietHours
+        change(&value)
+        let normalized = QuietHours(enabled: value.enabled, start: value.start, end: value.end)
+        Task { await model.setQuietHours(normalized) }
     }
 
     /// SwiftUI calls a binding's setter on the main actor; saying so keeps strict concurrency checking quiet and true.

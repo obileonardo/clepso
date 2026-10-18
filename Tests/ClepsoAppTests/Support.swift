@@ -37,10 +37,35 @@ final class FakeNotifications: NotificationAuthorizing, @unchecked Sendable {
     func sendTest(title: String, body: String) async {}
     private var removals = 0
     var removeAllCount: Int { lock.withLock { removals } }
-    func removeAll() async { lock.withLock { removals += 1 } }
+    func removeAll() async { lock.withLock { removals += 1; held = [:] } }
     private var shown: [AlertNotification] = []
     var delivered: [AlertNotification] { lock.withLock { shown } }
     func deliver(_ alert: AlertNotification) async { lock.withLock { shown.append(alert) } }
+
+    // 2.3: the notification center's pending requests, as the OS keeps them (same identifier replaces).
+    private var held: [String: ScheduledAlert] = [:]
+    private var scheduleLog: [ScheduledAlert] = []
+    private var removalLog: [String] = []
+    /// What is pending now, soonest first.
+    var pending: [ScheduledAlert] { lock.withLock { held.values.sorted { ($0.fireAt, $0.notification.identifier) < ($1.fireAt, $1.notification.identifier) } } }
+    /// Every `schedule` call, in order.
+    var scheduled: [ScheduledAlert] { lock.withLock { scheduleLog } }
+    /// Every identifier removed from the pending list, in order.
+    var removedPending: [String] { lock.withLock { removalLog } }
+    func schedule(_ alert: ScheduledAlert) async { lock.withLock { held[alert.notification.identifier] = alert; scheduleLog.append(alert) } }
+    func pendingReminders() async -> [ScheduledAlert] { pending }
+    func removePending(_ identifiers: [String]) async {
+        lock.withLock { for id in identifiers { held[id] = nil }; removalLog += identifiers }
+    }
+    /// The OS firing what came due while the Mac was awake: each due request becomes a shown notification.
+    func fireDue(at now: Date) {
+        lock.withLock {
+            for alert in held.values.sorted(by: { $0.fireAt < $1.fireAt }) where alert.fireAt <= now {
+                held[alert.notification.identifier] = nil
+                shown.append(alert.notification)
+            }
+        }
+    }
 }
 
 final class FakeKeychain: KeychainCleaning, @unchecked Sendable {

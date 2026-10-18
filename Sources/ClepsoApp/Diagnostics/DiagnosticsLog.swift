@@ -29,6 +29,9 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case account(event: String)                       // signed in / signed out / account deleted (never the email)
     case alertShown(kind: String, level: Int?)        // 2.1: an `AlertKind` case name and threshold
     case alertsExpired(count: Int)                    // 2.4: alerts due while asleep, too old to show (`expired_stale`)
+    case alertsDeferred(count: Int)                   // §1.6: approaching alerts held for the quiet-hours digest
+    case digestShown(count: Int)                      // §1.6: the digest at the end of quiet hours
+    case remindersExpired(count: Int)                 // §2: reset reminders whose fire instant is > 15 min past
     /// The move from the layout before the rename to Clepso: `step` is "data" or "claudeCode", `outcome` a
     /// `LegacyDataMigration` / `LegacyLayoutMigration` outcome name.
     case legacyLayout(step: String, outcome: String)
@@ -65,6 +68,9 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .account: "account.changed"
         case .alertShown: "alerts.shown"
         case .alertsExpired: "alerts.expired"
+        case .alertsDeferred: "alerts.quietDeferred"
+        case .digestShown: "alerts.digest"
+        case .remindersExpired: "reminders.expired"
         case .legacyLayout: "migration.legacyLayout"
         }
     }
@@ -107,6 +113,9 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .account(let event): "\(Product.name) account: \(event)"
         case let .alertShown(kind, level): "Limit alert shown: \(kind)" + (level.map { " at \($0)%" } ?? "")
         case .alertsExpired(let n): "\(n) limit alert(s) were due while the Mac was asleep and are too old to show"
+        case .alertsDeferred(let n): "\(n) limit alert(s) held for the summary at the end of quiet hours"
+        case .digestShown(let n): "Quiet hours summary shown: \(n) limit alert(s)"
+        case .remindersExpired(let n): "\(n) reset reminder(s) were due more than 15 minutes ago and were dropped, not shown late"
         case let .legacyLayout(step, outcome):
             "Files from before the rename to \(Product.name) (\(step == "data" ? "data folder" : "Claude Code folder")): "
                 + Self.legacyLayoutText(outcome)

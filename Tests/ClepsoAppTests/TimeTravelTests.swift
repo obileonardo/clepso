@@ -87,8 +87,10 @@ final class TimeTravel {
     /// One 30-second tick, as the app's timer runs it: reset expected, stale, purge, refresh, alerts.
     func tick() async { await model.refreshNow() }
 
+    /// The Mac stays awake: what the notification center holds fires on time, then the app ticks.
     func travel(_ seconds: TimeInterval) async {
         clock.advance(seconds)
+        notifications.fireDue(at: clock.now())
         await tick()
     }
 
@@ -392,5 +394,156 @@ struct TimeTravelTests {
         await h.travel(45)                                        // and across 17:00 a second time
         #expect(h.fiveHour?.model.card == .resetExpected)
         #expect(h.titles.count == 2)
+    }
+
+    // MARK: Quiet hours (§1.6)
+
+    @Test("Quiet hours 22:00–07:00 (London): 80% overnight waits for one digest at 07:00; limit reached arrives quietly")
+    func quietHoursDigest() async throws {
+        let h = TimeTravel(at: instant("2026-10-22T21:30:00Z"), zone: london, locale: enGB)       // Thu 22:30 BST
+        defer { h.finish() }
+        await h.start()
+        await h.model.setQuietHours(QuietHours(enabled: true, start: 22 * 60, end: 7 * 60))
+        let five = instant("2026-10-23T02:00:00Z"), seven = instant("2026-10-27T12:00:00Z")
+        try await h.frame(fiveHour: 50, fiveHourResets: five, sevenDay: 20, sevenDayResets: seven)
+        h.clock.advance(60)
+        try await h.frame(fiveHour: 83, fiveHourResets: five, sevenDay: 20, sevenDayResets: seven)
+        #expect(await eventually { h.model.diagnostics.entries.contains { $0.code == "alerts.quietDeferred" } })
+        #expect(h.titles.isEmpty)
+
+        h.clock.advance(60)
+        try await h.frame(fiveHour: 84, fiveHourResets: five, sevenDay: 100, sevenDayResets: seven)
+        #expect(await eventually { h.titles == ["Claude Code · 7-day limit reached"] })
+        #expect(h.notifications.delivered.first?.passive == true)              // .passive, no sound
+
+        // Through the night, up to a minute before 07:00 BST (06:00 UTC): still held.
+        await h.travel(instant("2026-10-23T05:59:00Z").timeIntervalSince(h.clock.now()))
+        #expect(h.titles.count == 1)
+        await h.travel(60)
+        #expect(h.titles == ["Claude Code · 7-day limit reached", "While quiet hours were on"])
+        let digest = try #require(h.notifications.delivered.last)
+        #expect(digest.body == "Claude Code · 5-hour limit at 80%." && digest.passive && digest.threadID == "digest")
+        await h.travel(60)
+        await h.travel(hour)
+        #expect(h.titles.count == 2)                                            // one digest, once
+        // Daytime: a new 5-hour window, and its 80% crossing alerts as usual.
+        let next = h.clock.now().addingTimeInterval(5 * hour)
+        h.clock.advance(60)
+        try await h.frame(fiveHour: 10, fiveHourResets: next, sevenDay: 100, sevenDayResets: seven)
+        h.clock.advance(60)
+        try await h.frame(fiveHour: 85, fiveHourResets: next, sevenDay: 100, sevenDayResets: seven)
+        #expect(await eventually { h.titles.count == 3 })
+        #expect(h.titles.last == "Claude Code · 5-hour limit at 80%")
+        #expect(h.notifications.delivered.last?.passive == false)
+    }
+
+    // MARK: Reset reminders (§2)
+
+    func reminder(_ h: TimeTravel, _ window: String) -> ScheduledAlert? {
+        h.notifications.pending.first { $0.notification.identifier.hasPrefix("claude-code.rate_limits.\(window)|") }
+    }
+
+    @Test("Reset reminders: at resetAt − lead, re-planned in place within tolerance, replaced by a new window, never held by snooze")
+    func resetReminders() async throws {
+        let h = TimeTravel(at: instant("2026-10-16T14:00:00Z"), zone: london, locale: enUS)
+        defer { h.finish() }
+        await h.start()
+        await h.model.setReminderLead(15)
+        let seven = instant("2026-10-21T14:00:00Z")
+        try await h.frame(fiveHour: 40, fiveHourResets: instant("2026-10-16T17:00:00Z"), sevenDay: 20, sevenDayResets: seven)
+        #expect(await eventually { h.notifications.pending.count == 2 })
+        let first = try #require(reminder(h, "five_hour"))
+        #expect(first.fireAt == instant("2026-10-16T16:45:00Z"))
+        #expect(first.notification.title == "Claude Code · 5-hour reset in 15 minutes")
+        #expect(first.notification.body == "Reported reset time is 6:00 PM.")      // 17:00 UTC is 18:00 BST
+        #expect(first.notification.identifier.hasSuffix("|resetReminder|-") && !first.notification.passive)
+        #expect(reminder(h, "seven_day")?.fireAt == seven.addingTimeInterval(-15 * 60))
+
+        // The provider moves the reset by 5 minutes (within tolerance): same window, same request, new instant.
+        h.clock.advance(60)
+        try await h.frame(fiveHour: 41, fiveHourResets: instant("2026-10-16T17:05:00Z"), sevenDay: 20, sevenDayResets: seven)
+        #expect(await eventually { self.reminder(h, "five_hour")?.fireAt == instant("2026-10-16T16:50:00Z") })
+        #expect(reminder(h, "five_hour")?.notification.identifier == first.notification.identifier)
+        #expect(h.notifications.removedPending.isEmpty)
+        #expect(h.notifications.scheduled.filter { $0.notification.identifier == first.notification.identifier }.count == 2)
+
+        // Snoozed: limit alerts wait, reminders don't.
+        await h.model.snoozeAlerts(for: 8 * hour)
+        await h.tick()
+        #expect(h.notifications.pending.count == 2)
+
+        // Moved by more than 15 minutes: a new window. The old request goes, the new one is scheduled.
+        h.clock.advance(60)
+        try await h.frame(fiveHour: 2, fiveHourResets: instant("2026-10-16T18:30:00Z"), sevenDay: 20, sevenDayResets: seven)
+        #expect(await eventually { self.reminder(h, "five_hour")?.fireAt == instant("2026-10-16T18:15:00Z") })
+        let replaced = try #require(reminder(h, "five_hour"))
+        #expect(replaced.notification.identifier != first.notification.identifier)
+        #expect(h.notifications.removedPending == [first.notification.identifier])
+
+        // It fires on time, snooze or not, once.
+        await h.travel(instant("2026-10-16T18:15:00Z").timeIntervalSince(h.clock.now()))
+        #expect(h.titles == ["Claude Code · 5-hour reset in 15 minutes"])
+        await h.travel(20 * 60)
+        #expect(h.titles.count == 1 && reminder(h, "five_hour") == nil)
+
+        // A reset reported under 5 minutes out: nothing to remind.
+        h.clock.advance(60)
+        try await h.frame(fiveHour: 0, fiveHourResets: h.clock.now().addingTimeInterval(4 * 60), sevenDay: 20, sevenDayResets: seven)
+        await h.tick()
+        #expect(reminder(h, "five_hour") == nil)
+
+        // Switched off: every reminder is removed.
+        await h.model.setReminderLead(nil)
+        #expect(h.notifications.pending.isEmpty)
+    }
+
+    @Test("90 days with the app quit and a reminder pending: zero notifications on launch, one diagnostic line")
+    func remindersAfterNinetyDays() async throws {
+        let h = TimeTravel(at: instant("2026-10-16T14:00:00Z"), zone: london, locale: enUS)
+        defer { h.finish() }
+        await h.start()
+        await h.model.setReminderLead(30)
+        try await h.frame(fiveHour: 40, fiveHourResets: instant("2026-10-16T17:00:00Z"), sevenDay: 20, sevenDayResets: instant("2026-10-21T14:00:00Z"))
+        #expect(await eventually { h.notifications.pending.count == 2 })
+
+        h.model.stop()
+        h.clock.advance(90 * day)                                 // the Mac was off: nothing fired
+        await h.relaunch()
+        #expect(h.model.reminderLead == 30)                       // the choice is kept across launches
+        await h.tick()
+        await h.travel(30)
+        await h.travel(hour)
+        #expect(h.notifications.delivered.isEmpty)
+        #expect(h.notifications.pending.isEmpty)
+        #expect(h.model.diagnostics.entries.filter { $0.code == "reminders.expired" }.count == 1)
+        #expect(h.model.diagnostics.entries.last { $0.code == "reminders.expired" }?.text.hasPrefix("2 reset reminder(s)") == true)
+    }
+
+    @Test("London, clocks go back: a weekly reminder keeps its absolute instant through a zone change; the trigger is written in UTC")
+    func reminderAcrossDaylightSaving() async throws {
+        let h = TimeTravel(at: instant("2026-10-23T12:00:00Z"), zone: london, locale: enGB)
+        defer { h.finish() }
+        await h.start()
+        await h.model.setReminderLead(60)
+        let weekly = instant("2026-10-25T01:30:00Z")              // 01:30 GMT, after the change at 01:00 UTC
+        try await h.frame(fiveHour: 10, fiveHourResets: instant("2026-10-23T17:00:00Z"), sevenDay: 70, sevenDayResets: weekly)
+        #expect(await eventually { self.reminder(h, "seven_day") != nil })
+        let planned = try #require(reminder(h, "seven_day"))
+        #expect(planned.fireAt == instant("2026-10-25T00:30:00Z"))            // 01:30 BST: exactly one hour of seconds before
+        #expect(planned.notification.body == "Reported reset time is 01:30.")  // the wall clock repeats 01:30
+
+        let trigger = SystemNotifications.triggerComponents(for: planned.fireAt)
+        #expect(trigger.timeZone == TimeZone(identifier: "UTC") && trigger.hour == 0 && trigger.minute == 30 && trigger.day == 25)
+        var londonCalendar = Calendar(identifier: .gregorian)
+        londonCalendar.timeZone = london
+        #expect(londonCalendar.date(from: trigger) == planned.fireAt)          // the components' zone wins over the calendar's
+
+        await h.relaunch(zone: newYork)
+        let moved = try #require(reminder(h, "seven_day"))
+        #expect(moved.fireAt == planned.fireAt && moved.notification.identifier == planned.notification.identifier)
+        #expect(moved.notification.body == "Reported reset time is 21:30.")    // re-worded for the new zone, same instant
+        await h.travel(planned.fireAt.timeIntervalSince(h.clock.now()))
+        // Both reminders fire on the way (the 5-hour one on Friday afternoon), each once.
+        #expect(h.titles == ["Claude Code · 5-hour reset in 1 hour", "Claude Code · 7-day reset in 1 hour"])
     }
 }
