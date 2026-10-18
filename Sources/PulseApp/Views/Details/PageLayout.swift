@@ -6,21 +6,39 @@ import SwiftUI
 /// the left, its content on the right. No boxes inside boxes: hierarchy comes from colour and type, with values in
 /// white, explanations in grey and fills in the deep green of the meters.
 
-/// The centred column every page sits in.
+/// The centred column every page sits in. 1.17 (founder review of a maximised window): the column grows with the
+/// window, from 1040 pt to 1360 pt, so a big window is used rather than framed by empty margins. Pages that size
+/// things from the column (calendars) take the closure form, which hands them the content side's width.
 struct PageColumn<Content: View>: View {
-    @ViewBuilder let content: () -> Content
+    let content: (CGFloat) -> Content
+    @State private var available: CGFloat = PageMetrics.column
+
+    init(@ViewBuilder content: @escaping () -> Content) { self.content = { _ in content() } }
+    init(@ViewBuilder fitting content: @escaping (_ contentWidth: CGFloat) -> Content) { self.content = content }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) { content() }
-            .frame(maxWidth: PageMetrics.column, alignment: .leading)
+        let column = PageMetrics.column(fitting: available)
+        VStack(alignment: .leading, spacing: 0) { content(PageMetrics.content(column)) }
+            .frame(maxWidth: column, alignment: .leading)
             .frame(maxWidth: .infinity)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { available = $0 }
     }
 }
 
 enum PageMetrics {
+    /// The narrowest column, and the one every page had before 1.17.
     static let column: CGFloat = 1040
+    /// Wider than this, lines and charts stop gaining legibility.
+    static let maxColumn: CGFloat = 1360
+    /// Space kept either side of the column, so it never touches the window's edges.
+    static let gutter: CGFloat = 48
     static let labelColumn: CGFloat = 260
     /// The content side's width, for things sized from it (calendars).
-    static var content: CGFloat { column - labelColumn - 30 }
+    static var content: CGFloat { content(column) }
+    static func content(_ column: CGFloat) -> CGFloat { column - labelColumn - 30 }
+    /// The column for a page `available` points wide. Below 1040 + gutters the column stays 1040 and its frame
+    /// shrinks to fit, as it always did.
+    static func column(fitting available: CGFloat) -> CGFloat { min(max(available - 2 * gutter, column), maxColumn) }
 }
 
 /// One section: a hairline on top, the name and a line on the left, the content on the right.

@@ -21,12 +21,12 @@ struct OverviewSection: View {
     /// 1.14: Account's structure. Activity (the calendar for the range, and a chosen day under it), the range at a
     /// glance, when you work, and tokens by kind.
     var body: some View {
-        PageColumn {
+        PageColumn(fitting: { contentWidth in
             PageSection(Copy.OverviewPage.activity, activityLine) {
                 VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
                     switch summary.range {
-                    case .allTime: yearView
-                    case .last30: monthView
+                    case .allTime: yearView(contentWidth)
+                    case .last30: monthView(contentWidth)
                     case .last7: weekView
                     }
                     if let day = selectedDay { dayFacts(day) }
@@ -41,7 +41,7 @@ struct OverviewSection: View {
             PageSection(Copy.OverviewPage.glance, rangeName) { glance }
             PageSection(Copy.OverviewPage.hoursTitle, Copy.OverviewPage.hoursSub) { HourChart(counts: summary.hourCounts, showsTitle: false) }
             PageSection(Copy.OverviewPage.kindsTitle, Copy.Stats.allTimeNote) { tokenBreakdown }
-        }
+        })
     }
 
     var activityLine: String {
@@ -100,7 +100,7 @@ struct OverviewSection: View {
 
     // MARK: - All time: one calendar year
 
-    var yearView: some View {
+    func yearView(_ contentWidth: CGFloat) -> some View {
         let years = StatsCalendar.years(firstDay: file.firstSessionDate, today: summary.today)
         let year = model.statsYear ?? years.last ?? Int(summary.today.prefix(4)) ?? 0
         let all = StatsSummary.make(file, range: .allTime, today: summary.today)
@@ -116,7 +116,7 @@ struct OverviewSection: View {
                 Button { model.statsYear = year + 1 } label: { PixelIcon(symbol: "chevron.right") }
                     .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year + 1)).accessibilityLabel(Copy.Stats.nextYear)
             }
-            CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: PageMetrics.content, weeks: grid.weeks.count, theme: theme), showDayNumbers: false,
+            CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: contentWidth, weeks: grid.weeks.count, theme: theme), showDayNumbers: false,
                              selected: selectedDay, onSelect: { selectedDay = $0 })
             CalendarLegend()
         }
@@ -124,17 +124,17 @@ struct OverviewSection: View {
 
     // MARK: - 30 days: a month calendar with large cells
 
-    var monthView: some View {
+    func monthView(_ contentWidth: CGFloat) -> some View {
         let grid = StatsCalendar.recent(30, stats: file, levels: summary.heatmap, today: summary.today, firstDay: file.firstSessionDate)
         return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            CalendarGridView(grid: grid, cell: monthCell, showDayNumbers: true, transposed: true, selected: selectedDay, onSelect: { selectedDay = $0 })
+            CalendarGridView(grid: grid, cell: monthCell(contentWidth), showDayNumbers: true, transposed: true, selected: selectedDay, onSelect: { selectedDay = $0 })
             CalendarLegend()
         }
     }
 
     /// Day squares sized so the calendar takes about half the width, never smaller than two lines of figures.
-    var monthCell: CGFloat {
-        let fit = PageMetrics.content / (7 + 6 * CalendarGridView.gapRatio)
+    func monthCell(_ contentWidth: CGFloat) -> CGFloat {
+        let fit = contentWidth / (7 + 6 * CalendarGridView.gapRatio)
         return min(max(fit, theme.spacing(.spacious) * 2), theme.spacing(.spacious) * 3.5)
     }
 

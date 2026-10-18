@@ -1,3 +1,4 @@
+import AppKit
 import ClaudeCodeAdapter
 import DesignSystem
 import Domain
@@ -46,6 +47,7 @@ public struct DetailsView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(minWidth: DetailsMetrics.minWidth, minHeight: DetailsMetrics.minHeight, alignment: .topLeading)
+        .background(WindowFitter())
         .background(theme.color(.background, scheme))
         .overlay(PixelScanlines())
         .environment(\.isFixtureData, snapshot.isDemo)
@@ -230,12 +232,13 @@ struct StatsGate<Content: View>: View {
                         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
                             content(summary, file)
                             if let through = summary.computedThrough {
-                                Text(Copy.Stats.through(StatsFormat.day(through))).font(theme.font(.supporting))
-                                    .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
-                                    .padding(.top, theme.spacing(.spacious))
-                                    .frame(maxWidth: PageMetrics.column, alignment: .leading)       // the rule spans the column
-                                    .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
-                                    .frame(maxWidth: .infinity)
+                                PageColumn {                                                        // the rule spans the column
+                                    Text(Copy.Stats.through(StatsFormat.day(through))).font(theme.font(.supporting))
+                                        .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
+                                        .padding(.top, theme.spacing(.spacious))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
+                                }
                             }
                         }
                     }
@@ -261,5 +264,30 @@ enum StatsFormat {
     static func weekday(_ day: String) -> String {
         guard let date = StatsSummary.Day.date(day) else { return day }
         return date.formatted(Date.FormatStyle(timeZone: StatsSummary.Day.calendar.timeZone).weekday(.abbreviated))
+    }
+}
+
+/// 1.17 (founder review): the Dashboard opens filling the screen's visible area (below the menu bar, beside the Dock),
+/// never taller than the screen. It runs each time the window appears, so a resize lasts while the window is open.
+struct WindowFitter: NSViewRepresentable {
+    func makeNSView(context: Context) -> FittingView { FittingView() }
+    func updateNSView(_ view: FittingView, context: Context) {}
+
+    final class FittingView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            // After SwiftUI has placed the window (and restored any saved frame), so this frame wins.
+            DispatchQueue.main.async {
+                guard let screen = window.screen ?? NSScreen.main else { return }
+                window.setFrame(Self.frame(for: screen.visibleFrame, minimum: window.minSize), display: true, animate: false)
+            }
+        }
+
+        /// The visible area, or the window's minimum size centred in it on a screen too small for that.
+        static func frame(for visible: NSRect, minimum: NSSize) -> NSRect {
+            let w = max(visible.width, minimum.width), h = min(max(visible.height, minimum.height), visible.height)
+            return NSRect(x: visible.midX - w / 2, y: visible.maxY - h, width: w, height: h).integral
+        }
     }
 }

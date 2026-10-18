@@ -16,7 +16,7 @@ struct AccountSection: View {
     var signedIn: Bool { if case .signedIn = model.account { true } else { false } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        PageColumn(fitting: { contentWidth in
             section(Copy.AccountPage.profile, Copy.AccountPage.profileSub) {
                 VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                     Text(Copy.Account.name).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
@@ -59,9 +59,9 @@ struct AccountSection: View {
                 let year = StatsCalendar.years(firstDay: file.firstSessionDate, today: summary.today).last ?? 0
                 section("\(Copy.AccountPage.year) \(String(year))", Copy.AccountPage.yearSub) {
                     VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                        // Sized from the column's known width: the section's right side is the column minus the label side.
+                        // Sized from the column's width (it grows with the window): the column minus the label side.
                         let grid = StatsCalendar.year(year, stats: file, levels: summary.heatmap, today: summary.today, firstDay: file.firstSessionDate)
-                        CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: PageMetrics.content,
+                        CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: contentWidth,
                                                                                 weeks: grid.weeks.count, theme: theme), showDayNumbers: false)
                         CalendarLegend()
                     }
@@ -72,9 +72,7 @@ struct AccountSection: View {
                     .fixedSize(horizontal: false, vertical: true).padding(.vertical, theme.spacing(.standard))
             }
             dangerZone.padding(.top, theme.spacing(.spacious))
-        }
-        .frame(maxWidth: PageMetrics.column, alignment: .leading)
-        .frame(maxWidth: .infinity)
+        })
         .onAppear { name = model.profileName ?? "" }
         .task {
             model.loadStats()
