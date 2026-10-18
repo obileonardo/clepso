@@ -40,7 +40,8 @@ public enum ColorToken: String, CaseIterable, Sendable, Codable {
 }
 
 public enum TypographyToken: String, CaseIterable, Sendable { case metricHero, metricMedium, title, label, supporting, micro }
-public enum SpacingToken: String, CaseIterable, Sendable { case compact, standard, spacious, windowPadding }
+/// `section`: the air above and below a Dashboard section's content, between its hairlines (32 pt, founder review 18 Oct 2026).
+public enum SpacingToken: String, CaseIterable, Sendable { case compact, standard, spacious, windowPadding, section }
 public enum RadiusToken: String, CaseIterable, Sendable { case control, card, pill }
 public enum StrokeToken: String, CaseIterable, Sendable { case hairline, emphasis, focus }
 public enum MotionToken: String, CaseIterable, Sendable { case ringFill, stateChange }
@@ -129,7 +130,7 @@ public struct Theme: Sendable {
             .statusStale: (RGB(0x5F5F6B), RGB(0xA8A8B3)),
             .statusUnknown: (RGB(0x62626E), RGB(0xA6A6B1)),
         ],
-        spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12],
+        spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12, .section: 32],
         radiusValues: [.control: 6, .card: 10, .pill: 999],
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2])
 
@@ -153,7 +154,7 @@ public struct Theme: Sendable {
             .statusStale: (RGB(0x52605A), RGB(0x9AAFA2)),
             .statusUnknown: (RGB(0x56615B), RGB(0x98A79E)),
         ],
-        spacingValues: [.compact: 4, .standard: 8, .spacious: 20, .windowPadding: 16],
+        spacingValues: [.compact: 4, .standard: 8, .spacious: 20, .windowPadding: 16, .section: 32],
         radiusValues: [.control: 2, .card: 2, .pill: 2],
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2],
         typeface: .pixel, name: "phosphor")
@@ -166,7 +167,7 @@ public struct Theme: Sendable {
             .statusSuccess: RGB(0xA5E58A), .statusAttention: RGB(0xF4AE55), .statusBlocked: RGB(0xFF7A63),
             .statusStale: RGB(0xBFA88F), .statusUnknown: RGB(0xBBA690),
         ]),
-        spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12],
+        spacingValues: [.compact: 4, .standard: 8, .spacious: 16, .windowPadding: 12, .section: 32],
         radiusValues: [.control: 2, .card: 2, .pill: 2],
         strokeValues: [.hairline: 1, .emphasis: 2, .focus: 2],
         typeface: .pixel, name: "ember")

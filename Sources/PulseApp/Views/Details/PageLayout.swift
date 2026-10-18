@@ -41,7 +41,8 @@ enum PageMetrics {
     static func column(fitting available: CGFloat) -> CGFloat { min(max(available - 2 * gutter, column), maxColumn) }
 }
 
-/// One section: a hairline on top, the name and a line on the left, the content on the right.
+/// One section: a hairline on top, the name and a line on the left, the content on the right. 32 pt of air
+/// (`.section`) above and below, inside the hairlines (founder review, 18 Oct 2026: sections were cramped at 20 pt).
 struct PageSection<Content: View>: View {
     let title: String
     let subtitle: String?
@@ -67,7 +68,7 @@ struct PageSection<Content: View>: View {
             .frame(width: PageMetrics.labelColumn, alignment: .leading)
             content().frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, theme.spacing(.spacious))
+        .padding(.vertical, theme.spacing(.section))
         .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
     }
 }
