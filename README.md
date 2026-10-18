@@ -33,6 +33,7 @@ the made-up profile name "Sam", rendered by the app itself (see [Run it safely](
 - [Troubleshooting](#troubleshooting)
 - [Contributing, security and conduct](#contributing-security-and-conduct)
 - [Licence](#licence)
+- [Contributors](#contributors)
 - [Acknowledgements](#acknowledgements)
 
 ---
@@ -428,6 +429,11 @@ their terms are described in `THIRD_PARTY_NOTICES.md`.
 Claude and Claude Code are trademarks of Anthropic; Codex and ChatGPT of OpenAI; Gemini of Google; other product
 names belong to their owners. Clepso is an independent project, not affiliated with or endorsed by any of them; the
 names are used only to say which tools Clepso works with.
+
+## Contributors
+
+- Elvis Obi ([@obileonardo](https://github.com/obileonardo)), maintainer
+- [@ChimeXXD](https://github.com/ChimeXXD)
 
 ## Acknowledgements
 
