@@ -160,6 +160,83 @@ struct Figure: View {
     }
 }
 
+/// The Dashboard's card: the popover limit cards' language (elevated fill, hairline stepped pixel frame) with the
+/// page's roomier inner padding. For headline figures and live objects only; lists and facts stay on hairlines.
+struct PageCard: ViewModifier {
+    var role: ColorToken = .separator
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View {
+        let px = theme.stroke(.hairline) * 2
+        content
+            .padding(theme.spacing(.spacious))
+            .background(PixelRect(step: px).fill(theme.color(.surfaceElevated, scheme)))
+            .overlay(PixelRect(step: px).strokeBorder(theme.color(role, scheme), lineWidth: theme.stroke(.hairline)))
+    }
+}
+
+extension View {
+    func pageCard(_ role: ColorToken = .separator) -> some View { modifier(PageCard(role: role)) }
+}
+
+/// A headline figure as a card: its small-caps name on top (as the popover's 5-HOUR and 7-DAY cards), the value in
+/// the display face, and an optional line of context under it. Cards in a row share one height (`StatCardRow`).
+struct StatCard: View {
+    let caption: String
+    let value: String
+    var detail: String? = nil
+    var role: ColorToken = .textPrimary
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            Text(caption.uppercased()).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
+                .lineLimit(1).minimumScaleFactor(0.8)
+            Text(value).font(theme.font(.metricHero)).monospacedDigit().foregroundStyle(theme.color(role, scheme))
+                .lineLimit(1).minimumScaleFactor(0.5)
+                .padding(.vertical, -theme.spacing(.compact))           // the pixel face's tall line box, trimmed as in the popover
+            if let detail {
+                Text(detail).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .pageCard()
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Cards side by side on an even grid, each as tall as the tallest. When they don't all fit across at their natural
+/// size (a narrow window, a long value), they reflow two to a row instead of shrinking or truncating.
+struct StatCardRow: View {
+    let cards: [StatCard]
+    @Environment(\.theme) private var theme
+
+    init(@StatCardBuilder _ cards: () -> [StatCard]) { self.cards = cards() }
+
+    var body: some View {
+        let gap = theme.spacing(.standard) + theme.spacing(.compact)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: gap) { ForEach(cards.indices, id: \.self) { cards[$0] } }
+            Grid(horizontalSpacing: gap, verticalSpacing: gap) {
+                ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { i in
+                    GridRow {
+                        cards[i]
+                        if i + 1 < cards.count { cards[i + 1] } else { Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]) }
+                    }
+                }
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+@resultBuilder
+enum StatCardBuilder {
+    static func buildBlock(_ cards: StatCard...) -> [StatCard] { cards }
+}
+
 /// 1.15: a few figures in a row, each over its small-caps caption, columns set off by hairlines. Replaces a sentence
 /// of numbers ("0 received · 0 malformed · …"); VoiceOver reads the sentence it replaces.
 struct FigureStrip: View {

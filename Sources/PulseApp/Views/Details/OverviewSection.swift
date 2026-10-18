@@ -52,21 +52,19 @@ struct OverviewSection: View {
         }
     }
 
-    /// The range's headline numbers, in two columns of fact rows.
+    /// The range's headline numbers as four cards (founder review, 18 Oct 2026); each card's context line carries
+    /// the fact that pairs with it, so all eight are still shown.
     var glance: some View {
-        let rows: [(String, String)] = [
-            (Copy.Stats.favorite, summary.favorite?.name ?? "—"), (Copy.Stats.totalTokens, Formatting.compact(summary.totalTokens)),
-            (Copy.Stats.sessions, "\(summary.sessions)"), (Copy.Stats.longestSession, summary.longestSessionMs.map { Formatting.duration(milliseconds: $0) } ?? "—"),
-            (Copy.Stats.activeDays, "\(summary.activeDays)/\(summary.dayCount)"), (Copy.Stats.currentStreak, Copy.Card.days(summary.currentStreak)),
-            (Copy.Stats.longestStreak, Copy.Card.days(summary.longestStreak)), (Copy.Stats.mostActive, summary.mostActiveDay.map(StatsFormat.day) ?? "—"),
-        ]
-        return Grid(alignment: .leading, horizontalSpacing: theme.spacing(.spacious) * 1.5, verticalSpacing: 0) {
-            ForEach(0..<4, id: \.self) { r in
-                GridRow {
-                    FactRow(label: rows[r * 2].0, value: rows[r * 2].1)
-                    FactRow(label: rows[r * 2 + 1].0, value: rows[r * 2 + 1].1)
-                }
-            }
+        let fact = Copy.OverviewPage.fact
+        return StatCardRow {
+            StatCard(caption: Copy.Stats.totalTokens, value: Formatting.compact(summary.totalTokens),
+                     detail: fact(Copy.Stats.favorite, summary.favorite?.name ?? "—"))
+            StatCard(caption: Copy.Stats.sessions, value: "\(summary.sessions)",
+                     detail: fact(Copy.Stats.longestSession, summary.longestSessionMs.map { Formatting.duration(milliseconds: $0) } ?? "—"))
+            StatCard(caption: Copy.Stats.activeDays, value: "\(summary.activeDays)/\(summary.dayCount)",
+                     detail: fact(Copy.Stats.mostActive, summary.mostActiveDay.map(StatsFormat.day) ?? "—"))
+            StatCard(caption: Copy.Stats.currentStreak, value: Copy.Card.days(summary.currentStreak),
+                     detail: fact(Copy.Stats.longestStreak, Copy.Card.days(summary.longestStreak)))
         }
     }
 
