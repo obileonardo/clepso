@@ -1,4 +1,5 @@
 import CryptoKit
+import DesignSystem
 import Foundation
 import ShimProtocol
 import Storage
@@ -95,3 +96,18 @@ struct AgentsTests {
         #expect(summary.tasks == 2 && summary.tasksWithAgents == 1 && summary.totalAgents == 2 && summary.mostInOneTask == 2)
     }
 }
+
+/// Recent tasks name the day when it isn't today (founder review, 18 Oct 2026).
+struct AgentStartedLabelTests {
+    @Test func todayIsTheTimeEarlierDaysAddTheDay() {
+        let utc = TimeZone(identifier: "UTC")!, gb = Locale(identifier: "en_GB")
+        let now = Date(timeIntervalSince1970: 1_792_324_800)               // Sun 18 Oct 2026 12:00 UTC
+        let today = AgentsPanel.started(now - 3600, now: now, zone: utc, locale: gb)
+        let yesterday = AgentsPanel.started(now - 13 * 3600, now: now, zone: utc, locale: gb)
+        let older = AgentsPanel.started(now - 10 * 86_400, now: now, zone: utc, locale: gb)
+        #expect(today == Formatting.clock(now - 3600, zone: utc, locale: gb))
+        #expect(yesterday.hasPrefix("Sat ") && yesterday.hasSuffix(Formatting.clock(now - 13 * 3600, zone: utc, locale: gb)))
+        #expect(older.hasPrefix("8 Oct "))
+    }
+}
+

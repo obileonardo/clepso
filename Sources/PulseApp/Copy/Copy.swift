@@ -550,7 +550,7 @@ enum Copy {
         static let lastTaskShort = "Agents, last task"
         static let statShort = "Agents"
         static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom"
-        static let title = "AGENTS PER TASK", titleShort = "Agents per task"
+        static let title = "AGENTS PER TASK", titleShort = "Agents per task", claudeTitle = "Claude Code agents per task"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
         static func count(_ n: Int) -> String { n == 1 ? "1 agent" : "\(n) agents" }
         static let none = "No subagents"

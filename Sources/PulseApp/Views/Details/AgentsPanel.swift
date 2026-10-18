@@ -100,16 +100,29 @@ struct AgentsPanel: View {
                 .accessibilityHidden(true)
             ForEach(s.recent) { task in
                 let types = (task.byType.map { "\($0.name) \($0.count)" } + reviews(task)).joined(separator: " · ")
-                row(Text(Formatting.clock(task.startedAt, zone: zone, locale: locale)),
+                row(Text(Self.started(task.startedAt, now: now, zone: zone, locale: locale)),
                     agents: Double(task.agents) / Double(top),
                     count: Text("\(task.agents)"),
                     types: Text(types.isEmpty ? Copy.Agents.none : types),
                     duration: Text(task.running ? Copy.Agents.running : duration(task) ?? "—"),
                     header: false, running: task.running, empty: task.agents == 0)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Formatting.clock(task.startedAt, zone: zone, locale: locale) + ": " + line(task))
+                    .accessibilityLabel(Self.started(task.startedAt, now: now, zone: zone, locale: locale) + ": " + line(task))
             }
         }
+    }
+
+    /// When a task started: the time today, and the day too for an earlier day, so yesterday's 23:50 never reads as today's.
+    nonisolated static func started(_ date: Date, now: Date, zone: TimeZone, locale: Locale) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = zone
+        let time = Formatting.clock(date, zone: zone, locale: locale)
+        guard !calendar.isDate(date, inSameDayAs: now) else { return time }
+        let day = DateFormatter()
+        day.locale = locale
+        day.timeZone = zone
+        day.setLocalizedDateFormatFromTemplate(now.timeIntervalSince(date) < 6 * 86_400 ? "EEE" : "d MMM")
+        return day.string(from: date) + " " + time
     }
 
     /// One table row on a faint rule; the header row is small capitals in the secondary colour.

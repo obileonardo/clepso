@@ -19,7 +19,7 @@ struct SessionSection: View {
                 let current = sessions.first { $0.id == selected } ?? sessions[0]
                 PageSection(Copy.SessionPage.current, subtitle(current)) { detail(current) }
                 PageSection(Copy.SessionPage.detailsTitle, Copy.SessionPage.detailsSub) { facts(current) }
-                PageSection(Copy.Agents.titleShort, Copy.Agents.taskLabel) { agents }
+                PageSection(snapshot.codexAgentsShown ? Copy.Agents.claudeTitle : Copy.Agents.titleShort, Copy.Agents.taskLabel) { agents }
                 if snapshot.codexAgentsShown { PageSection(Copy.Agents.codexTitle, Copy.Agents.codexTaskLabel) { codexAgents } }
                 PageSection(Copy.SessionPage.recentTitle, Copy.SessionPage.recentSub) { list(sessions, current: current) }
                 if let groups = snapshot.provider?.models, !groups.isEmpty {
@@ -29,7 +29,7 @@ struct SessionSection: View {
                 PageSection(Copy.SessionPage.current, nil) {
                     Text(Copy.Empty.noSessions).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
-                PageSection(Copy.Agents.titleShort, Copy.Agents.taskLabel) { agents }
+                PageSection(snapshot.codexAgentsShown ? Copy.Agents.claudeTitle : Copy.Agents.titleShort, Copy.Agents.taskLabel) { agents }
                 if snapshot.codexAgentsShown { PageSection(Copy.Agents.codexTitle, Copy.Agents.codexTaskLabel) { codexAgents } }
             }
         }
