@@ -660,10 +660,20 @@ enum Copy {
     }
 
     enum DeleteAll {
-        static let title = "Delete all \(product) data?"
-        static let body = "This removes all stored readings and alerts, and restores your Claude Code settings from the backup."
+        static let title = "Delete \(product) data"
+        static let body = "Choose what to delete. Everything is ticked; untick what you want to keep."
         static let backups = "Also delete settings backups (~/.claude/pulse-backups)"
         static let confirm = "Delete All"
+        static func confirmSome(_ n: Int) -> String { n == 1 ? "Delete 1 item" : "Delete \(n) items" }
+        static let selectAll = "Select all", selectNone = "Select none"
+        static func itemData(_ file: String) -> String { "All stored readings, sessions, plan and preferences (\(file)). \(product) starts over as if newly installed" }
+        static let itemDiagnostics = "The diagnostics log"
+        static let itemNotifications = "Pending and delivered \(product) notifications"
+        static func itemClaudeCode(_ folder: String) -> String {
+            "\(product)'s status line and hooks in Claude Code (your settings are restored from the backup) and \(folder), the helper they run"
+        }
+        static let itemAccount = "Your \(product) account sign-in on this Mac (Keychain). The account itself stays; delete it in Account"
+        static func deletedSome(_ n: Int) -> String { n == 1 ? "1 item was deleted." : "\(n) items were deleted." }
         static let cancel = "Cancel"
         static func restoreFailed(_ backups: String) -> String {
             "Couldn't restore your Claude Code settings automatically, so nothing was deleted. Your backups are in \(backups)."

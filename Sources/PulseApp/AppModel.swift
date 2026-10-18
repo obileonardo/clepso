@@ -799,73 +799,88 @@ public final class AppModel {
     }
 
     /// The items the confirmation dialog names (§8 step 1).
-    public var deleteAllItems: [String] {
-        let paths = SettingsInstaller.Paths(home: environment.home)
-        return ["All stored readings, sessions, plan and preferences (\(environment.databaseURL.lastPathComponent))",
-                "The diagnostics log",
-                "Pending and delivered \(Product.name) notifications",
-                "\(Product.name)'s status line and hooks in Claude Code: your settings are restored from the backup",
-                "\(paths.pulseDir.path): the helper's settings and session key",
-                "\(Product.name) Keychain items"]
+    /// What "Delete Clepso data…" can remove, each its own checkbox (founder review, 18 Oct 2026). Claude Code's status
+    /// line and hooks go with the helper folder they call: removing one without the other would leave Claude Code
+    /// running a helper that isn't there, or a helper nothing calls.
+    public enum DeleteItem: String, CaseIterable, Sendable, Hashable {
+        case data, diagnostics, notifications, claudeCode, account
     }
 
-    /// "Delete all Pulse data…" after its confirmation, in the order of §8.
+    /// Each item with the line the checkbox shows, in the order they're deleted.
+    public var deleteItems: [(item: DeleteItem, label: String)] {
+        let paths = SettingsInstaller.Paths(home: environment.home)
+        return [(.data, Copy.DeleteAll.itemData(environment.databaseURL.lastPathComponent)),
+                (.diagnostics, Copy.DeleteAll.itemDiagnostics),
+                (.notifications, Copy.DeleteAll.itemNotifications),
+                (.claudeCode, Copy.DeleteAll.itemClaudeCode("~" + paths.pulseDir.path.dropFirst(environment.home.path.count))),
+                (.account, Copy.DeleteAll.itemAccount)]
+    }
+
+    /// "Delete all Pulse data…" with everything ticked: a fresh install (§8).
     /// `relaunch` false leaves the app stopped, so a test can inspect the empty folders.
     public func deleteAll(includeBackups: Bool, relaunch: Bool = true) async -> DeleteReport {
+        await delete(Set(DeleteItem.allCases), includeBackups: includeBackups, relaunch: relaunch)
+    }
+
+    /// Deletes what was ticked, in the order of §8. Claude Code's settings are restored first: if that can't be done
+    /// safely, nothing at all is deleted. Turning off the login item is part of the full delete only.
+    public func delete(_ items: Set<DeleteItem>, includeBackups: Bool, relaunch: Bool = true) async -> DeleteReport {
         var report = DeleteReport()
         let installer = Self.installer(environment, forwardCost: forwardCost)
         let paths = installer.paths
         let fm = FileManager.default
+        let everything = items == Set(DeleteItem.allCases)
 
-        // 2. Stop listening; nothing scheduled or shown survives.
-        stop()
-        await environment.notifications.removeAll()
-
-        // 3. Restore Claude Code's settings first. If that cannot be done safely, stop here with everything intact:
-        //    the backup and the sidecar are what make the restore possible.
-        if case .needsUserDecision = installer.recover() {
-            listen()
-            return DeleteReport(failure: Copy.DeleteAll.restoreFailed(paths.backupsDir.path))
+        // Claude Code's settings first. If they can't be restored safely, stop with everything intact: the backup and
+        // the sidecar are what make the restore possible.
+        if items.contains(.claudeCode) {
+            if case .needsUserDecision = installer.recover() {
+                return DeleteReport(failure: Copy.DeleteAll.restoreFailed(paths.backupsDir.path))
+            }
+            do {
+                if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
+                _ = try installer.uninstall()
+            } catch {
+                return DeleteReport(failure: Copy.DeleteAll.restoreFailed(paths.backupsDir.path))
+            }
+            if Self.isRealDirectory(paths.pulseDir) { try? fm.removeItem(at: paths.pulseDir) }
         }
-        do {
-            if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
-            _ = try installer.uninstall()
-        } catch {
-            listen()
-            return DeleteReport(failure: Copy.DeleteAll.restoreFailed(paths.backupsDir.path))
+        if items.contains(.notifications) { await environment.notifications.removeAll() }
+        if items.contains(.account) {
+            await environment.sync.signOut()
+            account = .signedOut
+            lastSync = nil
+            environment.keychain.deleteAll()
         }
-        if Self.isRealDirectory(paths.pulseDir) { try? fm.removeItem(at: paths.pulseDir) }
+        if everything, (try? await store?.preference(Pref.loginItem, as: Bool.self)) == true { try? environment.loginItem.setEnabled(false) }
+        if items.contains(.diagnostics) { diagnostics.clear() }
 
-        // 4. Keychain (the account session too), and the login item if the user had turned it on.
-        await environment.sync.signOut()
-        account = .signedOut
-        environment.keychain.deleteAll()
-        if (try? await store?.preference(Pref.loginItem, as: Bool.self)) == true { try? environment.loginItem.setEnabled(false) }
-
-        // 5. The database, the diagnostics file and the socket.
-        try? await store?.close()
-        store = nil
-        ingestor = nil
-        diagnostics.clear()
-        let data = environment.dataDirectory
-        let migrationBackups = ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0.hasPrefix("pulse.sqlite.pre-") && $0.hasSuffix(".bak") }
-        for name in ["pulse.sqlite", "pulse.sqlite-wal", "pulse.sqlite-shm", "pulse.sqlite-journal", "diagnostics.jsonl", "run/agent.sock"] + migrationBackups {
-            try? fm.removeItem(at: data.appendingPathComponent(name))
+        // The database (and with it every preference) and the socket: the app starts over as a fresh install.
+        if items.contains(.data) {
+            stop()
+            try? await store?.close()
+            store = nil
+            ingestor = nil
+            let data = environment.dataDirectory
+            let migrationBackups = ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0.hasPrefix("pulse.sqlite.pre-") && $0.hasSuffix(".bak") }
+            var names = ["pulse.sqlite", "pulse.sqlite-wal", "pulse.sqlite-shm", "pulse.sqlite-journal", "run/agent.sock"] + migrationBackups
+            if items.contains(.diagnostics) { names.append("diagnostics.jsonl") }
+            for name in names { try? fm.removeItem(at: data.appendingPathComponent(name)) }
+            for folder in [data.appendingPathComponent("run"), data] where (try? fm.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {
+                try? fm.removeItem(at: folder)
+            }
+            report.leftovers = ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0 != "diagnostics.jsonl" }.sorted()
+            reset()
+            refreshPreview()
+            if relaunch { await start() }
+        } else {
+            await refresh()                                // e.g. "not connected" once Claude Code's settings are restored
         }
-        for folder in [data.appendingPathComponent("run"), data] where (try? fm.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {
-            try? fm.removeItem(at: folder)
-        }
-        report.leftovers = ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).sorted()
 
-        // 6. Settings backups only when the user ticked the box (default off).
+        // Settings backups only when that box was ticked (default off).
         if includeBackups, Self.isRealDirectory(paths.backupsDir) {
             report.backupsRemoved = (try? fm.removeItem(at: paths.backupsDir)) != nil
         }
-
-        // 7. First-run state.
-        reset()
-        refreshPreview()
-        if relaunch { await start() }
         return report
     }
 

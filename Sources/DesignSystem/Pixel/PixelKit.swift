@@ -372,6 +372,32 @@ public struct PixelToggleStyle: ToggleStyle {
     }
 }
 
+/// A checkbox in the pixel style: an empty box, or the ticked box in the accent colour, with its label beside it.
+/// For choosing several things at once (what "Delete Clepso data" removes); a switch stays for settings.
+public struct PixelCheckboxStyle: ToggleStyle {
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var isEnabled
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        let on = configuration.isOn
+        return Button { configuration.isOn.toggle() } label: {
+            HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
+                PixelIcon(on ? .checkSquare : .square)
+                    .foregroundStyle(theme.color(on ? .accent : .textSecondary, scheme))
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.bottom] - 1 }
+                configuration.label
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .opacity(isEnabled ? 1 : 0.4)
+        }
+        .buttonStyle(PixelPlainButtonStyle())
+        .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
+    }
+}
+
 /// 1.15: the quiet tier under `PixelButtonStyle`: no frame, small capitals in the secondary colour, brightening on hover
 /// and press. For actions that should be reachable but never compete (Quit, Exit demo, Show more).
 public struct PixelQuietButtonStyle: ButtonStyle {

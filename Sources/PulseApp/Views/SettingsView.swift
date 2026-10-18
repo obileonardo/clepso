@@ -82,26 +82,36 @@ struct AgentsConsentSheet: View {
 struct DeleteAllSheet: View {
     let model: AppModel
     let done: (String) -> Void
+    /// Everything starts ticked (founder review, 18 Oct 2026): one list of checkboxes instead of a trash icon per line.
+    @State private var chosen = Set(AppModel.DeleteItem.allCases)
     @State private var includeBackups = false
     @State private var working = false
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dismiss) private var dismiss
 
+    var everything: Bool { chosen.count == AppModel.DeleteItem.allCases.count }
+
     var body: some View {
         SheetFrame(glyph: .trash, title: Copy.DeleteAll.title, role: .statusBlocked) {
-            Text(Copy.DeleteAll.body).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline) {
+                Text(Copy.DeleteAll.body).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: theme.spacing(.standard))
+                Button(everything ? Copy.DeleteAll.selectNone : Copy.DeleteAll.selectAll) {
+                    chosen = everything ? [] : Set(AppModel.DeleteItem.allCases)
+                }
+                .buttonStyle(PixelQuietButtonStyle()).fixedSize()
+            }
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(model.deleteAllItems.enumerated()), id: \.offset) { index, item in
-                    HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
-                        PixelIcon(.trash).foregroundStyle(theme.color(.statusBlocked, scheme))
-                            .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.bottom] - 1 }
-                        Text(item).font(theme.font(.supporting)).foregroundStyle(theme.color(.textPrimary, scheme))
+                ForEach(Array(model.deleteItems.enumerated()), id: \.offset) { index, entry in
+                    Toggle(isOn: Binding(get: { chosen.contains(entry.item) },
+                                         set: { if $0 { chosen.insert(entry.item) } else { chosen.remove(entry.item) } })) {
+                        Text(entry.label).font(theme.font(.supporting)).foregroundStyle(theme.color(.textPrimary, scheme))
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .toggleStyle(PixelCheckboxStyle())
                     .padding(.vertical, theme.spacing(.compact) + theme.stroke(.hairline))
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .overlay(alignment: .top) {
                         if index > 0 { Rectangle().fill(theme.color(.separator, scheme).opacity(0.5)).frame(height: theme.stroke(.hairline)) }
                     }
@@ -119,11 +129,12 @@ struct DeleteAllSheet: View {
             .toggleStyle(PixelToggleStyle())
         } actions: {
             Button(Copy.DeleteAll.cancel) { dismiss() }.keyboardShortcut(.cancelAction).buttonStyle(PixelButtonStyle())
-            Button(Copy.DeleteAll.confirm, role: .destructive) {
+            Button(everything ? Copy.DeleteAll.confirm : Copy.DeleteAll.confirmSome(chosen.count), role: .destructive) {
                 working = true
+                let items = chosen
                 Task {
-                    let report = await model.deleteAll(includeBackups: includeBackups)
-                    var message = report.failure ?? Copy.DeleteAll.done
+                    let report = await model.delete(items, includeBackups: includeBackups)
+                    var message = report.failure ?? (items.count == AppModel.DeleteItem.allCases.count ? Copy.DeleteAll.done : Copy.DeleteAll.deletedSome(items.count))
                     if !report.leftovers.isEmpty { message += " " + Copy.DeleteAll.leftovers(report.leftovers) }
                     done(message)
                     working = false
@@ -131,7 +142,7 @@ struct DeleteAllSheet: View {
                 }
             }
             .buttonStyle(PixelButtonStyle(destructive: true))
-            .disabled(working)
+            .disabled(working || chosen.isEmpty)
         }
     }
 }

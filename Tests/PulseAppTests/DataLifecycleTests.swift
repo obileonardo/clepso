@@ -87,6 +87,52 @@ struct DataLifecycleTests {
         #expect(send(model.environment.socketPath, try frameBytes(at: t0 + 60, fiveHour: 90)), "listening again")
     }
 
+    @Test("Only what's ticked goes: diagnostics and notifications alone leave data, settings, account and login item")
+    func partialDeleteKeepsTheRest() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let login = FakeLoginItem(), notifications = FakeNotifications(), keychain = FakeKeychain()
+        let model = try await usedModel(box, login: login, notifications: notifications, keychain: keychain)
+        defer { model.stop() }
+        let report = await model.delete([.diagnostics, .notifications], includeBackups: false)
+        #expect(report == AppModel.DeleteReport(failure: nil, leftovers: [], backupsRemoved: false))
+        #expect(notifications.removeAllCount == 1 && keychain.sweepCount == 0 && login.calls == [true])
+        #expect(model.diagnostics.entries.isEmpty)
+        #expect(FileManager.default.fileExists(atPath: box.data.appendingPathComponent("pulse.sqlite").path))
+        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse/config.json").path))
+        #expect(model.onboardingComplete && model.plan != nil)
+        #expect(send(model.environment.socketPath, try frameBytes(at: t0 + 60, fiveHour: 91)), "still listening")
+        #expect(await eventually { model.snapshot.provider?.pools.first?.model.used.value == 91 })
+    }
+
+    @Test("Claude Code alone: settings restored byte for byte and the helper folder gone; readings and plan kept")
+    func claudeCodeOnly() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let keychain = FakeKeychain()
+        let model = try await usedModel(box, login: FakeLoginItem(), notifications: FakeNotifications(), keychain: keychain)
+        defer { model.stop() }
+        let report = await model.delete([.claudeCode], includeBackups: false)
+        #expect(report.failure == nil)
+        #expect(SHA256.hash(data: try Data(contentsOf: box.settings)) == SHA256.hash(data: Self.original))
+        #expect(!FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse").path))
+        #expect(FileManager.default.fileExists(atPath: box.data.appendingPathComponent("pulse.sqlite").path))
+        #expect(model.plan != nil && model.onboardingComplete && keychain.sweepCount == 0)
+    }
+
+    @Test("Data alone: a fresh database and first-run state, while Claude Code stays connected and readings keep coming")
+    func dataOnly() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let model = try await usedModel(box, login: FakeLoginItem(), notifications: FakeNotifications(), keychain: FakeKeychain())
+        defer { model.stop() }
+        let report = await model.delete([.data], includeBackups: false)
+        #expect(report.failure == nil)
+        #expect(model.started && !model.onboardingComplete && model.plan == nil)
+        #expect(FileManager.default.fileExists(atPath: box.home.appendingPathComponent(".claude/pulse/config.json").path))
+        let store = try Store.onDisk(at: model.environment.databaseURL, now: t0)
+        #expect(try await store.preference("onboarding.completed", as: Bool.self) == nil)
+        #expect(send(model.environment.socketPath, try frameBytes(at: t0 + 60, fiveHour: 7)))
+        #expect(await eventually { model.snapshot.provider?.pools.first?.model.used.value == 7 })
+    }
+
     @Test("A file Pulse did not create is left in place and named")
     func unknownFilesAreReported() async throws {
         let box = Sandbox(); defer { box.cleanUp() }
