@@ -2,7 +2,7 @@
 import SwiftUI
 
 /// The Clepso mark (design/brand/logo/svg/clepso-symbol-*.svg): a heartbeat inside a pixel ring. Drawn from the menu
-/// bar icon's 16×16 matrix (`MenuBarIcon.pixels(.ring)`), so the app, the menu bar and the brand files share one
+/// bar icon's 16×16 matrix (`MenuBarIcon.pixels(.beat)`), so the app, the menu bar and the brand files share one
 /// drawing. Size it in multiples of 16 points so every pixel lands on whole points.
 public struct ClepsoMark: View {
     let role: ColorToken
@@ -14,7 +14,7 @@ public struct ClepsoMark: View {
     public static let label = "Clepso"
 
     /// The mark's pixels as (x, y) on its 16×16 grid.
-    public static let pixels: [(x: Int, y: Int)] = MenuBarIcon.pixels(.ring, staleMark: false).sorted().map { ($0 % 16, $0 / 16) }
+    public static let pixels: [(x: Int, y: Int)] = MenuBarIcon.pixels(.beat, staleMark: false).sorted().map { ($0 % 16, $0 / 16) }
 
     public var body: some View {
         Canvas { context, size in

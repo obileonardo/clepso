@@ -121,5 +121,6 @@ available, direct when a limit is near, factual (not apologetic) when data is mi
   `fontmeta.py`).
 - **Font licence.** The faces are original (no OFL source). Founder decision, 17 Oct 2026: released under the SIL OFL
   1.1 with Reserved Font Names "Clepso Pixel" and "Clepso Mono"; the logo, name and icons stay reserved (TRADEMARKS.md).
-- **Menu bar status family.** The flatline / warning / clock / broken-ring set is a proposal; `MenuBarIcon` in the
-  app still draws its own marks.
+- **Menu bar status family.** Applied (item 7): the app draws the kit's seven states from generated data
+  (INTEGRATION.md §3). Added to the original five: `waiting` (… in the ring) and `not-connected` (the empty ring), and
+  a stale modifier that opens the ring, replacing a corner block that turned the flatline into a magnifying glass.

@@ -417,7 +417,7 @@ def app_icon_sheet():
 
 # --------------------------------------------------------------------------------------------- menu bar
 def menubar_sheet():
-    W, H = 1600, 1060
+    W, H = 1600, 1500
     o = [header(W, "Clepso brand · 05 Menu bar", "MENU BAR",
                 "A template image: black pixels on transparency, tinted by macOS for light, dark and tinted menu bars. "
                 "Shape carries the meaning. Shown at 2× with the percentage set in Clepso Pixel at 10 pt (1 pixel = 1 pt).")]
@@ -433,16 +433,33 @@ def menubar_sheet():
         o.append(P("83%", 40, bx + 64 + 16, y0 + 16 + 4 * 11.5, fg))
         o.append(T("Wi-Fi    Sat 17 Oct  20:01", 22, 1536 - 32, y0 + 58, fg, opacity=0.55, anchor="end"))
     y1 = 580
-    o.append(T("STATUS FAMILY · PROPOSED FOR MenuBarIcon (SAME RING, THE MARK INSIDE CHANGES)", 12, 64, y1, TEXT2, tracking=2))
-    sw = (1472 - 4 * 16) / 5
-    for i, (key, (label, cells_)) in enumerate(logo.menubar_states().items()):
+    o.append(T("STATUS FAMILY · MenuBarIcon (SAME RING, THE MARK INSIDE CHANGES)", 12, 64, y1, TEXT2, tracking=2))
+    states = logo.menubar_states()
+    sw = (1472 - (len(states) - 1) * 16) / len(states)
+    for i, (key, (label, cells_)) in enumerate(states.items()):
         x = 64 + i * (sw + 16)
-        o.append(panel(x, y1 + 18, sw, 420, INK, ACCENT if key == "beat" else LINE))
-        o.append(cells_path(cells_, 10, x + (sw - 160) / 2, y1 + 50, ACCENT if key == "beat" else TEXT, 16))
-        o.append(image(menubar_strip(cells_, 2), x + (sw - 80) / 2, y1 + 240, 80, 48, pixelated=True))
-        o.append(image(menubar_strip(cells_, 2, light=False), x + (sw - 80) / 2, y1 + 296, 80, 48, pixelated=True))
-        o.append(T(key, 15, x + 20, y1 + 384, TEXT, MONO_M))
-        o.append(T(label, 12, x + 20, y1 + 406, TEXT2))
+        o.append(panel(x, y1 + 18, sw, 440, INK, ACCENT if key == "beat" else LINE))
+        o.append(cells_path(cells_, 9, x + (sw - 144) / 2, y1 + 46, ACCENT if key == "beat" else TEXT, 16))
+        o.append(image(menubar_strip(cells_, 2), x + (sw - 80) / 2, y1 + 216, 80, 48, pixelated=True))
+        o.append(image(menubar_strip(cells_, 2, light=False), x + (sw - 80) / 2, y1 + 272, 80, 48, pixelated=True))
+        o.append(T(key, 15, x + 16, y1 + 360, TEXT, MONO_M))
+        s, _ = para(label, 12, x + 16, y1 + 384, sw - 32, TEXT2, lh=1.4)
+        o.append(s)
+    y2 = y1 + 520
+    o.append(T("STALE MODIFIER · A STATE THAT IS NOT CURRENT (LIMIT REACHED, LAST SEEN AN HOUR AGO)", 12, 64, y2, TEXT2, tracking=2))
+    variants = logo.menubar_variants()
+    for i, key in enumerate(("approaching-stale", "flatline-stale")):
+        x = 64 + i * (sw + 16)
+        cells_ = variants[key][1]
+        o.append(panel(x, y2 + 18, sw, 330, INK, LINE))
+        o.append(cells_path(cells_, 9, x + (sw - 144) / 2, y2 + 46, TEXT, 16))
+        o.append(image(menubar_strip(cells_, 2), x + (sw - 80) / 2, y2 + 216, 80, 48, pixelated=True))
+        o.append(T(key, 15, x + 16, y2 + 312, TEXT, MONO_M))
+    s, _ = para("The ring opens at five o'clock and a 2 × 2 dot sits in the gap: the shape that is showing is the last "
+                "thing Clepso knew, not a live reading. It removes ring pixels as well as adding the dot, so it never "
+                "merges with the ring (a corner block alone turned the flatline into a magnifying glass). The stale "
+                "state itself is the clock and takes no modifier.", 13, 64 + 2 * (sw + 16) + 16, y2 + 60, 2 * sw, TEXT2, lh=1.5)
+    o.append(s)
     save("menubar-sheet", W, H, "".join(o))
 
 

@@ -254,15 +254,15 @@ public enum OverviewProjection {
 
     // MARK: - Aggregate
 
-    /// Precedence: demo > exhausted or reset expected > approaching or nearly exhausted > stale > ok.
-    /// Stale adds a clock mark to the shape that is showing.
+    /// Precedence: demo > not connected or waiting for the first reading > exhausted or reset expected > approaching or
+    /// nearly exhausted > stale > ok. When the shape showing is from old readings, the stale mark opens its ring.
     static func aggregate(_ cards: [PoolCardModel], input: OverviewInput, empty: OverviewSnapshot.Empty?, lastSeen: Date?,
                           now: Date, staleAfter: TimeInterval, zone: TimeZone, locale: Locale)
         -> (OverviewSnapshot.Icon, Bool, String?, String) {
         if input.isDemo { return (.demo, false, "DEMO", "Demo data · not your account") }
         switch empty {
-        case .notConnected: return (.stale, false, nil, "Not connected")
-        case .waitingForFirstReading: return (.stale, false, nil, "Installed · waiting for first reading")
+        case .notConnected: return (.notConnected, false, nil, "Not connected")
+        case .waitingForFirstReading: return (.waiting, false, nil, "Installed · waiting for first reading")
         case nil: break
         }
         let live = cards.filter { $0.valueState(now: now, staleAfter: staleAfter) == .live }
@@ -290,7 +290,7 @@ public enum OverviewProjection {
         if nearing > 0 {
             return (.approaching, live.isEmpty, highest, (nearing == 1 ? "1 limit nearing capacity" : "\(nearing) limits nearing capacity") + staleSuffix)
         }
-        guard !live.isEmpty else { return (.stale, false, nil, age.map { "Last seen \($0)" } ?? "Not connected") }
+        guard !live.isEmpty else { return age.map { (.stale, false, nil, "Last seen \($0)") } ?? (.notConnected, false, nil, "Not connected") }
         let allAvailable = cards.allSatisfy { [.available, .availableAgain, .availableAgainUser].contains($0.card) }
         let updated = age.map { " · updated \($0)" } ?? ""
         // C7: only the limits Claude Code reports are known; /usage can show others (a per-model weekly limit).

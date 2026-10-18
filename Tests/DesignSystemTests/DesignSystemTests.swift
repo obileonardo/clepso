@@ -252,18 +252,160 @@ struct ReadableTextTests {
 #endif
 
 #if canImport(AppKit)
-@Suite("Pixel menu bar icon (1.11)")
+@Suite("Pixel menu bar icon (1.11; item 7: the brand kit's state family)")
 @MainActor
 struct PixelMenuBarIconTests {
-    @Test("The five states differ by shape alone; stale adds a mark; the image is a template and grows with the text")
-    func shapes() {
+    static let kit = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().appendingPathComponent("design/brand/menubar")
+
+    /// Opaque pixels of a PNG as indices y × width + x.
+    static func opaque(_ url: URL) throws -> Set<Int> {
+        let rep = try #require(NSBitmapImageRep(data: Data(contentsOf: url)), "\(url.lastPathComponent)")
+        var on = Set<Int>()
+        for y in 0..<rep.pixelsHigh {
+            for x in 0..<rep.pixelsWide where (rep.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.5 { on.insert(y * rep.pixelsWide + x) }
+        }
+        return on
+    }
+
+    /// 16×16 cells blown up to `scale` device pixels each, as indices on a 16·scale-wide grid.
+    static func scaled(_ cells: Set<Int>, _ scale: Int) -> Set<Int> {
+        Set(cells.flatMap { cell in
+            (0..<scale * scale).map { i in ((cell / 16) * scale + i / scale) * 16 * scale + (cell % 16) * scale + i % scale }
+        })
+    }
+
+    /// Draws the image at `scale` device pixels per point; → opaque pixels of the 16 pt glyph square, and of the rest.
+    static func rendered(_ image: NSImage, scale: Int) throws -> (glyph: Set<Int>, rest: Int) {
+        let w = Int(image.size.width.rounded(.up)) * scale, h = 16 * scale
+        let rep = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8,
+                                                samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+                                                bytesPerRow: 0, bitsPerPixel: 0))
+        rep.size = NSSize(width: CGFloat(w / scale), height: 16)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        image.draw(in: NSRect(origin: .zero, size: image.size))
+        NSGraphicsContext.restoreGraphicsState()
+        var glyph = Set<Int>(), rest = 0
+        for y in 0..<h {
+            for x in 0..<w where (rep.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.5 {
+                if x < 16 * scale { glyph.insert(y * 16 * scale + x) } else { rest += 1 }
+            }
+        }
+        return (glyph, rest)
+    }
+
+    @Test("The app draws exactly the brand kit's images: every state, and the stale variants, at 1× and 2×")
+    func matchesKit() throws {
+        let variants = MenuBarIcon.Shape.allCases.map { ($0, false) } + [(.approaching, true), (.flatline, true)]
+        for (shape, stale) in variants {
+            for scale in [1, 2] {
+                let name = "state-\(shape.rawValue)\(stale ? "-stale" : "")\(scale == 2 ? "@2x" : "").png"
+                let want = try Self.opaque(Self.kit.appendingPathComponent(name))
+                #expect(Self.scaled(MenuBarIcon.pixels(shape, staleMark: stale), scale) == want, "\(name)")
+            }
+        }
+    }
+
+    @Test("The family differs by shape alone: no two states alike, the ring kept, the beat is the brand mark")
+    func family() {
         let sets = MenuBarIcon.Shape.allCases.map { MenuBarIcon.pixels($0, staleMark: false) }
-        #expect(Set(sets).count == MenuBarIcon.Shape.allCases.count)
-        #expect(MenuBarIcon.pixels(.ring, staleMark: true).isStrictSuperset(of: MenuBarIcon.pixels(.ring, staleMark: false)))
-        let bare = MenuBarIcon.pixelImage(.ring, staleMark: false, text: nil)
-        let withText = MenuBarIcon.pixelImage(.notch, staleMark: false, text: "83%")
-        #expect(bare.isTemplate && withText.isTemplate)
-        #expect(bare.size == NSSize(width: 16, height: 16) && withText.size.width > 30 && withText.size.height == 16)
+            + [MenuBarIcon.pixels(.approaching, staleMark: true), MenuBarIcon.pixels(.flatline, staleMark: true)]
+        for i in sets.indices {
+            for j in sets.indices where j > i {
+                #expect(sets[i].symmetricDifference(sets[j]).count >= 4, "glyphs \(i) and \(j) differ by under 4 pixels")
+            }
+        }
+        let ring = MenuBarIcon.pixels(.notConnected, staleMark: false)              // the empty ring
+        for shape in MenuBarIcon.Shape.allCases where shape != .demo {
+            #expect(MenuBarIcon.pixels(shape, staleMark: false).isSuperset(of: ring), "\(shape) lost the ring")
+        }
+        #expect(MenuBarIcon.pixels(.beat, staleMark: false) == Set(ClepsoMark.pixels.map { $0.y * 16 + $0.x }))
+        // The stale mark opens the ring (so it cannot merge into it) and sets a dot; the clock takes none.
+        let flat = MenuBarIcon.pixels(.flatline, staleMark: false), flatStale = MenuBarIcon.pixels(.flatline, staleMark: true)
+        #expect(!flatStale.contains(11 * 16 + 14) && flat.contains(11 * 16 + 14) && flatStale.contains(12 * 16 + 12))
+        #expect(MenuBarIcon.pixels(.stale, staleMark: true) == MenuBarIcon.pixels(.stale, staleMark: false))
+    }
+
+    @Test("Every state renders as a template image on whole pixels at 1× and 2×, with and without the % text")
+    func renders() throws {
+        for shape in MenuBarIcon.Shape.allCases {
+            for stale in [false, true] {
+                for text in [nil, "83%"] as [String?] {
+                    let image = MenuBarIcon.pixelImage(shape, staleMark: stale, text: text)
+                    #expect(image.isTemplate && image.size.height == 16)
+                    #expect(text == nil ? image.size.width == 16 : image.size.width > 30)
+                    for scale in [1, 2] {
+                        let drawn = try Self.rendered(image, scale: scale)
+                        #expect(drawn.glyph == Self.scaled(MenuBarIcon.pixels(shape, staleMark: stale), scale), "\(shape) \(scale)x")
+                        #expect((drawn.rest > 0) == (text != nil), "\(shape): text \(text ?? "none")")
+                    }
+                }
+            }
+        }
+    }
+
+    /// Visual review, not a check: with PULSE_MENUBAR_RENDER_DIR set, writes every state (and the stale variants), with
+    /// and without text, tinted as a template on a light and a dark menu bar at 1× and 2×, plus a 4× contact sheet.
+    @Test("Contact sheet for review (only with PULSE_MENUBAR_RENDER_DIR)")
+    func contactSheet() throws {
+        guard let dir = ProcessInfo.processInfo.environment["PULSE_MENUBAR_RENDER_DIR"] else { return }
+        let out = URL(fileURLWithPath: dir)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        var rows: [(String, MenuBarIcon.Shape, Bool, String?)] = []
+        for shape in MenuBarIcon.Shape.allCases {
+            let text: String? = switch shape { case .demo: "DEMO"; case .beat, .approaching: "83%"; default: nil }
+            rows.append(("\(shape.rawValue)", shape, false, nil))
+            if let text { rows.append(("\(shape.rawValue)+text", shape, false, text)) }
+            if shape == .approaching || shape == .flatline { rows.append(("\(shape.rawValue)-stale", shape, true, nil)) }
+        }
+        rows.append(("approaching-stale+text", .approaching, true, "83%"))
+        // A menu bar slice 24 pt high: the light bar's ink is black at 85 %, the dark bar's white (as macOS tints templates).
+        let bars: [(String, NSColor, NSColor)] = [("light", NSColor(white: 0.93, alpha: 1), NSColor(white: 0, alpha: 0.85)),
+                                                  ("dark", NSColor(white: 0.16, alpha: 1), NSColor(white: 1, alpha: 1))]
+        let slice = NSSize(width: 64, height: 24)
+        func render(_ image: NSImage, scale: Int, bar: NSColor, ink: NSColor) throws -> NSBitmapImageRep {
+            let rep = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(slice.width) * scale,
+                                                    pixelsHigh: Int(slice.height) * scale, bitsPerSample: 8, samplesPerPixel: 4,
+                                                    hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+            rep.size = slice
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+            bar.setFill(); NSRect(origin: .zero, size: slice).fill()
+            let tinted = NSImage(size: image.size, flipped: false) { rect in
+                image.draw(in: rect); ink.set(); rect.fill(using: .sourceIn); return true
+            }
+            tinted.draw(in: NSRect(x: 8, y: 4, width: image.size.width, height: image.size.height))
+            NSGraphicsContext.restoreGraphicsState()
+            return rep
+        }
+        let zoom = 4, cellW = Int(slice.width) * 2 * zoom, cellH = Int(slice.height) * 2 * zoom
+        let sheet = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: cellW * 4 + 50, pixelsHigh: (cellH + 10) * rows.count,
+                                                  bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                                  colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        NSGraphicsContext.saveGraphicsState()
+        let sheetContext = NSGraphicsContext(bitmapImageRep: sheet)
+        NSGraphicsContext.current = sheetContext
+        sheetContext?.imageInterpolation = .none
+        NSColor(white: 0.5, alpha: 1).setFill(); NSRect(x: 0, y: 0, width: sheet.pixelsWide, height: sheet.pixelsHigh).fill()
+        for (r, row) in rows.enumerated() {
+            let image = MenuBarIcon.pixelImage(row.1, staleMark: row.2, text: row.3)
+            for (b, bar) in bars.enumerated() {
+                for scale in [1, 2] {
+                    let rep = try render(image, scale: scale, bar: bar.1, ink: bar.2)
+                    let name = "\(row.0)-\(bar.0)\(scale == 2 ? "@2x" : "").png"
+                    try #require(rep.representation(using: .png, properties: [:])).write(to: out.appendingPathComponent(name))
+                    // Contact sheet: each render blown up to the same physical size (1× by 8, 2× by 4), no smoothing.
+                    let col = b * 2 + (scale - 1)
+                    let y = sheet.pixelsHigh - (r + 1) * (cellH + 10)
+                    rep.draw(in: NSRect(x: col * (cellW + 10), y: y, width: cellW, height: cellH), from: .zero, operation: .copy,
+                             fraction: 1, respectFlipped: false, hints: [.interpolation: NSNumber(value: NSImageInterpolation.none.rawValue)])
+                }
+            }
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        try #require(sheet.representation(using: .png, properties: [:])).write(to: out.appendingPathComponent("contact-sheet.png"))
+        try rows.map(\.0).joined(separator: "\n").write(to: out.appendingPathComponent("contact-sheet-rows.txt"), atomically: true, encoding: .utf8)
     }
 }
 #endif
