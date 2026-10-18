@@ -92,9 +92,11 @@ struct CardActivity: Sendable, Equatable {
         let date: String
         let level: Int             // 0 none … 4 busiest
         let pending: Bool
+        /// Before the first session: drawn faintly, not counted.
+        var beforeFirst = false
     }
     static let weeks = 30
-    /// Columns of seven; nil outside the period (before the first session, after today).
+    /// Columns of seven; nil after today.
     let columns: [[Day?]]
     let activeDays: Int
     let days: Int
@@ -108,7 +110,8 @@ struct CardActivity: Sendable, Equatable {
         var active = 0, days = 0
         let columns: [[Day?]] = grid.weeks.map { week in
             week.map { cell in
-                guard let cell, case .level(let level) = cell.state else { return nil }
+                guard let cell, cell.date <= today else { return nil }
+                guard case .level(let level) = cell.state else { return Day(date: cell.date, level: 0, pending: false, beforeFirst: true) }
                 let pending = summary.seenActive.contains(cell.date)
                 days += 1
                 if level > 0 || pending { active += 1 }

@@ -386,7 +386,7 @@ struct PlayerCardFront: View {
             Figure(label: Copy.Card.lines, value: "+" + Formatting.compact(l.added),
                    caption: Copy.Card.linesCaption(removed: Formatting.compact(l.removed), since: l.fullWindow ? nil : shortDay(l.since, zone: zone)))
         } else {
-            Figure(label: Copy.Card.lines, value: "—", caption: Copy.Card.linesCaption(removed: "0", since: nil))
+            Figure(label: Copy.Card.lines, value: "—", caption: Copy.Card.linesNone)
         }
         let today = c.activity.columns.last?.compactMap { $0 }.last
         let includesToday = c.currentStreak > 0 && (today.map { $0.level > 0 || $0.pending } ?? false)
@@ -441,11 +441,11 @@ struct PlayerCardBack: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
-    /// The mark at 8 points a pixel, in a halo 24 pixels across.
-    static let mark: CGFloat = 128, halo: CGFloat = 192
+    /// The mark at 7 points a pixel, in a halo 24 pixels across: small enough that the back never outgrows the front.
+    static let mark: CGFloat = 112, halo: CGFloat = 168
 
     var body: some View {
-        VStack(spacing: theme.spacing(.spacious)) {
+        VStack(spacing: theme.spacing(.standard) * 1.5) {
             Spacer(minLength: 0)
             ZStack {
                 PixelHalo().frame(width: Self.halo, height: Self.halo)
@@ -514,7 +514,10 @@ struct ActivityLog: View {
     }
 
     @ViewBuilder func square(_ day: CardActivity.Day?) -> some View {
-        if let day {
+        if let day, day.beforeFirst {
+            Rectangle().fill(theme.color(.surfaceMuted, scheme).opacity(0.45)).frame(width: Self.cell, height: Self.cell)
+                .help(Copy.Card.dayBeforeFirst(PlayerCardFront.day(day.date) ?? day.date))
+        } else if let day {
             Rectangle().fill(color(day.level))
                 .overlay { if day.pending { Rectangle().strokeBorder(theme.color(.accent, scheme), lineWidth: theme.stroke(.emphasis)) } }
                 .frame(width: Self.cell, height: Self.cell)

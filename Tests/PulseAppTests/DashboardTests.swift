@@ -48,12 +48,15 @@ struct DashboardTests {
         #expect(card.topModel == "Opus 5.5" && card.topModelShare == 100 && card.statsThrough == "2026-10-16")
         // Two weeks ending today (Sunday 18 Oct): last week from Sunday the 11th, then this week's first day, today.
         #expect(card.activity.columns.count == 2 && card.activity.columns.allSatisfy { $0.count == 7 })
-        let days = card.activity.columns.joined().compactMap { $0 }
+        let days = card.activity.columns.joined().compactMap { $0 }.filter { !$0.beforeFirst }
         #expect(days.first?.date == "2026-10-11" && days.last?.date == "2026-10-18" && days.count == 8, "nothing after today")
         #expect(days.filter(\.pending).map(\.date) == ["2026-10-17", "2026-10-18"])
         #expect(card.activity.activeDays == 6 && card.activity.days == 8, "11, 14, 15, 16 from the file; 17 and 18 seen")
         let wide = PlayerCard.make(file: file, summary: summary, name: "", plan: nil, weeks: 3).activity
-        #expect(wide.columns.joined().compactMap { $0 }.first?.date == "2026-10-10", "nothing before the first session (the 10th)")
+        let shown = wide.columns.joined().compactMap { $0 }
+        #expect(shown.first(where: { !$0.beforeFirst })?.date == "2026-10-10", "the first session's day (the 10th) starts the count")
+        #expect(shown.filter(\.beforeFirst).map(\.date) == ["2026-10-04", "2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"])
+        #expect(wide.activeDays == 7 && wide.days == 9, "days before the first session are drawn faintly, never counted")
         let total = RunningTotal.make(file)
         #expect(total.tokens == file.models.map(\.total).reduce(0, +))
         #expect(total.lastDayDate == file.dailyTokens.map(\.date).max())
@@ -125,6 +128,10 @@ struct DashboardTests {
         let front = try render(back: false), back = try render(back: true)
         #expect(front.width == Int(PlayerCardFront.width * 2) && front.height > 800)
         #expect(back.width == front.width && back.height == front.height)
+        // The back's own content fits inside the front's height (it is laid out in the front's frame, never clipped).
+        let natural = ImageRenderer(content: PlayerCardBack(card: card).fixedSize().environment(\.theme, .phosphor).environment(\.colorScheme, .dark))
+        natural.scale = 2
+        #expect(try #require(natural.cgImage).height <= front.height)
     }
 
     @Test("For you: limits and goals first, then a running task, then setup steps; all clear when nothing needs you")

@@ -355,6 +355,7 @@ enum Copy {
         static let output = "Output tokens", outputCaption = "Written by the models"
         static let lines = "Lines added"
         static func linesCaption(removed: String, since: String?) -> String { "−\(removed) removed · " + (since.map { "since \($0)" } ?? "last 30 days") }
+        static let linesNone = "No session has reported lines yet"
         static let currentStreak = "Current streak", bestStreak = "Best streak", bestCaption = "Longest run of active days"
         static func currentCaption(includesToday: Bool) -> String { includesToday ? "Including today" : "Through yesterday" }
         static let sessions = "Sessions", sessionsCaption = "All time"
@@ -375,6 +376,7 @@ enum Copy {
         static func activityTitle(_ weeks: Int) -> String { "ACTIVITY LOG · LAST \(weeks) WEEKS" }
         static func activitySummary(_ active: Int, _ days: Int) -> String { "\(active) of \(days) days active" }
         static let less = "LESS", more = "MORE", pending = "Seen by Clepso, not yet in the file"
+        static func dayBeforeFirst(_ date: String) -> String { "\(date): before your first session" }
         static func dayHelp(_ date: String, active: Bool, pending: Bool) -> String {
             pending ? "Active on \(date) (seen by Clepso; Claude Code's file adds it later)" : (active ? "Active on \(date)" : "No activity on \(date)")
         }
