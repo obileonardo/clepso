@@ -1,12 +1,12 @@
-Brotli==1.1.0
+Brotli==1.2.0
 cairocffi==1.7.1
-CairoSVG==2.7.1
+CairoSVG==2.9.1
 cffi==2.1.1
 cssselect2==0.10.1
 defusedxml==0.7.1
-fonttools==4.55.3
+fonttools==4.60.2
 opentype-sanitizer==9.2.0
-pillow==11.1.0
+pillow==12.3.0
 pycparser==3.11
 skia-pathops==0.8.0.post2
 tinycss2==1.5.1
