@@ -7,7 +7,7 @@
 
 The templates are Go templates filled in by Supabase Auth: {{ .ConfirmationURL }}, {{ .Email }}, {{ .NewEmail }}.
 Both apps sign in with PKCE, and {{ .ConfirmationURL }} (Auth's /verify link) is what returns `?code=…` to the
-redirect each app asked for: /app on the web, dev.tokone.pulse://auth-callback on the Mac. Neither app takes a typed
+redirect each app asked for: /app on the web, clepso://auth-callback on the Mac. Neither app takes a typed
 code, so {{ .Token }} is never shown. See docs/EMAIL.md.
 
 Email-client rules followed here: tables for layout, every style inline (a <style> block only adds dark-mode and

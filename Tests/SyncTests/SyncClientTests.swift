@@ -19,7 +19,7 @@ final class StubTransport: HTTPTransport, @unchecked Sendable {
 }
 
 let config = SyncConfig(projectURL: URL(string: "https://example.supabase.co")!, publishableKey: "sb_publishable_test",
-                        redirectURL: URL(string: "dev.tokone.pulse://auth-callback")!)
+                        redirectURL: URL(string: "clepso://auth-callback")!)
 let t0 = Date(timeIntervalSince1970: 1_792_159_200)
 func sessionJSON(_ access: String = "access-1", refresh: String = "refresh-1", expiresIn: Int = 3600) -> String {
     #"{"access_token":"\#(access)","refresh_token":"\#(refresh)","expires_in":\#(expiresIn),"user":{"id":"u-1","email":"e@example.test"}}"#
@@ -33,7 +33,7 @@ struct SyncConfigTests {
     func fromInfoPlist() throws {
         let c = try #require(SyncConfig(infoDictionary: ["PulseSyncHost": "abcd.supabase.co", "PulseSyncPublishableKey": "sb_publishable_x"]))
         #expect(c.projectURL.absoluteString == "https://abcd.supabase.co")
-        #expect(c.publishableKey == "sb_publishable_x" && c.redirectURL.absoluteString == "dev.tokone.pulse://auth-callback")
+        #expect(c.publishableKey == "sb_publishable_x" && c.redirectURL.absoluteString == "clepso://auth-callback")
     }
 
     @Test("Missing, empty, unexpanded or malformed values mean no configuration (Sync off)",
@@ -63,7 +63,7 @@ struct SyncConfigTests {
         let session = await client.session, pending = await client.pendingEmail
         #expect(session == nil && pending == nil)
         await #expect(throws: SyncError.unavailable) { try await client.requestEmailLink("e@example.test") }
-        await #expect(throws: SyncError.unavailable) { try await client.handleCallback(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!) }
+        await #expect(throws: SyncError.unavailable) { try await client.handleCallback(URL(string: "clepso://auth-callback?code=abc")!) }
         await #expect(throws: SyncError.unavailable) { try await client.validSession() }
         await #expect(throws: SyncError.unavailable) { try await client.upload(SyncPayload()) }
         await #expect(throws: SyncError.unavailable) { try await client.deleteAccount() }
@@ -92,7 +92,7 @@ struct SyncClientTests {
         try await client.requestEmailLink("e@example.test")
         let request = try #require(transport.all.first)
         #expect(request.httpMethod == "POST" && request.url?.path == "/auth/v1/otp")
-        #expect(query(request, "redirect_to") == "dev.tokone.pulse://auth-callback")
+        #expect(query(request, "redirect_to") == "clepso://auth-callback")
         #expect(request.value(forHTTPHeaderField: "apikey") == "sb_publishable_test")
         let sent = body(request)
         let verifier = try #require(store.load().pendingVerifier)
@@ -105,14 +105,14 @@ struct SyncClientTests {
         let transport = StubTransport(), store = MemoryAuthStore()
         let client = SyncClient(config: config, transport: transport, store: store, now: { t0 })
         await #expect(throws: SyncError.invalidCallback("not a sign-in link")) { try await client.handleCallback(URL(string: "https://evil.test/?code=x")!) }
-        await #expect(throws: SyncError.noPendingSignIn) { try await client.handleCallback(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!) }
+        await #expect(throws: SyncError.noPendingSignIn) { try await client.handleCallback(URL(string: "clepso://auth-callback?code=abc")!) }
         try await client.requestEmailLink("e@example.test")
         await #expect(throws: SyncError.invalidCallback("Email link is invalid or has expired")) {
-            try await client.handleCallback(URL(string: "dev.tokone.pulse://auth-callback#error=access_denied&error_description=Email+link+is+invalid+or+has+expired")!)
+            try await client.handleCallback(URL(string: "clepso://auth-callback#error=access_denied&error_description=Email+link+is+invalid+or+has+expired")!)
         }
         let verifier = try #require(store.load().pendingVerifier)
         transport.respond(200, sessionJSON())
-        let session = try await client.handleCallback(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!)
+        let session = try await client.handleCallback(URL(string: "clepso://auth-callback?code=abc")!)
         let exchange = try #require(transport.all.last)
         #expect(exchange.url?.path == "/auth/v1/token" && query(exchange, "grant_type") == "pkce")
         #expect(body(exchange)["auth_code"] as? String == "abc" && body(exchange)["code_verifier"] as? String == verifier)

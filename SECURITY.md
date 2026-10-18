@@ -49,7 +49,7 @@ In scope, for example:
 - Ways to make the helper alter, delay beyond its budget, or break the user's own status-line output.
 - Ways to corrupt or lose the user's `~/.claude/settings.json`, or to make Clepso write outside its own files.
 - Local privilege or trust-boundary problems in the Unix socket (`~/Library/Application Support/Pulse/run/`).
-- Injection through the `dev.tokone.pulse://` URL scheme or the sign-in flow.
+- Injection through the `clepso://` URL scheme or the sign-in flow.
 - A build from source (no `Config/Sync.local.xcconfig`) that signs in or makes any network request.
 - Row-level-security bypasses or cross-account access in `backend/supabase`.
 - Supply-chain problems in the build (the pinned XcodeGen download, `Package.resolved`).

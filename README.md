@@ -358,7 +358,7 @@ user, each with forced row-level security (`user_id = auth.uid()`), no grants to
 a local stack.
 
 The app's Sync client signs in with a one-time email link using PKCE, returns to the app through the
-`dev.tokone.pulse://auth-callback` URL scheme, keeps the session in the Keychain (this device only), and uploads
+`clepso://auth-callback` URL scheme, keeps the session in the Keychain (this device only), and uploads
 idempotently once an hour. Apple, Google and GitHub sign-in are shown as "Soon" and are not enabled. The web
 dashboard is not built yet.
 

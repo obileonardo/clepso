@@ -91,7 +91,7 @@ public struct AppEnvironment: Sendable {
         let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         var environment = AppEnvironment(dataDirectory: data, home: home, shimPath: shim,
                                           loginItem: SystemLoginItem(), notifications: SystemNotifications(),
-                                          keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "dev.tokone.pulse"), appVersion: version,
+                                          keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "com.elvisobi.clepso"), appVersion: version,
                                           sync: SyncClient(config: SyncConfig(infoDictionary: bundle.infoDictionary ?? [:]), store: authStore,
                                                            now: { SystemClock().now() }))
         #if DEBUG
@@ -255,7 +255,7 @@ public protocol KeychainCleaning: Sendable {
 
 public struct SystemKeychain: KeychainCleaning {
     public let service: String
-    public init(service: String = "dev.tokone.pulse") { self.service = service }
+    public init(service: String = "com.elvisobi.clepso") { self.service = service }
     public func deleteAll() {
         #if canImport(Security)
         _ = SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service] as CFDictionary)

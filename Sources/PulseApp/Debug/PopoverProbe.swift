@@ -37,7 +37,7 @@ enum ProbeOverrides {
 /// makes SwiftUI focus them, and `selectNextKeyView` does not move SwiftUI's focus.)
 @MainActor
 enum PopoverProbe {
-    static let signposter = OSSignposter(subsystem: "dev.tokone.pulse", category: "popover")
+    static let signposter = OSSignposter(subsystem: "com.elvisobi.clepso", category: "popover")
 
     static func runIfRequested(model: AppModel, openWindow: () -> Void, openDetails: () -> Void) async -> Bool {
         let defaults = UserDefaults.standard

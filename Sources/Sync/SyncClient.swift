@@ -72,7 +72,7 @@ public protocol AuthStore: Sendable {
 public struct KeychainAuthStore: AuthStore {
     let service: String
     let account = "pulse-account"
-    public init(service: String = "dev.tokone.pulse.account") { self.service = service }
+    public init(service: String = "com.elvisobi.clepso.account") { self.service = service }
 
     public func load() -> StoredAuth {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
@@ -196,7 +196,7 @@ public actor SyncClient {
         return components.url!
     }
 
-    /// `dev.tokone.pulse://auth-callback?code=…` (or `…#error=…&error_description=…`): exchanges the code for a session.
+    /// `clepso://auth-callback?code=…` (or `…#error=…&error_description=…`): exchanges the code for a session.
     @discardableResult
     public func handleCallback(_ url: URL) async throws -> AuthSession {
         let config = try requireConfig()

@@ -2,7 +2,7 @@
 # Run: scripts/bootstrap.sh && .tools/xcodegen/bin/xcodegen   (or: make app)
 name: Pulse
 options:
-  bundleIdPrefix: dev.tokone          # placeholder until the final bundle identifier prefix is chosen
+  bundleIdPrefix: com.elvisobi        # decided 18 Oct 2026 (A7): a domain the maintainer owns
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -40,9 +40,9 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true              # menu bar only: no Dock icon, no main menu
         LSApplicationCategoryType: public.app-category.developer-tools
-        CFBundleURLTypes:              # optional accounts: the sign-in link returns to dev.tokone.pulse://auth-callback
-          - CFBundleURLName: dev.tokone.pulse.auth
-            CFBundleURLSchemes: [dev.tokone.pulse]
+        CFBundleURLTypes:              # optional accounts: the sign-in link returns to clepso://auth-callback
+          - CFBundleURLName: com.elvisobi.clepso.auth
+            CFBundleURLSchemes: [clepso]
         PulseSyncHost: $(PULSE_SYNC_HOST)                        # empty in builds from source: Sync stays off
         PulseSyncPublishableKey: $(PULSE_SYNC_PUBLISHABLE_KEY)
     entitlements:
@@ -51,7 +51,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: Clepso
-        PRODUCT_BUNDLE_IDENTIFIER: dev.tokone.pulse
+        PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso
         ENABLE_APP_SANDBOX: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon   # 1.16: the Pulse mark (design/brand/app-icon)
     dependencies:
@@ -70,7 +70,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: pulse-statusline
-        PRODUCT_BUNDLE_IDENTIFIER: dev.tokone.pulse.statusline   # <bundle-prefix>.pulse.statusline
+        PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso.statusline   # <bundle-prefix>.clepso.statusline
         SKIP_INSTALL: YES
         GENERATE_INFOPLIST_FILE: YES        # embedded __info_plist: codesign then uses the bundle id as the identifier,
         CREATE_INFOPLIST_SECTION_IN_BINARY: YES   # which a code-signing peer check can require (PRIVACY_AND_SECURITY §3)

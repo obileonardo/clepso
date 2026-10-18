@@ -20,7 +20,7 @@ public struct SyncConfig: Sendable, Equatable {
         self.redirectURL = redirectURL
     }
 
-    public static let urlScheme = "dev.tokone.pulse"
+    public static let urlScheme = "clepso"
     public static let redirectURL = URL(string: "\(urlScheme)://auth-callback")!
 
     public static let hostKey = "PulseSyncHost"

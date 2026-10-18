@@ -214,7 +214,7 @@ every table so a user's token reaches only that user's rows, grants nothing to a
 when the account is deleted. The publishable key in an official build identifies the project and grants nothing by
 itself; no secret key is ever in the app (the app refuses `sb_secret_…` keys).
 
-A sign-in link's own error text is never displayed, because any app can open the `dev.tokone.pulse://` URL scheme.
+A sign-in link's own error text is never displayed, because any app can open the `clepso://` URL scheme.
 
 ### 9.1 Web dashboard (`/app`)
 

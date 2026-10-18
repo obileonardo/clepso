@@ -93,7 +93,7 @@ struct AccountSyncTests {
         await model.handleOpenURL(URL(string: "https://elsewhere.test/?code=x")!)          // not ours: ignored
         #expect(model.account == .linkSent(email: "e@example.test"))
         transport.respond(200, #"{"access_token":"a","refresh_token":"r","expires_in":3600,"user":{"id":"u-1","email":"e@example.test"}}"#)
-        await model.handleOpenURL(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!)
+        await model.handleOpenURL(URL(string: "clepso://auth-callback?code=abc")!)
         #expect(model.account == .signedIn(email: "e@example.test") && model.detailsSection == .account)
         #expect(transport.paths.contains("/rest/v1/profiles") && transport.paths.contains("/rest/v1/goals"), "first upload right after signing in")
         #expect(model.lastSync == clock.now())
@@ -123,7 +123,7 @@ struct AccountSyncTests {
 
         await model.emailSignInLink("e@example.test")
         transport.respond(200, #"{"access_token":"a","refresh_token":"r","expires_in":3600,"user":{"id":"u-1","email":"e@example.test"}}"#)
-        await model.handleOpenURL(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!)
+        await model.handleOpenURL(URL(string: "clepso://auth-callback?code=abc")!)
         #expect(model.account == .signedIn(email: "e@example.test"))
         #expect(!model.uploadsOnQuit, "just uploaded on sign-in")
 
@@ -164,7 +164,7 @@ struct AccountSyncTests {
         #expect(model.account == .signedOut)
         await model.emailSignInLink("e@example.test")
         #expect(model.account == .signedOut && model.accountMessage == Copy.Sync.unavailable)
-        await model.handleOpenURL(URL(string: "dev.tokone.pulse://auth-callback?code=abc")!)
+        await model.handleOpenURL(URL(string: "clepso://auth-callback?code=abc")!)
         #expect(model.account == .signedOut && model.accountMessage == Copy.Sync.unavailable)
         await model.syncNow()
         await model.signOut()
@@ -192,7 +192,7 @@ struct AccountSyncTests {
         environment.sync = SyncClient(config: testSyncConfig, transport: transport, store: store, now: { clock.now() })
         let model = AppModel(environment: environment)
         await model.start(); defer { model.stop() }
-        await model.handleOpenURL(URL(string: "dev.tokone.pulse://auth-callback?error_description=Call+0800+to+restore+your+account")!)
+        await model.handleOpenURL(URL(string: "clepso://auth-callback?error_description=Call+0800+to+restore+your+account")!)
         #expect(model.accountMessage == Copy.Sync.linkFailed)
         #expect(!(model.accountMessage ?? "").contains("0800"))
         #expect(transport.paths.isEmpty)

@@ -111,7 +111,7 @@ public final class DiagnosticsLog {
 
     public static let maxBytes = 1_000_000
     public static let maxAge: TimeInterval = 7 * 86_400
-    @ObservationIgnored static let logger = Logger(subsystem: "dev.tokone.pulse", category: "diagnostics")
+    @ObservationIgnored static let logger = Logger(subsystem: "com.elvisobi.clepso", category: "diagnostics")
 
     @ObservationIgnored public let url: URL
     public private(set) var entries: [Entry] = []

@@ -23,7 +23,7 @@ sent. Every text colour is at least 8.6:1 against its background.
 ### Why `{{ .ConfirmationURL }}`
 
 Both apps start sign-in with `POST /auth/v1/otp` carrying a PKCE `code_challenge` and a `redirect_to`:
-`<site>/app` on the web (`scripts/site/app.js`), `dev.tokone.pulse://auth-callback` on the Mac
+`<site>/app` on the web (`scripts/site/app.js`), `clepso://auth-callback` on the Mac
 (`Sources/Sync/SyncClient.swift`). `{{ .ConfirmationURL }}` is Auth's `/auth/v1/verify` link; opening it redirects to
 that `redirect_to` with `?code=…`, which the app that asked exchanges with its stored verifier
 (`/token?grant_type=pkce`). A `{{ .TokenHash }}` link would need a page that calls `verifyOtp`, and neither app takes a

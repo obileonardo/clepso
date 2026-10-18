@@ -210,7 +210,7 @@ app_bundle() {
     # Capture first, then match: `cmd | grep -q` under pipefail fails when grep closes the pipe early.
     local info
     info=$(codesign -dv "$helper" 2>&1)
-    grep -q '^Identifier=dev.tokone.pulse.statusline$' <<<"$info" || { echo "helper identifier wrong"; return 1; }
+    grep -q '^Identifier=com.elvisobi.clepso.statusline$' <<<"$info" || { echo "helper identifier wrong"; return 1; }
     for bin in "$app" "$helper"; do
         info=$(codesign -dv "$bin" 2>&1)
         if grep -q 'Signature=adhoc' <<<"$info"; then
@@ -228,7 +228,7 @@ app_bundle() {
     local net
     net=$(nm -u "$helper" 2>/dev/null | grep -E 'URLSession|NSURLConnection|CFHTTP|CFNetwork|_nw_|getaddrinfo|CFStream' || true)
     [ -z "$net" ] || { echo "networking symbols in the helper:"; echo "$net"; return 1; }
-    [ "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" = "dev.tokone.pulse" ] || { echo "sign-in URL scheme missing"; return 1; }
+    [ "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" = "clepso" ] || { echo "sign-in URL scheme missing"; return 1; }
     local ack="$app/Contents/Resources/Acknowledgements.txt"
     grep -q 'Gwendal Rou' "$ack" 2>/dev/null && grep -q 'Permission is hereby granted' "$ack" || { echo "third-party licences missing: $ack"; return 1; }
     for font in ClepsoFonts Silkscreen PixelifySans VT323; do
@@ -239,7 +239,7 @@ app_bundle() {
     if [ "$MODE" = strict ]; then
         [ -n "$sync" ] || { echo "no accounts project in strict mode (add Config/Sync.local.xcconfig)"; return 1; }
     fi
-    echo "bundle signed ($MODE); helper dev.tokone.pulse.statusline without networking; entitlements: ${keys:-none} (get-task-allow is debug-only);" \
+    echo "bundle signed ($MODE); helper com.elvisobi.clepso.statusline without networking; entitlements: ${keys:-none} (get-task-allow is debug-only);" \
          "sign-in URL scheme; licences shipped; accounts project: $([ -n "$sync" ] && echo configured || echo none, Sync off)"
 }
 

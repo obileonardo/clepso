@@ -509,7 +509,7 @@ public final class AppModel {
         }
     }
 
-    /// The sign-in link's return to the app (`dev.tokone.pulse://auth-callback?code=…`).
+    /// The sign-in link's return to the app (`clepso://auth-callback?code=…`).
     public func handleOpenURL(_ url: URL) async {
         guard url.scheme == SyncConfig.urlScheme else { return }
         detailsSection = .account

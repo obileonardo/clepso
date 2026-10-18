@@ -21,7 +21,7 @@ never need it, and nothing here is required to build from source (`make app` sig
 | Item | State | Notes |
 |---|---|---|
 | Developer ID Application certificate (DECISIONS A6) | **Present** in the maintainer's login keychain (`security find-identity -v -p codesigning`) | Export the `.p12` once and keep it in the password manager: Apple can't re-issue a lost private key |
-| Team ID and bundle prefix (A7) | Team known; bundle prefix still the placeholder `dev.tokone` | Changing the prefix changes the helper's identifier and the peer-check requirement (PRIVACY_AND_SECURITY §3). Decide before the first public build: the login item and Keychain items are tied to it |
+| Team ID and bundle prefix (A7) | **Decided** 18 Oct 2026: `com.elvisobi` (app `com.elvisobi.clepso`, helper `com.elvisobi.clepso.statusline`, sign-in scheme `clepso://`) | When the planned code-signature peer check (PRIVACY_AND_SECURITY §3) is built, its designated requirement names `com.elvisobi.clepso.statusline` |
 | Notary credentials | Not set up | An App Store Connect API key (Developer role) is preferred over an Apple ID: `xcrun notarytool store-credentials clepso-notary --key <AuthKey.p8> --key-id <id> --issuer <issuer>` stores it in the keychain |
 | `Config/Signing.local.xcconfig` | Present on the maintainer's Mac (gitignored) | For a release build set `PULSE_CODE_SIGN_IDENTITY = Developer ID Application` and `PULSE_DEVELOPMENT_TEAM = <TEAMID>` |
 
@@ -104,7 +104,7 @@ publishes the draft.
 
 ## 5. Open decisions that change the signed build
 
-- **Bundle prefix (A7).** Still `dev.tokone`. See section 2.
+- **Bundle prefix (A7).** Decided: `com.elvisobi`. See section 2.
 - **Calendar through EventKit.** Add-to-Calendar (2.5) currently writes an `.ics` file that Calendar imports after
   asking the user, which needs no entitlement or permission. Adding events directly with EventKit write-only access
   (NOTIFICATIONS §3.1's first choice on macOS) would need `com.apple.security.personal-information.calendars` under
