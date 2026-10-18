@@ -47,19 +47,26 @@ before release, keep `.label`/`.supporting`/`.micro` on the system face and adop
 
 ## 3. Menu bar icon (`MenuBarIcon.swift`)
 
-The ring is unchanged; the brand mark replaces the 2 × 2 "lit core" of the `.ring` state:
+Applied (item 7). The app draws the kit's status family: `logo.menubar_states()` is the one table, and
+`build.sh menubar` writes `menubar/state-*.png` and `Sources/DesignSystem/Theme/MenuBarGlyphs.swift` (the generated
+`MenuBarIcon.Shape` and its rows) from it. `PixelMenuBarIconTests` fails if the Swift drifts from the PNGs.
 
-```swift
-case .ring: return [(3, 8), (4, 8), (5, 4), (5, 5), (5, 6), (5, 7), (5, 8), (6, 3), (7, 4), (7, 5), (7, 6), (7, 7),
-                    (7, 8), (7, 9), (7, 10), (7, 11), (8, 12), (9, 9), (9, 10), (9, 11), (10, 8), (11, 8), (12, 8)]
-```
+| App state (`OverviewSnapshot.Icon`) | Glyph | Means |
+|---|---|---|
+| `ok` | `beat` | live readings (also "reporting, no rate limits sent") |
+| `approaching` | `approaching` (!) | a limit is nearing capacity |
+| `exhausted` | `flatline` | a limit is reached or a reset is awaited: the beat with its spike removed |
+| `stale` | `stale` (clock) | no live reading; the last one is old |
+| `demo` | `demo` (broken ring) | demo data, not the account |
+| `waiting` | `waiting` (…) | installed, no reading yet |
+| `notConnected` | `not-connected` (empty ring) | nothing to read: no trace at all |
 
-(also in `menubar/MenuBarBeat.swift.txt`; full matrix in `menubar/clepso-menubar-matrix.txt`). Template PNGs, if an
-image asset is preferred to code drawing: `menubar/ClepsoMenuBarTemplate-16.png` / `-16@2x.png` (16 pt) and
-`-18.png` / `-18@2x.png` (18 pt, 1 pt padding); mark the asset "Render As: Template Image".
-
-Proposed, not required: `.bar` (exhausted) becomes a 1 p flatline across x 3–12 on row 8, the beat with its spike
-removed (`menubar/state-flatline.png`). The five states stay distinct by shape.
+The stale modifier (`state-approaching-stale.png`, `state-flatline-stale.png`) marks a shape built from old readings:
+the ring opens at five o'clock and a 2 × 2 dot sits in the gap. The % text (Clepso Pixel, 10 pt) follows any glyph.
+The status item's accessibility value says the state in words (`MenuBarIcon.spokenState`). The beat matrix is in
+`menubar/clepso-menubar-matrix.txt`. Template PNGs, if an image asset is ever preferred to code drawing:
+`menubar/ClepsoMenuBarTemplate-16.png` / `-16@2x.png` (16 pt) and `-18.png` / `-18@2x.png` (18 pt, 1 pt padding);
+mark the asset "Render As: Template Image".
 
 ## 4. App icon
 

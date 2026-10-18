@@ -31,11 +31,21 @@ def main(only=None):
         step("Clepso Mono (Regular, Medium, Bold)")
         for style, (w, wv, wh) in build_mono_font.WEIGHTS.items():
             build_mono_font.build_weight(style, w, wv, wh, fonts)
+    if "menubar" in want and "logo" not in want:
+        # The menu bar family alone: its images, the app's MenuBarGlyphs.swift, its sheet and brand.json.
+        import export
+        import sheets
+        step("menu bar template images and MenuBarGlyphs.swift")
+        logo.write_menubar(BRAND / "menubar")
+        step("menu bar sheet")
+        sheets.menubar_sheet()
+        step("brand.json (for the design-system page)")
+        export.build()
     if "logo" in want:
         step("logo masters and rasters")
         logo.write_logo(BRAND / "logo")
         logo.write_email_logo(BRAND / "logo" / "png")
-        step("menu bar template images")
+        step("menu bar template images and MenuBarGlyphs.swift")
         logo.write_menubar(BRAND / "menubar")
         step("app icon")
         logo.write_app_icon(BRAND / "app-icon")

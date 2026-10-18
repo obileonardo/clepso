@@ -335,7 +335,7 @@ def logo_section():
     <span class="callout c1" aria-hidden="true"><i></i>Ring · the limit</span><span class="callout c2" aria-hidden="true"><i></i>Beat · the live reading</span></div>
   <div class="concept-copy">
     <p>Clepso watches something you cannot see, a usage limit, and tells you before you hit it. The mark puts the two things that matter one inside the other: <b>the container that fills</b> and <b>the signal that keeps arriving</b>.</p>
-    <p>Because the ring is the existing menu bar ring, the logo and the status icon are one object. The beat is the "available" state; the same ring can hold a warning, a flatline or a clock without the brand changing shape.</p>
+    <p>Because the ring is the existing menu bar ring, the logo and the status icon are one object. The beat is the live reading; the same ring holds a warning, a flatline, a clock, a broken ring for demo data, dots while it waits for a first reading and nothing at all when not connected, without the brand changing shape.</p>
     <p>It is drawn on a 16-pixel grid with a 1-pixel stroke, the way the original Macintosh icons were drawn: judged at actual size first, large second.</p>
   </div>
 </div>
@@ -364,7 +364,7 @@ def logo_section():
   <div class="appicon-hero">{img("brand/app-icon/clepso-app-icon-512.png", "Clepso app icon", 256, 256)}</div>
   <ul class="appicon-sizes">{sizes}</ul>
 </div>
-{sub("Menu bar", "logo-menu-bar", "A template image: opaque pixels on transparency, tinted by macOS for light, dark and tinted menu bars. The beat is the brand; the proposed family keeps the ring and changes what is inside.")}
+{sub("Menu bar", "logo-menu-bar", "A template image: opaque pixels on transparency, tinted by macOS for light, dark and tinted menu bars. The beat is the brand; the status family keeps the ring and changes what is inside, so no state rests on colour. A state built from old readings opens the ring at five o'clock and sets a dot in the gap.")}
 <div class="menubar-demo" aria-hidden="true">
   <div class="mbar light">{pix(SYMBOL, 2, "", "pix")}<span>83%</span></div>
   <div class="mbar dark">{pix(SYMBOL, 2, "", "pix")}<span>83%</span></div>
@@ -783,7 +783,7 @@ body{font:400 15px/24px var(--mono);-webkit-font-smoothing:antialiased;overflow-
 .mbar .pix{width:32px;color:inherit}
 .mbar span{font:400 20px/1 var(--px)}
 .mbar.light{background:#ECECEC;color:#141414}.mbar.dark{background:#2A2A2C;color:#F5F5F5}
-.states{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.states{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:14px}
 .states li{border:1px solid var(--line);background:var(--surface);padding:18px}
 .states .art .pix{width:64px;color:var(--text)}
 .states li:first-child .art .pix{color:var(--accent)}

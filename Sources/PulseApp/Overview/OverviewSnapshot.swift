@@ -7,7 +7,7 @@ import UsageEngine
 /// Everything the menu bar and popover show, computed once per refresh (nothing reads
 /// storage when the popover opens). Pure value; `OverviewProjection.make` is the only producer.
 public struct OverviewSnapshot: Sendable {
-    public enum Icon: String, Sendable, CaseIterable { case ok, approaching, exhausted, stale, demo }
+    public enum Icon: String, Sendable, CaseIterable { case ok, approaching, exhausted, stale, demo, waiting, notConnected }
     public enum Empty: Sendable, Equatable { case notConnected, waitingForFirstReading }
 
     public let now: Date
@@ -26,14 +26,23 @@ public struct OverviewSnapshot: Sendable {
 
     /// AT-07: the product name, then the aggregate line.
     public var iconAccessibilityLabel: String { "\(Product.name): \(aggregateLine)" }
+    /// The state in words, whatever the line says (VoiceOver reads it after the label): "Limit reached, last reading is old".
+    public var iconAccessibilityValue: String { MenuBarIcon.spokenState(iconShape, staleMark: iconStaleMark) }
 
-    public var iconShape: MenuBarIcon.Shape {
-        switch icon {
-        case .ok: .ring
-        case .approaching: .notch
-        case .exhausted: .bar
-        case .stale: .clock
-        case .demo: .dashed
+    public var iconShape: MenuBarIcon.Shape { icon.shape }
+}
+
+extension OverviewSnapshot.Icon {
+    /// Each state's glyph in the brand kit's menu bar family (design/brand/menubar/state-*.png); one glyph per state.
+    public var shape: MenuBarIcon.Shape {
+        switch self {
+        case .ok: .beat
+        case .approaching: .approaching
+        case .exhausted: .flatline
+        case .stale: .stale
+        case .demo: .demo
+        case .waiting: .waiting
+        case .notConnected: .notConnected
         }
     }
 }

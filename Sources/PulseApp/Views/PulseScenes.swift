@@ -66,7 +66,8 @@ extension View {
     func themed(_ model: AppModel) -> some View { modifier(ThemedRoot(model: model)) }
 }
 
-/// The status item: shape, optional text, and the aggregate line as its accessibility label (AT-07).
+/// The status item: shape, optional text, the aggregate line as its accessibility label (AT-07) and the state in
+/// words as its value.
 /// It is also the first view SwiftUI creates, so it starts the model and opens onboarding on first run.
 struct MenuBarLabel: View {
     let model: AppModel
@@ -78,6 +79,7 @@ struct MenuBarLabel: View {
         Image(nsImage: MenuBarIcon.pixelImage(snapshot.iconShape, staleMark: snapshot.iconStaleMark, text: snapshot.iconText))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(snapshot.iconAccessibilityLabel)
+        .accessibilityValue(snapshot.iconAccessibilityValue)
         .accessibilityRemoveTraits(.isImage)
         .help(snapshot.aggregateLine)
         .onChange(of: model.dashboardRequests) {                 // 2.1: a click on a limit alert opens Limits

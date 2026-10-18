@@ -44,12 +44,13 @@ extension MetricValue {
 
 @Suite("Overview projection: menu bar icon and aggregate line")
 struct OverviewProjectionTests {
-    @Test("All available and live: ring, highest percent, 'Reported limits available' (C7: never 'All')")
+    @Test("All available and live: beat, highest percent, 'Reported limits available' (C7: never 'All')")
     func ok() async throws {
         let s = try Scenario()
         try await s.reading(at: t0, fiveHour: 41, fiveHourReset: t0 + 9000, sevenDay: 21, sevenDayReset: t0 + 400_000)
         let snap = try await s.snapshot(now: t0 + 60)
-        #expect(snap.icon == .ok && !snap.iconStaleMark && snap.iconShape == .ring)
+        #expect(snap.icon == .ok && !snap.iconStaleMark && snap.iconShape == .beat)
+        #expect(snap.iconAccessibilityValue == "Receiving readings")
         #expect(snap.iconText == "41%")
         #expect(snap.aggregateLine == "Reported limits available · updated 1m ago")
         #expect(snap.iconAccessibilityLabel == "\(Product.name): Reported limits available · updated 1m ago")
@@ -61,22 +62,23 @@ struct OverviewProjectionTests {
         #expect(snap.provider?.plan == .notSet)
     }
 
-    @Test("Approaching or nearly exhausted: notch, count of pools nearing capacity")
+    @Test("Approaching or nearly exhausted: \"!\" in the ring, count of pools nearing capacity")
     func approaching() async throws {
         let s = try Scenario()
         try await s.reading(at: t0, fiveHour: 83, fiveHourReset: t0 + 9000, sevenDay: 96, sevenDayReset: t0 + 400_000)
         let snap = try await s.snapshot(now: t0 + 60)
-        #expect(snap.icon == .approaching && snap.iconShape == .notch)
+        #expect(snap.icon == .approaching && snap.iconShape == .approaching)
         #expect(snap.iconText == "96%")
         #expect(snap.aggregateLine == "2 limits nearing capacity")
     }
 
-    @Test("Exhausted outranks approaching and shows no percentage")
+    @Test("Exhausted outranks approaching: the beat flatlines, no percentage")
     func exhaustedWins() async throws {
         let s = try Scenario()
         try await s.reading(at: t0, fiveHour: 100, fiveHourReset: t0 + 9000, sevenDay: 83, sevenDayReset: t0 + 400_000)
         let snap = try await s.snapshot(now: t0 + 60)
-        #expect(snap.icon == .exhausted && snap.iconShape == .bar && snap.iconText == nil)
+        #expect(snap.icon == .exhausted && snap.iconShape == .flatline && snap.iconText == nil)
+        #expect(snap.iconAccessibilityValue == "Limit reached")
         #expect(snap.aggregateLine == "Claude Code limit reached · reset expected 4:30 PM")
     }
 
@@ -97,7 +99,8 @@ struct OverviewProjectionTests {
         #expect(atReset.aggregateLine == "Claude Code reset expected · awaiting next update")
 
         let later = try await s.snapshot(now: t0 + 180 + 11 * 60)
-        #expect(later.icon == .exhausted && later.iconStaleMark)
+        #expect(later.icon == .exhausted && later.iconStaleMark && later.iconShape == .flatline)
+        #expect(later.iconAccessibilityValue == "Limit reached, last reading is old")
         #expect(later.aggregateLine.contains("last seen"))
         var texts = [later.aggregateLine]
         for row in later.provider?.pools ?? [] {
@@ -112,7 +115,8 @@ struct OverviewProjectionTests {
         let s = try Scenario()
         try await s.reading(at: t0, fiveHour: 41, fiveHourReset: t0 + 9000)
         let snap = try await s.snapshot(now: t0 + 11 * 60)
-        #expect(snap.icon == .stale && snap.iconShape == .clock && snap.iconText == nil)
+        #expect(snap.icon == .stale && snap.iconShape == .stale && snap.iconText == nil)
+        #expect(snap.iconAccessibilityValue == "Readings out of date")
         #expect(snap.aggregateLine == "Last seen 11m ago")
     }
 
@@ -139,12 +143,12 @@ struct OverviewProjectionTests {
         #expect(hourLater.provider?.pools.first?.model.card == .available)
     }
 
-    @Test("Demo: dashed ring, DEMO text, and the label says demo data (AT-09)")
+    @Test("Demo: broken ring, DEMO text, and the label says demo data (AT-09)")
     func demo() async throws {
         let s = try Scenario()
         try await s.reading(at: t0, fiveHour: 83, fiveHourReset: t0 + 9000)
         let snap = try await s.snapshot(now: t0 + 60, demo: true)
-        #expect(snap.icon == .demo && snap.iconShape == .dashed && snap.iconText == "DEMO")
+        #expect(snap.icon == .demo && snap.iconShape == .demo && snap.iconText == "DEMO")
         #expect(snap.iconAccessibilityLabel.localizedCaseInsensitiveContains("demo data"))
         let row = try #require(snap.provider?.pools.first)
         #expect(AccessibilityText.poolRow(row.model, now: snap.now, staleAfter: 600, zone: utc, locale: enUS, isDemo: true).hasPrefix("Demo data,"))
@@ -157,6 +161,11 @@ struct OverviewProjectionTests {
         #expect(none.empty == .notConnected && none.provider == nil && none.aggregateLine == "Not connected")
         let waiting = try await s.snapshot(now: t0, installed: true)
         #expect(waiting.empty == .waitingForFirstReading && waiting.aggregateLine == "Installed · waiting for first reading")
+        // Item 7: their own glyphs (an empty ring; "…" in the ring), not the stale clock, which means "old reading".
+        #expect(none.icon == .notConnected && none.iconShape == .notConnected && none.iconText == nil)
+        #expect(none.iconAccessibilityValue == "Not connected")
+        #expect(waiting.icon == .waiting && waiting.iconShape == .waiting && waiting.iconText == nil)
+        #expect(waiting.iconAccessibilityValue == "Waiting for the first reading")
     }
 
     @Test("Removed from Claude Code, only old readings left: cards say Not connected; frames arriving count as connected")
@@ -202,5 +211,26 @@ struct OverviewProjectionTests {
         let recent = try #require(snap.provider?.pools.first?.recent)
         #expect(recent.map(\.value) == [.percent(40), .percent(30), .percent(20)])
         #expect(recent.allSatisfy { $0.sourceVersion == "2.1.302" && $0.quality == .reported })
+    }
+}
+
+@Suite("Menu bar state family (item 7)")
+struct MenuBarStateFamilyTests {
+    @Test("Every icon state has its own brand glyph, and every glyph in the family is used")
+    func oneGlyphPerState() {
+        let expected: [OverviewSnapshot.Icon: MenuBarIcon.Shape] = [
+            .ok: .beat, .approaching: .approaching, .exhausted: .flatline, .stale: .stale, .demo: .demo,
+            .waiting: .waiting, .notConnected: .notConnected,
+        ]
+        for icon in OverviewSnapshot.Icon.allCases { #expect(icon.shape == expected[icon], "\(icon)") }
+        #expect(Set(OverviewSnapshot.Icon.allCases.map(\.shape)) == Set(MenuBarIcon.Shape.allCases))
+    }
+
+    @Test("The state is said in words, distinct per state; the stale mark adds that the reading is old")
+    func spokenStates() {
+        let words = MenuBarIcon.Shape.allCases.map { MenuBarIcon.spokenState($0, staleMark: false) }
+        #expect(Set(words).count == words.count)
+        #expect(MenuBarIcon.spokenState(.approaching, staleMark: true) == "Nearing a limit, last reading is old")
+        #expect(MenuBarIcon.spokenState(.stale, staleMark: true) == "Readings out of date")     // no double "old"
     }
 }
