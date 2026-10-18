@@ -196,6 +196,19 @@ struct TextTests {
         #expect(EnvironmentValues().displayTimeZone == TimeZone.autoupdatingCurrent)
     }
 
+    @Test("Times follow the locale's 12/24-hour convention: 08:30 in Britain, 8:30 AM in the US")
+    func clockConvention() {
+        let gb = Locale(identifier: "en_GB"), morning = reset.addingTimeInterval(-9 * 3600)        // 08:15 BST
+        #expect(Formatting.clock(morning, zone: london, locale: gb) == "08:15")
+        #expect(Formatting.clock(morning, zone: london, locale: Locale(identifier: "en_US")) == "8:15 AM")
+        #expect(Formatting.clock(morning, zone: london, locale: Locale(identifier: "en_US_POSIX")) == "8:15 AM")
+        #expect(Formatting.resetTime(reset.addingTimeInterval(86_400), now: now, zone: london, locale: gb) == "Sat 17:15")
+        #expect(Formatting.resetTime(reset.addingTimeInterval(86_400), now: now, zone: london, locale: us) == "Sat 5:15 PM")
+        #expect(Formatting.resetTime(reset.addingTimeInterval(9 * 86_400), now: now, zone: london, locale: gb) == "25 Oct")
+        #expect(Formatting.resetTime(reset.addingTimeInterval(9 * 86_400), now: now, zone: london, locale: us) == "Oct 25")
+        #expect(Formatting.age(of: now.addingTimeInterval(-3 * 3600), now: now, zone: london, locale: gb) == "12:01")
+    }
+
     @Test("Ages: just now, minutes, then clock time")
     func ages() {
         #expect(Formatting.age(of: now.addingTimeInterval(-30), now: now, zone: london, locale: us) == "just now")
