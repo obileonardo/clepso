@@ -6,12 +6,17 @@
 // only an open it can attribute to that click. Then it asks for the overview, detail and inspector pages
 // (through a `page` file the app follows) and lets the app screenshot each.
 // Puts the pointer back where it was. Writes popover-open-ms.txt and prints p50/p95/max.
-// usage: swift scripts/probe-popover.swift <probe dir> <timed opens>
+// With an idle time, it waits that many seconds with the popover closed before each timed click, to time opens after
+// the app has sat idle (timers coalesced, App Nap, caches cooled) rather than back to back.
+// usage: swift scripts/probe-popover.swift <probe dir> <timed opens> [idle seconds]
 import ApplicationServices
 import Foundation
 
 let arguments = CommandLine.arguments
-guard arguments.count == 3, let timed = Int(arguments[2]) else { print("usage: probe-popover.swift <dir> <timed opens>"); exit(2) }
+guard arguments.count == 3 || arguments.count == 4, let timed = Int(arguments[2]) else {
+    print("usage: probe-popover.swift <dir> <timed opens> [idle seconds]"); exit(2)
+}
+let idle = arguments.count == 4 ? Double(arguments[3]) ?? 0 : 0
 let folder = URL(fileURLWithPath: arguments[1])
 guard AXIsProcessTrusted() else { print("This terminal lacks Accessibility permission; clicks would be dropped."); exit(1) }
 
@@ -91,6 +96,7 @@ setPage("time")
 var attempts = 0
 while samples.count < timed && attempts < timed * 2 {
     attempts += 1
+    if idle > 0 { ensureClosed(); usleep(UInt32(idle * 1_000_000)) }
     if let ms = openOnce(settle: 300_000) { samples.append(ms) } else { misses += 1; print("attempt \(attempts): no attributable open") }
 }
 for page in ["overview", "detail", "inspector"] {
