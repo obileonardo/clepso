@@ -84,7 +84,7 @@ notification decision, so a rebuild never notifies twice. Limit notifications th
 
 ## 3. SQL schema
 
-SQLite through GRDB, one writer (the app), file `~/Library/Application Support/Pulse/pulse.sqlite`. Tables created by
+SQLite through GRDB, one writer (the app), file `~/Library/Application Support/Clepso/clepso.sqlite`. Tables created by
 migration v1 (`Sources/Storage/SchemaV1.swift`):
 
 | Group | Tables |
@@ -107,6 +107,15 @@ started_at, stopped_at)`, primary key `(task_id, agent_ref)`, with `agent_type` 
 names plus `custom` and `unknown`. A prompt closes the session's open task and opens a new one; `Stop` closes the
 latest open task; a subagent joins the session's latest task that started before it; a run is matched by
 `agent_ref`, so a stop that arrives before its start still makes one run. Purged with sessions at 30 days.
+
+**Before the rename to Clepso** the folder was `~/Library/Application Support/Pulse` and the file `pulse.sqlite`. At
+launch, before the database, the diagnostics log or the socket is opened, `LegacyDataMigration`
+(`Sources/ClepsoApp/System/LegacyDataMigration.swift`) renames the folder (never over an existing `Clepso` folder:
+then the old one is left in place and noted in the diagnostics log), then `pulse.sqlite`'s `-wal`, `-shm` and `-journal`
+companions and finally `pulse.sqlite` itself to `clepso.sqlite`, and the pre-migration copies
+`pulse.sqlite.pre-*.bak` to `clepso.sqlite.pre-*.bak`. Each step is a `rename(2)` in one folder and is repeated at the
+next launch until done. If another copy of the app still listens in the old folder, or a rename fails, nothing more
+moves and the database stays closed for that launch.
 
 ## 4. Migration policy
 

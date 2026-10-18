@@ -177,7 +177,7 @@
     function draw(ms) {
       const t = (ms || 0) / 1000, cx = W / 2, cy = H / 2, r = Math.min(W, H) * .42;
       const lx = Math.cos(t * .5) * .8, ly = -.45, lz = Math.sin(t * .5) * .6 + .5, ll = Math.hypot(lx, ly, lz);
-      const pulse = beat ? (t * .9) % 1 : -1;
+      const wave = beat ? (t * .9) % 1 : -1;
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4, dx = (x - cx) / r, dy = (y - cy) / r, q = dx * dx + dy * dy;
         let v = 0;
@@ -192,7 +192,7 @@
         }
         if (beat) {                                                               // the heartbeat line from the favicon
           const u = x / W, base = cy + r * 1.18;
-          const k = ((u - pulse + 1) % 1);
+          const k = ((u - wave + 1) % 1);
           const spike = k < .04 ? -k / .04 : k < .08 ? (k - .08) / .04 * -1 : 0;
           const ly2 = base + spike * r * .55 + (k > .08 && k < .12 ? (k - .08) * r * 3 : 0);
           if (Math.abs(y - ly2) < 1.1) v = Math.max(v, k < .35 ? 1 : .35);

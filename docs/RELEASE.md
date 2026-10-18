@@ -23,7 +23,7 @@ never need it, and nothing here is required to build from source (`make app` sig
 | Developer ID Application certificate (DECISIONS A6) | **Present** in the maintainer's login keychain (`security find-identity -v -p codesigning`) | Export the `.p12` once and keep it in the password manager: Apple can't re-issue a lost private key |
 | Team ID and bundle prefix (A7) | **Decided** 18 Oct 2026: `com.elvisobi` (app `com.elvisobi.clepso`, helper `com.elvisobi.clepso.statusline`, sign-in scheme `clepso://`) | When the planned code-signature peer check (PRIVACY_AND_SECURITY §3) is built, its designated requirement names `com.elvisobi.clepso.statusline` |
 | Notary credentials | Not set up | An App Store Connect API key (Developer role) is preferred over an Apple ID: `xcrun notarytool store-credentials clepso-notary --key <AuthKey.p8> --key-id <id> --issuer <issuer>` stores it in the keychain |
-| `Config/Signing.local.xcconfig` | Present on the maintainer's Mac (gitignored) | For a release build set `CLEPSO_CODE_SIGN_IDENTITY = Developer ID Application` and `CLEPSO_DEVELOPMENT_TEAM = <TEAMID>` |
+| `Config/Signing.local.xcconfig` | Present on the maintainer's Mac (gitignored) | For a release build set `CLEPSO_CODE_SIGN_IDENTITY = Developer ID Application` and `CLEPSO_DEVELOPMENT_TEAM = <TEAMID>` (files written before the rename may still say `PULSE_…`; `Config/Clepso.xcconfig` reads both, `CLEPSO_…` wins) |
 
 ## 3. Build, sign, notarize
 

@@ -17,7 +17,7 @@ the made-up profile name "Sam", rendered by the app itself (see [Run it safely](
 
 ## Contents
 
-- [Why Clepso exists](#why-pulse-exists)
+- [Why Clepso exists](#why-clepso-exists)
 - [What it does today](#what-it-does-today)
 - [Screenshots](#screenshots)
 - [Privacy model](#privacy-model)
@@ -80,7 +80,7 @@ The interface is set in Clepso's own pixel typefaces, Clepso Pixel and Clepso Mo
 **Data controls**
 - **Export my data**: a JSON file (permissions 0600) of the local tables, with every string re-checked by the same
   scrubber the helper uses.
-- **Delete all**: removes Clepso's database and its files under `~/.claude/pulse`, and restores your Claude Code
+- **Delete all**: removes Clepso's database and its files under `~/.claude/clepso`, and restores your Claude Code
   settings; optionally also deletes the settings backups.
 - **Retention**: limit readings and engine events are kept 90 days; sessions, agent tasks and notification receipts 30 days.
 - **Demo mode**: a fixed scenario run through the real engine and store, so you can explore without connecting anything.
@@ -121,7 +121,7 @@ machine can be undone.
   ([`Sources/ShimProtocol/Allowlist.swift`](Sources/ShimProtocol/Allowlist.swift)). Your working directory,
   transcript path, session name, prompt id and workspace folders are never forwarded. Strings that look like paths,
   emails or secrets are dropped. Session ids are replaced by an HMAC keyed with a random 32-byte key stored at
-  `~/.claude/pulse/session.key` (0600).
+  `~/.claude/clepso/session.key` (0600).
 - **The helper cannot reach the network.** `clepso-statusline` links only Foundation, CryptoKit and system libraries;
   `make ci` fails if it links any networking library or symbol.
 - **Network code lives in one module.** Only `Sources/Sync` may use networking APIs, and only the app imports it
@@ -129,11 +129,11 @@ machine can be undone.
   **Builds from source carry none**, so they never sign in or upload anything (see
   [Optional accounts backend](#optional-accounts-backend)).
 - **Your Claude Code settings are changed reversibly.** Connecting changes exactly one key, `statusLine.command`,
-  in `~/.claude/settings.json`, after writing a byte-exact backup to `~/.claude/pulse-backups/`. Writes are
+  in `~/.claude/settings.json`, after writing a byte-exact backup to `~/.claude/clepso-backups/`. Writes are
   compare-and-swap with an atomic rename, and an interrupted install can be recovered. If you already had a status
   line, it keeps running and its output reaches Claude Code unchanged. Removing Clepso restores the original bytes.
 - **Local IPC is restricted to your user.** The app listens on a Unix socket at
-  `~/Library/Application Support/Pulse/run/agent.sock` (folder 0700, socket 0600), accepts only peers running as
+  `~/Library/Application Support/Clepso/run/agent.sock` (folder 0700, socket 0600), accepts only peers running as
   your user id, frames of at most 4 KiB, and at most 20 frames per second.
 - **Logs are redacted by type.** Values wrapped in `Redacted<T>` cannot be encoded; `make ci` audits every place that
   unwraps one.
@@ -163,7 +163,7 @@ flowchart LR
     subgraph App["Clepso.app (menu bar)"]
         SOCK["IngestSocket<br/>same-user peers, 4 KiB, 20/s"]
         MAP["FrameMapper → observations"]
-        DB[("SQLite via GRDB<br/>~/Library/Application Support/Pulse")]
+        DB[("SQLite via GRDB<br/>~/Library/Application Support/Clepso")]
         ENG["UsageEngine<br/>limit, reset and pace rules"]
         UI["SwiftUI: menu bar panel,<br/>Dashboard, onboarding"]
         SYNC["Sync (optional)<br/>the only module with network access"]
@@ -185,7 +185,7 @@ flowchart LR
 ```
 
 1. Claude Code runs its status-line command on every refresh and pipes a JSON description of the session to it.
-   Connecting Clepso points that command at a small wrapper script (`~/.claude/pulse/statusline.sh`) that runs the
+   Connecting Clepso points that command at a small wrapper script (`~/.claude/clepso/statusline.sh`) that runs the
    helper embedded in the app bundle, or your original command if the app has been removed.
 2. The helper starts your original status-line command (if any) with the exact input bytes, so your status line looks
    the same. Meanwhile it builds an allowlisted *frame* and sends it to the app over a Unix socket within a fixed time
@@ -263,8 +263,10 @@ build/DerivedData/Build/Products/Debug/Clepso.app/Contents/MacOS/Clepso \
     -ClepsoDataDirectory /tmp/clepso-data -ClepsoHome /tmp/clepso-home
 ```
 
-With `-ClepsoDataDirectory` set, sign-in state is kept in memory instead of the Keychain, so a debug run can never
-upload to, or sign out of, a real account. Choose **Show demo data instead** in onboarding to see the screens above.
+With either argument set, sign-in state is kept in memory instead of the Keychain, so a debug run can never upload
+to, or sign out of, a real account. `-ClepsoHome` on its own stands in for your whole home folder: the data folder is
+then `<home>/Library/Application Support/Clepso`, and an old `<home>/Library/Application Support/Pulse` and
+`<home>/.claude/pulse` there are moved the way a real upgrade from a build named Pulse moves them. Choose **Show demo data instead** in onboarding to see the screens above.
 Keep the data folder path short: the socket path inside it must stay under the 104-byte Unix limit, otherwise the
 panel reports that it isn't receiving updates.
 
@@ -273,11 +275,11 @@ To connect a real Claude Code, launch normally and use **Connect** in onboarding
 and only previews unless you pass `--confirm`:
 
 ```sh
-swift run pulse install --shim <path to clepso-statusline>           # preview only
-swift run pulse install --shim <path to clepso-statusline> --confirm # install
-swift run pulse status
-swift run pulse uninstall --confirm                                 # restore your settings
-swift run pulse recover                                             # finish or roll back an interrupted install
+swift run clepso install --shim <path to clepso-statusline>           # preview only
+swift run clepso install --shim <path to clepso-statusline> --confirm # install
+swift run clepso status
+swift run clepso uninstall --confirm                                 # restore your settings
+swift run clepso recover                                             # finish or roll back an interrupted install
 ```
 
 **Screenshots and popover timing** (debug builds):
@@ -335,11 +337,11 @@ Sources/
   Storage/                 GRDB/SQLite schema v1–v3, migrations, ledger policy, retention
   SubscriptionCatalog/     Bundled plan catalog (plan-catalog.v1.json)
   DesignSystem/            Themes and tokens, status styles, pixel components and glyphs, bundled fonts
-  ClepsoApp/                Composition root, AppModel, projections, SwiftUI views, copy, diagnostics, export
+  ClepsoApp/               Composition root, AppModel, projections, SwiftUI views, copy, diagnostics, export
   Sync/                    Optional accounts: PKCE email-link sign-in, Keychain session, upload
-  pulse/                   Headless CLI: install, uninstall, status, recover
+  clepso/                  Headless CLI: install, uninstall, status, recover
   FixtureTools/, clepso-fixture/   Developer-only capture listener and scrubber (never shipped)
-  clepso-design-render/     Developer-only: renders real components to PNG for the design-system page
+  clepso-design-render/    Developer-only: renders real components to PNG for the design-system page
   TestFixtures/            Fixture corpus F01–F19 and one scrubbed real capture (C01)
 Tests/                     Swift Testing suites per module, plus integration tests that run the built helper
 backend/supabase/          Accounts schema with row-level security, pgTAP tests, local Supabase config
@@ -407,7 +409,7 @@ are read automatically today.
 | The panel says Clepso isn't receiving updates (debug run) | The `-ClepsoDataDirectory` path is too long for a Unix socket; use a shorter one |
 | Account says accounts aren't available | Expected in builds from source (see [Optional accounts backend](#optional-accounts-backend)) |
 | The panel says "not connected" | Claude Code only runs the status line while a session is open; check Settings for the connection state and the diagnostics log |
-| My old status line disappeared | It should keep running. Run `swift run pulse status`, then `swift run pulse uninstall --confirm` to restore the backed-up bytes, and open an issue |
+| My old status line disappeared | It should keep running. Run `swift run clepso status`, then `swift run clepso uninstall --confirm` to restore the backed-up bytes, and open an issue |
 | Want to see what Clepso stored | Settings › Export my data writes a JSON copy |
 
 ## Contributing, security and conduct
