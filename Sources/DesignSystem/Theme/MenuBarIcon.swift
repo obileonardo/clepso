@@ -60,8 +60,16 @@ extension MenuBarIcon {
                 NSRect(x: CGFloat(index % 16) * unit, y: CGFloat(index / 16) * unit, width: unit, height: unit).fill()
             }
             if let label {
+                // Clepso Pixel at 10 pt puts one font pixel on one point (INTEGRATION.md §2), and its 12 pt line box
+                // centred on the 16 pt icon puts the baseline on a whole point, so every glyph edge is on the grid.
+                // Antialiasing and font smoothing would still grow a grey fringe around each edge, which the template
+                // tint turns into a blur: draw the text aliased, hard pixels like the glyph beside it.
+                NSGraphicsContext.saveGraphicsState()
+                NSGraphicsContext.current?.shouldAntialias = false
+                NSGraphicsContext.current?.cgContext.setShouldSmoothFonts(false)
                 let h = label.size().height
                 label.draw(at: NSPoint(x: height + gap, y: (height - h) / 2))
+                NSGraphicsContext.restoreGraphicsState()
             }
             return true
         }
