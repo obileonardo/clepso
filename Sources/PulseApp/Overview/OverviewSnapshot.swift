@@ -1,3 +1,4 @@
+import struct CodexAdapter.CodexAgents
 import DesignSystem
 import Domain
 import Foundation
@@ -23,6 +24,9 @@ public struct OverviewSnapshot: Sendable {
     public let agents: AgentsSummary?
     /// Codex's limits (increment 3.4); nil while reading Codex is off.
     public var codex: AgentLimitsSection? = nil
+    /// Codex's agents per task (item 4): shown while reading Codex is on, never in demo; nil until the first read ends.
+    public var codexAgentsShown = false
+    public var codexAgents: AgentsSummary? = nil
 
     /// AT-07: the product name, then the aggregate line.
     public var iconAccessibilityLabel: String { "\(Product.name): \(aggregateLine)" }
@@ -158,6 +162,8 @@ public struct OverviewInput: Sendable {
     public var codexPools: [PoolState] = []
     public var codexPlan: String?
     public var codexModel: String?
+    /// Codex's tasks from its session files (`CodexAgents`), in memory; nil until the first background read finishes.
+    public var codexAgentTasks: [CodexAgents.Task]?
     /// The oldest kept session's first sighting (`CodeLines.since`).
     public var firstSessionSeen: Date?
     public init() {}
@@ -174,9 +180,12 @@ public struct AgentsSummary: Sendable, Equatable {
         public let finished: Int
         /// Display order: Explore, Plan, General, other built-ins, Custom; zero counts and Claude Code's internal agents left out.
         public let byType: [(name: String, count: Int)]
+        /// Codex only: the approval auto-reviews it ran during the task (not agents).
+        public var reviews = 0
         public static func == (a: Task, b: Task) -> Bool {
             a.id == b.id && a.startedAt == b.startedAt && a.endedAt == b.endedAt && a.running == b.running && a.agents == b.agents
                 && a.finished == b.finished && a.byType.map(\.name) == b.byType.map(\.name) && a.byType.map(\.count) == b.byType.map(\.count)
+                && a.reviews == b.reviews
         }
     }
     public let latest: Task?

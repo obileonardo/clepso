@@ -1,3 +1,4 @@
+import struct CodexAdapter.CodexAgents
 import DesignSystem
 import Domain
 import Foundation
@@ -74,7 +75,8 @@ public enum OverviewProjection {
         return OverviewSnapshot(now: now, isDemo: input.isDemo, icon: icon, iconStaleMark: staleMark, iconText: text,
                                 aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty,
                                 agents: input.agentsTracking ? agents(input.agentTasks, now: now) : nil,
-                                codex: codexSection)
+                                codex: codexSection, codexAgentsShown: input.codexEnabled && !input.isDemo,
+                                codexAgents: input.codexEnabled && !input.isDemo ? input.codexAgentTasks.map { codexAgents($0, now: now) } : nil)
     }
 
     static let codexSource = SourceDescriptor(evidence: .officialLocalTelemetry, displayName: "Codex", version: nil)
@@ -130,6 +132,37 @@ public enum OverviewProjection {
                                       agents: t.agents - internalRuns, finished: max(0, t.finished - internalRuns),
                                       byType: agentTypeOrder.compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
         }
+        return summary(mapped, now: now)
+    }
+
+    /// Codex's built-in roles first, then the user's own (Custom).
+    static let codexRoleOrder = ["default", "explorer", "worker", "awaiter", CodexAgents.customRole]
+
+    static func codexRoleName(_ role: String) -> String {
+        switch role {
+        case "default": Copy.Agents.codexDefault
+        case "explorer": Copy.Agents.codexExplorer
+        case "worker": Copy.Agents.codexWorker
+        case "awaiter": Copy.Agents.codexAwaiter
+        default: Copy.Agents.custom
+        }
+    }
+
+    /// Codex's tasks (item 4), with the same six-hour rule for a turn Codex never closed. Its auto-reviews ride along
+    /// as `reviews` and count toward no agent figure.
+    static func codexAgents(_ tasks: [CodexAgents.Task], now: Date) -> AgentsSummary {
+        let mapped = tasks.sorted { $0.startedAt > $1.startedAt }.map { t in
+            AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
+                               running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
+                               agents: t.agents, finished: t.finished,
+                               byType: codexRoleOrder.compactMap { role in t.byRole[role].map { (codexRoleName(role), $0) } },
+                               reviews: t.reviews)
+        }
+        return summary(mapped, now: now)
+    }
+
+    /// The latest task, the eight most recent, and the last 30 days' figures.
+    static func summary(_ mapped: [AgentsSummary.Task], now: Date) -> AgentsSummary {
         let month = mapped.filter { now.timeIntervalSince($0.startedAt) <= 30 * 86_400 }
         return AgentsSummary(latest: mapped.first, recent: Array(mapped.prefix(8)), tasks: month.count,
                              tasksWithAgents: month.filter { $0.agents > 0 }.count, totalAgents: month.map(\.agents).reduce(0, +),

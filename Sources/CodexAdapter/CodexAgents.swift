@@ -38,6 +38,16 @@ public struct CodexAgents: Sendable {
         /// Approval auto-reviews Codex ran during the task; not agents.
         public let reviews: Int
         public var agents: Int { byRole.values.reduce(0, +) }
+
+        public init(id: String, startedAt: Date, endedAt: Date?, fromPrompt: Bool, byRole: [String: Int], finished: Int, reviews: Int) {
+            self.id = id
+            self.startedAt = startedAt
+            self.endedAt = endedAt
+            self.fromPrompt = fromPrompt
+            self.byRole = byRole
+            self.finished = finished
+            self.reviews = reviews
+        }
     }
 
     /// Codex's built-in agent roles (`agent_role`; none means `default`). Roles the user defines become `customRole`.

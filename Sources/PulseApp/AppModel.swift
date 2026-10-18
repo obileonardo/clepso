@@ -1,4 +1,5 @@
 import ClaudeCodeAdapter
+import struct CodexAdapter.CodexAgents
 import struct CodexAdapter.CodexReading
 import struct CodexAdapter.CodexUsage
 import DesignSystem
@@ -52,6 +53,8 @@ public final class AppModel {
     var codexConnection: UUID?
     /// Codex's tokens per day and model (Stats), in memory only; nil until the first background read finishes.
     public internal(set) var codexDays: [CodexUsage.Day]?
+    /// Codex's agents per task (item 4), in memory only, from the same read.
+    var codexAgentTasks: [CodexAgents.Task]?
     var codexUsage: CodexUsage?
     var codexScanning = false
     /// The Pulse account on this Mac.
@@ -309,6 +312,7 @@ public final class AppModel {
         input.codexEnabled = codexEnabled
         input.codexPlan = codexLatest?.plan
         input.codexModel = codexLatest?.model
+        input.codexAgentTasks = codexAgentTasks
         let snapshot = OverviewProjection.make(input, now: now, staleAfter: Freshness.localTelemetryTTL,
                                                zone: environment.timeZone, locale: environment.locale)
         guard mine == generation else { return }         // a newer refresh finished first
