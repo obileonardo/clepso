@@ -1,0 +1,68 @@
+# Code scanning with CodeQL (advanced setup), replacing GitHub's default setup so Swift is covered too.
+#
+#   - Swift: CodeQL supports Swift up to 6.3 (CodeQL 2.27, checked 19 Oct 2026), while the project builds with
+#     Xcode 27.1 / Swift 6.4. So this job builds with Xcode 26.6 (Swift 6.3) on GitHub's macos-26 image, only for
+#     analysis; make ci and ci.yml keep the pinned 27.1. Move it to Xcode 27 once CodeQL lists Swift 6.4.
+#   - Actions, JavaScript/TypeScript (site and web dashboard) and Python (build scripts): no build needed.
+#   - Results upload from main (push and the weekly run) only. Pull requests still build and analyse every
+#     language, so a change that breaks the analysis shows up before it merges.
+#   - Least privilege; every action pinned to a full commit SHA (version in the trailing comment).
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"   # Mondays 04:17 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { language: actions,               build-mode: none,   runner: ubuntu-latest }
+          - { language: javascript-typescript, build-mode: none,   runner: ubuntu-latest }
+          - { language: python,                build-mode: none,   runner: ubuntu-latest }
+          - { language: swift,                 build-mode: manual, runner: macos-26 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26.6 (Swift 6.3, the newest CodeQL supports)
+        if: matrix.language == 'swift'
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Build (Swift package, observed by CodeQL)
+        if: matrix.build-mode == 'manual'
+        run: swift build --only-use-versions-from-resolved-file
+
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: /language:${{ matrix.language }}
+          upload: ${{ github.event_name == 'pull_request' && 'never' || 'always' }}
