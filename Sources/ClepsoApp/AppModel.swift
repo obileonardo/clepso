@@ -200,11 +200,13 @@ public final class AppModel {
         }
         await refreshAccount()
         await purgeIfDue()
-        if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
-        // The status line's wrapper names the helper by its full path; after the app moves or is renamed (Clepso.app →
-        // Clepso.app) it points at nothing and Claude Code quietly falls back. Re-point it, like the hooks above.
-        let statusLine = Self.installer(environment, forwardCost: forwardCost, approvedAgentTypes: approvedAgentNames)
-        if statusLine.needsRepair() { try? statusLine.repair() }
+        if environment.rewritesHome {
+            if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
+            // The status line's wrapper names the helper by its full path; after the app moves or is renamed (Clepso.app →
+            // Clepso.app) it points at nothing and Claude Code quietly falls back. Re-point it, like the hooks above.
+            let statusLine = Self.installer(environment, forwardCost: forwardCost, approvedAgentTypes: approvedAgentNames)
+            if statusLine.needsRepair() { try? statusLine.repair() }
+        }
         listen()
         let interval = environment.tickInterval
         tasks.append(Task { [weak self] in
@@ -398,7 +400,7 @@ public final class AppModel {
         forwardCost = on
         try? await store?.setPreference(Pref.forwardCost, on, now: environment.clock.now())
         let installer = Self.installer(environment, forwardCost: on, approvedAgentTypes: approvedAgentNames)
-        if installer.isInstalled { try? installer.repair() }
+        if environment.rewritesHome, installer.isInstalled { try? installer.repair() }
     }
 
     public func completeOnboarding() async {
@@ -545,6 +547,8 @@ public final class AppModel {
     /// The sign-in link's return to the app (`clepso://auth-callback?code=…`).
     public func handleOpenURL(_ url: URL) async {
         guard url.scheme == SyncConfig.urlScheme else { return }
+        // An isolated debug run shares the installed app's URL scheme: a link for a sign-in it did not start is not its own.
+        if environment.isolated, await environment.sync.pendingEmail == nil { return }
         detailsSection = .account
         accountBusy = true
         defer { accountBusy = false }

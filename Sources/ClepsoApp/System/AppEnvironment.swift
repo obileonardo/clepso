@@ -49,6 +49,16 @@ public struct AppEnvironment: Sendable {
     /// Clepso accounts. Off (no project, no requests) unless the build carries a `SyncConfig`; tests and previews get
     /// an unconfigured client unless they pass their own.
     public var sync: SyncClient
+    /// A debug run on another home or data folder (`-ClepsoHome`, `-ClepsoDataDirectory`, `-ClepsoProbeOutput`). macOS
+    /// sees it as the installed Clepso (same bundle identifier), so everything macOS keeps per app gets a stand-in
+    /// (`live(bundle:flag:)`): no login item, no notification centre, no Keychain, sign-in kept in memory, no sign-in link
+    /// taken unless this run started that sign-in, no window size or open window saved.
+    public var isolated = false
+    /// Whether Clepso may rewrite its own files in `home/.claude` without a click: re-pointing the status line and hooks
+    /// at launch after a move, regenerating the helper's config after a setting changes. Off for an isolated run that
+    /// reads the real home (`-ClepsoDataDirectory` alone): its helper and socket are not the installed app's, so a
+    /// repair would point the user's status line and hooks at this run.
+    public var rewritesHome = true
 
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,
@@ -81,25 +91,57 @@ public struct AppEnvironment: Sendable {
     /// for the whole home folder: the data folder is then `<home>/Library/Application Support/Clepso`, and an old
     /// `<home>/Library/Application Support/Pulse` there is migrated like the real one.
     public static func live(bundle: Bundle = .main) -> AppEnvironment {
-        let homeFlag = debugFlag("ClepsoHome"), dataFlag = debugFlag("ClepsoDataDirectory")
+        #if DEBUG
+        if let problem = launchProblem(flag: debugFlag) {
+            FileHandle.standardError.write(Data((problem + "\n").utf8))
+            exit(64)
+        }
+        #endif
+        return live(bundle: bundle, flag: debugFlag)
+    }
+
+    /// `live()` with the launch arguments read through `flag` (tests pass their own).
+    static func live(bundle: Bundle, flag: (String) -> String?) -> AppEnvironment {
+        let homeFlag = flag("ClepsoHome"), dataFlag = flag("ClepsoDataDirectory")
+        let isolated = isIsolated(flag: flag)
         let home = homeFlag.map { URL(fileURLWithPath: $0) } ?? FileManager.default.homeDirectoryForCurrentUser
         let data = dataFlag.map { URL(fileURLWithPath: $0) } ?? home.appendingPathComponent("Library/Application Support/Clepso")
         let legacyData = dataFlag == nil ? home.appendingPathComponent("Library/Application Support/Pulse") : nil
         // The real account lives in the Keychain; a debug run on another home or data folder (the probe, demo screenshots)
         // gets a private in-memory one, so it can never upload to, or sign out of, the user's real account.
-        let authStore: any AuthStore = homeFlag == nil && dataFlag == nil ? KeychainAuthStore() : MemoryAuthStore()
+        let authStore: any AuthStore = isolated ? MemoryAuthStore() : KeychainAuthStore()
         let shim = bundle.bundleURL.appendingPathComponent("Contents/Helpers/clepso-statusline").path
         let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         var environment = AppEnvironment(dataDirectory: data, home: home, shimPath: shim,
-                                          loginItem: SystemLoginItem(), notifications: SystemNotifications(),
-                                          keychain: SystemKeychain(service: bundle.bundleIdentifier ?? "com.elvisobi.clepso"), appVersion: version,
+                                          loginItem: isolated ? IsolatedLoginItem() : SystemLoginItem(),
+                                          notifications: isolated ? IsolatedNotifications() : SystemNotifications(),
+                                          keychain: isolated ? IsolatedKeychain() as any KeychainCleaning
+                                                             : SystemKeychain(service: bundle.bundleIdentifier ?? "com.elvisobi.clepso"),
+                                          appVersion: version,
                                           sync: SyncClient(config: SyncConfig(infoDictionary: bundle.infoDictionary ?? [:]), store: authStore,
                                                            now: { SystemClock().now() }),
                                           legacyDataDirectory: legacyData)
+        environment.isolated = isolated
+        environment.rewritesHome = !isolated || homeFlag != nil
         #if DEBUG
         environment.calendarActions = UserDefaults.standard.bool(forKey: "ClepsoCalendarActions")
         #endif
         return environment
+    }
+
+    /// Any of the three debug flags that move Clepso off the installed app's files (`isolated`).
+    static func isIsolated(flag: (String) -> String?) -> Bool {
+        ["ClepsoHome", "ClepsoDataDirectory", "ClepsoProbeOutput"].contains { flag($0) != nil }
+    }
+
+    /// This process, from its launch arguments; always false in release builds. For AppKit code without the model.
+    static let isIsolatedRun = isIsolated(flag: debugFlag)
+
+    /// Why a debug launch must stop before it touches anything, or nil. A probe on the real data folder would bind the
+    /// installed app's socket, write its preferences (demo, theme, profile name) and repair its status line.
+    static func launchProblem(flag: (String) -> String?) -> String? {
+        guard flag("ClepsoProbeOutput") != nil, flag("ClepsoHome") == nil, flag("ClepsoDataDirectory") == nil else { return nil }
+        return "-ClepsoProbeOutput needs -ClepsoHome or -ClepsoDataDirectory: a probe must never run on the installed app's data."
     }
 
     /// A `-Clepso…` launch argument; always nil in release builds.
@@ -133,6 +175,16 @@ public struct SystemLoginItem: LoginItemControlling {
         if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         #endif
     }
+}
+
+/// An isolated run's login item (`AppEnvironment.isolated`): the switch works on screen, and macOS never hears of it
+/// (`SMAppService.mainApp` is the installed app's login item: same bundle identifier).
+public final class IsolatedLoginItem: LoginItemControlling, @unchecked Sendable {
+    private let lock = NSLock()
+    private var enabled = false
+    public init() {}
+    public var isEnabled: Bool { lock.withLock { enabled } }
+    public func setEnabled(_ enabled: Bool) throws { lock.withLock { self.enabled = enabled } }
 }
 
 // MARK: - Notification permission (asked only after a real observation)
@@ -305,6 +357,18 @@ public struct SystemNotifications: NotificationAuthorizing {
     }
 }
 
+/// An isolated run's notifications (`AppEnvironment.isolated`). The notification centre is the installed app's (same
+/// bundle identifier): a probe's reminder reconciliation would cancel its pending reset reminders, and its alerts would
+/// appear as the real app's. Permission reads as given, so Settings looks as it does for most users; nothing is shown,
+/// scheduled, removed or listened to (the protocol's defaults are no-ops).
+public struct IsolatedNotifications: NotificationAuthorizing {
+    public init() {}
+    public func status() async -> NotificationAuthorization { .authorized }
+    public func request() async -> NotificationAuthorization { .authorized }
+    public func sendTest(title: String, body: String) async {}
+    public func removeAll() async {}
+}
+
 #if canImport(UserNotifications)
 /// Shows alerts while the app is frontmost too, and turns the user's choice into an `AlertAction`.
 final class AlertDelegate: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
@@ -344,4 +408,10 @@ public struct SystemKeychain: KeychainCleaning {
         _ = SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service] as CFDictionary)
         #endif
     }
+}
+
+/// An isolated run's Keychain (`AppEnvironment.isolated`): Delete everything leaves the installed app's items alone.
+public struct IsolatedKeychain: KeychainCleaning {
+    public init() {}
+    public func deleteAll() {}
 }

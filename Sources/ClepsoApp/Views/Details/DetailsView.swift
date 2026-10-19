@@ -297,11 +297,9 @@ struct WindowFitter: NSViewRepresentable {
             guard let window else { return }
             // After SwiftUI has placed the window, so this frame wins. Reopens where the user left it; the first time,
             // three quarters of the screen, centred, which the user can then make bigger or smaller.
-            #if DEBUG
-            // Probe runs size the window themselves, and must not overwrite the size the user left the Dashboard at
-            // (they share the app's defaults; a probe's restore also raced its first page's width).
-            if UserDefaults.standard.string(forKey: "ClepsoProbeOutput") != nil { return }
-            #endif
+            // Isolated debug runs (the probe sizes the window itself) must not overwrite the size the user left the
+            // Dashboard at: they share the installed app's defaults. A probe's restore also raced its first page's width.
+            if AppEnvironment.isIsolatedRun { return }
             DispatchQueue.main.async {
                 guard window.frameAutosaveName != Self.autosaveName else { return }
                 let restored = window.setFrameUsingName(Self.autosaveName)

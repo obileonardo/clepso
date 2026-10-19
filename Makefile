@@ -18,8 +18,11 @@ test:
 	swift test
 
 # Helper time budget, enforced on the maintainer's Mac: overhead ≤ 20 ms p95 over 200 release-build runs.
+# Fails when the test fails (the grep alone would exit 0).
 perf:
-	CLEPSO_PERF=1 swift test -c release --filter OverheadTests 2>&1 | grep -E "OVERHEAD|Test run|✘"
+	@mkdir -p .build
+	@CLEPSO_PERF=1 swift test -c release --filter OverheadTests > .build/perf.log 2>&1; status=$$?; \
+	  grep -E "OVERHEAD|Test run|✘" .build/perf.log; exit $$status
 
 clean-ci:
 	rm -rf .build/ci-logs
