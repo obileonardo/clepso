@@ -75,7 +75,8 @@ public enum OverviewProjection {
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
         return OverviewSnapshot(now: now, isDemo: input.isDemo, icon: icon, iconStaleMark: staleMark, iconText: text,
                                 aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty,
-                                agents: input.agentsTracking ? agents(input.agentTasks, open: input.openAgentRuns, now: now, staleAfter: staleAfter) : nil,
+                                agents: input.agentsTracking ? agents(input.agentTasks, open: input.openAgentRuns, background: input.backgroundSnapshots,
+                                                                               now: now, staleAfter: staleAfter) : nil,
                                 codex: codexSection, codexAgentsShown: input.codexEnabled && !input.isDemo,
                                 codexAgents: input.codexEnabled && !input.isDemo ? input.codexAgentTasks.map { codexAgents($0, now: now) } : nil)
     }
@@ -153,9 +154,41 @@ public enum OverviewProjection {
     /// is also one of the task's finished runs. `open` are the subagents with no stop yet, from any task: each one
     /// started under `agentRunCap` ago is running now, counted in `live` and in its own task's `stillRunning`, even
     /// when that task has ended; older ones are the task's `noStopSeen`.
-    static func agents(_ tasks: [Store.AgentTask], open: [Store.OpenAgentRun] = [], now: Date,
+    ///
+    /// Exact counts (sheet item 9): `background` holds each session's latest exact report of Claude Code's in-flight
+    /// background work. For such a session, of the subagents that started before the report, exactly as many of each
+    /// type are running as the report listed, less the stops received since; any more open ones stopped without their
+    /// stop reaching Clepso (they become the task's `noStopSeen`), and any fewer were started before Clepso saw them
+    /// (shown as running, start not seen). Subagents started after the report are counted from their start and stop.
+    /// Sessions without a report keep the start-and-stop inference.
+    static func agents(_ tasks: [Store.AgentTask], open: [Store.OpenAgentRun] = [], background: [Store.BackgroundSnapshot] = [], now: Date,
                        staleAfter: TimeInterval = Freshness.localTelemetryTTL) -> AgentsSummary {
-        let counted = open.filter { now.timeIntervalSince($0.startedAt) < agentRunCap }
+        let recent = open.filter { now.timeIntervalSince($0.startedAt) < agentRunCap }
+        let reports = Dictionary(background.filter { now.timeIntervalSince($0.reportedAt) < agentRunCap }.map { ($0.sessionRef, $0) },
+                                 uniquingKeysWith: { a, b in a.reportedAt >= b.reportedAt ? a : b })
+        let bySession = Dictionary(grouping: recent, by: \.sessionRef)
+        var counted = recent.filter { reports[$0.sessionRef] == nil }
+        var untracked: [AgentsSummary.LiveAgent] = []
+        var exactAt: [Date] = []
+        for report in reports.values.sorted(by: { $0.sessionRef < $1.sessionRef }) {
+            let runs = bySession[report.sessionRef] ?? []
+            let after = runs.filter { $0.startedAt > report.reportedAt }
+            let before = Dictionary(grouping: runs.filter { $0.startedAt <= report.reportedAt }, by: \.agentType)
+            var running = after.count
+            counted += after
+            for type in Set(before.keys).union(report.agentsInFlight.keys).sorted() where type != internalAgentType {
+                let still = max(0, (report.agentsInFlight[type] ?? 0) - (report.stoppedSince[type] ?? 0))
+                let tracked = (before[type] ?? []).sorted { $0.startedAt > $1.startedAt }.prefix(still)
+                counted += tracked
+                running += still
+                let lastSeen = report.sessionLastEvent
+                untracked += Array(repeating: AgentsSummary.LiveAgent(type: agentTypeName(type), startedAt: report.reportedAt,
+                                                                      taskStartedAt: report.reportedAt, inLatestTask: false, lastSeen: lastSeen,
+                                                                      stale: now.timeIntervalSince(lastSeen) >= staleAfter, untracked: true),
+                                    count: still - tracked.count)
+            }
+            if running > 0 { exactAt.append(report.reportedAt) }
+        }
         let runningByTask = Dictionary(grouping: counted, by: \.taskID).mapValues(\.count)
         let mapped = tasks.sorted { $0.startedAt > $1.startedAt }.map { t in
             let internalRuns = t.byType[internalAgentType] ?? 0
@@ -176,21 +209,52 @@ public enum OverviewProjection {
             return AgentsSummary.LiveAgent(type: agentTypeName(run.agentType), startedAt: run.startedAt, taskStartedAt: run.taskStartedAt,
                                            inLatestTask: run.taskID == latest, lastSeen: lastSeen,
                                            stale: now.timeIntervalSince(lastSeen) >= staleAfter)
+        } + untracked
+        // Exact only when every session with a subagent running now has a report.
+        let inferred = Set(counted.map(\.sessionRef)).subtracting(reports.keys)
+        result.liveExactAt = inferred.isEmpty ? exactAt.max() : nil
+        result.backgroundOther = backgroundOrder.compactMap { type in
+            let n = reports.values.map { $0.otherWork[type] ?? 0 }.reduce(0, +)
+            return n > 0 ? AgentsSummary.BackgroundWork(name: backgroundTypeName(type), count: n) : nil
         }
         return result
+    }
+
+    /// Claude Code's other kinds of background work, in the order the Running now card lists them.
+    static let backgroundOrder = ["shell", "monitor", "workflow", "teammate", "cloud_session", "mcp_task", "other"]
+
+    static func backgroundTypeName(_ type: String) -> String {
+        switch type {
+        case "shell": Copy.Agents.bgShell
+        case "monitor": Copy.Agents.bgMonitor
+        case "workflow": Copy.Agents.bgWorkflow
+        case "teammate": Copy.Agents.bgTeammate
+        case "cloud_session": Copy.Agents.bgCloud
+        case "mcp_task": Copy.Agents.bgMCP
+        default: Copy.Agents.bgOther
+        }
     }
 
     /// Codex's built-in roles first, then the user's own (Custom).
     static let codexRoleOrder = ["default", "explorer", "worker", "awaiter", CodexAgents.customRole]
 
+    /// A role the user approved (sheet item 10) arrives by name and is shown as it is, like an approved Claude Code agent.
     static func codexRoleName(_ role: String) -> String {
         switch role {
         case "default": Copy.Agents.codexDefault
         case "explorer": Copy.Agents.codexExplorer
         case "worker": Copy.Agents.codexWorker
         case "awaiter": Copy.Agents.codexAwaiter
-        default: Copy.Agents.custom
+        case CodexAgents.customRole: Copy.Agents.custom
+        default: role
         }
+    }
+
+    /// Codex's roles in display order: built-in, then approved names (A to Z), then Custom.
+    static func orderedCodexRoles(_ roles: some Sequence<String>) -> [String] {
+        let present = Set(roles)
+        return codexRoleOrder.dropLast().filter(present.contains) + present.subtracting(codexRoleOrder).sorted()
+            + codexRoleOrder.suffix(1).filter(present.contains)
     }
 
     /// Codex's tasks (item 4), with the same six-hour rule for a turn Codex never closed. Its auto-reviews ride along
@@ -200,7 +264,7 @@ public enum OverviewProjection {
             AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
                                running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
                                agents: t.agents, finished: t.finished,
-                               byType: codexRoleOrder.compactMap { role in t.byRole[role].map { (codexRoleName(role), $0) } },
+                               byType: orderedCodexRoles(t.byRole.keys).compactMap { role in t.byRole[role].map { (codexRoleName(role), $0) } },
                                reviews: t.reviews)
         }
         return summary(mapped, now: now)

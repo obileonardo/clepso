@@ -22,8 +22,15 @@ struct AgentsPanel: View {
         if let summary {
             if let latest = summary.latest {
                 VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                    totals(summary)
-                    if !summary.live.isEmpty { liveCard(summary.live) }
+                    VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+                        totals(summary)
+                        // Sheet item 8: a report-back turn looks like any other prompt to the hooks, so it is a task too.
+                        if source == .claudeCode {
+                            Text(Copy.Agents.tasksNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    if !summary.live.isEmpty { liveCard(summary.live, exactAt: summary.liveExactAt, other: summary.backgroundOther) }
                     latestCard(latest, othersRunning: summary.live.contains { !$0.inLatestTask })
                     if summary.recent.count > 1 { recent(summary) }
                 }
@@ -62,7 +69,10 @@ struct AgentsPanel: View {
     /// the prompt that started it, so the latest task alone can't say what is running. How many, by type, and one row
     /// each: its type, the task that started it, and how long it has run (or, with no event from its session for 10
     /// minutes, when Clepso last heard from it).
-    func liveCard(_ live: [AgentsSummary.LiveAgent]) -> some View {
+    ///
+    /// Sheet item 9: when Claude Code's own list of background work stands behind the count (`exactAt`), a line says so
+    /// and names the other kinds of background work it listed.
+    func liveCard(_ live: [AgentsSummary.LiveAgent], exactAt: Date? = nil, other: [AgentsSummary.BackgroundWork] = []) -> some View {
         let allStale = live.allSatisfy(\.stale)
         let shown = 6
         return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
@@ -87,7 +97,12 @@ struct AgentsPanel: View {
             if live.count > shown {
                 Text(Copy.Agents.more(live.count - shown)).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
             }
-            if live.contains(where: \.stale) {
+            if let exactAt {
+                let also = other.isEmpty ? [] : [Copy.Agents.alsoInBackground(other.map { "\($0.name) \($0.count)" }.joined(separator: " · "))]
+                Text(([Copy.Agents.exactNote(Self.started(exactAt, now: now, zone: zone, locale: locale))] + also).joined(separator: " "))
+                    .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if live.contains(where: \.stale) {
                 Text(Copy.Agents.liveNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -98,9 +113,10 @@ struct AgentsPanel: View {
 
     /// One running subagent on a faint rule: type, the task that started it, how long it has run or when last heard from.
     func liveRow(_ agent: AgentsSummary.LiveAgent) -> some View {
-        let task = agent.inLatestTask ? Copy.Agents.thisTask : Copy.Agents.fromTask(Self.started(agent.taskStartedAt, now: now, zone: zone, locale: locale))
+        let task = agent.untracked ? Copy.Agents.startNotSeen : agent.inLatestTask ? Copy.Agents.thisTask
+            : Copy.Agents.fromTask(Self.started(agent.taskStartedAt, now: now, zone: zone, locale: locale))
         let state = agent.stale ? Copy.Agents.lastSeen(Formatting.age(of: agent.lastSeen, now: now, zone: zone, locale: locale))
-            : Copy.Agents.runningFor(Self.elapsed(since: agent.startedAt, now: now))
+            : agent.untracked ? Copy.Agents.running : Copy.Agents.runningFor(Self.elapsed(since: agent.startedAt, now: now))
         return HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.spacious)) {
             Text(agent.type).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
                 .lineLimit(1).frame(width: AgentsMetrics.liveType, alignment: .leading)
@@ -117,11 +133,13 @@ struct AgentsPanel: View {
     }
 
     /// "From 3 tasks · Oldest started 00:43", or the one agent's start time.
+    /// Agents whose start Clepso never saw count toward neither.
     func liveWhen(_ live: [AgentsSummary.LiveAgent]) -> String {
-        let tasks = Set(live.map(\.taskStartedAt)).count
-        let oldest = live.map(\.startedAt).min() ?? now
+        let seen = live.filter { !$0.untracked }
+        guard let oldest = seen.map(\.startedAt).min() else { return Copy.Agents.startNotSeen }
+        let tasks = Set(seen.map(\.taskStartedAt)).count
         let time = Self.started(oldest, now: now, zone: zone, locale: locale)
-        return [Copy.Agents.fromTasks(tasks), live.count > 1 ? Copy.Agents.oldestStarted(time) : Copy.Agents.started(time)]
+        return [Copy.Agents.fromTasks(tasks), seen.count > 1 ? Copy.Agents.oldestStarted(time) : Copy.Agents.started(time)]
             .joined(separator: " · ")
     }
 

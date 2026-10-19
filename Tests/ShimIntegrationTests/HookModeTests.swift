@@ -26,7 +26,10 @@ struct HookModeTests {
           "stop_hook_active": false,
           "agent_id": "agent-canary-1",
           "agent_type": "\(agentType)",
-          "background_tasks": [{"id": "canary-task", "description": "canary description", "command": "rm canary"}],
+          "background_tasks": [{"id": "canary-task", "type": "shell", "status": "running", "description": "canary description 424242", "command": "rm /Users/canary"},
+                               {"id": "canary-agent-task", "type": "subagent", "status": "running", "description": "canary \(fakeToken)", "agent_type": "canary-db-migrator"},
+                               {"id": "canary-mcp", "type": "MCP task", "status": "pending", "description": "canary", "server": "canary-server", "tool": "canary_tool"},
+                               {"id": "canary-wf", "type": "workflow", "status": "running", "description": "canary", "name": "canary-workflow"}],
           "session_crons": [{"id": "c", "prompt": "canary cron prompt"}]
         }
         """.utf8)
@@ -49,11 +52,17 @@ struct HookModeTests {
         let decoded = try #require(HookFrame.decode(frame))
         #expect(decoded.event.rawValue == eventName)
         guard case .object(let members) = frame else { Issue.record("not an object"); return }
-        let subagent = eventName.hasPrefix("Subagent")
+        let subagent = eventName.hasPrefix("Subagent"), stop = eventName.hasSuffix("Stop")
         let base: Set<String> = ["v", "kind", "emitted_at_ms", "shim_version", "event", "session_ref"]
-        let expectedKeys = base.union(subagent ? ["agent_ref", "agent_type"] : [])
+        let expectedKeys = base.union(subagent ? ["agent_ref", "agent_type"] : []).union(stop ? ["background"] : [])
         #expect(Set(members.keys) == expectedKeys)
         if subagent { #expect(decoded.agentType == "Explore" && decoded.agentRef?.count == 16) }
+        // Sheet item 9: a stop's background work arrives as counts only, the custom agent as "custom".
+        if stop {
+            #expect(decoded.background == .init(tasks: [.shell: [.running: 1], .subagent: [.running: 1], .mcpTask: [.pending: 1], .workflow: [.running: 1]],
+                                                agents: ["custom": [.running: 1]]))
+            for leak in ["migrator", "server", "tool", "rm "] { #expect(!text.contains(leak), "\(eventName): \(leak)") }
+        }
     }
 
     @Test("A custom agent's name never leaves the helper: it arrives as \"custom\"")

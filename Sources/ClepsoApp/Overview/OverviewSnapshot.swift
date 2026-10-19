@@ -187,6 +187,8 @@ public struct OverviewInput: Sendable {
     public var agentTasks: [Store.AgentTask] = []
     /// Subagents with no stop yet, from any task (`Store.openAgentRuns`).
     public var openAgentRuns: [Store.OpenAgentRun] = []
+    /// Each session's latest exact report of Claude Code's background work (`Store.backgroundSnapshots`).
+    public var backgroundSnapshots: [Store.BackgroundSnapshot] = []
     /// Increment 3.4: Codex's pools, kept apart from Claude Code's; plan and model from its latest reading.
     public var codexEnabled = false
     public var codexPools: [PoolState] = []
@@ -236,6 +238,9 @@ public struct AgentsSummary: Sendable, Equatable {
         public let inLatestTask: Bool
         public let lastSeen: Date
         public let stale: Bool
+        /// Listed as running by Claude Code's background report, but Clepso never saw it start (it began before the
+        /// hooks were added, or its start was lost): `startedAt` and `taskStartedAt` are the report's time.
+        public var untracked = false
     }
     public let latest: Task?
     public let recent: [Task]                    // newest first, at most 8
@@ -245,6 +250,16 @@ public struct AgentsSummary: Sendable, Equatable {
     public let mostInOneTask: Int
     /// Subagents running now across every task, newest first; empty for Codex (no start and stop events).
     public var live: [LiveAgent] = []
+    /// When `live` is exact (sheet item 9): the time of Claude Code's newest background report behind it, when every
+    /// session with a subagent running has one; nil while any of them is inferred from start and stop events only.
+    public var liveExactAt: Date?
+    /// Claude Code's other background work in its latest reports (shell commands, monitors, …), by display name. Only a
+    /// stop says whether such work is still going, so it is shown as what the report listed, beside `liveExactAt`.
+    public var backgroundOther: [BackgroundWork] = []
+    public struct BackgroundWork: Sendable, Equatable {
+        public let name: String
+        public let count: Int
+    }
     public var averagePerTask: Double { tasks > 0 ? Double(totalAgents) / Double(tasks) : 0 }
 }
 

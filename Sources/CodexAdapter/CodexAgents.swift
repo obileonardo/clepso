@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Agents per task for Codex (item 4), from Codex's own session files, read in the same pass as `CodexUsage`.
@@ -22,8 +23,11 @@ import Foundation
 /// the working folder, git details and account ids, and `task_complete` holds the final reply, so instead of decoding
 /// a line and dropping most of it, the reader looks up a few keys by their bytes and reads only short plain values
 /// (`CodexBytes`). An unescaped `"key":` can only be a JSON key, never text inside a string, where quotes are escaped.
-/// Kept: turn ids, times, the agent's role (built-in names; anything else becomes "custom") and counts. Never read:
-/// prompts, replies, paths, agent nicknames and paths, instructions.
+/// Kept: turn ids, times, the agent's role and counts. Never read: prompts, replies, paths, agent nicknames and paths,
+/// instructions. A role is shown by name only when it is built in or exactly a name the user approved (`tasks(approved:)`);
+/// any other role is "custom". A role of an agent name's shape that isn't built in is held only as a SHA-256 digest
+/// (`roleDigest`), so the role itself is never kept, and approving it later still takes effect without a re-read;
+/// anything else is "custom" from the start.
 public struct CodexAgents: Sendable {
     public struct Task: Sendable, Equatable, Identifiable {
         /// Codex's turn id; in memory only, never shown.
@@ -32,7 +36,7 @@ public struct CodexAgents: Sendable {
         public let endedAt: Date?
         /// False when the user's turn wasn't found (its file is gone) and the task is known only from its agents.
         public let fromPrompt: Bool
-        /// Spawned agents by role: `roles` or `customRole`.
+        /// Spawned agents by role: `roles`, a name on the approved list, or `customRole`.
         public let byRole: [String: Int]
         public let finished: Int
         /// Approval auto-reviews Codex ran during the task; not agents.
@@ -50,9 +54,36 @@ public struct CodexAgents: Sendable {
         }
     }
 
-    /// Codex's built-in agent roles (`agent_role`; none means `default`). Roles the user defines become `customRole`.
+    /// Codex's built-in agent roles (`agent_role`; none means `default`). Roles the user defines become `customRole`,
+    /// unless one is exactly a name the user approved (`tasks(approved:)`).
     public static let roles: Set<String> = ["default", "explorer", "worker", "awaiter"]
     public static let customRole = "custom"
+
+    /// An agent name's shape, as the approved-names rule allows (`HookFrame.isApprovableAgentName`, which this module
+    /// doesn't depend on): 1–40 of A–Z a–z 0–9 _ -.
+    static func isNameShaped(_ role: String) -> Bool {
+        (1...40).contains(role.utf8.count) && role.utf8.allSatisfy { byte in
+            (UInt8(ascii: "a")...UInt8(ascii: "z")).contains(byte) || (UInt8(ascii: "A")...UInt8(ascii: "Z")).contains(byte)
+                || (UInt8(ascii: "0")...UInt8(ascii: "9")).contains(byte) || byte == UInt8(ascii: "_") || byte == UInt8(ascii: "-")
+        }
+    }
+
+    /// A role as read: built in as is; another role of an agent name's shape as `digestPrefix` + its SHA-256 (hex), so it
+    /// can be matched against the approved list later without being kept; anything else `customRole`.
+    static func readRole(_ role: String) -> String {
+        roles.contains(role) ? role : isNameShaped(role) ? roleDigest(role) : customRole
+    }
+
+    static let digestPrefix = "sha256:"
+    static func roleDigest(_ role: String) -> String {
+        digestPrefix + SHA256.hash(data: Data(role.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// A read role as shown (founder decision 19 Oct 2026, sheet item 10: one approved list for Claude Code and Codex):
+    /// built in, or the approved name (exact, case-sensitive) whose digest it is; otherwise `customRole`.
+    static func shownRole(_ read: String, approvedByDigest: [String: String]) -> String {
+        roles.contains(read) ? read : approvedByDigest[read] ?? customRole
+    }
 
     enum Thread: Sendable, Equatable { case main, spawned(role: String), other }
 
@@ -135,7 +166,7 @@ public struct CodexAgents: Sendable {
         if case .int(let start)? = CodexBytes.scalar(Key.historyStart, in: line, limit: line.count) { state.historyStart = start }
         if CodexBytes.find(Key.threadSpawn, in: line, limit: line.count) != nil {
             let role: String = switch CodexBytes.scalar(Key.agentRole, in: line, limit: line.count) {
-            case .string(let r)?: roles.contains(r) ? r : customRole
+            case .string(let r)?: readRole(r)
             default: "default"
             }
             state.thread = .spawned(role: role)
@@ -144,8 +175,12 @@ public struct CodexAgents: Sendable {
         }
     }
 
-    /// Every task, newest first.
-    public var tasks: [Task] {
+    /// Every task, newest first, with every role that isn't built in shown as Custom.
+    public var tasks: [Task] { tasks(approved: []) }
+
+    /// Every task, newest first; a role exactly on `approved` (the Settings list) keeps its name, others are Custom.
+    public func tasks(approved: Set<String>) -> [Task] {
+        let approvedByDigest = Dictionary(approved.filter(Self.isNameShaped).map { (Self.roleDigest($0), $0) }, uniquingKeysWith: { a, _ in a })
         struct Draft { var start: Date; var end: Date?; var fromPrompt: Bool; var open = false
                        var byRole: [String: Int] = [:]; var finished = 0; var reviews = 0 }
         var drafts: [String: Draft] = [:]
@@ -172,7 +207,7 @@ public struct CodexAgents: Sendable {
             // A sub-agent thread: spawned, or of unknown kind with sub-agent turns. It counts once, for its first turn's root.
             let role: String
             switch file.thread {
-            case .spawned(let r): role = r
+            case .spawned(let r): role = Self.shownRole(r, approvedByDigest: approvedByDigest)
             case nil: role = "default"
             case .main?, .other?: continue
             }

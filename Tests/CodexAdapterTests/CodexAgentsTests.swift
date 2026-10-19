@@ -154,6 +154,28 @@ struct CodexAgentsTests {
     }
 
     /// Nothing from instructions, paths, nicknames, prompts or replies is kept, in the tasks or anywhere in the state.
+    /// Sheet item 10: one approved list for Claude Code and Codex. A role exactly on it shows by name; any other role,
+    /// a different case, or one that isn't an agent name's shape stays Custom. Unapproved roles are held only as digests.
+    @Test func approvedRolesShowByName() throws {
+        let home = try home([
+            "main": [Self.meta(.main), Self.started(1, 0, turn: "T1"), Self.complete(2, 10, turn: "T1")],
+            "a": [Self.meta(.spawned(role: "code-reviewer", from: 1)), Self.started(1, 1, turn: "a1", parent: "T1", root: "T1")],
+            "b": [Self.meta(.spawned(role: "Code-Reviewer", from: 1)), Self.started(1, 1, turn: "b1", parent: "T1", root: "T1")],
+            "c": [Self.meta(.spawned(role: Self.roleCanary, from: 1)), Self.started(1, 1, turn: "c1", parent: "T1", root: "T1")],
+            "d": [Self.meta(.spawned(role: "db.helper", from: 1)), Self.started(1, 1, turn: "d1", parent: "T1", root: "T1")],
+            "e": [Self.meta(.spawned(role: "worker", from: 1)), Self.started(1, 1, turn: "e1", parent: "T1", root: "T1")],
+        ])
+        defer { try? FileManager.default.removeItem(at: home) }
+        var usage = CodexUsage(zone: TimeZone(identifier: "UTC")!)
+        usage.scan(home: home)
+        #expect(usage.agents.tasks.first?.byRole == ["custom": 4, "worker": 1], "nothing approved")
+        let approved = usage.agents.tasks(approved: ["code-reviewer", "db.helper"]).first?.byRole
+        #expect(approved == ["code-reviewer": 1, "custom": 3, "worker": 1], "exact names only; a dotted name can't be approved")
+        #expect(usage.agents.tasks(approved: []).first?.byRole == ["custom": 4, "worker": 1], "taken off the list: Custom again, no re-read")
+        let held = String(reflecting: usage)
+        for leak in ["code-reviewer", "Code-Reviewer", Self.roleCanary, "db.helper"] { #expect(!held.contains(leak), "\(leak) held in memory") }
+    }
+
     @Test func canariesNeverComeOut() throws {
         let home = try home([
             "main": [Self.meta(.main), Self.prompt(1), Self.started(2, 0, turn: "T1"), Self.complete(3, 10, turn: "T1")],

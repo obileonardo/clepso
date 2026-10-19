@@ -48,6 +48,11 @@ extension AppModel {
         try? await store?.setPreference(Pref.approvedAgentNames, names, now: environment.clock.now())
         let installer = Self.installer(environment, forwardCost: forwardCost, approvedAgentTypes: names)
         if environment.rewritesHome, installer.isInstalled { try? installer.repair() }
+        // The same list names Codex's roles (sheet item 10), applied to the threads already read.
+        if let usage = codexUsage, codexAgentTasks != nil {
+            codexAgentTasks = usage.agents.tasks(approved: Set(names))
+            await refresh()
+        }
     }
 
     /// "Find my agents": the `name:` of each agent file in `~/.claude/agents`, read only when the user asks, names only

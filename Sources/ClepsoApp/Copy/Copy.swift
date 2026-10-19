@@ -662,6 +662,15 @@ enum Copy {
         static func fromTasks(_ n: Int) -> String { n == 1 ? "From 1 task" : "From \(n) tasks" }
         static func more(_ n: Int) -> String { "+\(n) more" }
         static let liveNote = "Claude Code reports a subagent only when it starts and when it stops. Last seen is the newest event from its session; a subagent with no stop stops counting 6 hours after it started."
+        /// Sheet item 9: the count comes from Claude Code's own list of in-flight background work, sent with each stop.
+        static func exactNote(_ time: String) -> String { "Exact: Claude Code's own list of background work at \(time), plus subagents started since." }
+        static func alsoInBackground(_ list: String) -> String { "It also listed: \(list)." }
+        /// A subagent Claude Code lists as running whose start Clepso never received.
+        static let startNotSeen = "Start not seen"
+        static let bgShell = "Shell", bgMonitor = "Monitor", bgWorkflow = "Workflow", bgTeammate = "Teammate", bgCloud = "Cloud session",
+                   bgMCP = "MCP task", bgOther = "Other"
+        /// Sheet item 8: no hook field tells a turn Claude Code starts itself from one you send.
+        static let tasksNote = "Tasks include turns Claude Code starts by itself, such as a background agent reporting back."
         static let running = "Running", taskLabel = "A task is one prompt: from sending it until Claude stops."
         static func finished(_ done: Int, of total: Int) -> String { "\(done) of \(total) finished" }
         static let tasks = "Tasks", withAgents = "Used agents", average = "Agents per task", most = "Most in one task"
@@ -675,7 +684,7 @@ enum Copy {
         static let noTasks = "No tasks yet. Send Claude Code a prompt; it appears here when Claude starts working on it."
         static let missedPrompt = "Started before \(product) saw the prompt"
         static let offTitle = "COUNT AGENTS PER TASK?"
-        static let offBody = "\(product) can count how many subagents Claude Code starts for each prompt, by type (Explore, Plan, General; your own agents as Custom, or by name if you approve it). It adds four background hooks to Claude Code's settings, with a backup first. The hooks send only the event, hashed ids and the type, never your prompts, replies or file names. Turn it on in Settings › Providers."
+        static let offBody = "\(product) can count how many subagents Claude Code starts for each prompt, by type (Explore, Plan, General; your own agents as Custom, or by name if you approve it). It adds four background hooks to Claude Code's settings, with a backup first. The hooks send only the event, hashed ids, the type and how many background tasks are running, never your prompts, replies, commands or file names. Turn it on in Settings › Providers."
         static let openSettings = "Open Settings…"
         /// Item 4: Codex's agents per task, from its own session files.
         static let codexTitle = "Codex agents per task"
@@ -703,12 +712,12 @@ enum Copy {
         static func failed(_ reason: String) -> String { "Couldn't change Claude Code's settings: \(reason). Nothing was changed." }
         /// Approved agent names (founder decision 19 Oct 2026): exact names only, everything else stays Custom.
         static let namesTitle = "Show these agents by name"
-        static let namesSub = "Only these exact names are shown; every other custom agent stays Custom."
-        static let namePlaceholder = "agent-name, as in Claude Code"
+        static let namesSub = "Only these exact names are shown, in Claude Code and Codex; every other custom agent stays Custom."
+        static let namePlaceholder = "agent-name, as in Claude Code or Codex"
         static let addName = "Add", removeNameShort = "Remove", findNames = "Find my agents"
         static func removeName(_ name: String) -> String { "Remove \(name)" }
         static func addSuggested(_ name: String) -> String { "Add \(name)" }
-        static let nameInvalid = "Use 1–40 letters, digits, - or _, exactly as the agent is named in Claude Code."
+        static let nameInvalid = "Use 1–40 letters, digits, - or _, exactly as the agent is named in Claude Code or Codex."
         static let nameBuiltIn = "Built-in types are already shown by name."
         static let nameDuplicate = "That name is already on the list."
         static let nameFull = "The list holds up to 50 names."

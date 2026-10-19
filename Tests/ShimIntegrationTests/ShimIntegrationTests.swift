@@ -172,7 +172,49 @@ struct OverheadTests {
             print(String(format: "OVERHEAD %@: p95 overhead %.2f ms", name, p95Overhead))
             #expect(p95Overhead <= 20, "\(name) p95 overhead \(p95Overhead) ms exceeds 20 ms")
         }
-        #expect(agent.frames.count == runs, "every app-present run should deliver one frame")
+        #expect(agent.frames.count == runs, "every app-present run should deliver one frame (got \(agent.frames.count))")
+    }
+
+    /// Hook mode (sheet item 9 added the background counts): a `Stop` with 40 in-flight background tasks, against the
+    /// same baseline. The helper runs async in Claude Code, but the budget is the same.
+    @Test("200 interleaved hook-mode runs: baseline, app absent, app present")
+    func hookOverhead() throws {
+        let h = try ShimHarness(); defer { h.cleanUp() }
+        try h.writeConfig(originalCommand: nil)
+        let tasks = (0..<40).map { i -> [String: Any] in
+            ["id": "task-\(i)", "type": ["shell", "subagent", "monitor", "MCP task"][i % 4], "status": i % 5 == 0 ? "pending" : "running",
+             "description": String(repeating: "d", count: 1000), "command": String(repeating: "c", count: 1000), "agent_type": "general-purpose"]
+        }
+        let event: [String: Any] = ["session_id": "perf-session", "hook_event_name": "Stop", "transcript_path": "/tmp/t.jsonl", "cwd": "/tmp",
+                                    "last_assistant_message": String(repeating: "r", count: 20_000), "stop_hook_active": false,
+                                    "background_tasks": tasks, "session_crons": []]
+        let stdin = try JSONSerialization.data(withJSONObject: event)
+        let baselineShell = URL(fileURLWithPath: "/bin/sh")
+        let runs = 200
+        var baseline: [Double] = [], absent: [Double] = [], present: [Double] = []
+        for _ in 0..<runs {
+            baseline.append(try h.run(stdin: stdin, executable: baselineShell, arguments: ["-c", "cat >/dev/null"]).seconds)
+            absent.append(try h.run(stdin: stdin, arguments: ["--hook"], realBudget: true).seconds)
+        }
+        let agent = try FakeAgent(path: h.socketPath, mode: .readAll); defer { agent.stop() }
+        for _ in 0..<runs { present.append(try h.run(stdin: stdin, arguments: ["--hook"], realBudget: true).seconds) }
+
+        func ms(_ values: [Double], _ q: Double) -> Double {
+            let sorted = values.sorted()
+            return sorted[min(sorted.count - 1, Int(Double(sorted.count) * q))] * 1000
+        }
+        let rows = [("hook baseline (/bin/sh -c)", baseline), ("hook, app absent", absent), ("hook, app present", present)]
+        print("OVERHEAD hook mode runs=\(runs) stdin=\(stdin.count) bytes")
+        for (name, values) in rows {
+            print(String(format: "OVERHEAD %-28@ p50 %6.2f ms  p95 %6.2f ms  max %6.2f ms", name as NSString,
+                         ms(values, 0.5), ms(values, 0.95), ms(values, 1.0)))
+        }
+        for (name, values) in rows.dropFirst() {
+            let p95Overhead = ms(values, 0.95) - ms(baseline, 0.95)
+            print(String(format: "OVERHEAD %@: p95 overhead %.2f ms", name, p95Overhead))
+            #expect(p95Overhead <= 20, "\(name) p95 overhead \(p95Overhead) ms exceeds 20 ms")
+        }
+        #expect(agent.frames.count == runs, "every app-present run should deliver one frame (got \(agent.frames.count))")
     }
 }
 

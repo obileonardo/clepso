@@ -59,7 +59,7 @@ extension AppModel {
             guard codexEnabled else { return }                     // turned off while reading: keep nothing
             codexUsage = scanned
             codexDays = scanned.days
-            let tasks = scanned.agents.tasks
+            let tasks = scanned.agents.tasks(approved: Set(approvedAgentNames))
             guard tasks != codexAgentTasks else { return }
             codexAgentTasks = tasks
             await refresh()                                        // the Session page's Codex agents
