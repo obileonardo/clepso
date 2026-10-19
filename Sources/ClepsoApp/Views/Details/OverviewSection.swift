@@ -123,9 +123,10 @@ struct OverviewSection: View {
 
     func yearView(_ contentWidth: CGFloat) -> some View {
         let years = StatsCalendar.years(firstDay: file.firstSessionDate, today: summary.today)
-        let year = model.statsYear ?? years.last ?? Int(summary.today.prefix(4)) ?? 0
+        let year = StatsCalendar.shownYear(model.statsYear, of: years)
         let all = StatsSummary.make(file, range: .allTime, today: summary.today)
         let grid = StatsCalendar.year(year, stats: file, levels: all.heatmap, today: summary.today, firstDay: file.firstSessionDate)
+        let cell = CalendarGridView.cell(fitting: contentWidth, weeks: grid.weeks.count, theme: theme)
         let active = grid.weeks.flatMap { $0 }.compactMap { $0 }.filter { if case .level(let l) = $0.state { l > 0 } else { false } }.count
         return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
             HStack(spacing: theme.spacing(.standard)) {
@@ -137,9 +138,8 @@ struct OverviewSection: View {
                 Button { model.statsYear = year + 1 } label: { PixelIcon(symbol: "chevron.right") }
                     .buttonStyle(PixelButtonStyle()).disabled(!years.contains(year + 1)).accessibilityLabel(Copy.Stats.nextYear)
             }
-            CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: contentWidth, weeks: grid.weeks.count, theme: theme), showDayNumbers: false,
-                             selected: selectedDay, onSelect: { selectedDay = $0 })
-            CalendarLegend()
+            CalendarGridView(grid: grid, cell: cell, showDayNumbers: false, selected: selectedDay, onSelect: { selectedDay = $0 })
+            CalendarLegend(size: cell)
         }
     }
 
@@ -156,7 +156,7 @@ struct OverviewSection: View {
     /// Day squares sized so the calendar takes about half the width, never smaller than two lines of figures.
     func monthCell(_ contentWidth: CGFloat) -> CGFloat {
         let fit = contentWidth / (7 + 6 * CalendarGridView.gapRatio)
-        return min(max(fit, theme.spacing(.spacious) * 2), theme.spacing(.spacious) * 3.5)
+        return PixelDensity.tile(fitting: min(max(fit, theme.spacing(.spacious) * 2), theme.spacing(.spacious) * 3.5), px: theme.stroke(.hairline) * 2)
     }
 
     // MARK: - 7 days: one column per day
@@ -234,20 +234,26 @@ struct CalendarGridView: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
-    static let gapRatio: CGFloat = 0.16
-    var gap: CGFloat { max(theme.stroke(.hairline) * 2, cell * Self.gapRatio) }
+    /// GitHub's proportions: a 10-point day has a 3-point gap.
+    static let gapRatio: CGFloat = 0.25
+    var gap: CGFloat { Self.gap(cell, theme) }
+    /// Whole points, so every square starts on a device pixel at 1× and 2×.
+    static func gap(_ cell: CGFloat, _ theme: Theme) -> CGFloat { max(theme.stroke(.hairline) * 2, (cell * gapRatio).rounded()) }
     /// The weekday labels' column (year view).
     var labelColumn: CGFloat { Self.labelColumn(theme) }
     static func labelColumn(_ theme: Theme) -> CGFloat { theme.spacing(.spacious) * 2 }
 
-    /// The largest square that fits `weeks` columns and the label column in `width`, within readable bounds.
-    /// The drawn width is the label column, a gap, and a cell and a gap per week, where the gap is `gapRatio` of a cell
-    /// but never under two hairlines; both are counted, so a fitted year never runs past `width`.
+    /// The largest square that fits `weeks` columns and the label column in `width`, up to a readable maximum. A square
+    /// is a pixel tile (`PixelDensity.tile`): an odd number of whole 2 pt pixels (10, 14, 18 … points), or of hairline
+    /// pixels below 10 points. The drawn width is the label column, a gap, and a cell and a gap per week (`gap`), so a
+    /// fitted year never runs past `width`; the smallest tile (5 points) is the floor.
     static func cell(fitting width: CGFloat, weeks: Int, theme: Theme) -> CGFloat {
-        let w = CGFloat(max(1, weeks)), floorGap = theme.stroke(.hairline) * 2, room = width - labelColumn(theme)
-        var fit = room / (w * (1 + gapRatio) + gapRatio)
-        if fit * gapRatio < floorGap { fit = (room - floorGap * (w + 1)) / w }
-        return min(max(fit, theme.spacing(.standard) - theme.stroke(.hairline)), theme.spacing(.spacious) * 1.6)
+        let w = CGFloat(max(1, weeks)), px = theme.stroke(.hairline) * 2
+        var cell = PixelDensity.tile(fitting: theme.spacing(.spacious) * 1.6, px: px)
+        while cell > px * 2.5, labelColumn(theme) + gap(cell, theme) + w * (cell + gap(cell, theme)) > width {
+            cell = PixelDensity.tile(fitting: cell - 1, px: px)
+        }
+        return cell
     }
 
     /// Item 9: a calendar a day can be chosen in takes keyboard focus as one control (not 365 Tab stops): ← → ↑ ↓
@@ -331,26 +337,27 @@ struct CalendarGridView: View {
         }
     }
 
+    /// The level as pixel density (`PixelLevelTile`); "no data" is the tile's outline. In the month view the figures
+    /// sit on a plate of the tile's ground, so the dither never runs through them.
     func dayCell(_ c: StatsCalendar.Cell) -> some View {
-        ZStack {
-            switch c.state {
-            case .noData:
-                Rectangle().strokeBorder(theme.color(.separator, scheme).opacity(0.6), lineWidth: theme.stroke(.hairline))
-            case .level(let level):
-                Rectangle().fill(CalendarLegend.color(level, theme: theme, scheme: scheme))
-            }
+        let px = theme.stroke(.hairline) * 2
+        let level: Int? = if case .level(let l) = c.state { l } else { nil }
+        return ZStack {
+            PixelLevelTile(level: level)
             if showDayNumbers {
                 VStack(spacing: 0) {
                     Text(String(c.date.suffix(2))).font(theme.font(.micro))
-                    if case .level(let l) = c.state, l > 0 { Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).opacity(0.8) }
+                    if let level, level > 0 { Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).opacity(0.8) }
                 }
-                .foregroundStyle(theme.color(isBright(c) ? .background : .textPrimary, scheme))
+                .foregroundStyle(theme.color(.textPrimary, scheme))
+                .padding(.horizontal, px)
+                .background { if let level, level > 0 { Rectangle().fill(theme.color(.surfaceMuted, scheme)) } }
             }
         }
         .frame(width: cell, height: cell)
         .overlay {
             if selected == c.date {
-                Rectangle().strokeBorder(theme.color(.textPrimary, scheme), lineWidth: max(theme.stroke(.hairline) * 2, cell * 0.12))
+                PixelTile(px: px).strokeBorder(theme.color(.textPrimary, scheme), lineWidth: max(px, (cell * 0.12 / px).rounded(.down) * px))
             }
         }
         .contentShape(Rectangle())
@@ -360,8 +367,6 @@ struct CalendarGridView: View {
         .accessibilityLabel(tooltip(c))
     }
 
-    func isBright(_ c: StatsCalendar.Cell) -> Bool { if case .level(let l) = c.state { l >= 3 } else { false } }
-
     func tooltip(_ c: StatsCalendar.Cell) -> String {
         switch c.state {
         case .noData: Copy.Stats.noDataDay(StatsFormat.day(c.date))
@@ -370,22 +375,22 @@ struct CalendarGridView: View {
     }
 }
 
+/// The calendar's key: the "no data" outline, then the five levels as the same pixel tiles as the days.
 struct CalendarLegend: View {
+    /// The calendar's square, so the key matches it pixel for pixel; nil for the 10-point tile.
+    var size: CGFloat?
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
-    static func color(_ level: Int, theme: Theme, scheme: ColorScheme) -> Color {
-        level == 0 ? theme.color(.surfaceMuted, scheme) : theme.color(.accent, scheme).opacity([0, 0.3, 0.55, 0.8, 1][min(level, 4)])
-    }
-
     var body: some View {
-        let size = theme.spacing(.standard) + theme.spacing(.compact)
+        let size = PixelDensity.tile(fitting: min(size ?? theme.spacing(.standard) + theme.spacing(.compact), theme.spacing(.spacious)),
+                                     px: theme.stroke(.hairline) * 2)
         HStack(spacing: theme.spacing(.compact)) {
-            Rectangle().strokeBorder(theme.color(.separator, scheme), lineWidth: theme.stroke(.hairline)).frame(width: size, height: size)
+            PixelLevelTile(level: nil).frame(width: size, height: size)
             Text(Copy.Stats.noData).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                 .padding(.trailing, theme.spacing(.standard))
             Text(Copy.Stats.less).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-            ForEach(0..<5, id: \.self) { Rectangle().fill(Self.color($0, theme: theme, scheme: scheme)).frame(width: size, height: size) }
+            ForEach(0..<5, id: \.self) { PixelLevelTile(level: $0).frame(width: size, height: size) }
             Text(Copy.Stats.more).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
         }
         .accessibilityHidden(true)

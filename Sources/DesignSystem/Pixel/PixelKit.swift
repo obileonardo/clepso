@@ -235,7 +235,7 @@ public struct PixelLineChart: View {
 }
 
 /// A calendar heatmap like /stats: one column per week (Monday on top), small fixed squares, weekday and month labels,
-/// and a Less → More legend. Levels 0 (none) … 4 (busiest); nil is outside the range.
+/// and a Less → More legend. Levels 0 (none) … 4 (busiest); nil is outside the range. Each day is a `PixelLevelTile`.
 public struct PixelHeatmap: View {
     let weeks: [[Int?]]
     let months: [(column: Int, label: String)]
@@ -249,7 +249,9 @@ public struct PixelHeatmap: View {
         self.summary = summary
     }
 
+    /// The column pitch, and the tile inside it: an odd number of whole pixels, the rest is the gap.
     var cell: CGFloat { theme.spacing(.spacious) + theme.spacing(.compact) / 2 }
+    var tile: CGFloat { PixelDensity.tile(fitting: cell - theme.stroke(.hairline) * 3, px: theme.stroke(.hairline) * 2) }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
@@ -270,12 +272,13 @@ public struct PixelHeatmap: View {
                         }
                     }
                     Canvas { context, _ in
-                        let gap = max(theme.stroke(.hairline), cell * 0.18)
+                        let px = theme.stroke(.hairline) * 2
                         for (w, week) in weeks.enumerated() {
                             for (d, level) in week.enumerated() {
                                 guard let level else { continue }
-                                let rect = CGRect(x: CGFloat(w) * cell, y: CGFloat(d) * cell, width: cell - gap, height: cell - gap)
-                                context.fill(Path(rect), with: .color(color(level)))
+                                let rect = CGRect(x: CGFloat(w) * cell, y: CGFloat(d) * cell, width: tile, height: tile)
+                                context.fill(PixelTile(px: px).path(in: rect), with: .color(theme.color(.surfaceMuted, scheme)))
+                                context.fill(PixelDither(level: level, px: px).path(in: rect), with: .color(theme.color(.accent, scheme)))
                             }
                         }
                     }
@@ -285,9 +288,7 @@ public struct PixelHeatmap: View {
             }
             HStack(spacing: theme.spacing(.compact)) {
                 Text("LESS").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                ForEach(0..<5, id: \.self) { level in
-                    Rectangle().fill(color(level)).frame(width: cell * 0.8, height: cell * 0.8)
-                }
+                ForEach(0..<5, id: \.self) { level in PixelLevelTile(level: level).frame(width: tile, height: tile) }
                 Text("MORE").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
             }
             .accessibilityHidden(true)
@@ -295,9 +296,113 @@ public struct PixelHeatmap: View {
         .accessibilityElement()
         .accessibilityLabel(summary)
     }
+}
 
-    func color(_ level: Int) -> Color {
-        level == 0 ? theme.color(.surfaceMuted, scheme) : theme.color(.accent, scheme).opacity([0, 0.3, 0.55, 0.8, 1][min(level, 4)])
+/// Activity as pixel density (founder, 19 Oct 2026: "make the squares look pixelated, from less to more"). A level is
+/// drawn like a 1-bit ordered dither on the design system's 2 pt pixel grid (`PixelBar`'s dither and `PixelRect`'s
+/// steps use the same pixel): level 1 is a few lit pixels, 2 a checkerboard, 3 solid with a few holes, 4 solid. The
+/// pattern says the level without relying on shade, and the lit share (about 20, 55, 80 and 100 %) keeps the old
+/// brightness ramp when the eye blends the pixels. Tiles are an odd number of pixels square, so every pattern sits
+/// centred, and lose one pixel at each corner, pixel-art rounding.
+public enum PixelDensity {
+    /// Whether pixel (`column`, `row`) of an `count` × `count` tile is lit at `level` (0 none … 4 all).
+    public static func isLit(level: Int, column c: Int, row r: Int, count n: Int) -> Bool {
+        guard level > 0, (0..<n).contains(c), (0..<n).contains(r) else { return false }
+        if (c == 0 || c == n - 1) && (r == 0 || r == n - 1) { return false }        // the notched corners
+        let hole = c % 2 == 1 && r % 2 == 1                                           // the odd–odd lattice, centred
+        switch level {
+        case 1: return hole
+        case 2: return (c + r) % 2 == 1
+        case 3: return !hole
+        default: return true
+        }
+    }
+
+    /// The pixel for a tile `size` wide: the 2 pt pixel (`px`), or a hairline when five 2 pt pixels don't fit.
+    public static func unit(for size: CGFloat, px: CGFloat) -> CGFloat { size >= px * 5 ? px : px / 2 }
+
+    /// The largest tile no wider than `limit`: an odd number (at least five) of whole pixels.
+    public static func tile(fitting limit: CGFloat, px: CGFloat) -> CGFloat {
+        func odd(_ n: Int) -> Int { n % 2 == 0 ? n - 1 : n }
+        let big = odd(Int((limit / px).rounded(.down)))
+        if big >= 5 { return CGFloat(big) * px }
+        return CGFloat(max(5, odd(Int((limit / (px / 2)).rounded(.down))))) * px / 2
+    }
+
+    /// The pixel grid inside `rect`: its pixel size, its count per side (odd), and its top-left corner on whole points,
+    /// centred. A rect sized by `tile(fitting:px:)` is filled exactly.
+    static func grid(in rect: CGRect, px: CGFloat) -> (origin: CGPoint, count: Int, unit: CGFloat) {
+        let side = min(rect.width, rect.height), unit = unit(for: side, px: px)
+        var n = max(1, Int((side / unit).rounded(.down)))
+        if n % 2 == 0 { n -= 1 }
+        let margin = CGPoint(x: ((rect.width - CGFloat(n) * unit) / 2).rounded(.down), y: ((rect.height - CGFloat(n) * unit) / 2).rounded(.down))
+        return (CGPoint(x: rect.minX + margin.x, y: rect.minY + margin.y), n, unit)
+    }
+}
+
+/// A square tile with one pixel cut from each corner, on `PixelDensity`'s grid: a day's ground, or its outline.
+public struct PixelTile: InsettableShape {
+    let px: CGFloat
+    var inset: CGFloat = 0
+    public init(px: CGFloat) { self.px = px }
+
+    public func path(in rect: CGRect) -> Path {
+        let g = PixelDensity.grid(in: rect, px: px), side = CGFloat(g.count) * g.unit, u = g.unit
+        let r = CGRect(origin: g.origin, size: CGSize(width: side, height: side)).insetBy(dx: inset, dy: inset)
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX + u, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX - u, y: r.minY)); p.addLine(to: CGPoint(x: r.maxX - u, y: r.minY + u))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY + u)); p.addLine(to: CGPoint(x: r.maxX, y: r.maxY - u))
+        p.addLine(to: CGPoint(x: r.maxX - u, y: r.maxY - u)); p.addLine(to: CGPoint(x: r.maxX - u, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX + u, y: r.maxY)); p.addLine(to: CGPoint(x: r.minX + u, y: r.maxY - u))
+        p.addLine(to: CGPoint(x: r.minX, y: r.maxY - u)); p.addLine(to: CGPoint(x: r.minX, y: r.minY + u))
+        p.addLine(to: CGPoint(x: r.minX + u, y: r.minY + u)); p.closeSubpath()
+        return p
+    }
+
+    public func inset(by amount: CGFloat) -> PixelTile { var copy = self; copy.inset += amount; return copy }
+}
+
+/// The lit pixels of a level (see `PixelDensity`), each a whole-point square.
+public struct PixelDither: Shape {
+    let level: Int
+    let px: CGFloat
+    public init(level: Int, px: CGFloat) {
+        self.level = level
+        self.px = px
+    }
+
+    public func path(in rect: CGRect) -> Path {
+        let g = PixelDensity.grid(in: rect, px: px)
+        var p = Path()
+        for r in 0..<g.count {
+            for c in 0..<g.count where PixelDensity.isLit(level: level, column: c, row: r, count: g.count) {
+                p.addRect(CGRect(x: g.origin.x + CGFloat(c) * g.unit, y: g.origin.y + CGFloat(r) * g.unit, width: g.unit, height: g.unit))
+            }
+        }
+        return p
+    }
+}
+
+/// One day of an activity calendar: lit accent pixels for its level on a muted tile, or, with no level (no data:
+/// before the history or after today), only the tile's outline. Size it with `PixelDensity.tile(fitting:px:)`.
+public struct PixelLevelTile: View {
+    let level: Int?
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    public init(level: Int?) { self.level = level }
+
+    public var body: some View {
+        let px = theme.stroke(.hairline) * 2
+        if let level {
+            ZStack {
+                PixelTile(px: px).fill(theme.color(.surfaceMuted, scheme))
+                PixelDither(level: level, px: px).fill(theme.color(.accent, scheme))
+            }
+        } else {
+            PixelTile(px: px).strokeBorder(theme.color(.separator, scheme), lineWidth: theme.stroke(.hairline))
+        }
     }
 }
 
