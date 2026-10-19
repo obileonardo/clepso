@@ -1,5 +1,6 @@
 import DesignSystem
 import SwiftUI
+import Sync
 
 /// Account (1.10e, reworked in 1.12 after the founder's Twenty, Rive and GitBook picks): one centred column of sections,
 /// each with its name and a line of explanation on the left and its content on the right; sign-in methods as rows; a
@@ -130,9 +131,18 @@ struct AccountSection: View {
                 .padding(.leading, theme.spacing(.spacious) * 1.6 + theme.spacing(.standard))
                 .padding(.bottom, theme.spacing(.standard))
             }
-            methodRow("letter:A", "Apple", Copy.AccountPage.soonSub) { soon }
-            methodRow("letter:G", "Google", Copy.AccountPage.soonSub) { soon }
-            methodRow("letter:GH", "GitHub", Copy.AccountPage.soonSub) { soon }
+            providerRow(.apple, symbol: "letter:A", title: "Apple")
+            providerRow(.google, symbol: "letter:G", title: "Google")
+            providerRow(.github, symbol: "letter:GH", title: "GitHub")
+        }
+    }
+
+    func providerRow(_ provider: SyncClient.Provider, symbol: String, title: String) -> some View {
+        let enabled = model.enabledSignInProviders.contains(provider)
+        return methodRow(symbol, title, enabled ? Copy.ProviderSignIn.providerSub : Copy.AccountPage.soonSub) {
+            Button(enabled ? Copy.ProviderSignIn.signIn : Copy.AccountPage.soon) {
+                Task { await model.signIn(provider: provider) }
+            }.buttonStyle(PixelButtonStyle()).disabled(!enabled || model.accountBusy || signedIn)
         }
     }
 

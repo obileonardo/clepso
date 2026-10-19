@@ -52,4 +52,8 @@ public struct PlanCatalog: Sendable, Equatable {
     public var claudePlans: [Entry] {
         entries.filter { $0.publisher == "anthropic" && !$0.id.hasPrefix("anthropic.api.") }
     }
+
+    public func subscriptionPlans(publisher: String) -> [Entry] {
+        entries.filter { $0.publisher == publisher && !$0.id.contains(".api.") }
+    }
 }

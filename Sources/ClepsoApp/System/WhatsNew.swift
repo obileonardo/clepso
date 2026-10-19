@@ -36,6 +36,8 @@ struct WhatsNew: Sendable, Equatable, Identifiable {
                       section: .card, open: Copy.HomePage.openCard),
             Highlight(symbol: "target", title: Copy.WhatsNewCard.goalsTitle, detail: Copy.WhatsNewCard.goalsDetail,
                       section: .goals, open: Copy.WhatsNewCard.openGoals),
+            Highlight(symbol: "gauge.with.dots.needle.50percent", title: Copy.Manual.title, detail: Copy.Manual.subtitle,
+                      section: .limits, open: Copy.Manual.add),
         ]),
     ]
 

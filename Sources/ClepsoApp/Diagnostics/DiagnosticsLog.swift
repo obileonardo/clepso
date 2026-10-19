@@ -146,6 +146,7 @@ public final class DiagnosticsLog {
     @ObservationIgnored public let url: URL
     public private(set) var entries: [Entry] = []
     @ObservationIgnored private let clock: any WallClock
+    @ObservationIgnored private var retentionAge: TimeInterval = DiagnosticsLog.maxAge
 
     public init(url: URL, clock: any WallClock) {
         self.url = url
@@ -162,6 +163,11 @@ public final class DiagnosticsLog {
         guard let line = Self.encode(entry) else { return }
         append(line)
         if fileSize() > Self.maxBytes { prune(force: true) }
+    }
+
+    public func setRetention(days: Int) {
+        retentionAge = TimeInterval(DataRetention.logOptions.contains(days) ? days : 7) * 86_400
+        prune()
     }
 
     /// "Clear diagnostics".
@@ -186,7 +192,7 @@ public final class DiagnosticsLog {
 
     /// Drops entries older than 7 days, then the oldest until the file is under half the cap.
     private func prune(force: Bool = false) {
-        let cutoff = clock.now().addingTimeInterval(-Self.maxAge)
+        let cutoff = clock.now().addingTimeInterval(-retentionAge)
         var kept = entries.filter { $0.at >= cutoff }
         var lines = kept.compactMap(Self.encode)
         var size = lines.reduce(0) { $0 + $1.count }

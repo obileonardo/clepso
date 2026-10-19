@@ -39,6 +39,8 @@ final class FakeNotifications: NotificationAuthorizing, @unchecked Sendable {
     var removeAllCount: Int { lock.withLock { removals } }
     func removeAll() async { lock.withLock { removals += 1; held = [:] } }
     private var shown: [AlertNotification] = []
+    private var scheduledDeliveries: [DeliveredSchedule] = []
+    func deliveredSchedules() async -> [DeliveredSchedule] { lock.withLock { scheduledDeliveries } }
     var delivered: [AlertNotification] { lock.withLock { shown } }
     func deliver(_ alert: AlertNotification) async { lock.withLock { shown.append(alert) } }
 
@@ -63,6 +65,7 @@ final class FakeNotifications: NotificationAuthorizing, @unchecked Sendable {
             for alert in held.values.sorted(by: { $0.fireAt < $1.fireAt }) where alert.fireAt <= now {
                 held[alert.notification.identifier] = nil
                 shown.append(alert.notification)
+                scheduledDeliveries.append(DeliveredSchedule(identifier: alert.notification.identifier, deliveredAt: now))
             }
         }
     }

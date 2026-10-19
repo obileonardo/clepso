@@ -169,7 +169,7 @@ public enum ExportValue: Sendable, Equatable {
 extension Store {
     /// §8 step 2: exactly these tables, nothing else.
     public static let exportTables = ["accounts", "observations", "pool_snapshots", "sessions", "notification_receipts", "preferences",
-                                      "agent_tasks", "agent_runs", "agent_background", "agent_background_counts"]
+                                      "agent_tasks", "agent_runs", "agent_background", "agent_background_counts", "reset_schedules", "manual_allowances"]
     /// Internal bookkeeping with no meaning to the user (a content hash used for dedupe).
     static let exportExcludedColumns: [String: Set<String>] = ["observations": ["dedupe_key"]]
 
@@ -237,6 +237,8 @@ extension Store {
             let sessionsCutoff = ms(now.addingTimeInterval(-retention.sessions))
             try db.execute(sql: "DELETE FROM observations WHERE subject_kind = 'pool' AND received_at < ?", arguments: [readingsCutoff])
             report.readings = db.changesCount
+            try db.execute(sql: "DELETE FROM manual_allowances WHERE entered_at < ?", arguments: [readingsCutoff])
+            report.readings += db.changesCount
             try db.execute(sql: "DELETE FROM observations WHERE subject_kind = 'session' AND received_at < ?", arguments: [sessionsCutoff])
             report.readings += db.changesCount
             // A quiet session's snapshot goes at 30 days. The session row itself goes only once no reading points at it:
@@ -252,6 +254,7 @@ extension Store {
             report.events = db.changesCount
             try db.execute(sql: "DELETE FROM notification_receipts WHERE decided_at < ?", arguments: [ms(now.addingTimeInterval(-retention.receipts))])
             report.receipts = db.changesCount
+            try db.execute(sql: "DELETE FROM reset_schedules WHERE status != 'planned' AND updated_at < ?", arguments: [ms(now.addingTimeInterval(-retention.receipts))])
             // Agents per task follow sessions: 30 days. Runs go with their task.
             try db.execute(sql: "DELETE FROM agent_tasks WHERE started_at < ?", arguments: [sessionsCutoff])
             report.tasks = db.changesCount

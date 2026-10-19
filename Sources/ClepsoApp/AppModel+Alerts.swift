@@ -14,8 +14,10 @@ extension AppModel {
     func handleEngineEvents(_ events: [EngineEvent]) async {
         guard !events.isEmpty, notificationStatus == .authorized, let store else { return }
         let now = environment.clock.now()
+        await collectScheduledDeliveries()
         guard let history = try? await store.alertHistory(since: now.addingTimeInterval(-30 * 86_400)) else { return }
-        let context = AlertPlanner.Context(delivered: history.delivered, deliveredKinds: history.kinds,
+        let scheduled = (try? await store.pendingExpectedResetKeys(now: now)) ?? []
+        let context = AlertPlanner.Context(delivered: history.delivered.union(scheduled), deliveredKinds: history.kinds,
                                            snoozedUntil: alertsSnoozedUntil, enabled: alertsEnabled, isDemo: demo,
                                            quietHours: quietHours, timeZone: environment.timeZone)
         let decision = AlertPlanner.decide(events, context: context, now: now)
@@ -31,8 +33,7 @@ extension AppModel {
             for alert in decision.deferred { try? await store.recordAlert(alert, at: now, outcome: .quietDeferred) }
             diagnostics.record(.alertsDeferred(count: decision.deferred.count))
         }
-        // A reading moved or replaced a window: its reminder moves with it, or goes.
-        if events.contains(where: { $0.kind == .windowOpened || $0.kind == .windowRescheduled }) { await reconcileReminders() }
+        await reconcileReminders()
         // Due while the Mac slept, now too old to be news: one receipt each (never planned again), one line in all.
         guard !decision.expired.isEmpty else { return }
         for alert in decision.expired { try? await store.recordAlert(alert, at: now, outcome: .staleDropped) }
@@ -42,6 +43,7 @@ extension AppModel {
     /// What isn't driven by a reading: the digest when quiet hours end, and the reminders' reconciliation. At launch,
     /// every tick, and when the user changes either setting.
     func alertHousekeeping() async {
+        await collectScheduledDeliveries()
         await deliverDigestIfDue()
         await reconcileReminders()
     }
@@ -72,6 +74,7 @@ extension AppModel {
     public func setAlertsEnabled(_ on: Bool) async {
         alertsEnabled = on
         try? await store?.setPreference(Pref.alertsEnabled, on, now: environment.clock.now())
+        await reconcileReminders()
     }
 
     /// §1.6: off by default; a change can end quiet hours, so the digest and the reminders' sound are re-decided.
@@ -109,6 +112,14 @@ extension AppModel {
 // MARK: - Quiet-hours digest (§1.6)
 
 extension AppModel {
+    func collectScheduledDeliveries() async {
+        guard !demo, !snapshot.isDemo, let store else { return }
+        let now = environment.clock.now()
+        for note in await environment.notifications.deliveredSchedules() {
+            try? await store.recordScheduledDelivery(identifier: note.identifier, deliveredAt: note.deliveredAt, now: now)
+        }
+    }
+
     /// The approaching alerts quiet hours held back, as one quiet notification once they end.
     func deliverDigestIfDue() async {
         guard notificationStatus == .authorized, let store, let held = try? await store.deferredAlerts(),
@@ -151,7 +162,7 @@ extension AppModel {
         guard notificationStatus == .authorized, let store else { return }
         let now = environment.clock.now()
         var windows: [ReminderPlanner.Window] = []
-        if !demo, !snapshot.isDemo, reminderLead != nil, let states = try? await store.poolStates() {
+        if !demo, !snapshot.isDemo, let states = try? await store.poolStates() {
             // A pool counts while its agent is connected: removing Claude Code or switching Codex off cancels its reminders.
             let live = Set(((snapshot.provider?.pools ?? []) + (snapshot.codex?.pools ?? []))
                 .filter { $0.model.connection == .connected }.map(\.poolKey))
@@ -160,18 +171,32 @@ extension AppModel {
                 return ReminderPlanner.Window(poolKey: state.poolKey, windowID: window.id, resetsAt: resetsAt)
             }
         }
-        let desired = ReminderPlanner.plan(windows, leadMinutes: reminderLead, now: now)
+        let history = try? await store.alertHistory(since: now.addingTimeInterval(-30 * 86_400))
+        let expected = alertsEnabled ? windows.filter { history?.kinds[$0.windowID]?.contains(.exhausted) == true } : []
+        let desired = Array((ReminderPlanner.plan(windows, leadMinutes: reminderLead, now: now)
+            + ReminderPlanner.expected(expected, now: now)).filter { history?.delivered.contains($0.identifier) != true }
+            .sorted { $0.fireAt < $1.fireAt }.prefix(ReminderPlanner.pendingLimit))
+        let active = Set((reminderLead != nil ? windows.map { ReminderPlanner.identifier(poolKey: $0.poolKey, windowID: $0.windowID) } : [])
+            + expected.map { AlertPlanner.key(poolKey: $0.poolKey, windowID: $0.windowID, kind: .resetExpected, level: nil) })
         let pending = await environment.notifications.pendingReminders()
         let changes = ReminderPlanner.reconcile(desired: desired,
-                                                pending: pending.map { .init(identifier: $0.notification.identifier, fireAt: $0.fireAt) }, now: now)
+                                                pending: pending.map { .init(identifier: $0.notification.identifier, fireAt: $0.fireAt) }, now: now,
+                                                activeIdentifiers: active)
         await environment.notifications.removePending(changes.remove)
         // Adding an identifier that is pending replaces it: the same window keeps one request whatever its reset does.
         // Text and quiet-hours delivery are compared too, so a new zone or quiet-hours change re-plans it.
         let held = Dictionary(pending.map { ($0.notification.identifier, $0) }, uniquingKeysWith: { first, _ in first })
+        var accepted: [ReminderPlanner.Planned] = []
         for plan in desired {
             let request = reminder(for: plan)
-            if held[plan.identifier] != request { await environment.notifications.schedule(request) }
+            do {
+                if held[plan.identifier] != request { try await environment.notifications.schedule(request) }
+                accepted.append(plan)
+            } catch { diagnostics.record(.notifications(status: "schedule failed")) }
         }
+        try? await store.recordNotificationSchedules(accepted, now: now,
+                                                     enabled: !demo && !snapshot.isDemo && (alertsEnabled || reminderLead != nil),
+                                                     activeIdentifiers: active)
         if !changes.expired.isEmpty { diagnostics.record(.remindersExpired(count: changes.expired.count)) }
     }
 
@@ -179,9 +204,12 @@ extension AppModel {
     func reminder(for plan: ReminderPlanner.Planned) -> ScheduledAlert {
         let time = Formatting.resetTime(plan.resetsAt, now: plan.fireAt, zone: environment.timeZone, locale: environment.locale)
         let note = AlertNotification(identifier: plan.identifier,
-                                     title: Copy.Alerts.resetReminder(Self.agent(of: plan.poolKey), OverviewProjection.scope(of: plan.poolKey), plan.leadMinutes),
-                                     body: Copy.Alerts.reportedReset(time), threadID: "pool:" + plan.poolKey,
-                                     relevance: AlertKind.resetReminder.relevance, snoozable: false,
+                                     title: plan.kind == .resetExpected
+                                        ? Copy.Alerts.resetExpected(Self.agent(of: plan.poolKey), OverviewProjection.scope(of: plan.poolKey))
+                                        : Copy.Alerts.resetReminder(Self.agent(of: plan.poolKey), OverviewProjection.scope(of: plan.poolKey), plan.leadMinutes),
+                                     body: plan.kind == .resetExpected ? Copy.Alerts.notRechecked(Self.agent(of: plan.poolKey)) : Copy.Alerts.reportedReset(time),
+                                     threadID: "pool:" + plan.poolKey,
+                                     relevance: plan.kind.relevance, snoozable: false,
                                      passive: quietHours.isActive(at: plan.fireAt, in: environment.timeZone))
         return ScheduledAlert(notification: note, fireAt: plan.fireAt)
     }

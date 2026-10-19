@@ -3,10 +3,10 @@
 How a signed, notarised Clepso build is made (roadmap increment 4.1). This is the maintainer's runbook; contributors
 never need it, and nothing here is required to build from source (`make app` signs ad hoc).
 
-> **State on 19 Oct 2026.** `scripts/release.sh` (`make release TAG=…`) runs the whole flow below. A trial run on
-> branch `release/v0.1.0-alpha` built, signed, checked and packaged `v0.1.0-alpha.1` up to notarisation, which waits for
-> the notary profile (section 2). Notarisation, stapling and publishing have **not been run** yet. Mark each step
-> done here the first time it succeeds, with the date.
+> **State on 19 Oct 2026.** v0.1.0-alpha.1 was signed, notarised and published at 12:28 UTC after the founder's
+> clean-account launch and network check. Main subsequently gained v0.2, the gated v0.3 mod and fixes. The continuation
+> adds manual readings, retention controls and scheduling receipts. v0.2.0-alpha.1 remains a draft until its own checks,
+> signing, notarisation and publication succeed. Current evidence and environment blockers: `CONTINUATION.md`.
 
 ## 1. What a release is
 
@@ -44,7 +44,7 @@ never need it, and nothing here is required to build from source (`make app` sig
 |---|---|---|
 | Developer ID Application certificate (DECISIONS A6) | **Present** in the maintainer's login keychain (`security find-identity -v -p codesigning`) | Export the `.p12` once and keep it in the password manager: Apple can't re-issue a lost private key |
 | Team ID and bundle prefix (A7) | **Decided** 18 Oct 2026: `com.elvisobi` (app `com.elvisobi.clepso`, helper `com.elvisobi.clepso.statusline`, sign-in scheme `clepso://`) | The script checks the helper against `anchor apple generic and identifier "com.elvisobi.clepso.statusline" and certificate leaf[subject.OU] = "<TEAMID>"` |
-| Notary credentials | **Not set up** (19 Oct 2026) | See below |
+| Notary credentials | Used for v0.1.0-alpha.1; verify the `clepso-notary` profile on every release | See below; a sandbox may be unable to read the login Keychain |
 | `Config/Signing.local.xcconfig` | Present on the maintainer's Mac (gitignored) | The script reads the team from `CLEPSO_DEVELOPMENT_TEAM` (or `CLEPSO_TEAM_ID` in the environment) and signs with "Developer ID Application" whatever identity the file names for daily builds |
 
 **Notary profile.** Once, on the release Mac, store credentials under the profile name the script uses,

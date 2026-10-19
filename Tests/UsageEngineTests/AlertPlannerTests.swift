@@ -99,4 +99,11 @@ struct AlertPlannerTests {
         let a = AlertPlanner.plan([event(.thresholdCrossed, .warning), codex], context: .init(), now: t0)
         #expect(Set(a.map(\.poolKey)) == [pool, "codex.rate_limits.seven_day"])
     }
+
+    @Test("A delivered reset reminder qualifies Ready again; a timer or merely scheduled reminder does not")
+    func reminderCountsAsAnAlert() {
+        #expect(AlertPlanner.plan([event(.readyAgain)], context: .init(), now: t0).isEmpty)
+        let context = AlertPlanner.Context(deliveredKinds: [window: [.resetReminder]])
+        #expect(AlertPlanner.plan([event(.readyAgain)], context: context, now: t0).map(\.kind) == [.readyAgain])
+    }
 }

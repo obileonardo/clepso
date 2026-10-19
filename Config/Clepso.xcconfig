@@ -13,6 +13,7 @@ CLEPSO_CODE_SIGN_IDENTITY = -
 CLEPSO_DEVELOPMENT_TEAM =
 CLEPSO_SYNC_HOST =
 CLEPSO_SYNC_PUBLISHABLE_KEY =
+CLEPSO_SYNC_PROVIDERS =
 
 #include? "Signing.local.xcconfig"
 #include? "Sync.local.xcconfig"

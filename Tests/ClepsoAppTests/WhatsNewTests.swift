@@ -77,7 +77,7 @@ struct WhatsNewTests {
     func content() throws {
         let v02 = try #require(Self.v02)
         #expect(v02.title == "Your first season")
-        #expect(v02.highlights.map(\.section) == [.card, .goals])
+        #expect(v02.highlights.map(\.section) == [.card, .goals, .limits])
         for highlight in v02.highlights {
             #expect(PixelGlyph(symbol: highlight.symbol) != .question, "\(highlight.symbol) has no pixel glyph")
             #expect(!highlight.title.isEmpty && !highlight.detail.isEmpty && !highlight.open.isEmpty)

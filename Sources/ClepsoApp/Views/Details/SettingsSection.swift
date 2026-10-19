@@ -19,8 +19,8 @@ struct SettingsSection: View {
     @State private var newAgentName = ""
     @State private var agentNameMessage: String?
     @State private var agentSuggestions: [String]?
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
+    @Environment(\.theme) var theme
+    @Environment(\.colorScheme) var scheme
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -127,6 +127,7 @@ struct SettingsSection: View {
                 }
             }
             group(Copy.SettingsPage.data) {
+                retentionControls
                 row("square.and.arrow.up", Copy.Export.button, Copy.SettingsPage.exportSub) {
                     Button(Copy.SettingsPage.exportAction) { exportData() }.buttonStyle(PixelButtonStyle())
                 }
