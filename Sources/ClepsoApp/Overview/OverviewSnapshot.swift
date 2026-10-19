@@ -136,11 +136,30 @@ public struct ModelGroup: Sendable, Identifiable, Equatable {
     public let share: Double
 }
 
+/// Where a pool's readings come from, as the provenance inspector names it. Each agent's pools carry their own, so
+/// another agent's number is never described with Claude Code's source, adapter or version.
+public struct ReadingOrigin: Sendable, Equatable {
+    public let source: String
+    public let adapter: String
+    public let versionLabel: String
+    public let version: String?
+
+    public static func claudeCode(version: String?) -> Self {
+        Self(source: Copy.Inspector.sourceStatusLine, adapter: Copy.Inspector.adapterStatusLine,
+             versionLabel: Copy.Inspector.providerVersion, version: version)
+    }
+
+    public static func codex(version: String?) -> Self {
+        Self(source: Copy.Codex.source, adapter: Copy.Inspector.adapterCodex, versionLabel: Copy.Inspector.codexVersion, version: version)
+    }
+}
+
 /// One allowance pool with what the provenance inspector needs, prefetched.
 public struct PoolRow: Sendable, Identifiable {
     public var id: String { poolKey }
     public let poolKey: String
     public let providerField: String
+    public let origin: ReadingOrigin
     public let model: PoolCardModel
     public let receivedAt: Date?
     public let recent: [Store.Reading]
@@ -171,6 +190,8 @@ public struct OverviewInput: Sendable {
     public var codexPools: [PoolState] = []
     public var codexPlan: String?
     public var codexModel: String?
+    /// Codex's version from its newest session file (`CodexReading.version`).
+    public var codexVersion: String?
     /// Codex's tasks from its session files (`CodexAgents`), in memory; nil until the first background read finishes.
     public var codexAgentTasks: [CodexAgents.Task]?
     /// The oldest kept session's first sighting (`CodeLines.since`).

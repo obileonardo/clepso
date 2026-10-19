@@ -5,6 +5,7 @@ import Foundation
 /// paths, so this parser decodes only two line types and skips every other line without decoding it:
 /// - `event_msg` whose payload `type` is `token_count`: rate limits, plan type, session token totals, context window;
 /// - `turn_context`: the model name.
+/// Plus Codex's version from the file's first line, looked up by its bytes without decoding (`version(inHead:)`).
 /// From those it keeps an allowlist of numbers and short identifiers; nothing else leaves this file.
 public struct CodexReading: Sendable, Equatable {
     public struct Window: Sendable, Equatable {
@@ -29,31 +30,54 @@ public struct CodexReading: Sendable, Equatable {
     public let sessionTokens: Tokens?
     public let contextWindow: Int64?
     public let model: String?
+    /// Codex's version as its session file records it (`session_meta.cli_version`); nil when not found.
+    public var version: String?
 }
 
 public enum CodexRollout {
     /// Lines longer than this are never token counts (those are well under 2 KB); they are skipped undecoded.
     static let maxLine = 16 * 1024
 
+    /// Codex's own allowance: `limit_id` "codex", or no id at all (a Codex that writes none). Codex also reports
+    /// other buckets in the same event, with their own windows or none (seen on the founder's Mac, 16 Oct 2026:
+    /// "premium" with both windows null, "base_model_inference" with only a 10080-minute window at 84%). Those are other
+    /// limits, so they never stand in for the 5-hour and weekly numbers.
+    public static let limitID = "codex"
+
     /// The latest reading in `data` (the tail of a rollout file), or nil if it holds no token count with limits.
-    /// The first line may be cut by the tail read; it fails to decode and is skipped like any malformed line.
+    /// Only Codex's own allowance counts (`limitID`), and only a token count that reports at least one window: one
+    /// with both windows null says nothing about them. The first line may be cut by the tail read; it fails to decode
+    /// and is skipped like any malformed line.
     public static func latest(in data: Data) -> CodexReading? {
         var model: String?
+        var plan: String?
         var best: CodexReading?
         for line in data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true) {
             guard line.count <= maxLine else { continue }
             // Cheap byte checks first, so lines carrying prompts or replies are never handed to the JSON decoder.
             if contains(line, #""turn_context""#) {
                 if let m = decodeModel(Data(line)) { model = m }
-            } else if contains(line, #""token_count""#), let reading = decodeTokenCount(Data(line), model: model) {
+            } else if contains(line, #""token_count""#), let reading = decodeTokenCount(Data(line), model: model),
+                      reading.limitID == nil || reading.limitID == limitID, reading.primary != nil || reading.secondary != nil {
+                if let p = reading.plan { plan = p }
                 if best == nil || reading.observedAt >= best!.observedAt { best = reading }
             }
         }
-        if let b = best, b.model == nil, let model {        // the model line can follow the token count it belongs to
-            return CodexReading(observedAt: b.observedAt, limitID: b.limitID, plan: b.plan, primary: b.primary, secondary: b.secondary,
-                                sessionTokens: b.sessionTokens, contextWindow: b.contextWindow, model: model)
+        guard let b = best else { return nil }
+        // The model line can follow the token count it belongs to; Codex sometimes writes a token count with no plan.
+        return CodexReading(observedAt: b.observedAt, limitID: b.limitID, plan: b.plan ?? plan, primary: b.primary,
+                            secondary: b.secondary, sessionTokens: b.sessionTokens, contextWindow: b.contextWindow,
+                            model: b.model ?? model)
+    }
+
+    /// Codex's version from the head of a session file: its first line (`session_meta`) names it within the first few
+    /// hundred bytes, before the instructions. Looked up by its bytes like `CodexAgents` does; nothing is decoded.
+    public static func version(inHead head: Data) -> String? {
+        head.withUnsafeBytes { raw -> String? in
+            guard CodexBytes.find(Array(#""type":"session_meta""#.utf8), in: raw, limit: 512) != nil,
+                  case .string(let v)? = CodexBytes.scalar(Array(#""cli_version":"#.utf8), in: raw, limit: raw.count) else { return nil }
+            return v
         }
-        return best
     }
 
     static func contains(_ line: Data.SubSequence, _ needle: String) -> Bool {

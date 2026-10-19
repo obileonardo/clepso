@@ -76,6 +76,9 @@ enum Copy {
         static let quality = "Quality"
         static let adapterVersion = "Adapter"
         static let providerVersion = "Claude Code version"
+        static let adapterStatusLine = "Claude Code status line, frame v1"
+        static let codexVersion = "Codex version"
+        static let adapterCodex = "Codex session reader, token_count events"
         static let ttl = "Considered stale after 10 minutes"
         static let recent = "Last 3 readings"
         static let copy = "Copy details"
@@ -515,7 +518,7 @@ enum Copy {
     enum Codex {
         static let name = "Codex"
         static let toggle = "Read Codex's session files"
-        static let toggleSublabel = "Its 5-hour and weekly limits, plan and tokens per day; prompts and replies are skipped unread"
+        static let toggleSublabel = "Its 5-hour and weekly limits, plan, version and tokens per day; prompts and replies are skipped unread"
         static let unknownModel = "Model not reported"
         static let notFound = "Codex hasn't written a session on this Mac"
         static let waiting = "On. Waiting for Codex's next session to report its limits"

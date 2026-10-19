@@ -50,7 +50,7 @@ public struct PopoverView: View {
         guard case .inspector(_, let fromDetail) = model.popoverRoute,
               let row = (snapshot.provider?.pools ?? []).first(where: { $0.poolKey == key })
                 ?? snapshot.codex?.pools.first(where: { $0.poolKey == key }) else { return nil }
-        return InspectorView(row: row, provider: key.hasPrefix("codex.") ? nil : snapshot.provider, isDemo: snapshot.isDemo, now: snapshot.now,
+        return InspectorView(row: row, isDemo: snapshot.isDemo, now: snapshot.now,
                              zone: model.environment.timeZone, locale: model.environment.locale) {
             model.popoverRoute = fromDetail ? .detail : .overview
         }

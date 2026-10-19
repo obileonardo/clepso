@@ -9,12 +9,17 @@ struct CodexAdapterTests {
     static let canary = "CANARY-PROMPT-7f3a /Users/someone/secret-project"
 
     static func tokenCount(at: String = "2026-10-17T18:00:00.000Z", primary: Double? = 44, secondary: Double? = 33,
-                           primaryMinutes: Int = 300, plan: String? = "plus", input: Int = 48_397) -> String {
+                           primaryMinutes: Int = 300, plan: String? = "plus", input: Int = 48_397, limitID: String = "codex") -> String {
         func window(_ pct: Double?, _ minutes: Int, _ resets: Int) -> String {
             pct.map { #"{"used_percent":\#($0),"window_minutes":\#(minutes),"resets_at":\#(resets)}"# } ?? "null"
         }
         let planJSON = plan.map { "\"\($0)\"" } ?? "null"
-        return #"{"timestamp":"\#(at)","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":\#(input),"cached_input_tokens":6016,"cache_write_input_tokens":0,"output_tokens":182,"reasoning_output_tokens":111,"total_tokens":48579},"model_context_window":258400},"rate_limits":{"limit_id":"codex","primary":\#(window(primary, primaryMinutes, 1792171134)),"secondary":\#(window(secondary, 10080, 1792651827)),"plan_type":\#(planJSON),"credits":{"has_credits":false,"unlimited":false,"balance":"0"}}}}"#
+        return #"{"timestamp":"\#(at)","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":\#(input),"cached_input_tokens":6016,"cache_write_input_tokens":0,"output_tokens":182,"reasoning_output_tokens":111,"total_tokens":48579},"model_context_window":258400},"rate_limits":{"limit_id":"\#(limitID)","limit_name":null,"primary":\#(window(primary, primaryMinutes, 1792171134)),"secondary":\#(window(secondary, 10080, 1792651827)),"plan_type":\#(planJSON),"credits":{"has_credits":false,"unlimited":false,"balance":"0"},"individual_limit":null,"spend_control_reached":null,"rate_limit_reached_type":null}}}"#
+    }
+
+    /// A thread's first line: ids and version up front, then Codex's instructions (here a canary) as Codex 0.163 writes it.
+    static func sessionMeta(version: String = "0.163.0") -> String {
+        #"{"timestamp":"2026-10-16T13:04:28.000Z","type":"session_meta","payload":{"id":"00000000-0000-7000-8000-000000000001","timestamp":"2026-10-16T13:04:28.000Z","cwd":"\#(canary)","originator":"codex-tui","cli_version":"\#(version)","source":"cli","base_instructions":{"text":"\#(canary) \"cli_version\":\"9.9.9\""}}}"#
     }
 
     static let turnContext = #"{"timestamp":"2026-10-17T17:59:00.000Z","type":"turn_context","payload":{"model":"gpt-5-codex","cwd":"\#(canary)","user_instructions":"\#(canary)"}}"#
@@ -57,13 +62,53 @@ struct CodexAdapterTests {
         #expect(CodexRollout.latest(in: Self.file([cut])) == nil)
     }
 
-    @Test func missingWindowIsAbsentNeverZero() throws {
+    @Test("A window Codex reports as null is left out: never 0, and never a made-up \"primary\" or \"secondary\" pool")
+    func missingWindowIsLeftOutNeverZero() throws {
         let r = try #require(CodexRollout.latest(in: Self.file([Self.tokenCount(primary: nil)])))
-        #expect(r.primary == nil)
+        #expect(r.primary == nil && r.secondary?.usedPct == 33)
         let obs = CodexMapper.observations(r, connectionID: UUID(), receivedAt: Date())
-        let used = obs.filter { $0.kind == .quotaUsedPct }
-        #expect(used.contains { $0.value == .absent(.providerNull) && $0.subject == .pool(providerPoolKey: "codex.rate_limits.primary") })
-        #expect(!used.contains { $0.value == .percent(0) })
+        #expect(Set(obs.map(\.subject)) == [.pool(providerPoolKey: "codex.rate_limits.seven_day")])
+        #expect(!obs.contains { $0.value == .percent(0) })
+    }
+
+    @Test("A token count with both windows null says nothing about them: the reading before it stands")
+    func tokenCountWithoutWindowsIsNotAReading() throws {
+        let data = Self.file([Self.tokenCount(at: "2026-10-16T17:35:38.000Z", primary: 35),
+                              Self.tokenCount(at: "2026-10-16T17:36:00.000Z", primary: nil, secondary: nil)])
+        let r = try #require(CodexRollout.latest(in: data))
+        #expect(r.primary?.usedPct == 35 && r.observedAt == CodexRollout.timestamp("2026-10-16T17:35:38.000Z"))
+        #expect(CodexRollout.latest(in: Self.file([Self.tokenCount(primary: nil, secondary: nil)])) == nil)
+    }
+
+    /// Regression, founder's Mac 16 Oct 2026: Codex also reports other allowances in the same event. The newest event
+    /// in a long session was "premium" with both windows null; an older one was "base_model_inference" with only a
+    /// 10080-minute window. Neither is Codex's 5-hour or weekly limit.
+    @Test func otherAllowancesNeverStandInForCodexsLimits() throws {
+        let data = Self.file([Self.tokenCount(at: "2026-10-16T17:30:00.000Z", primary: 84, secondary: nil, primaryMinutes: 10_080,
+                                              limitID: "base_model_inference"),
+                              Self.tokenCount(at: "2026-10-16T17:36:11.000Z", primary: 36, secondary: 100),
+                              Self.tokenCount(at: "2026-10-16T17:36:13.000Z", primary: nil, secondary: nil, plan: nil, limitID: "premium")])
+        let r = try #require(CodexRollout.latest(in: data))
+        #expect(r.limitID == "codex" && r.primary?.usedPct == 36 && r.secondary?.usedPct == 100)
+        #expect(CodexRollout.latest(in: Self.file([Self.tokenCount(limitID: "premium")])) == nil)
+        let keys = Set(CodexMapper.observations(r, connectionID: UUID(), receivedAt: Date()).map(\.subject))
+        #expect(keys == [.pool(providerPoolKey: "codex.rate_limits.five_hour"), .pool(providerPoolKey: "codex.rate_limits.seven_day")])
+    }
+
+    @Test("Codex sometimes writes a token count without its plan: the plan from earlier in the file stands")
+    func planCarriesOverAMissingOne() throws {
+        let data = Self.file([Self.tokenCount(at: "2026-10-16T17:35:13.000Z", primary: 34),
+                              Self.tokenCount(at: "2026-10-16T17:35:38.000Z", primary: 35, plan: nil)])
+        let r = try #require(CodexRollout.latest(in: data))
+        #expect(r.primary?.usedPct == 35 && r.plan == "plus")
+    }
+
+    @Test("Codex's version comes from the first line's head by its bytes; the instructions after it are never read")
+    func versionFromTheSessionHead() {
+        let head = Data(Self.sessionMeta().utf8)
+        #expect(CodexRollout.version(inHead: head) == "0.163.0")
+        #expect(CodexRollout.version(inHead: Data(Self.message.utf8)) == nil)                // not a session_meta line
+        #expect(CodexRollout.version(inHead: Data(Self.sessionMeta(version: "0.1 rm -rf").utf8)) == nil)  // not a plain value
     }
 
     @Test func implausibleValuesAreDropped() throws {
@@ -107,6 +152,33 @@ struct CodexAdapterTests {
         #expect(CodexReader.isInstalled(home: home))
         #expect(CodexReader.latest(home: home, now: now, calendar: cal)?.primary?.usedPct == 61)
         #expect(CodexReader.tail(today.appendingPathComponent("rollout-a.jsonl")).count == CodexReader.tailBytes)
+    }
+
+    /// Regression, founder's Mac 16 Oct 2026: the newest reading (36%) sat in a session started three days earlier and
+    /// still being written, while that day's folder held dozens of finished sessions. The reader stopped listing at the
+    /// first folders that gave it a dozen files and showed 35% from one of them.
+    @Test func readerFindsTheNewestReadingInASessionStartedDaysAgo() throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent("codex-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: home) }
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
+        let now = Date(timeIntervalSince1970: 1_792_172_220)                        // 2026-10-16 17:37 UTC
+        let sessions = CodexReader.sessionsURL(home: home)
+        let today = sessions.appendingPathComponent(dayPath(now, cal))
+        let started = sessions.appendingPathComponent(dayPath(now.addingTimeInterval(-3 * 86_400), cal))
+        for dir in [today, started] { try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true) }
+        for n in 0..<16 {                                                           // today's finished sessions, older readings
+            let url = today.appendingPathComponent("rollout-today-\(n).jsonl")
+            try Self.file([Self.sessionMeta(), Self.tokenCount(at: "2026-10-16T17:\(10 + n):00.000Z", primary: Double(10 + n))]).write(to: url)
+            try FileManager.default.setAttributes([.modificationDate: now.addingTimeInterval(Double(-1800 + n * 60))], ofItemAtPath: url.path)
+        }
+        let long = started.appendingPathComponent("rollout-long.jsonl")
+        try Self.file([Self.sessionMeta(version: "0.162.1"), Self.message, Self.tokenCount(at: "2026-10-16T17:36:11.010Z", primary: 36, secondary: 100),
+                       Self.tokenCount(at: "2026-10-16T17:36:13.998Z", primary: nil, secondary: nil, plan: nil, limitID: "premium")]).write(to: long)
+        try FileManager.default.setAttributes([.modificationDate: now.addingTimeInterval(-46)], ofItemAtPath: long.path)
+        let r = try #require(CodexReader.latest(home: home, now: now, calendar: cal))
+        #expect(r.primary?.usedPct == 36 && r.secondary?.usedPct == 100 && r.limitID == "codex")
+        #expect(r.version == "0.162.1")
+        #expect(!String(describing: r).contains("CANARY"))
     }
 
     @Test func noCodexFolderMeansNoReading() {

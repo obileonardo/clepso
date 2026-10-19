@@ -138,7 +138,6 @@ struct Breadcrumb: View {
 /// readings as rows; Copy details is in the action bar.
 struct InspectorView: View {
     let row: PoolRow
-    let provider: ProviderSection?
     let isDemo: Bool
     let now: Date
     let zone: TimeZone
@@ -200,12 +199,12 @@ struct InspectorView: View {
         return [
             (row.model.scope, used.value.map(Formatting.percent) ?? Copy.Inspector.absent),
             (Copy.Inspector.field, row.providerField),
-            (Copy.Inspector.source, isDemo ? Copy.Inspector.sourceDemo("(built-in)") : Copy.Inspector.sourceStatusLine),
+            (Copy.Inspector.source, isDemo ? Copy.Inspector.sourceDemo("(built-in)") : row.origin.source),
             (Copy.Inspector.observedAt, used.observedAt.map(stamp) ?? "—"),
             (Copy.Inspector.receivedAt, row.receivedAt.map(stamp) ?? "—"),
             (Copy.Inspector.quality, Copy.Inspector.quality(used.value == nil ? .unknown : used.quality)),
-            (Copy.Inspector.adapterVersion, "Claude Code status line, frame v1"),
-            (Copy.Inspector.providerVersion, provider?.sourceVersion ?? "—"),
+            (Copy.Inspector.adapterVersion, row.origin.adapter),
+            (row.origin.versionLabel, row.origin.version ?? "—"),
         ]
     }
 

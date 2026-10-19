@@ -44,14 +44,24 @@ public struct PixelLimitRow: View {
             }
             PixelBar(fraction: model.used.value.map { min(max(NSDecimalNumber(decimal: $0).doubleValue / 100, 0), 1) },
                      role: state == .stale ? .statusStale : card.role, pattern: pattern)
-            HStack(spacing: theme.spacing(.compact)) {
-                StatusGlyph(style: card)
-                Text(card.label).font(theme.font(.supporting)).foregroundStyle(theme.color(card.role, scheme)).lineLimit(2)
-                Spacer(minLength: theme.spacing(.compact))
-                DataSourceLabel(source: model.source, observedAt: model.used.observedAt ?? model.resetsAt.observedAt,
-                                state: state, showsSource: false, now: now)
+            // Status and freshness on one line when they fit; otherwise freshness goes under the status. Neither is
+            // ever cut short (UX_SPEC §2: "Reset expected" and freshness are never truncated). In a half-width card a
+            // stale "Reset expected · awaiting next update" used to end "awaiting nex…" beside "last seen Oct…",
+            // hiding how old the figure was (founder report, 19 Oct 2026).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: theme.spacing(.compact)) {
+                    status(card).fixedSize()
+                    Spacer(minLength: theme.spacing(.compact))
+                    freshness(state).fixedSize()
+                }
+                VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
+                    status(card).fixedSize(horizontal: false, vertical: true)
+                    freshness(state).fixedSize(horizontal: false, vertical: true)
+                }
             }
-            if model.card != .quotaNotAvailable, model.card != .disconnected {
+            // A passed reset already says "Reset expected · awaiting next update" on the status line; the countdown
+            // line would only repeat it.
+            if model.card != .quotaNotAvailable, model.card != .disconnected, model.card != .resetExpected {
                 ResetCountdown(resetsAt: model.resetsAt, card: model.card, now: now)
             }
             if let pace {
@@ -63,6 +73,18 @@ public struct PixelLimitRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(AccessibilityText.poolRow(model, now: now, staleAfter: staleAfter, zone: zone, locale: locale, isDemo: isDemo)
                             + (pace.map { ", " + $0 } ?? ""))
+    }
+
+    func status(_ card: StatusStyle) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.compact)) {
+            StatusGlyph(style: card)
+            Text(card.label).font(theme.font(.supporting)).foregroundStyle(theme.color(card.role, scheme))
+        }
+    }
+
+    func freshness(_ state: ValueState) -> some View {
+        DataSourceLabel(source: model.source, observedAt: model.used.observedAt ?? model.resetsAt.observedAt,
+                        state: state, showsSource: false, now: now)
     }
 }
 

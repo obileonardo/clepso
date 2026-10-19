@@ -45,6 +45,7 @@ public enum OverviewProjection {
         let ordered = input.pools.sorted { (rank($0.poolKey), $0.poolKey) < (rank($1.poolKey), $1.poolKey) }
         let rows = ordered.map { state in
             PoolRow(poolKey: state.poolKey, providerField: providerField(of: state.poolKey),
+                    origin: .claudeCode(version: input.sourceVersion),
                     model: card(state, source: source, connection: connection, now: now),
                     receivedAt: state.latest?.receivedAt, recent: input.recent[state.poolKey] ?? [],
                     history: input.history[state.poolKey] ?? [],
@@ -81,6 +82,12 @@ public enum OverviewProjection {
 
     static let codexSource = SourceDescriptor(evidence: .officialLocalTelemetry, displayName: "Codex", version: nil)
 
+    /// The Codex field a pool's percentage comes from: a `token_count` event's `rate_limits.primary` (the 5-hour
+    /// window) or `.secondary` (the weekly one), as Codex writes them in its session files.
+    static func codexField(of poolKey: String) -> String {
+        "token_count › rate_limits.\(window(of: poolKey) == "five_hour" ? "primary" : "secondary").used_percent"
+    }
+
     /// Codex's section: 5-hour first, then weekly, then any other window; nil until Codex has written a reading.
     static func codex(_ input: OverviewInput, now: Date) -> AgentLimitsSection? {
         guard !input.codexPools.isEmpty else { return nil }
@@ -89,7 +96,8 @@ public enum OverviewProjection {
             (order.firstIndex(of: window(of: $0.poolKey)) ?? order.count, $0.poolKey) < (order.firstIndex(of: window(of: $1.poolKey)) ?? order.count, $1.poolKey)
         }
         let rows = ordered.map { state in
-            PoolRow(poolKey: state.poolKey, providerField: "rate_limits.\(window(of: state.poolKey) == "five_hour" ? "primary" : "secondary").used_percent",
+            PoolRow(poolKey: state.poolKey, providerField: codexField(of: state.poolKey),
+                    origin: .codex(version: input.codexVersion),
                     model: card(state, source: codexSource, connection: .connected, now: now),
                     receivedAt: state.latest?.receivedAt, recent: input.recent[state.poolKey] ?? [],
                     history: input.history[state.poolKey] ?? [],
