@@ -64,6 +64,30 @@ struct AgentTasksTests {
         #expect(tasks.first { $0.sessionRef == "2222222222222222" }?.byType == ["Explore": 1])
     }
 
+    @Test("Subagents with no stop are found in any task, with the newest event from their session as the last sign of life")
+    func openRuns() async throws {
+        let store = try Store.inMemory(now: t0)
+        let other = "bbbbbbbbbbbbbbbb"
+        for e in [event(.promptSubmitted, 0), event(.subagentStarted, 5, agent: "bg", type: "general-purpose"),   // a background agent
+                  event(.subagentStarted, 6, agent: "fg", type: "Explore"), event(.subagentStopped, 30, agent: "fg", type: "Explore"),
+                  event(.stopped, 40),
+                  event(.promptSubmitted, 60), event(.subagentStopped, 90, agent: "internal"),                       // Claude Code's own agent
+                  event(.stopped, 95),
+                  event(.promptSubmitted, 200, session: other), event(.subagentStarted, 205, session: other, agent: "o", type: "Plan")] {
+            try await store.record(e)
+        }
+        let open = try await store.openAgentRuns(since: at(0))
+        #expect(open.count == 2)
+        let bg = try #require(open.first { $0.agentType == "general-purpose" })
+        #expect(bg.startedAt == at(5) && bg.taskStartedAt == at(0) && bg.sessionLastEvent == at(95), "its task ended; it didn't")
+        let o = try #require(open.first { $0.agentType == "Plan" })
+        #expect(o.sessionLastEvent == at(205), "sessions never mix")
+        #expect(open.first?.agentType == "Plan", "newest first")
+        #expect(try await store.openAgentRuns(since: at(6)).map(\.agentType) == ["Plan"], "only runs started since")
+        try await store.record(event(.subagentStopped, 300, agent: "bg", type: "general-purpose"))
+        #expect(try await store.openAgentRuns(since: at(0)).map(\.agentType) == ["Plan"], "a late stop closes the background run")
+    }
+
     @Test("Tasks go after 30 days, their runs with them")
     func retention() async throws {
         let store = try Store.inMemory(now: t0)

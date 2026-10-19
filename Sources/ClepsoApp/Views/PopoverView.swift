@@ -391,7 +391,8 @@ struct SessionStrip: View {
                 stat(session.apiMs.map { Formatting.duration(milliseconds: $0) } ?? "—", Copy.Details.apiTime)
                 if let latest = agents?.latest {
                     stat("\(latest.agents)", Copy.Agents.statShort)
-                        .help(Copy.Agents.strip(latest.agents, latest.byType.map { "\($0.name) \($0.count)" }.joined(separator: ", ")))
+                        .help(Copy.Agents.strip(latest.agents, latest.byType.map { "\($0.name) \($0.count)" }.joined(separator: ", "),
+                                                runningNow: agents?.live.count ?? 0))
                 }
             }
             .fixedSize(horizontal: false, vertical: true)

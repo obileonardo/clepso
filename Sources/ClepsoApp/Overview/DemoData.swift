@@ -40,24 +40,54 @@ enum DemoData {
                 o(session, .cacheWarm, .flag(true)),
             ], session: meta)
         }
-        // Agents per task: four prompts in the last hour, the latest still running.
-        let plan: [(Double, Double?, [String])] = [(-55, -41, ["Explore", "Explore", "Plan"]), (-38, -30, []),
-                                                   (-27, -12, ["general-purpose", "Explore", "custom", "Explore", "Plan"]), (-6, nil, ["Explore", "Plan"])]
-        for (i, task) in plan.enumerated() {
-            let start = now.addingTimeInterval(task.0 * 60)
+        // Agents per task: four prompts in the last hour, the latest still running; two General agents from the third
+        // run on in the background after their task ended, as a lead agent's background subagents do.
+        for (i, task) in agentsPlan.enumerated() {
+            let start = now.addingTimeInterval(task.start * 60)
             try await store.record(.init(kind: .promptSubmitted, sessionRef: "demo", agentRef: nil, agentType: nil, at: start))
-            for (j, type) in task.2.enumerated() {
+            for (j, agent) in task.agents.enumerated() {
                 let ref = "demo-\(i)-\(j)"
-                try await store.record(.init(kind: .subagentStarted, sessionRef: "demo", agentRef: ref, agentType: type, at: start.addingTimeInterval(Double(20 + j * 15))))
-                if task.1 != nil || j == 0 {
-                    try await store.record(.init(kind: .subagentStopped, sessionRef: "demo", agentRef: ref, agentType: type, at: start.addingTimeInterval(Double(200 + j * 40))))
+                try await store.record(.init(kind: .subagentStarted, sessionRef: "demo", agentRef: ref, agentType: agent.type,
+                                             at: start.addingTimeInterval(Double(20 + j * 15))))
+                if let stop = agent.stop {
+                    try await store.record(.init(kind: .subagentStopped, sessionRef: "demo", agentRef: ref, agentType: agent.type,
+                                                 at: start.addingTimeInterval(stop * 60)))
                 }
             }
-            if let end = task.1 { try await store.record(.init(kind: .stopped, sessionRef: "demo", agentRef: nil, agentType: nil, at: now.addingTimeInterval(end * 60))) }
+            if let end = task.end { try await store.record(.init(kind: .stopped, sessionRef: "demo", agentRef: nil, agentType: nil, at: now.addingTimeInterval(end * 60))) }
         }
         var input = try await AppModel.read(store, now: now)
         input.agentsTracking = true
         input.isDemo = true
         return input
     }
+
+    typealias DemoAgent = (type: String, stop: Double?)            // stop: minutes after its task started; nil = no stop yet
+    typealias DemoTask = (start: Double, end: Double?, agents: [DemoAgent])   // minutes from now
+
+    static var agentsPlan: [DemoTask] {
+        #if DEBUG
+        // Debug probe only: `-ClepsoProbeAgents none|background|one|many|finished|stale` for the agents panel's other states.
+        if let scenario = UserDefaults.standard.string(forKey: "ClepsoProbeAgents"), let plan = probeAgentsPlans[scenario] { return plan }
+        #endif
+        return [(-55, -41, [("Explore", 4), ("Explore", 5), ("Plan", 7)]), (-38, -30, []),
+                (-27, -12, [("general-purpose", 6), ("Explore", 3), ("custom", 9), ("general-purpose", nil), ("general-purpose", nil)]),
+                (-6, nil, [("Explore", 3), ("Plan", nil)])]
+    }
+
+    #if DEBUG
+    static let probeAgentsPlans: [String: [DemoTask]] = [
+        "none": [(-30, -20, [("Explore", 5)]), (-4, nil, [])],
+        // The founder's case (19 Oct 2026): a lead agent's background subagents from earlier prompts, a new prompt with none.
+        "background": [(-24, -22, [("general-purpose", nil), ("general-purpose", nil)]), (-18, -17, [("general-purpose", nil)]),
+                       (-12, -11, [("general-purpose", 8)]), (-7, -6, [("general-purpose", nil)]), (-2, nil, [])],
+        "one": [(-30, -20, [("Explore", 5)]), (-4, nil, [("general-purpose", nil)])],
+        "many": [(-30, -20, [("Explore", 5)]),
+                 (-9, nil, [("Explore", 2), ("Explore", 3), ("Explore", nil), ("Plan", 4), ("general-purpose", nil), ("general-purpose", nil),
+                            ("claude-code-guide", 4), ("statusline-setup", 5), ("custom", nil)])],
+        "finished": [(-30, -20, [("Explore", 5)]), (-9, -2, [("Explore", 3), ("Plan", 4), ("general-purpose", 6)])],
+        // The session went quiet 25 minutes ago with two subagents never reported stopped, and one from 7 hours ago.
+        "stale": [(-7 * 60, -7 * 60 + 5, [("general-purpose", nil)]), (-40, -25, [("general-purpose", nil), ("Explore", nil), ("Plan", 10)])],
+    ]
+    #endif
 }

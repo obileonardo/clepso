@@ -108,6 +108,13 @@ names plus `custom` and `unknown`. A prompt closes the session's open task and o
 latest open task; a subagent joins the session's latest task that started before it; a run is matched by
 `agent_ref`, so a stop that arrives before its start still makes one run. Purged with sessions at 30 days.
 
+Running now (derived, never stored; `Store.openAgentRuns`, `OverviewProjection.agents`): a run with no stop is running,
+whichever task started it, so a background subagent that outlives its prompt still counts; it stays with the task that
+started it. Claude Code sends nothing while a subagent works, so its last sign of life is the newest hook event from
+its session; after 10 minutes without one (the telemetry TTL) it is shown as "last seen". A run with no stop stops
+counting as running 6 hours after it started (Claude Code closed or crashed, or a hook event was lost) and is shown
+as "no stop seen" in its task, neither finished nor running.
+
 **Before the rename to Clepso** the folder was `~/Library/Application Support/Pulse` and the file `pulse.sqlite`. At
 launch, before the database, the diagnostics log or the socket is opened, `LegacyDataMigration`
 (`Sources/ClepsoApp/System/LegacyDataMigration.swift`) renames the folder (never over an existing `Clepso` folder:

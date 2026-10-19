@@ -582,11 +582,28 @@ enum Copy {
     enum Agents {
         static let lastTaskShort = "Agents, last task"
         static let statShort = "Agents"
-        static let general = "General", guide = "Guide", statusLine = "Status line", custom = "Custom"
+        /// Claude Code's own subagent types, made readable (founder review, 19 Oct 2026). Explore is its read-only
+        /// research agent; General (general-purpose) takes any job, so its role is only in the task Claude gives it.
+        static let general = "General", explore = "Explore (research)", plan = "Plan", guide = "Claude Code guide",
+                   statusLine = "Status line setup", custom = "Custom"
         static let title = "AGENTS PER TASK", titleShort = "Agents per task", claudeTitle = "Claude Code agents per task"
         static let latest = "LATEST TASK", recent = "RECENT TASKS", month = "LAST 30 DAYS"
         static func count(_ n: Int) -> String { n == 1 ? "1 agent" : "\(n) agents" }
         static let none = "No subagents"
+        /// The latest task started none while subagents from earlier tasks are still running.
+        static let noneNew = "No new subagents"
+        /// Running is said of agents; a task (a prompt) is in progress, so "No subagents · Running" can't be misread.
+        static let inProgress = "In progress"
+        static let runningNow = "RUNNING NOW"
+        static func stillRunning(_ n: Int) -> String { "\(n) still running" }
+        static func noStopSeen(_ n: Int) -> String { "\(n) no stop seen" }
+        static let thisTask = "Latest task"
+        static func fromTask(_ time: String) -> String { "Task from \(time)" }
+        static func runningFor(_ elapsed: String) -> String { "Running \(elapsed)" }
+        static func lastSeen(_ age: String) -> String { "Last seen \(age)" }
+        static func fromTasks(_ n: Int) -> String { n == 1 ? "From 1 task" : "From \(n) tasks" }
+        static func more(_ n: Int) -> String { "+\(n) more" }
+        static let liveNote = "Claude Code reports a subagent only when it starts and when it stops. Last seen is the newest event from its session; a subagent with no stop stops counting 6 hours after it started."
         static let running = "Running", taskLabel = "A task is one prompt: from sending it until Claude stops."
         static func finished(_ done: Int, of total: Int) -> String { "\(done) of \(total) finished" }
         static let tasks = "Tasks", withAgents = "Used agents", average = "Agents per task", most = "Most in one task"
@@ -595,6 +612,7 @@ enum Copy {
         static func ofTasks(_ n: Int, _ total: Int) -> String { "\(n) of \(total) tasks" }
         static func inAll(_ n: Int) -> String { n == 1 ? "1 agent in all" : "\(n) agents in all" }
         static func started(_ time: String) -> String { "Started \(time)" }
+        static func oldestStarted(_ time: String) -> String { "Oldest started \(time)" }
         static let colStarted = "Started", colAgents = "Agents", colTypes = "Types", colDuration = "Duration", done = "Done"
         static let noTasks = "No tasks yet. Send Claude Code a prompt; it appears here when Claude starts working on it."
         static let missedPrompt = "Started before \(product) saw the prompt"
@@ -608,7 +626,10 @@ enum Copy {
         static let codexReading = "Reading Codex's session files…"
         static let codexDefault = "Default", codexExplorer = "Explorer", codexWorker = "Worker", codexAwaiter = "Awaiter"
         static func reviews(_ n: Int) -> String { n == 1 ? "1 auto-review" : "\(n) auto-reviews" }
-        static func strip(_ n: Int, _ types: String) -> String { n == 0 ? "Last task: no subagents" : "Last task: \(n == 1 ? "1 agent" : "\(n) agents") · \(types)" }
+        static func strip(_ n: Int, _ types: String, runningNow: Int = 0) -> String {
+            (n == 0 ? "Last task: no subagents" : "Last task: \(n == 1 ? "1 agent" : "\(n) agents") · \(types)")
+                + (runningNow > 0 ? " · \(runningNow) running now" : "")
+        }
         static let toggle = "Count subagents per task"
         static let toggleSublabel = "Adds four background hooks to Claude Code's settings; counts and types only"
         static let needsConnection = "Connect Claude Code first"
