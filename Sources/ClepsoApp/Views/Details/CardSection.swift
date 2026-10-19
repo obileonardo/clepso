@@ -503,18 +503,25 @@ struct PlayerCardBack: View {
     static func summary(_ c: PlayerCard) -> String { Copy.Card.backSummary(c, weeks: c.activity.columns.count) }
 }
 
-/// The activity log: one square a day for the last weeks (Sunday on top, today last), the Stats calendar's levels;
-/// a day Clepso saw that Claude Code's file doesn't cover yet is drawn as an outline. Hover a day for its date.
+/// The activity log: one square a day for the last weeks (Sunday on top, today last), the Stats calendar's levels as
+/// its pixel tiles (`PixelLevelTile`: lit accent pixels on a muted tile, sparse dots → checkerboard → solid). A day
+/// before the first session is the tile's outline ("no data", as on the calendar); a day Clepso saw that Claude Code's
+/// file doesn't cover yet keeps an accent outline round its tile. Hover a day for its date.
 struct ActivityLog: View {
     let activity: CardActivity
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
-    /// 15-point days with 3-point gaps: thirty weeks fit the card's 544-point content width.
-    static let cell: CGFloat = 15
+    /// 14-point days (seven 2-point pixels a side, `PixelDensity.tile`) with 4-point gaps (two pixels), so every day
+    /// sits on the design system's pixel grid: thirty weeks are 536 points, inside the card's 544-point content width.
+    static let cell: CGFloat = 14
+
+    /// The gap between days: two of the tile's pixels.
+    static func gap(_ theme: Theme) -> CGFloat { theme.stroke(.hairline) * 4 }
 
     var body: some View {
-        let cell = Self.cell, gap = theme.stroke(.hairline) * 3
+        let cell = Self.cell, gap = Self.gap(theme)
+        let days = activity.columns.joined().compactMap { $0 }
         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
             HStack(alignment: .firstTextBaseline) {
                 Text(Copy.Card.activityTitle(activity.columns.count)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
@@ -529,13 +536,19 @@ struct ActivityLog: View {
                     }
                 }
             }
+            // The key, tile for tile the same as the days.
             HStack(spacing: theme.spacing(.compact)) {
+                if days.contains(where: \.beforeFirst) {
+                    PixelLevelTile(level: nil).frame(width: cell, height: cell)
+                    Text(Copy.Stats.noData.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        .padding(.trailing, theme.spacing(.standard))
+                }
                 Text(Copy.Card.less).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                ForEach(0..<5, id: \.self) { level in Rectangle().fill(color(level)).frame(width: cell * 0.75, height: cell * 0.75) }
+                ForEach(0..<5, id: \.self) { level in PixelLevelTile(level: level).frame(width: cell, height: cell) }
                 Text(Copy.Card.more).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                 Spacer(minLength: theme.spacing(.standard))
-                if activity.columns.joined().contains(where: { $0?.pending == true }) {
-                    Rectangle().strokeBorder(theme.color(.accent, scheme), lineWidth: theme.stroke(.emphasis)).frame(width: cell * 0.75, height: cell * 0.75)
+                if days.contains(where: \.pending) {
+                    pendingTile(level: 0)
                     Text(Copy.Card.pending).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
             }
@@ -544,20 +557,25 @@ struct ActivityLog: View {
 
     @ViewBuilder func square(_ day: CardActivity.Day?) -> some View {
         if let day, day.beforeFirst {
-            Rectangle().fill(theme.color(.surfaceMuted, scheme).opacity(0.45)).frame(width: Self.cell, height: Self.cell)
+            PixelLevelTile(level: nil).frame(width: Self.cell, height: Self.cell)
                 .help(Copy.Card.dayBeforeFirst(PlayerCardFront.day(day.date) ?? day.date))
         } else if let day {
-            Rectangle().fill(color(day.level))
-                .overlay { if day.pending { Rectangle().strokeBorder(theme.color(.accent, scheme), lineWidth: theme.stroke(.emphasis)) } }
-                .frame(width: Self.cell, height: Self.cell)
-                .help(Copy.Card.dayHelp(PlayerCardFront.day(day.date) ?? day.date, active: day.level > 0, pending: day.pending))
+            Group {
+                if day.pending { pendingTile(level: day.level) } else { PixelLevelTile(level: day.level).frame(width: Self.cell, height: Self.cell) }
+            }
+            .help(Copy.Card.dayHelp(PlayerCardFront.day(day.date) ?? day.date, active: day.level > 0, pending: day.pending))
         } else {
             Color.clear.frame(width: Self.cell, height: Self.cell)
         }
     }
 
-    func color(_ level: Int) -> Color {
-        level == 0 ? theme.color(.surfaceMuted, scheme) : theme.color(.accent, scheme).opacity([0, 0.3, 0.55, 0.8, 1][min(level, 4)])
+    /// A day's tile with the accent outline that marks "seen by Clepso, not yet in the file": one pixel wide, on the
+    /// tile's own notched edge.
+    func pendingTile(level: Int) -> some View {
+        let px = theme.stroke(.hairline) * 2
+        return PixelLevelTile(level: level)
+            .overlay { PixelTile(px: px).strokeBorder(theme.color(.accent, scheme), lineWidth: px) }
+            .frame(width: Self.cell, height: Self.cell)
     }
 }
 

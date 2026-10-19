@@ -71,4 +71,34 @@ struct PixelDensityTests {
         let odd = PixelDensity.grid(in: CGRect(x: 0, y: 0, width: 20, height: 20), px: 2)
         #expect(odd.origin == CGPoint(x: 1, y: 1) && odd.count == 9)
     }
+
+    @Test("Rectangular cells (the Models strip): the square rule unchanged, and every level still distinct down to one pixel wide")
+    func rectangles() {
+        for n in [5, 7, 9] {
+            for level in 0...4 {
+                for r in 0..<n { for c in 0..<n {
+                    #expect(PixelDensity.isLit(level: level, column: c, row: r, count: n) == PixelDensity.isLit(level: level, column: c, row: r, columns: n, rows: n))
+                } }
+            }
+        }
+        for columns in [1, 2, 3, 4, 6, 25] {
+            for rows in [7, 9] {
+                let counts = (0...4).map { level in
+                    (0..<rows).reduce(0) { sum, r in sum + (0..<columns).filter { PixelDensity.isLit(level: level, column: $0, row: r, columns: columns, rows: rows) }.count }
+                }
+                #expect(counts[0] == 0 && zip(counts, counts.dropFirst()).allSatisfy { $0 < $1 }, "\(columns)×\(rows): \(counts)")
+            }
+        }
+        // One pixel wide: level 1 is a dot every fourth row from the centre (every other row would be level 2's
+        // checkerboard), level 3 the column with holes there.
+        #expect((0..<9).filter { PixelDensity.isLit(level: 1, column: 0, row: $0, columns: 1, rows: 9) } == [0, 4, 8])
+        #expect((0..<9).filter { PixelDensity.isLit(level: 2, column: 0, row: $0, columns: 1, rows: 9) } == [1, 3, 5, 7])
+        #expect((0..<9).filter { !PixelDensity.isLit(level: 3, column: 0, row: $0, columns: 1, rows: 9) } == [0, 4, 8])
+        // The path: whole-point squares inside the rect, from its corner; a width short of a pixel is dropped.
+        let rect = CGRect(x: 10, y: 0, width: 9, height: 14)
+        let path = PixelDensity.pixels(level: 4, in: rect, px: 2)
+        #expect(path.boundingRect == CGRect(x: 10, y: 0, width: 8, height: 14))
+        #expect(!path.contains(CGPoint(x: 11, y: 1)) && path.contains(CGPoint(x: 13, y: 1)), "notched corner")
+        #expect(PixelDensity.pixels(level: 4, in: CGRect(x: 0, y: 0, width: 1.5, height: 14), px: 2).isEmpty)
+    }
 }
