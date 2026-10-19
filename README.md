@@ -484,7 +484,7 @@ swift run clepso recover               # finish or roll back an interrupted inst
 
 ## Quality gates (`make ci`)
 
-`scripts/ci.sh` has 14 gates. It runs every one even if an earlier one fails, prints a summary, and exits non-zero if
+`scripts/ci.sh` has 15 gates. It runs every one even if an earlier one fails, prints a summary, and exits non-zero if
 any failed. `make ci` is strict: it pins the toolchain and requires the app to be signed with a real identity, with
 hardened runtime, and with an accounts project configured, so an official build cannot quietly fall back.
 `make ci-contributor` (`scripts/ci.sh --contributor`) runs the same checks but accepts any Swift 6 toolchain, an ad-hoc
@@ -501,6 +501,7 @@ Xcode 27.1.
 | strict build | Everything, tests included, builds with warnings as errors |
 | tests | `swift test` passes |
 | helper links no networking | The release `clepso-statusline` links only allowed system libraries and no networking symbols |
+| release build has no debug code | A release build of the app and the helper contains none of the debug-only names (probe flags, demo hooks) listed in `scripts/debug-only-names.regex`, while the debug build shows them |
 | networking only in Sync | No `URLSession`/`Network` use outside `Sources/Sync`; only the app imports `Sync` |
 | clock injected | No direct `Date()` in the pure layers and the app (time is injected) |
 | design tokens only | Components and screens use `Theme` tokens and pixel icons, never raw colours, sizes or system symbols |
@@ -595,7 +596,8 @@ The live view, with the evidence for every increment, is the [Progress page](htt
 - Readings arrive only while Claude Code refreshes its status line, so Clepso shows how old each value is.
 - Clepso always uses `~/.claude`. A custom `CLAUDE_CONFIG_DIR` is supported by the installer code but not yet wired
   into the app.
-- No signed or notarized builds and no auto-update; only Apple silicon has been tested.
+- Signed, notarized builds exist from v0.1.0-alpha.1, but there is no auto-update yet (planned for the beta); only
+  Apple silicon has been tested.
 - `make site` reads planning documents that are not in this repository.
 - The local socket accepts any process running as your user; a code-signature check of the helper is planned
   ([`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) §3).
