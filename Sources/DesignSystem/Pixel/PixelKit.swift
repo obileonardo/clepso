@@ -385,19 +385,22 @@ public struct PixelTile: InsettableShape {
     public func inset(by amount: CGFloat) -> PixelTile { var copy = self; copy.inset += amount; return copy }
 }
 
-/// The lit pixels of a level (see `PixelDensity`), each a whole-point square.
+/// The lit pixels of a level (see `PixelDensity`), each a whole-point square. With `rows`, only the tile's bottom
+/// `rows` pixel rows light (the same pattern, cut off above them), so text can sit on the plain ground over the band.
 public struct PixelDither: Shape {
     let level: Int
     let px: CGFloat
-    public init(level: Int, px: CGFloat) {
+    var rows: Int?
+    public init(level: Int, px: CGFloat, rows: Int? = nil) {
         self.level = level
         self.px = px
+        self.rows = rows
     }
 
     public func path(in rect: CGRect) -> Path {
         let g = PixelDensity.grid(in: rect, px: px)
         var p = Path()
-        for r in 0..<g.count {
+        for r in (g.count - min(g.count, max(0, rows ?? g.count)))..<g.count {
             for c in 0..<g.count where PixelDensity.isLit(level: level, column: c, row: r, count: g.count) {
                 p.addRect(CGRect(x: g.origin.x + CGFloat(c) * g.unit, y: g.origin.y + CGFloat(r) * g.unit, width: g.unit, height: g.unit))
             }
@@ -408,19 +411,24 @@ public struct PixelDither: Shape {
 
 /// One day of an activity calendar: lit accent pixels for its level on a muted tile, or, with no level (no data:
 /// before the history or after today), only the tile's outline. Size it with `PixelDensity.tile(fitting:px:)`.
+/// With `rows`, the level lights only a band of the tile's bottom `rows` pixel rows (`PixelDither`).
 public struct PixelLevelTile: View {
     let level: Int?
+    var rows: Int?
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
-    public init(level: Int?) { self.level = level }
+    public init(level: Int?, rows: Int? = nil) {
+        self.level = level
+        self.rows = rows
+    }
 
     public var body: some View {
         let px = theme.stroke(.hairline) * 2
         if let level {
             ZStack {
                 PixelTile(px: px).fill(theme.color(.surfaceMuted, scheme))
-                PixelDither(level: level, px: px).fill(theme.color(.accent, scheme))
+                PixelDither(level: level, px: px, rows: rows).fill(theme.color(.accent, scheme))
             }
         } else {
             PixelTile(px: px).strokeBorder(theme.color(.separator, scheme), lineWidth: theme.stroke(.hairline))

@@ -61,6 +61,12 @@ struct PixelDensityTests {
         let bounds = PixelDither(level: 4, px: 2).path(in: rect).boundingRect
         #expect(bounds == rect)
         #expect(PixelTile(px: 2).path(in: rect).boundingRect == rect)
+        // A band: only the bottom rows light, the same pixels as the full pattern there; out-of-range counts are safe.
+        #expect(PixelDither(level: 4, px: 2, rows: 3).path(in: rect).boundingRect == CGRect(x: 40, y: 21, width: 14, height: 6))
+        let full = PixelDither(level: 2, px: 2).path(in: rect), band = PixelDither(level: 2, px: 2, rows: 3).path(in: rect)
+        #expect(band.boundingRect.minY >= 21 && full.contains(CGPoint(x: 43, y: 25)) == band.contains(CGPoint(x: 43, y: 25)))
+        #expect(PixelDither(level: 4, px: 2, rows: 0).path(in: rect).isEmpty && PixelDither(level: 4, px: 2, rows: -2).path(in: rect).isEmpty)
+        #expect(PixelDither(level: 4, px: 2, rows: 99).path(in: rect).boundingRect == rect)
         // A size that isn't a tile is drawn as the largest tile inside it, centred on whole points.
         let odd = PixelDensity.grid(in: CGRect(x: 0, y: 0, width: 20, height: 20), px: 2)
         #expect(odd.origin == CGPoint(x: 1, y: 1) && odd.count == 9)
