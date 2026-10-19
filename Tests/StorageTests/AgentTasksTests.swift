@@ -46,7 +46,7 @@ struct AgentTasksTests {
         try await store.record(event(.subagentStarted, 8, agent: "x", type: "Explore"))
         try await store.record(event(.subagentStarted, 8, agent: "x", type: "Explore"))      // and the start twice
         try await store.record(event(.subagentStarted, 10, agent: nil, type: "Plan"))        // no agent reference: ignored
-        try await store.record(event(.subagentStarted, 11, agent: "y", type: "db-migrator")) // not a known type
+        try await store.record(event(.subagentStarted, 11, agent: "y", type: "db migrator")) // not a type the store keeps (approved names: ApprovedAgentNamesStoreTests)
         let task = try #require(try await store.agentTasks(limit: 1).first)
         #expect(task.byType == ["Explore": 1, "unknown": 1] && task.finished == 1)
     }

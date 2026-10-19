@@ -47,6 +47,9 @@ public struct DetailsView: View {
                     .padding(.bottom, theme.spacing(.spacious))
                     .environment(\.isFixtureData, false)       // the header's DEMO tag covers the page, and stays in view
                 }
+                #if DEBUG
+                .defaultScrollAnchor(ProbeOverrides.scrollToEnd ? .bottom : nil)
+                #endif
             }
             .padding(theme.spacing(.spacious))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

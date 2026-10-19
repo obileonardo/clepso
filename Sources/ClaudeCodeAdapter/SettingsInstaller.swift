@@ -2,6 +2,7 @@ import CryptoKit
 import Darwin
 import Domain
 import Foundation
+import ShimProtocol
 
 /// Reversible status-line install into Claude Code's user settings (PRIVACY_AND_SECURITY §7).
 ///
@@ -85,22 +86,26 @@ public struct SettingsInstaller: Sendable {
     public let shimPath: String
     public let socketPath: String
     public let forwardCost: Bool
+    /// The custom agent names the user approved (Settings), written into the helper's config. nil: keep whatever the
+    /// config already lists (the CLI, migrations and every caller that isn't changing the list).
+    public let approvedAgentTypes: [String]?
     let now: @Sendable () -> Date
     /// Test hook: runs between reading settings and the compare-and-swap write.
     let beforeSettingsWrite: (@Sendable () -> Void)?
 
-    public init(paths: Paths, shimPath: String, socketPath: String, forwardCost: Bool = true,
+    public init(paths: Paths, shimPath: String, socketPath: String, forwardCost: Bool = true, approvedAgentTypes: [String]? = nil,
                 now: @escaping @Sendable () -> Date = { SystemClock().now() }) {
         self.init(paths: paths, shimPath: shimPath, socketPath: socketPath, forwardCost: forwardCost,
-                  now: now, beforeSettingsWrite: nil)
+                  approvedAgentTypes: approvedAgentTypes, now: now, beforeSettingsWrite: nil)
     }
 
-    init(paths: Paths, shimPath: String, socketPath: String, forwardCost: Bool,
+    init(paths: Paths, shimPath: String, socketPath: String, forwardCost: Bool, approvedAgentTypes: [String]? = nil,
          now: @escaping @Sendable () -> Date, beforeSettingsWrite: (@Sendable () -> Void)?) {
         self.paths = paths
         self.shimPath = shimPath
         self.socketPath = socketPath
         self.forwardCost = forwardCost
+        self.approvedAgentTypes = approvedAgentTypes
         self.now = now
         self.beforeSettingsWrite = beforeSettingsWrite
     }
@@ -436,12 +441,14 @@ public struct SettingsInstaller: Sendable {
 
     // MARK: - Repair (§3.3)
 
-    /// True when the installed wrapper or config no longer points at this app's helper or socket.
+    /// True when the installed wrapper or config no longer points at this app's helper or socket, or the config's
+    /// approved agent names aren't the ones this installer was given.
     public func needsRepair() -> Bool {
         guard loadRecord()?.state == .verified else { return false }
         let wrapper = FileOps.readBytes(paths.wrapper).map { String(decoding: $0, as: UTF8.self) } ?? ""
         let config = FileOps.readBytes(paths.config).flatMap(FileOps.jsonObject)
-        return !wrapper.contains("CLEPSO_SHIM=\(Self.singleQuoted(shimPath))\n") || config?["socket"] as? String != socketPath
+        let namesDiffer = approvedAgentTypes.map { Self.cleanAgentNames($0) != (config?["approved_agent_types"] as? [String] ?? []) } ?? false
+        return !wrapper.contains("CLEPSO_SHIM=\(Self.singleQuoted(shimPath))\n") || config?["socket"] as? String != socketPath || namesDiffer
     }
 
     /// Regenerates only the wrapper and config. settings.json is neither read nor written.
@@ -456,9 +463,16 @@ public struct SettingsInstaller: Sendable {
     // MARK: - Generated files
 
     func writeConfig(originalCommand: String?) throws {
+        let kept = FileOps.readBytes(paths.config).flatMap(FileOps.jsonObject)?["approved_agent_types"] as? [String]
         let config: [String: Any] = ["v": 1, "socket": socketPath, "original_command": originalCommand ?? NSNull(),
-                                     "forward_cost": forwardCost, "hmac_key_file": paths.key.path]
+                                     "forward_cost": forwardCost, "hmac_key_file": paths.key.path,
+                                     "approved_agent_types": Self.cleanAgentNames(approvedAgentTypes ?? kept ?? [])]
         try FileOps.atomicReplace(paths.config, with: FileOps.serialize(config, pretty: true), mode: 0o600)
+    }
+
+    /// Approved agent names as the config holds them: only names of an agent name's shape, each once, sorted, at most 50.
+    static func cleanAgentNames(_ names: [String]) -> [String] {
+        Array(Set(names.filter(HookFrame.isApprovableAgentName)).sorted().prefix(HookFrame.maxApprovedAgentNames))
     }
 
     /// §1.1 exact form. The `[ -x ]` guard is what lets a missing app fall through to the original

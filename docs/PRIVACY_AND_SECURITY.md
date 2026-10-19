@@ -110,6 +110,18 @@ can never block Claude Code or add context to a conversation. The installed hook
 gone. Stored as `agent_tasks` and `agent_runs` (`docs/DATA_MODEL.md` §3.1), kept 30 days, included in export and
 delete all. Tests put canary markers in every content field of all four events and check none reaches the socket.
 
+**Approved agent names** (founder decision 19 Oct 2026). In Settings › Claude Code the user can list custom agent names
+to be shown by name instead of Custom. Only exact names are accepted: 1–40 characters of `A–Z a–z 0–9 _ -`, matched
+case-sensitively; built-in types, `custom` and `unknown` can't be added; at most 50. The app writes the list into the
+helper's `config.json` as `approved_agent_types`; the helper stays the gate and sends a custom type verbatim only when it
+is exactly one of those names (and has that shape), otherwise `custom`. A missing or malformed list approves nothing and
+never stops the status line. No other field is added, so no task description or other free text is ever sent. The app
+checks each type against its own list again on arrival, the database CHECK allows only the name shape (DATA_MODEL
+§3.2), and removing a name turns its stored runs into `custom`. Approved names appear in the export; the account sync
+counts them as `custom`, so they stay on the Mac. "Find my agents" reads `~/.claude/agents/*.md` only when the user
+clicks it, keeps only each file's frontmatter `name:`, and approves nothing by itself. Tests: the helper with approved
+and unapproved names, a malformed list, and a canary run through the real helper into the database, export and log.
+
 ### 4.3 Codex session files (opt-in)
 
 Off by default. Clepso lists `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl` for the last 8 days and reads

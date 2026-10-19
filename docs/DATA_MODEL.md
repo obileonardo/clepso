@@ -104,7 +104,7 @@ Instants are `INTEGER` epoch milliseconds (UTC). Projections store a JSON snapsh
 `agent_tasks(id, connection_id, session_ref, started_at, ended_at, from_prompt)`: one row per prompt; `from_prompt` is
 0 when a subagent arrived before Clepso saw a prompt for that session. `agent_runs(task_id, agent_ref, agent_type,
 started_at, stopped_at)`, primary key `(task_id, agent_ref)`, with `agent_type` limited to Claude Code's built-in
-names plus `custom` and `unknown`. A prompt closes the session's open task and opens a new one; `Stop` closes the
+names plus `custom` and `unknown` (since v4, also an approved custom agent name: §3.2). A prompt closes the session's open task and opens a new one; `Stop` closes the
 latest open task; a subagent joins the session's latest task that started before it; a run is matched by
 `agent_ref`, so a stop that arrives before its start still makes one run. Purged with sessions at 30 days.
 
@@ -114,6 +114,14 @@ started it. Claude Code sends nothing while a subagent works, so its last sign o
 its session; after 10 minutes without one (the telemetry TTL) it is shown as "last seen". A run with no stop stops
 counting as running 6 hours after it started (Claude Code closed or crashed, or a hook event was lost) and is shown
 as "no stop seen" in its task, neither finished nor running.
+
+### 3.2 Migration v4: approved agent names
+
+`agent_runs` is rebuilt (rows copied unchanged) so `agent_type` may also hold a custom agent name the user approved in
+Settings (founder decision 19 Oct 2026): its CHECK allows the built-in names, `custom` and `unknown`, or 1–40
+characters of `A–Z a–z 0–9 _ -` and nothing else, so no sentence or path can be stored whatever arrives. The approved
+list itself is the preference `claudeCode.approvedAgentNames`. Taking a name off the list rewrites its runs to `custom`
+(`Store.forgetAgentName`). The account sync counts approved names under `custom`, so they never leave the Mac.
 
 **Before the rename to Clepso** the folder was `~/Library/Application Support/Pulse` and the file `pulse.sqlite`. At
 launch, before the database, the diagnostics log or the socket is opened, `LegacyDataMigration`

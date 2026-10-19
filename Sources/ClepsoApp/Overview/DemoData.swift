@@ -67,7 +67,7 @@ enum DemoData {
 
     static var agentsPlan: [DemoTask] {
         #if DEBUG
-        // Debug probe only: `-ClepsoProbeAgents none|background|one|many|finished|stale` for the agents panel's other states.
+        // Debug probe only: `-ClepsoProbeAgents none|background|one|many|finished|stale|approved` for the agents panel's other states.
         if let scenario = UserDefaults.standard.string(forKey: "ClepsoProbeAgents"), let plan = probeAgentsPlans[scenario] { return plan }
         #endif
         return [(-55, -41, [("Explore", 4), ("Explore", 5), ("Plan", 7)]), (-38, -30, []),
@@ -86,6 +86,9 @@ enum DemoData {
                  (-9, nil, [("Explore", 2), ("Explore", 3), ("Explore", nil), ("Plan", 4), ("general-purpose", nil), ("general-purpose", nil),
                             ("claude-code-guide", 4), ("statusline-setup", 5), ("custom", nil)])],
         "finished": [(-30, -20, [("Explore", 5)]), (-9, -2, [("Explore", 3), ("Plan", 4), ("general-purpose", 6)])],
+        // Approved agent names (19 Oct 2026): two custom agents shown by name, one not approved (Custom).
+        "approved": [(-30, -20, [("Explore", 5), ("code-reviewer", 8)]),
+                     (-9, nil, [("Explore", 3), ("code-reviewer", nil), ("db-helper", 6), ("custom", nil), ("Plan", 4)])],
         // The session went quiet 25 minutes ago with two subagents never reported stopped, and one from 7 hours ago.
         "stale": [(-7 * 60, -7 * 60 + 5, [("general-purpose", nil)]), (-40, -25, [("general-purpose", nil), ("Explore", nil), ("Plan", 10)])],
     ]

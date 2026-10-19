@@ -312,7 +312,7 @@ public struct HooksInstaller: Sendable {
         """
         #!/bin/sh
         # Clepso hook wrapper v1. Generated \(FileOps.basicISO8601(now())). Do not edit; Clepso regenerates it.
-        # Counts subagents per task: sends the event name, hashed ids and a built-in agent type, never content.
+        # Counts subagents per task: sends the event name, hashed ids and a built-in or approved agent type, never content.
         CLEPSO_SHIM=\(SettingsInstaller.singleQuoted(shimPath))
         if [ -x "$CLEPSO_SHIM" ]; then
           exec "$CLEPSO_SHIM" --hook

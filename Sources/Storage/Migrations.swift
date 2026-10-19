@@ -16,6 +16,10 @@ public enum Migrations {
         migrator.registerMigration("v3_agent_tasks") { db in
             try db.execute(sql: SchemaV3.agentTasks)
         }
+        // Founder decision 19 Oct 2026: a run's type may be a custom agent name the user approved (rebuilt for the CHECK).
+        migrator.registerMigration("v4_agent_type_approved_names") { db in
+            try db.execute(sql: SchemaV4.agentRunsRebuild)
+        }
         return migrator
     }
 

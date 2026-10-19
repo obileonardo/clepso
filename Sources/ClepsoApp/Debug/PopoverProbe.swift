@@ -10,6 +10,10 @@ import SwiftUI
 /// changing the Mac's own setting.
 enum ProbeOverrides {
     static let reduceMotion = UserDefaults.standard.bool(forKey: "ClepsoProbeReduceMotion")
+    /// `-ClepsoProbeScrollToEnd YES`: Dashboard pages open scrolled to their end, for screenshots of what's below the fold.
+    static let scrollToEnd = UserDefaults.standard.bool(forKey: "ClepsoProbeScrollToEnd")
+    /// `-ClepsoProbeAgentSuggestions YES`: Settings shows "Find my agents" as if clicked (reads the probe home's ~/.claude/agents).
+    static let agentSuggestions = UserDefaults.standard.bool(forKey: "ClepsoProbeAgentSuggestions")
 }
 
 /// Verification harness, debug builds only (popover open ≤ 200 ms p95, trigger to first frame), and the source of the
@@ -55,6 +59,8 @@ enum PopoverProbe {
         if defaults.bool(forKey: "ClepsoProbeLight") { await model.setAppearance(.light) }
         if let theme = defaults.string(forKey: "ClepsoProbeTheme") { await model.setTheme(theme) }   // one colour theme per run
         if defaults.bool(forKey: "ClepsoProbeCodex") { await model.setCodexEnabled(true) }           // reads the probe home's ~/.codex
+        // `-ClepsoProbeApprovedAgents code-reviewer,db-helper`: approved agent names for the Settings screenshots.
+        for name in defaults.string(forKey: "ClepsoProbeApprovedAgents")?.split(separator: ",") ?? [] { _ = await model.approveAgentName(String(name)) }
         PopoverWarmUp.run(model)          // as at a launch into this state (the app warms up after start, see ClepsoScenes)
         try? await Task.sleep(for: .seconds(1))
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }

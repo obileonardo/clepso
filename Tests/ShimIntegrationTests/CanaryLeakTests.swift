@@ -91,6 +91,65 @@ struct CanaryLeakTests {
         // The helper's own status line went to Claude Code, not to Clepso; it must not echo markers either.
         #expect(!result.text.lowercased().contains("canary"), "\(result.text)")
     }
+
+    /// One hook event as Claude Code sends it, content fields marked.
+    static func hookEvent(_ name: String, agent: String? = nil, type: String? = nil) -> Data {
+        var event: [String: Any] = ["session_id": "CANARY-raw-session-0f9e8d7c", "hook_event_name": name,
+                                    "transcript_path": "/Users/canary-transcript/session.jsonl", "cwd": "/Users/canary-cwd",
+                                    "prompt": "refactor canary module 424242 \(fakeToken)", "last_assistant_message": "canary reply",
+                                    "agent_transcript_path": "/Users/canary/agent.jsonl"]
+        if let agent { event["agent_id"] = agent }
+        if let type { event["agent_type"] = type }
+        return (try? JSONSerialization.data(withJSONObject: event)) ?? Data()
+    }
+
+    @Test("Hook events → real helper → app: an unapproved custom agent's name is in no database, export or log; an approved one is kept exactly")
+    func hookCanary() async throws {
+        let h = try ShimHarness(); defer { h.cleanUp() }
+        let model = AppModel(environment: AppEnvironment(
+            dataDirectory: h.home.appendingPathComponent("d"), home: h.home, shimPath: ShimHarness.shimURL.path,
+            loginItem: NoLoginItem(), notifications: NoNotifications(), keychain: NoKeychain(), appVersion: "0.1.0-test"))
+        await model.start(); defer { model.stop() }
+        #expect(await model.approveAgentName("code-reviewer") == .added)
+
+        // The helper's config as the installer writes it, with the approved list.
+        let keyPath = h.home.appendingPathComponent(".claude/clepso/session.key")
+        try Data((0..<32).map { _ in UInt8.random(in: 0...255) }).write(to: keyPath)
+        let config: [String: Any] = ["v": 1, "socket": model.environment.socketPath, "forward_cost": true, "hmac_key_file": keyPath.path,
+                                     "original_command": NSNull(), "approved_agent_types": ["code-reviewer"]]
+        try JSONSerialization.data(withJSONObject: config).write(to: h.home.appendingPathComponent(".claude/clepso/config.json"))
+
+        for event in [Self.hookEvent("UserPromptSubmit"),
+                      Self.hookEvent("SubagentStart", agent: "agent-canary-1", type: "canary-db-migrator"),
+                      Self.hookEvent("SubagentStart", agent: "agent-canary-2", type: "code-reviewer"),
+                      Self.hookEvent("SubagentStart", agent: "agent-canary-3", type: "Code-Reviewer"),
+                      Self.hookEvent("SubagentStop", agent: "agent-canary-1", type: "canary-db-migrator"),
+                      Self.hookEvent("Stop")] {
+            let result = try h.run(stdin: event, arguments: ["--hook"])
+            #expect(result.status == 0 && result.stdout.isEmpty)
+        }
+
+        let export = h.home.appendingPathComponent("hook-export.json")
+        var exported = ""
+        let deadline = Date().addingTimeInterval(5)
+        repeat {
+            try await Task.sleep(for: .milliseconds(50))
+            guard case .success = await model.export(to: export) else { continue }
+            exported = String(decoding: try Data(contentsOf: export), as: UTF8.self)
+        } while !(exported.contains("\"code-reviewer\"") && exported.components(separatedBy: "\"custom\"").count == 3) && Date() < deadline
+        #expect(exported.contains("\"code-reviewer\""), "the approved name arrived exactly")
+        #expect(exported.components(separatedBy: "\"custom\"").count == 3, "the unapproved name and the other case arrived as custom")
+
+        let database = model.environment.databaseURL
+        let places: [(String, URL)] = [("database", database), ("database WAL", URL(fileURLWithPath: database.path + "-wal")),
+                                       ("export", export), ("diagnostics log", model.environment.diagnosticsURL)]
+        for (name, url) in places {
+            guard let data = try? Data(contentsOf: url) else { continue }
+            let bytes = String(decoding: data, as: UTF8.self)
+            for marker in Self.markers + ["migrator"] { #expect(!bytes.lowercased().contains(marker), "\(name) contains \(marker)") }
+            #expect(!bytes.contains("Code-Reviewer"), "\(name) contains the unapproved spelling")
+        }
+    }
 }
 
 struct NoLoginItem: LoginItemControlling {

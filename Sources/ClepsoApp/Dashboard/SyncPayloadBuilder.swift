@@ -58,9 +58,10 @@ enum SyncPayloadBuilder {
                 var d = byDay[label(t.startedAt)] ?? (0, 0, [:])
                 d.tasks += 1
                 // Claude Code's own internal agents (no type) aren't subagents of the task; counted as the Mac counts them.
+                // Approved custom agent names stay on this Mac: the account sees them as Custom (founder decision 19 Oct 2026).
                 for (type, n) in t.byType where type != OverviewProjection.internalAgentType {
                     d.agents += n
-                    d.types[type, default: 0] += n
+                    d.types[OverviewProjection.agentTypeOrder.contains(type) ? type : "custom", default: 0] += n
                 }
                 byDay[label(t.startedAt)] = d
             }
