@@ -342,11 +342,12 @@ public actor Store {
         let subjectKind = if case .pool = o.subject { "pool" } else { "session" }
         try db.execute(sql: """
             INSERT OR IGNORE INTO observations (id, account_id, connection_id, pool_id, session_id, subject_kind, model_id, metric_kind,
-              value_kind, value_text, absence_reason, observed_at, received_at, evidence, quality, source_version, dedupe_key)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              value_kind, value_text, absence_reason, observed_at, received_at, evidence, quality, source_version, dedupe_key,
+              metadata_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, arguments: [UUID().uuidString, owner.account, owner.connection, poolID, sessionID, subjectKind, o.modelID,
                              o.kind.rawValue, kind, text, absence, ms(o.observedAt), ms(o.receivedAt), o.evidence.rawValue,
-                             o.quality.rawValue, o.sourceVersion, o.dedupeKey])
+                             o.quality.rawValue, o.sourceVersion, o.dedupeKey, Self.metadata(o.channel)])
     }
 
     /// Ledger rows for one subject in arrival order, grouped per frame (same observed and received time).
@@ -386,7 +387,20 @@ public actor Store {
               let quality = Quality(rawValue: row["quality"]) else { return nil }
         return IncomingObservation(subject: subject, sessionRef: row["provider_session_key"], modelID: row["model_id"], kind: kind,
                                    value: value, observedAt: date(row["observed_at"]), receivedAt: date(row["received_at"]),
-                                   evidence: evidence, quality: quality, sourceVersion: row["source_version"], dedupeKey: row["dedupe_key"])
+                                   evidence: evidence, quality: quality, sourceVersion: row["source_version"], dedupeKey: row["dedupe_key"],
+                                   channel: channel(row["metadata_json"]))
+    }
+
+    /// `metadata_json` for an observation: `{"channel":"mod"}` for a reading from Clepso's mod (mod-bridge.md §7), else
+    /// NULL as before. Older builds never read the column, so they see such rows as ordinary status-line readings.
+    static func metadata(_ channel: ObservationChannel?) -> String? {
+        channel.map { "{\"channel\":\"\($0.rawValue)\"}" }
+    }
+
+    static func channel(_ metadata: String?) -> ObservationChannel? {
+        guard let metadata, let object = (try? JSONSerialization.jsonObject(with: Data(metadata.utf8))) as? [String: Any],
+              let raw = object["channel"] as? String else { return nil }
+        return ObservationChannel(rawValue: raw)
     }
 
     // MARK: - Projections
@@ -413,7 +427,7 @@ public actor Store {
     func reduceSession(_ db: Database, sessionID: String, ref: String, observations: [IncomingObservation]) throws {
         let current = try String.fetchOne(db, sql: "SELECT snapshot_json FROM session_snapshots WHERE session_id = ?", arguments: [sessionID])
             .flatMap { try? JSONDecoder().decode(SessionState.self, from: Data($0.utf8)) } ?? SessionState(sessionRef: ref)
-        let next = SessionReducer.reduce(current, observations)
+        let next = SessionReducer.reduce(current, observations, holdOff: config.sourceHoldOff)
         guard next != current || current.version == 0 else { return }
         try db.execute(sql: "INSERT OR REPLACE INTO session_snapshots (session_id, snapshot_json, last_seen, version) VALUES (?, ?, ?, ?)",
                        arguments: [sessionID, Self.encode(next), next.lastSeen.map(ms) ?? 0, next.version])

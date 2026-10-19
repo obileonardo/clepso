@@ -1,0 +1,4 @@
+{
+  "description": "Clepso limits: one session.measure hook that hands numbers to Clepso's helper",
+  "modules": ["./register.js"]
+}

@@ -11,6 +11,7 @@ Related: [`DATA_MODEL.md`](DATA_MODEL.md) (types, schema, state machines) and
 | `Clepso.app` | Menu bar-only SwiftUI app (`LSUIElement`, `MenuBarExtra`) | Long-lived; optionally launched at login through `SMAppService.mainApp` after the user agrees | Owns the socket listener, the database, the engine, notifications, the settings installers and the interface |
 | `clepso-statusline` | Signed helper inside `Clepso.app/Contents/Helpers/` | Started by Claude Code on every status-line refresh (and, with hooks on, every hook event); exits within its time budget | Runs the user's original status-line command, builds one allowlisted frame and sends it to the app |
 | `~/.claude/clepso/statusline.sh` | Small POSIX `sh` wrapper that Claude Code runs | Per refresh | Runs the helper if it exists and is executable, otherwise the user's original command (or exits 0 if there was none) |
+| `clepso-limits` mod (opt-in, v0.3) | A Claude Code mod in `~/.claude/clepso/claude-mod/`, run inside Claude Code in the desktop app's Code tab and the VS Code panel | After each turn | Starts `~/.claude/clepso/mod-handoff.sh`, which execs the helper as `clepso-statusline --mod` with the limit and context numbers on stdin (`PRIVACY_AND_SECURITY.md` §4.4) |
 
 There is no separate background agent: the app is the local agent. The installed command is a script that wraps the
 binary because a moved or deleted app must not break the user's status line, while the binary (not `/bin/sh`) is what
@@ -19,8 +20,9 @@ talks to the app.
 The app is not sandboxed: it reads and edits files under `~/.claude` (and, opt-in, reads `~/.codex`). Distribution
 will be direct (Developer ID), which does not require the sandbox.
 
-Optional parts: Claude Code hooks (agents per task), Claude Code's statistics file, Codex session files, and accounts
-(Sync). All are off until the user turns them on; Sync additionally needs a build with an accounts project
+Optional parts: Claude Code hooks (agents per task), Clepso's Claude Code mod (limits from the desktop app's Code tab
+and the VS Code panel, v0.3: `docs/specs/mod-bridge.md`), Claude Code's statistics file, Codex session files, and
+accounts (Sync). All are off until the user turns them on; Sync additionally needs a build with an accounts project
 ([`PRIVACY_AND_SECURITY.md`](PRIVACY_AND_SECURITY.md) §9).
 
 ## 2. Package layout

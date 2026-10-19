@@ -178,6 +178,37 @@ only as its SHA-256 digest, so approving it later needs no re-read; sheet item 1
 instructions, paths, git details, account ids, agent nicknames and agent paths. Kept, in memory only like the token
 counts: each task's times, its agents by role, how many finished and how many auto-reviews ran. They are not synced.
 
+### 4.4 The Claude desktop app and the VS Code panel: Clepso's Claude Code mod (opt-in, v0.3)
+
+Off by default, available once the status line is connected, and held back in release builds until its first live
+test (`ReleaseFeatures.claudeMod`; `docs/specs/mod-bridge.md`). The desktop app's Code tab and the VS Code panel run
+hooks but not the status line, so without this Clepso sees their tasks but not their limits.
+
+Clepso copies its own Claude Code mod, `clepso-limits`, from the app bundle to `~/.claude/clepso/claude-mod/` and turns
+it on in `~/.claude/settings.json` (§7). A mod runs inside Claude Code with the user's permissions and is not
+sandboxed, so this one is kept small and its calls are fixed: one hook, `session.measure` (after each turn), and the
+calls `$.session.surfaces`, `$.session.id`, `$.session.version` and `$.process.run` (`claude plugin validate`; `make ci`
+fails if that list changes). It never hooks prompts, tool calls or transcript rows, and reads no file, setting,
+environment variable or credential. It does nothing in sessions a terminal draws (the status line covers them) or that
+nothing draws (`claude -p`, the Agent SDK).
+
+In the other sessions it starts `~/.claude/clepso/mod-handoff.sh` (which execs the helper as `clepso-statusline --mod`,
+or exits 0 if the app is gone) and hands it, on stdin, only: the session id, the Claude Code version, which app drew
+the session (`desktop`, `vscode`, `mobile`), and for each limit window its kind (`five_hour`, `seven_day`,
+`spend_limit`; any other kind is counted, never named), percent used and reset time, and the context window's size,
+fill percentage and token count. The helper is the allowlist gate here too (`Sources/ShimProtocol/ModHandoff.swift`):
+at most 64 KiB, only those fields, each translated to its status-line counterpart and then put through `FrameBuilder`
+with every bound and scrub rule above; the session id becomes its keyed hash; unknown keys are counted, never copied.
+The frame is frame v1 with two optional fields, `via: "mod"` and `surface`. Cost is not sent on this path. The helper
+always exits 0 and prints nothing. Nothing leaves the Mac.
+
+Readings from the mod are stored like status-line readings, marked `{"channel":"mod"}` in the ledger's
+`metadata_json`, so the status line can hold a window it is reporting (mod-bridge.md §7). Turning it off removes both
+settings entries (byte-exact when nothing else changed) and Clepso's mod folder; Remove and Delete all do the same.
+Tests: `handoff.test.ts` under `claude plugin test` (markers in the event's other fields never reach the hand-off),
+`ModHandoffTests`, `ModModeTests` and `ModCanaryTests` (markers in every unknown field, through the real helper into
+the database, export and log), `ClaudeModInstallerTests`.
+
 ## 5. Logging and redaction
 
 Never logged: raw status-line input, the original status line's output, environment variables, the home folder or
@@ -223,7 +254,13 @@ back an interrupted install without guessing.
 
 Removal restores the **original bytes exactly** when nothing else changed; otherwise it replaces only Clepso's status
 line with the original one and says so. The hooks installer (§4.2) follows the same rules, adds its entries after the
-user's own hooks, and removes only its own entries.
+user's own hooks, and removes only its own entries. So does the mod installer (§4.4): it adds one member to
+`extraKnownMarketplaces` (`clepso`, a `directory` source naming `~/.claude/clepso/claude-mod`) and one to
+`enabledPlugins` (`clepso-limits@clepso: true`), creating either key only if it is absent, and refuses when either key
+has another shape, already names Clepso's marketplace or plugin, or `disableAllHooks` is on. It writes these entries
+itself rather than running `claude plugin install`, which re-serialises the whole file (mod-bridge.md §2.2). Claude
+Code's own records of the marketplace (`~/.claude/plugins/known_marketplaces.json` and the like) are Claude Code's
+files; Clepso doesn't edit them.
 
 ### 7.1 Installs made before the rename to Clepso
 

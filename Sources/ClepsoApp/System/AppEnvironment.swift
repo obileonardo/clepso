@@ -61,6 +61,9 @@ public struct AppEnvironment: Sendable {
     public var rewritesHome = true
     /// What this build shows (`ReleaseFeatures`): everything unless `live()` says otherwise, so tests see every section.
     public var features = ReleaseFeatures.all
+    /// Clepso's Claude Code mod as bundled (`Contents/Resources/claude-code`); nil: beside `shimPath` in the app bundle.
+    /// Tests point it at the repository's `mod/claude-code`.
+    public var claudeModDirectory: URL?
 
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,

@@ -11,6 +11,9 @@ public struct EngineConfig: Sendable, Equatable {
     public var materialDrop: Decimal = 5
     public var windowTolerance: TimeInterval = 15 * 60
     public var freshnessTTL: TimeInterval = Freshness.localTelemetryTTL
+    /// One source per window (docs/specs/mod-bridge.md §7): a reading from Clepso's mod observed less than this after
+    /// the status line's latest reading of the same window is kept as history only.
+    public var sourceHoldOff: TimeInterval = 60
     public init() {}
 }
 
@@ -54,6 +57,8 @@ public struct PoolState: Codable, Sendable, Equatable {
     public var readyAgainWindow: UUID?           // G6 emitted once per window
     public var staleEpisode = false              // G13 emitted once per stale episode
     public var latest: OrderKey?
+    /// When the status line (or another adapter, never the mod) last moved this pool: the start of its hold (§7).
+    public var lastStatusLineAt: Date?
     public var version: Int64 = 0
 
     public init(poolKey: String) { self.poolKey = poolKey }
@@ -95,12 +100,18 @@ public enum PoolReducer {
         let key = OrderKey(observedAt: at, priority: anchor.evidence.priority, receivedAt: anchor.receivedAt)
         // §6.1: an older sample is history only; it never changes the snapshot.
         if let latest = input.latest, key < latest { return Reduction(state: input, events: [], closedWindows: []) }
+        // mod-bridge.md §7: while the status line reports this window, the mod's reading of it (another app's session,
+        // as of that session's last reply) is history only, so the two never take turns moving it.
+        if anchor.channel == .mod, let held = input.lastStatusLineAt, at.timeIntervalSince(held) < config.sourceHoldOff {
+            return Reduction(state: input, events: [], closedWindows: [])
+        }
 
         var events: [EngineEvent] = []
         var closed: [WindowState] = []
         // Step 1: reset expectation as of the observation's own time (no stale event here).
         var s = tick(input, now: at, includeStale: false, config: config, events: &events)
         s.latest = key
+        if anchor.channel != .mod { s.lastStatusLineAt = max(s.lastStatusLineAt ?? at, at) }
         s.lastSeen = max(s.lastSeen ?? at, at)
         s.staleEpisode = false                       // any reading ends a silence episode
         let fresh = now.timeIntervalSince(at) < config.freshnessTTL

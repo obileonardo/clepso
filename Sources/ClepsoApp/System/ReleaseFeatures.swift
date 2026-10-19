@@ -7,14 +7,19 @@
 public struct ReleaseFeatures: Sendable, Equatable {
     public var playerCard: Bool
     public var goals: Bool
+    /// v0.3 "Claude, everywhere": limits from the Claude desktop app and the VS Code panel through Clepso's Claude Code
+    /// mod (docs/specs/mod-bridge.md). Its Settings row is hidden until the first live install has passed
+    /// (docs/runbooks/v0.3-live-mod-test.md).
+    public var claudeMod: Bool
 
-    public init(playerCard: Bool, goals: Bool) {
+    public init(playerCard: Bool, goals: Bool, claudeMod: Bool = false) {
         self.playerCard = playerCard
         self.goals = goals
+        self.claudeMod = claudeMod
     }
 
     /// Everything built: debug builds and tests.
-    public static let all = ReleaseFeatures(playerCard: true, goals: true)
+    public static let all = ReleaseFeatures(playerCard: true, goals: true, claudeMod: true)
     /// What the next release ships. v0.1.0: no Card, no Goals (revealed in v0.2).
     public static let shipping = ReleaseFeatures(playerCard: false, goals: false)
 

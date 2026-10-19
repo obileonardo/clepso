@@ -34,6 +34,9 @@ targets:
       - App/ClepsoMac
       - path: LICENSE                  # Clepso's own licence ships beside Acknowledgements.txt (Contents/Resources)
         buildPhase: resources
+      - path: mod/claude-code          # v0.3: the Claude Code mod, copied whole to Contents/Resources/claude-code
+        type: folder                   # (docs/specs/mod-bridge.md §3); make ci checks it matches the source byte for byte
+        buildPhase: resources
     info:
       path: App/ClepsoMac/Info.plist
       properties:
