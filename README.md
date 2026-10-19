@@ -137,6 +137,11 @@ More screens: [`design/screens/`](design/screens/) and the [Screens page](https:
 | `~/.claude/stats-cache.json` | Dates, counts, model ids and token totals through a field allowlist; never stored, logged or exported | Off (*opt-in*) |
 | `~/.codex/sessions/**/rollout-*.jsonl` | Only `token_count` events (5-hour and weekly used %, reset, plan) and the model name, from the last 256 KB of the three newest files; other lines are skipped before decoding | Off (*opt-in* in Settings) |
 
+**Where Claude Code runs.** Limits come from the status line, which Claude Code draws in a terminal (including an IDE's
+terminal). The Claude desktop app's Code tab runs hooks but not the status line (tested 19 Oct 2026): its tasks and agents
+are counted, and its usage still counts against your plan, but the limit figures update only when a terminal session
+next reports.
+
 Other agents (Gemini CLI, Cursor, GitHub Copilot, Windsurf, Grok) are on the [roadmap](#project-status-and-roadmap), not
 built. The bundled plan catalog lists Claude, ChatGPT, Gemini and Grok plans with source links; only Claude Code and
 Codex limits are read automatically today.
