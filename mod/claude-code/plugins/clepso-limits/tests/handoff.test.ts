@@ -16,13 +16,15 @@ const MEASURE = {
   cwd: '/Users/someone/' + CANARY,
 }
 const SESSION = '1f5e4b85-aff5-4060-9460-e347da1179ef'
+const MODEL = 'claude-opus-5-5'
 
 type Run = { argv: readonly string[]; init?: { stdin?: string; timeoutMs?: number } }
 
-function stubs(on: any, surfaces: string[], runs: Run[], fail = false) {
+function stubs(on: any, surfaces: string[], runs: Run[], fail = false, model: any = { value: MODEL }) {
   on('session.measure', ($: any, e: any) => ({ changed: e.changed }))
   on('session.surfaces', () => ({ value: surfaces }))
   on('session.id', () => ({ value: SESSION }))
+  on('session.model', () => model)
   on('session.version', () => ({ value: { version: '2.1.299', base: '2.1.299', builtAt: '2026-10-13T21:37:33Z' } }))
   on('process.run', ($: any, e: any) => {
     runs.push({ argv: e.argv, init: e.init })
@@ -48,6 +50,7 @@ test('desktop session: one hand-off with numbers only', async ($, on) => {
     surface: 'desktop',
     session_id: SESSION,
     version: '2.1.299',
+    model: { id: MODEL },
     rate_limits: [
       { kind: 'five_hour', percent_used: 26, resets_at: '2026-10-19T14:30:00.000Z' },
       { kind: 'seven_day', percent_used: 70, resets_at: '2026-10-22T04:00:00.000Z' },
@@ -92,7 +95,33 @@ test('before the first reply: empty windows and no fill still hand off cleanly',
   stubs(on, ['desktop'], runs)
   await $.session.measure({ context: { window: 1000000 }, rateLimits: [], changed: ['context'] } as any)
   expect(JSON.parse(runs[0].init?.stdin ?? '{}')).toEqual({
-    v: 1, surface: 'desktop', session_id: SESSION, version: '2.1.299', rate_limits: [], other_windows: 0,
+    v: 1, surface: 'desktop', session_id: SESSION, version: '2.1.299', model: { id: MODEL }, rate_limits: [], other_windows: 0,
     context: { window: 1000000 },
   })
+})
+
+test('model call refused: the limits still go, without a model', async ($, on) => {
+  const runs: Run[] = []
+  stubs(on, ['desktop'], runs, false, { deny: 'no model here' })
+  await $.session.measure(MEASURE as any)
+  expect(runs.length).toBe(1)
+  const sent = JSON.parse(runs[0].init?.stdin ?? '{}')
+  expect(sent.model).toBeUndefined()
+  expect(sent.rate_limits.length).toBe(2)
+})
+
+test('a model name longer than the status line allows (64) is not sent', async ($, on) => {
+  const runs: Run[] = []
+  stubs(on, ['desktop'], runs, false, { value: 'claude-' + 'x'.repeat(58) })
+  await $.session.measure(MEASURE as any)
+  expect(runs.length).toBe(1)
+  expect(JSON.parse(runs[0].init?.stdin ?? '{}').model).toBeUndefined()
+})
+
+test('a model name of exactly 64 characters is sent as is', async ($, on) => {
+  const runs: Run[] = []
+  const fits = 'claude-' + 'x'.repeat(57)
+  stubs(on, ['desktop'], runs, false, { value: fits })
+  await $.session.measure(MEASURE as any)
+  expect(JSON.parse(runs[0].init?.stdin ?? '{}').model).toEqual({ id: fits })
 })

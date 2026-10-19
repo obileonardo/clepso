@@ -28,6 +28,7 @@ struct ModModeTests {
     static let hostile = Data("""
     {"v": 1, "surface": "/Users/canary-surface", "session_id": "canary-session-7f3a \(fakeToken)", "version": "2.1.299",
      "prompt": "please refactor canary module 424242", "cwd": "/Users/canary-cwd", "transcript_path": "/Users/canary/t.jsonl",
+     "model": {"id": "claude-opus-5-5", "display_name": "canary-display /Users/canary-model", "note": "\(fakeToken)"},
      "rate_limits": [{"kind": "five_hour", "percent_used": 26, "resets_at": "2026-10-19T14:30:00.000Z", "label": "canary-label"},
                      {"kind": "canary_window_424242", "percent_used": 12},
                      {"kind": "seven_day", "percent_used": 70, "resets_at": "2026-10-22T04:00:00.000Z", "note": "\(fakeToken)"}],
@@ -79,6 +80,9 @@ struct ModModeTests {
         #expect(frame.lookup(["rate_limits", "five_hour", "used_pct"]) == .value(.number(26)))
         #expect(frame["surface"] == .string("other"))
         #expect(frame.lookup(["health", "unknown_rate_limit_windows"]) == .value(.number(1)))
+        #expect(frame["model"] == .object(["id": .string("claude-opus-5-5")]), "the model id, and nothing else of the model object")
+        let batch = try #require(FrameMapper.map(frame, connectionID: UUID(), receivedAt: Date(timeIntervalSince1970: 1_792_159_201)))
+        #expect(batch.modelID == "claude-opus-5-5" && batch.modelDisplayName == nil, "the session is labelled as the status line labels it")
     }
 
     @Test("No app, no config, garbage, an old or future hand-off, 5 MB: still exit 0, nothing printed, quickly")
@@ -165,5 +169,6 @@ struct ModCanaryTests {
         }
         let db = String(decoding: try Data(contentsOf: model.environment.databaseURL), as: UTF8.self)
         #expect(db.contains(#"{"channel":"mod"}"#), "stored on the mod channel")
+        #expect(db.contains("claude-opus-5-5"), "the session's model id is stored, as for a status-line session")
     }
 }

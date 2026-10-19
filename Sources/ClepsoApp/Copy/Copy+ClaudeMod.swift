@@ -11,10 +11,10 @@ extension Copy {
         static let waiting = "On · nothing from the desktop app or VS Code yet. It starts with your next Claude session there. If your organisation turns Claude Code mods off, \(Product.name) still counts tasks there, but not limits."
         static let confirmTitle = "Read limits from the desktop app?"
         static func confirmBody(_ file: String) -> String {
-            "\(Product.name) adds its own small Claude Code mod, clepso-limits, and turns it on in \(file). After each reply in the Claude desktop app's Code tab or the VS Code panel, it hands \(Product.name) your plan-limit percentages, when they reset, and how full the context window is. Nothing else: no prompts, replies, file paths, transcripts or passwords, and nothing leaves your Mac. Terminal sessions keep using the status line. The two entries it adds:"
+            "\(Product.name) adds its own small Claude Code mod, clepso-limits, and turns it on in \(file). After each reply in the Claude desktop app's Code tab or the VS Code panel, it hands \(Product.name) your plan-limit percentages, when they reset, how full the context window is, and which model the session uses. Nothing else: no prompts, replies, file paths, transcripts or passwords, and nothing leaves your Mac. Terminal sessions keep using the status line. The two entries it adds:"
         }
         static func scopeBody(_ folder: String) -> String {
-            "A mod runs inside Claude Code with your permissions, so this one is kept to one hook and four calls: session.surfaces, session.id, session.version and process.run (to start \(Product.name)'s helper). Its source is in \(folder)."
+            "A mod runs inside Claude Code with your permissions, so this one is kept to one hook and five calls: session.surfaces, session.id, session.version, session.model and process.run (to start \(Product.name)'s helper). Its source is in \(folder)."
         }
         static let offBody = "It starts with your next Claude session. Turning it off takes both entries out again; if nothing else changed, settings.json is restored byte for byte. If your organisation turns Claude Code mods off, \(Product.name) still counts tasks there, but not limits."
         static let add = "Add the mod", cancel = "Cancel"

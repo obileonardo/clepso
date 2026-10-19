@@ -22,9 +22,9 @@ If this file and the code disagree, the code wins and this file is corrected.
 - A Claude Code **mod** does get the limits there: on 19 Oct a throwaway mod read `five_hour` 26 → 27 % and
   `seven_day` 70 % in the desktop Code tab [V spike].
 - Clepso ships a mod of its own, `clepso-limits`. It has one hook (`session.measure`, after each turn), and from
-  sessions that **no terminal draws** it hands Clepso's existing helper the limit percentages, reset times and
-  context-window numbers. The helper stays the only allowlist gate and sends a normal frame v1 with two extra optional
-  fields (`via: "mod"`, `surface`).
+  sessions that **no terminal draws** it hands Clepso's existing helper the limit percentages, reset times,
+  context-window numbers and the session's model id (as the status line's `model.id`). The helper stays the only
+  allowlist gate and sends a normal frame v1 with two extra optional fields (`via: "mod"`, `surface`).
 - Opt-in, with its own consent screen. Clepso writes **two entries into `~/.claude/settings.json` itself**
   (`extraKnownMarketplaces.clepso`, `enabledPlugins["clepso-limits@clepso"]`), with the status-line installer's
   guarantees: backup, compare-and-swap, verify, and an exact byte restore on removal. It does not use
@@ -52,6 +52,7 @@ If this file and the code disagree, the code wins and this file is corrected.
 | F8 | `$.process.run(argv, { cwd, env, stdin, timeoutMs })` runs a program by argument vector, no shell of its own, and resolves `{ exitCode, stdout, stderr }` for any exit code; it rejects if the program can't start or outlives the timeout (30 s default, 10 min max). The type comment says "CLI only". | V | 2.1.303 types (`ProcessRunInit`); https://code.claude.com/docs/en/plugins/mods/api |
 | F9 | "CLI only" means the Claude Code engine (the desktop app and the VS Code extension each run their own copy of it), not "the terminal only". The spike's `$.fs.write`, which the same comment block calls "the engine's own process", worked in the Code tab. | I | F2, F5; must be confirmed live (runbook step D3) |
 | F10 | VS Code panel: mods' hooks run there; drawing needs extension 2.1.299+ and feature-flag fetching. Our mod draws nothing. Whether the panel runs the `statusLine` command is undocumented. | V / ? | overview "Where mods run"; https://code.claude.com/docs/en/vs-code |
+| F11 | `session.measure` carries no model. `$.session.model()` "Returns the main loop's model, as `/model` shows it" (a string); the docs list the model among what `$.session` gives. In the 2.1.303 engine it answers the host's `mainLoopModel`, which is the alias resolved to a full id (`opus` → `claude-opus-5-5`, plus `[1m]` for that variant); the status line's `model.id` is the same value (`Kg({ mainLoopModel, permissionMode })`, which differs only in plan mode under `opusplan`). No mod call gives the status line's `display_name`. | V (types, docs); V (2.1.303 binary, read 19 Oct); ? (the desktop app's value, runbook D5) | 2.1.303 types (`session.model`); https://code.claude.com/docs/en/plugins/mods/api ("Reach files, processes, and the network"); `strings` of the 2.1.303 binary |
 
 ### 2.2 (a) The supported install route, and how to remove it exactly
 
@@ -115,12 +116,14 @@ mod that uses the mods API in a way this command can't read" [V admin]. Clepso's
 
 ```text
   ❯ ./register.js hooks: session.measure
-  ❯ ./register.js calls: $.process.run, $.session.id, $.session.surfaces, $.session.version
+  ❯ ./register.js calls: $.process.run, $.session.id, $.session.model, $.session.surfaces, $.session.version
 ✔ Validation passed
 ```
 
 - No `tool.call`, `prompt.submit`, `session.append` or `ui.*` hook: it never sees a prompt or tool call.
-- No `$.fs`, `$.http`, `$.env`, `$.settings`, `$.model`, `$.store`, `$.session.messages`.
+- No `$.fs`, `$.http`, `$.env`, `$.settings`, `$.model` (the completion calls), `$.store`, `$.session.messages`.
+- `$.session.model` (added 19 Oct 2026, founder decision Q4) only reads the session's model id, so a desktop or VS Code
+  session is labelled like a terminal one; it makes no request.
 - `$.process.run` is the one powerful call. Its `argv` is a fixed string (§5.1), it gets the JSON on `stdin`, and
   a 5 s `timeoutMs`.
 - `make ci` fails if the `hooks:` or `calls:` line ever changes (gate "Claude Code mod").
@@ -206,8 +209,10 @@ It reads no variable but `CLAUDE_CONFIG_DIR` and `HOME`, which Claude Code's pro
 2. `surfaces = $.session.surfaces()`. **Forward only if** the list is non-empty and has no `terminal`: a session a
    terminal draws has the status line; one nothing draws is `claude -p` or the SDK (Clepso's own tests and scripts
    included).
-3. `$.session.id()`, `$.session.version()`.
-4. Build the hand-off **field by field** (§5): kinds outside `five_hour`, `seven_day`, `spend_limit` are counted in
+3. `$.session.id()`, `$.session.version()`, then `$.session.model()` in a `try` of its own, so a refusal there still
+   sends the limits (without a model).
+4. Build the hand-off **field by field** (§5): the model only as a non-empty string of at most 64 characters (the
+   status line's `model.id` bound); kinds outside `five_hour`, `seven_day`, `spend_limit` are counted in
    `other_windows`, never named; `cost`, `changed`, `context.breakdown` and anything else the event carries are not
    read.
 5. `$.process.run(["/bin/sh", "-c", FIXED], { stdin, timeoutMs: 5000 })` inside `try`; any failure is silent.
@@ -226,6 +231,7 @@ Hot-path cost: once per turn, one process start (the helper's own budget is 50 m
   "surface": "desktop",
   "session_id": "1f5e4b85-aff5-4060-9460-e347da1179ef",
   "version": "2.1.299",
+  "model": { "id": "claude-opus-5-5" },
   "rate_limits": [
     { "kind": "five_hour", "percent_used": 26, "resets_at": "2026-10-19T14:30:00.000Z" },
     { "kind": "seven_day", "percent_used": 70, "resets_at": "2026-10-22T04:00:00.000Z" }
@@ -246,6 +252,7 @@ as is:
 | `v` | — | must be 1, else no frame |
 | `session_id` | `session_id` → `session_ref` (HMAC, 16 hex) | string 1–128 bytes; the raw id never leaves the helper |
 | `version` | `version` → `source_version` | the status line's string rule (≤ 32, printable, scrubbed) |
+| `model.id` | `model.id` → frame `model.id` | the status line's `model.id` rule (≤ 64, printable, scrubbed; a rejected value becomes `null` and `scrub_count` + 1); any other member of `model` is dropped; `model` that isn't an object → dropped, `scrub_count` + 1. The frame has no `model.display_name` (the app then shows the id) |
 | `rate_limits[].kind` | `rate_limits.<kind>` | only `five_hour`, `seven_day`, `spend_limit`; any other is counted in `health.unknown_rate_limit_windows`; at most 8 entries read |
 | `rate_limits[].percent_used` | `.used_percentage` | number 0–1000 (FrameBuilder) |
 | `rate_limits[].resets_at` | `.resets_at` | ISO 8601 (with or without fractional seconds) → whole epoch seconds, rounded down; unparseable → the window keeps no reset time and `scrub_count` + 1; then FrameBuilder's [now − 1 d, now + 400 d] bound |
@@ -269,27 +276,29 @@ Same kind (`claude_code.statusline`), same `v: 1`, same 4 KiB cap; added only:
 | `via` | `"mod"` | ignore it (FrameMapper reads only the keys it knows) and treat the frame as a status-line reading |
 | `surface` | `desktop`, `vscode`, `mobile` or `other` | ignore it |
 
-`health.original_present` is `false`; `model` is absent (the mod doesn't read it), so a desktop session shows no model
-name [open question Q4].
+`health.original_present` is `false`; `model` holds only `id` (§5.2), so the app labels a desktop session by its model
+id where a terminal session shows the status line's display name. A hand-off from the 0.3.0 mod (no `model`) is still
+accepted.
 
 ---
 
 ## 6. Privacy entry (PRIVACY_AND_SECURITY §4.4, opt-in)
 
 > **Claude desktop app and VS Code panel (opt-in, v0.3).** Off by default, available once the status line is
-> connected. Clepso adds its own Claude Code mod, `clepso-limits`, to `~/.claude/clepso/claude-mod/` and turns it on in
-> `~/.claude/settings.json` (§7). A mod runs inside Claude Code with the user's permissions and is not sandboxed, so
-> it is kept small and its calls are fixed: one hook, `session.measure` (after each turn), and the calls
-> `$.session.surfaces`, `$.session.id`, `$.session.version` and `$.process.run` (`claude plugin validate`; `make ci`
-> fails if that list changes). It never hooks prompts, tool calls or transcript rows, and reads no file, setting,
-> environment variable or credential. In sessions that no terminal draws (the desktop app's Code tab, the VS Code
-> panel), it hands Clepso's helper, on stdin, only: the session id, the Claude Code version, which app drew the
-> session, each limit window's kind (`five_hour`, `seven_day`, `spend_limit`; others counted only), percent used and
-> reset time, and the context window's size, fill percentage and token count. The helper applies its allowlist to
-> that (`ModHandoff`), replaces the session id with its keyed hash and sends a frame v1 marked `via: "mod"`; nothing
-> leaves the Mac. Terminal sessions are left to the status line. Turning it off removes both settings entries
-> (byte-exact when nothing else changed) and Clepso's mod folder. Tests put marker strings in the event's other fields
-> and in the hand-off's unknown fields and check none reaches the socket, the database, the export or the log.
+> connected. Clepso adds its own Claude Code mod, `clepso-limits`, to `~/.claude/clepso/claude-mod/` and turns it on
+> in `~/.claude/settings.json` (§7). A mod runs inside Claude Code with the user's permissions and is not sandboxed,
+> so it is kept small and its calls are fixed: one hook, `session.measure` (after each turn), and the calls
+> `$.session.surfaces`, `$.session.id`, `$.session.version`, `$.session.model` and `$.process.run` (`claude plugin
+> validate`; `make ci` fails if that list changes). It never hooks prompts, tool calls or transcript rows, and reads
+> no file, setting, environment variable or credential. In sessions that no terminal draws (the desktop app's Code
+> tab, the VS Code panel), it hands Clepso's helper, on stdin, only: the session id, the Claude Code version, the
+> session's model id, which app drew the session, each limit window's kind (`five_hour`, `seven_day`, `spend_limit`;
+> others counted only), percent used and reset time, and the context window's size, fill percentage and token count.
+> The helper applies its allowlist to that (`ModHandoff`), replaces the session id with its keyed hash and sends a
+> frame v1 marked `via: "mod"`; nothing leaves the Mac. Terminal sessions are left to the status line. Turning it off
+> removes both settings entries (byte-exact when nothing else changed) and Clepso's mod folder. Tests put marker
+> strings in the event's other fields and in the hand-off's unknown fields and check none reaches the socket, the
+> database, the export or the log.
 
 ---
 
@@ -368,14 +377,14 @@ Title: **Read limits from the desktop app?**
 
 > Clepso adds its own small Claude Code mod, clepso-limits, and turns it on in **~/.claude/settings.json**. After each
 > reply in the Claude desktop app's Code tab or the VS Code panel, it hands Clepso your plan-limit percentages, when
-> they reset, and how full the context window is. Nothing else: no prompts, replies, file paths, transcripts or
-> passwords, and nothing leaves your Mac. Terminal sessions keep using the status line.
+> they reset, how full the context window is, and which model the session uses. Nothing else: no prompts, replies,
+> file paths, transcripts or passwords, and nothing leaves your Mac. Terminal sessions keep using the status line.
 
 Shown verbatim (selectable): the two entries Clepso adds.
 
-> A mod runs inside Claude Code with your permissions, so this one is kept to one hook and four calls:
-> session.surfaces, session.id, session.version and process.run (to start Clepso's helper). Its source is in
-> ~/.claude/clepso/claude-mod.
+> A mod runs inside Claude Code with your permissions, so this one is kept to one hook and five calls:
+> session.surfaces, session.id, session.version, session.model and process.run (to start Clepso's helper). Its source
+> is in ~/.claude/clepso/claude-mod.
 
 > It starts with your next Claude session. Turning it off takes both entries out again; if nothing else changed,
 > settings.json is restored byte for byte. If your organisation turns Claude Code mods off, Clepso still counts tasks
@@ -389,13 +398,13 @@ Buttons: **Cancel** (default, Escape) · **Add the mod**.
 
 | Test | What it proves |
 |---|---|
-| `mod/…/tests/handoff.test.ts` (`claude plugin test`, 6 tests) | Desktop: one hand-off, exact JSON, markers in `prompt`, `cwd`, a window's extra field, an unknown kind and `context.breakdown` never in stdin, no `usd`; VS Code + phone: forwarded as `vscode`; terminal: nothing; `-p` (no surface): nothing; helper missing: the event still completes; before the first reply: clean |
-| `claude plugin validate --strict` (gate) | `hooks: session.measure`; `calls: $.process.run, $.session.id, $.session.surfaces, $.session.version`; the marketplace validates |
-| `ModHandoffTests` | Mapping of every field, ISO parsing, bounds, unknown kinds counted not named, unknown keys dropped and counted, oversize/invalid/`v`≠1 → no frame, frame within 4 KiB, `via`/`surface` |
+| `mod/…/tests/handoff.test.ts` (`claude plugin test`, 9 tests) | Desktop: one hand-off, exact JSON with `model.id`, markers in `prompt`, `cwd`, a window's extra field, an unknown kind and `context.breakdown` never in stdin, no `usd`; VS Code + phone: forwarded as `vscode`; terminal: nothing; `-p` (no surface): nothing; helper missing: the event still completes; before the first reply: clean; `$.session.model` refused: limits still sent, no model (negative control: without its own `try` this test fails); a model over 64 characters not sent, exactly 64 sent |
+| `claude plugin validate --strict` (gate) | `hooks: session.measure`; `calls: $.process.run, $.session.id, $.session.model, $.session.surfaces, $.session.version`; the marketplace validates |
+| `ModHandoffTests` | Mapping of every field (`model.id` included; only `id`, the status line's 64-byte scrubbed rule, a non-object `model` scrubbed, a hand-off without `model` accepted), ISO parsing, bounds, unknown kinds counted not named, unknown keys dropped and counted, oversize/invalid/`v`≠1 → no frame, frame within 4 KiB, `via`/`surface` |
 | `ModModeTests` (real helper binary) | Spike records replayed through `clepso-statusline --mod`: frame values; canary markers in every unknown field never reach the socket; exit 0 and empty stdout/stderr in every case, app absent included |
 | `ClaudeModInstallerTests`, `ClaudeModTests` (app) | Fixture settings corpus plus settings with plugins of their own (absent keys, existing objects, CRLF, BOM, compact, odd indent, unicode, `disableAllHooks`, conflicting entries, invalid JSON): byte-preserving install, verify, exact restore, surgical removal after the user edited, created keys removed, CAS refusal, files and modes, repair |
 | `SourceHoldOffTests`, `ChannelStoreTests` | One source per window: a mod reading within 60 s of a status-line reading is history only; after 60 s it applies; resets through either channel; sessions likewise; the channel round-trips through `metadata_json`; rebuild equals live with mixed channels; negative control: with the hold set to 0 these fail |
-| `ModCanaryTests` | Markers through the real helper into the database, export and log; the reading arrives on the mod channel |
+| `ModCanaryTests` | Markers through the real helper into the database, export and log (a marker in `model.display_name` and an extra `model` member included); the reading arrives on the mod channel; the model id is stored on the session |
 | Probe screenshots | The consent sheet and the Settings row, light and dark |
 
 ---
@@ -407,7 +416,7 @@ Buttons: **Cancel** (default, Escape) · **Add the mod**.
 | Q1 | Does `$.process.run` work in the desktop Code tab (F9)? | Runbook D3: a `via: "mod"` frame arrives from a desktop session |
 | Q2 | After removal, does `/plugin` show the deleted marketplace as an error? | Runbook U4; if so, the uninstall note suggests `claude plugin marketplace remove clepso` (which rewrites settings.json formatting, so Clepso does not run it) |
 | Q3 | Does the first session after install load the mod, or only the next one (R4)? | Runbook D2 |
-| Q4 | Should the mod also send the model name (`$.session.model()`, a fifth call) so desktop sessions are labelled? | Founder decision; off for now |
+| Q4 | Should the mod also send the model name (`$.session.model()`, a fifth call) so desktop sessions are labelled? | **Answered 19 Oct 2026: yes** (founder decision). The mod sends `model.id` only (F11, §5.2); confirm in runbook D5 that a desktop session's value matches the terminal's status-line `model.id` |
 | Q5 | VS Code panel: are `surfaces` `["vscode"]`, does it run the status line (then rule §7.2 applies), and does the extension version matter? | Runbook V1–V3, needs VS Code with the extension ≥ 2.1.299 |
 | Q6 | Is the mod's session id the status line's and the hooks' (F7)? A desktop session's hook tasks and limit readings then share one session row | Runbook D4 |
 | Q7 | Mods are new and change almost every release; `session.measure`'s shape could change | `ModHandoff` drops unknown shapes silently; the gate pins the calls; re-test on each Claude Code minor release |

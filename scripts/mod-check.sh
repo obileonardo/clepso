@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 MOD=mod/claude-code
 PLUGIN=$MOD/plugins/clepso-limits
 EXPECTED_HOOKS='hooks: session.measure'
-EXPECTED_CALLS='calls: $.process.run, $.session.id, $.session.surfaces, $.session.version'
+EXPECTED_CALLS='calls: $.process.run, $.session.id, $.session.model, $.session.surfaces, $.session.version'
 
 if ! command -v claude >/dev/null 2>&1; then
     [ "${1:-}" = "--optional" ] && { echo "claude CLI not installed: mod checks skipped (contributor mode)"; exit 0; }
