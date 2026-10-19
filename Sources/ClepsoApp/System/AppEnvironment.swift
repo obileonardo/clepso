@@ -44,6 +44,12 @@ public struct AppEnvironment: Sendable {
         NSWorkspace.shared.open(url)
         #endif
     }
+    /// Opens a web page in the user's browser (the What's new card's changelog link). Tests record the call instead.
+    public var openLink: @MainActor @Sendable (URL) -> Void = { url in
+        #if canImport(AppKit)
+        NSWorkspace.shared.open(url)
+        #endif
+    }
     /// The Mac account's full name, for Home's default greeting (the user can change the name in Account).
     public var fullUserName: String
     /// Clepso accounts. Off (no project, no requests) unless the build carries a `SyncConfig`; tests and previews get

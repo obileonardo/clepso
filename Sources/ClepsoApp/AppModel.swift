@@ -100,6 +100,8 @@ public final class AppModel {
     private var statsModifiedAt: Date?
     /// Which face of the player card is showing; on the model so the export and the verification probe agree with it.
     public var cardShowsBack = false
+    /// Home's "What's new" card for this version (`WhatsNew`), or nil. Set once at launch; cleared by Dismiss.
+    var whatsNew: WhatsNew?
     /// Debug probe only: a fixed pointer position for the card's tilt, so a screenshot can show it (nil: follow the pointer).
     public var cardTiltPreview: CGSize?
     public private(set) var started = false
@@ -198,6 +200,7 @@ public final class AppModel {
             let chose = try await store.preference(Pref.loginItem, as: Bool.self) ?? false
             loginItemEnabled = chose && environment.loginItem.isEnabled
             plan = try await store.currentPlan()
+            try await loadWhatsNew(store)
         } catch {
             problem = .storage("\(error)")
             diagnostics.record(.storageFailed(sqliteCode: Store.sqliteCode(of: error)))
@@ -407,6 +410,33 @@ public final class AppModel {
         try? await store?.setPreference(Pref.forwardCost, on, now: environment.clock.now())
         let installer = Self.installer(environment, forwardCost: on, approvedAgentTypes: approvedAgentNames)
         if environment.rewritesHome, installer.isInstalled { try? installer.repair() }
+    }
+
+    /// RELEASE_ROADMAP §6: after the version changes, the newest entry the user hasn't seen. A fresh install (onboarding
+    /// not finished) only records the version: onboarding introduces everything, so nothing is "new" yet.
+    private func loadWhatsNew(_ store: Store) async throws {
+        let current = environment.appVersion
+        let lastSeen = try await store.preference(Pref.whatsNewSeen, as: String.self)
+        guard lastSeen != current else { return }
+        whatsNew = onboardingComplete ? WhatsNew.entry(lastSeen: lastSeen, current: current) : nil
+        if whatsNew == nil { try await store.setPreference(Pref.whatsNewSeen, current, now: environment.clock.now()) }
+    }
+
+    /// Home has shown the card: it won't show again after a relaunch. It stays on screen until dismissed.
+    func whatsNewShown() async {
+        guard whatsNew != nil else { return }
+        try? await store?.setPreference(Pref.whatsNewSeen, environment.appVersion, now: environment.clock.now())
+    }
+
+    func dismissWhatsNew() async {
+        guard whatsNew != nil else { return }
+        whatsNew = nil
+        try? await store?.setPreference(Pref.whatsNewSeen, environment.appVersion, now: environment.clock.now())
+    }
+
+    /// The card's changelog link: the only way it reaches the web, and only by the user's click (their browser opens it).
+    func openChangelog() {
+        environment.openLink(WhatsNew.changelogURL)
     }
 
     public func completeOnboarding() async {
@@ -980,6 +1010,7 @@ public final class AppModel {
         plan = nil
         loginItemEnabled = false
         onboardingComplete = false
+        whatsNew = nil
         firstRealReadingAt = nil
         demo = false
         showPercent = true
@@ -1031,6 +1062,7 @@ public final class AppModel {
         static let reminderLead = "alerts.resetReminderLeadMinutes"
         static let theme = "general.theme"
         static let approvedAgentNames = "claudeCode.approvedAgentNames"
+        static let whatsNewSeen = "whatsNew.lastSeenVersion"
     }
 }
 
