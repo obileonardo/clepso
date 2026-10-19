@@ -58,6 +58,9 @@ enum PopoverProbe {
         if defaults.bool(forKey: "ClepsoProbeLight") { await model.setAppearance(.light) }
         if let theme = defaults.string(forKey: "ClepsoProbeTheme") { await model.setTheme(theme) }   // one colour theme per run
         if defaults.bool(forKey: "ClepsoProbeCodex") { await model.setCodexEnabled(true) }           // reads the probe home's ~/.codex
+        // `-ClepsoProbeWhatsNew YES`: Home shows the newest What's new card, as after an update. The seen version it records
+        // goes to this run's own data folder (a probe never runs on the installed app's), never the user's.
+        if defaults.bool(forKey: "ClepsoProbeWhatsNew") { model.whatsNew = WhatsNew.entries.first }
         // `-ClepsoProbeApprovedAgents code-reviewer,db-helper`: approved agent names for the Settings screenshots.
         for name in defaults.string(forKey: "ClepsoProbeApprovedAgents")?.split(separator: ",") ?? [] { _ = await model.approveAgentName(String(name)) }
         PopoverWarmUp.run(model)          // as at a launch into this state (the app warms up after start, see ClepsoScenes)

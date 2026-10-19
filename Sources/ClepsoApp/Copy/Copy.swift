@@ -405,6 +405,26 @@ enum Copy {
         static let openCard = "Open card"
     }
 
+    /// Home's "What's new" card (RELEASE_ROADMAP §6), one entry per release in `WhatsNew.entries`.
+    enum WhatsNewCard {
+        static let section = "What's new", sectionSub = "New in this version of \(product). Shown once; dismiss it when you're done."
+        static func tag(_ version: String) -> String { "\(product.uppercased()) \(version)" }
+        static func label(_ version: String) -> String { "What's new in \(product) \(version)" }
+        static let dismiss = "Dismiss", dismissHint = "Hides this card. It won't come back for this version."
+        static let changelog = "Full changelog"
+        static let changelogHint = "Opens the changelog on \(Card.website) in your browser"
+        static let openGoals = "Open goals"
+
+        // v0.2.0 "Your first season"
+        static let firstSeasonTitle = "Your first season"
+        static let firstSeasonSummary = "Two pages that were waiting for some history: your Player Card and Goals. Both read what is already on this Mac, "
+            + "so they open with your numbers, not from zero."
+        static let cardTitle = "Player Card"
+        static let cardDetail = "Your level, top model, streaks and recent activity on one pixel card. Save it or share it; nothing is sent unless you do."
+        static let goalsTitle = "Goals"
+        static let goalsDetail = "Set targets for active days a week, your 5-hour peak and where the week finishes, and keep a streak going."
+    }
+
     /// Home's "For you today" (after the founder's Deel pick).
     enum ForYou {
         static let title = "FOR YOU TODAY"

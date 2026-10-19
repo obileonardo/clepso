@@ -13,9 +13,13 @@ struct HomeSection: View {
 
     enum HomeMetric: Hashable { case tokens, messages, sessions }
 
-    /// 1.14: Account's structure. Today first (what needs you), then the limits, the last 30 days, and the level.
+    /// 1.14: Account's structure. Today first (what needs you), then the limits, the last 30 days, and the level. Above
+    /// them, after an update, the release's What's new card.
     var body: some View {
         PageColumn {
+            if let entry = model.whatsNew {           // once per version, until dismissed (RELEASE_ROADMAP §6)
+                PageSection(Copy.WhatsNewCard.section, Copy.WhatsNewCard.sectionSub) { WhatsNewCard(entry: entry, model: model) }
+            }
             PageSection(Copy.HomePage.today, Copy.HomePage.todaySub) { forYou }
             PageSection(Copy.Home.limits, Copy.HomePage.limitsSub) { limitsGlance }
             PageSection(Copy.ForYou.last30, Copy.HomePage.monthSub) { hero }
