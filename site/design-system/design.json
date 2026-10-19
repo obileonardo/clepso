@@ -338,7 +338,7 @@
     }
   ],
   "demoInstant" : "2026-10-16T14:01:00Z",
-  "generatedAt" : "2026-10-18T23:11:56Z",
+  "generatedAt" : "2026-10-19T09:04:31Z",
   "palette" : [
     {
       "dark" : "#1C1C1E",
@@ -670,7 +670,7 @@
       {
         "caption" : "Reset time passed, no fresh reading",
         "component" : "PixelLimitRow",
-        "height" : 130,
+        "height" : 111,
         "id" : "limit-reset-expected",
         "image" : "img/phosphor-limit-reset-expected.png",
         "width" : 420
@@ -692,11 +692,19 @@
         "width" : 420
       },
       {
-        "caption" : "Solid, dithered (stale) and outlined (no value): the non-colour cues",
+        "caption" : "Solid, dithered (stale) and outlined (no value): the non-colour cues. The fill steps one pixel in from the frame",
         "component" : "PixelBar",
-        "height" : 112,
+        "height" : 168,
         "id" : "bars",
         "image" : "img/phosphor-bars.png",
+        "width" : 420
+      },
+      {
+        "caption" : "Bar charts: whole-pixel bars with stepped tops, a faint stub for none",
+        "component" : "PixelColumns",
+        "height" : 136,
+        "id" : "columns",
+        "image" : "img/phosphor-columns.png",
         "width" : 420
       },
       {
@@ -732,12 +740,20 @@
         "width" : 640
       },
       {
-        "caption" : "Activity like /stats: Monday on top, four levels, Less → More",
+        "caption" : "Activity like /stats: Monday on top, four levels as pixel density, Less → More",
         "component" : "PixelHeatmap",
         "height" : 238,
         "id" : "heatmap",
         "image" : "img/phosphor-heatmap.png",
         "width" : 640
+      },
+      {
+        "caption" : "No data (outline), levels 0–4 as pixel density, and the 30-day view's band under the figures",
+        "component" : "PixelLevelTile",
+        "height" : 107,
+        "id" : "tiles",
+        "image" : "img/phosphor-tiles.png",
+        "width" : 420
       },
       {
         "caption" : "Stepped corners, outer frame, inner rule (glass in the app)",

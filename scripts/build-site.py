@@ -285,7 +285,16 @@ def short(title):
     return head.split(":")[0].split(" ")[0], head
 
 
+def inc_num(cell):
+    """The increment id in a row's first cell, as written ("2.1", "2.1q", "1.18"), without Markdown or spaces.
+    Compared as a whole string, so "2.1q" is its own increment (not 2.1) and "1.18" is never "1.8"."""
+    return plain(cell).strip()
+
+
 sections = roadmap_sections()
+# An increment with a row in a table that has a Status column is tracked there; the same number in a table without
+# one (the sequenced M2 to M4 plan) is its earlier, planned description, so that copy is dropped.
+TRACKED = {inc_num(r[0]) for _, header_, rows in sections if "Status" in header_ for r in rows if r}
 MILESTONES = []      # [{"key", "name", "rows": [inc]}]
 INCS = []            # every increment in build order
 for title, header_, rows in sections:
@@ -293,14 +302,17 @@ for title, header_, rows in sections:
     col = {h: i for i, h in enumerate(header_)}
     ms = {"key": key, "name": name, "title": title, "header": header_, "rows": []}
     for r in rows:
+        if "Status" not in col and inc_num(r[0]) in TRACKED:
+            continue
         get = lambda h: r[col[h]] if h in col and col[h] < len(r) else ""
-        inc = {"num": r[0], "title": get("Increment"), "how": get("How it is built") or get("Build approach in one line"),
+        inc = {"num": inc_num(r[0]), "title": get("Increment"), "how": get("How it is built") or get("Build approach in one line"),
                "proof": get("Proof it works"), "status": status_of(get("Status")) if "Status" in col else PLANNED,
                "ms": key, "row": r}
         inc["status"] = inc["status"] or PLANNED
         ms["rows"].append(inc)
         INCS.append(inc)
-    MILESTONES.append(ms)
+    if ms["rows"]:                       # a plan table whose every row is now tracked elsewhere disappears
+        MILESTONES.append(ms)
 
 done = sum(1 for i in INCS if i["status"][0] == "done")
 total = len(INCS)
@@ -311,6 +323,20 @@ now_index = INCS.index(in_progress[0]) if in_progress else done
 
 def inc_id(inc):
     return "inc-" + slug(inc["num"])
+
+
+def check_unique(ids, where):
+    """Fail the build when an increment would show twice: two rows for one id, or two ids that share an anchor."""
+    seen = {}
+    for i in ids:
+        seen[i] = seen.get(i, 0) + 1
+    twice = sorted(i for i, n in seen.items() if n > 1)
+    if twice:
+        sys.exit(f"build-site: increment shown more than once on {where}: {', '.join(twice)} "
+                 "(ROADMAP §3 has more than one row with a Status for it; keep one).")
+
+
+check_unique([inc_id(i) for i in INCS], "the Progress page")
 
 
 def status_board(compact_rows=False):
@@ -420,6 +446,8 @@ that proves it works; an increment is done only when that proof exists.</p></sec
 <h2 id="detail">In detail</h2><p class="muted">Open a milestone for how each increment is built and the proof it works.</p>{"".join(details)}
 <h2 id="map">The map</h2><div class="map"><pre>{e(roadmap_map.group(1)) if roadmap_map else ""}</pre></div>
 </div>""")
+# The same rule on the written page: each increment's row anchor exists once.
+check_unique(re.findall(r'<tr id="(inc-[^"]+)"', (site / "progress" / "index.html").read_text()), "progress/index.html")
 
 # ----------------------------------------------------------------------------------------------------------- metrics
 
@@ -475,7 +503,7 @@ docs_page("metrics/", "Metrics", "How Clepso defines every number it shows: limi
 <h2 id="sources">Where the numbers come from</h2>
 <div class="table-wrap"><table><thead><tr><th>Source</th><th>What it gives</th><th>How fresh</th><th>Kept by Clepso</th></tr></thead><tbody>
 <tr><td>Claude Code status line</td><td>5-hour and 7-day usage with reset times, current model, context window, session cost estimate, durations, lines changed, prompt-cache counts</td><td>Every status refresh while Claude Code runs</td><td>Yes, on this Mac only, after an allowlist removes everything else (paths, prompts, ids)</td></tr>
-<tr><td>Codex session files (<code>~/.codex/sessions</code>, optional)</td><td>5-hour and weekly used % with reset times, plan type, model; only <code>token_count</code> events, from the last 256 KB of the three newest files</td><td>Each time Clepso checks, about every 30 seconds while on</td><td>Yes, the limits only, on this Mac. Prompts and replies in the same files are skipped without being parsed</td></tr>
+<tr><td>Codex session files (<code>~/.codex/sessions</code>, optional)</td><td>5-hour and weekly used % with reset times, plan type, model: only <code>token_count</code> events for Codex's own allowance, from the last 256 KB of the three most recently written files in the last 8 days' folders, and Codex's version from each file's first 4 KB. For Stats, tokens per day and model, from <code>token_count</code> and <code>turn_context</code> lines only</td><td>Each time Clepso checks, about every 30 seconds while on</td><td>Yes, the limits only, on this Mac. Prompts and replies in the same files are skipped without being parsed</td></tr>
 <tr><td>Claude Code statistics file (<code>~/.claude/stats-cache.json</code>, the data behind <code>/stats</code>)</td><td>Messages and sessions per day, tokens per model per day, tokens by kind per model (all time), sessions by hour</td><td>Up to yesterday: Claude Code folds each day in afterwards</td><td>No. Read when you open Stats, only if you turn it on; never stored or exported</td></tr>
 </tbody></table></div>
 
@@ -498,14 +526,15 @@ level a model up without it doing more. Why fixed 1-2-5 targets: every next targ
 each level asks for 2 to 2.5 times the output of the one before, so levels keep meaning something at any scale.</p>
 <h3>Worked example: why “18.2M of 20M output” is progress to LV 15</h3>
 <p>A model has written {compact(ex_out)} output tokens. The highest target reached is {compact(ex_floor)}, the 13th target,
-so it is <strong>LV {ex_lv}</strong>. The next target is {compact(ex_next)}, which makes LV {ex_lv + 1}. The bar on its card
+so it is <strong>LV {ex_lv}</strong>. The next target is {compact(ex_next)}, which makes LV {ex_lv + 1}. The level bar in its dossier
 runs from {compact(ex_floor)} to {compact(ex_next)}: ({compact(ex_out)} − {compact(ex_floor)}) ÷ ({compact(ex_next)} − {compact(ex_floor)}) = {ex_pct}%,
 with {compact(ex_next - ex_out)} to go.</p>
 <h3>The ladder</h3>
 <div class="table-wrap narrow"><table><thead><tr><th>Level</th><th class="num">Output reached</th><th class="num">Next level at</th><th class="num">Output in this level</th></tr></thead>
 <tbody>{"".join(ladder_rows)}</tbody></table></div>
-<p class="muted">The ladder continues the same way past LV 25. The app shows the same table under “How levels work” in Stats › Models › Arena.
-On 30-day and 7-day ranges, levels still use all-time output, because Claude Code records tokens by kind for all time only.</p>
+<p class="muted">The ladder continues the same way past LV 25. In the app, “How levels work” under Stats › Models (Arena) draws it as a
+pixel track: a cell per level, at least 1 to 20, each target under its cell, every model's character standing on its level and the chosen model's
+next level marked NEXT. On 30-day and 7-day ranges, levels still use all-time output, because Claude Code records tokens by kind for all time only.</p>
 {sources(LEVEL_SRC)}
 
 <h2 id="rank">Rank and specialty</h2>
@@ -523,9 +552,9 @@ it until Claude stops. Clepso adds four background hooks to Claude Code (prompt 
 Claude stopped) and counts the subagents each task starts, nested ones included.</p>
 <div class="table-wrap"><table><thead><tr><th>Figure</th><th>Meaning</th></tr></thead><tbody>
 <tr><td>Agents</td><td>Subagents started during the task. Each one counts once, matched by a hashed id, even if its events arrive out of order.</td></tr>
-<tr><td>Types</td><td>Claude Code's built-in types by name (Explore, Plan, General, Guide, Status line). Your own and plugin agents count as Custom; their names are never sent.</td></tr>
+<tr><td>Types</td><td>Claude Code's built-in types by name, made readable (Explore (research), Plan, General, Claude Code guide, Status line setup). Your own and plugin agents count as Custom, unless you approve an agent's exact name in Settings › Claude Code: only then does the helper pass that name on. Approved names stay on this Mac; an account upload counts them as Custom.</td></tr>
 <tr><td>Finished</td><td>Subagents that reported stopping. Background subagents can finish after the task ends.</td></tr>
-<tr><td>Running</td><td>No stop seen yet, and the task started under six hours ago.</td></tr>
+<tr><td>Running</td><td>No stop seen yet, and the subagent started under six hours ago. “Running now” lists every such subagent from any task, with the task that started it; after 10 quiet minutes in its session one reads “Last seen”.</td></tr>
 <tr><td>Used agents</td><td>Share of the last 30 days' tasks that started at least one subagent.</td></tr>
 <tr><td>Agents per task</td><td>All subagents in 30 days ÷ all tasks in 30 days, tasks without subagents included.</td></tr>
 </tbody></table></div>
@@ -563,15 +592,17 @@ reading is time Clepso was not yet watching.</p>
 </tbody></table></div>
 
 <h2 id="calendar">Activity calendar</h2>
-<p>Each square is a day. Shading is by messages that day, in quarters of your active days: the quietest quarter is the
-faintest green, the busiest quarter the brightest. A day with no messages is dark; a day before your first session or after
-today is an outline marked “no data”. All time shows one calendar year (January to December) with a year switcher;
-30 days shows a month calendar; 7 days shows a column per day.</p>
+<p>Each square is a day. Its level is set by messages that day, in quarters of your active days, and drawn as pixel density
+rather than shade: the quietest quarter lights a few pixels, then a checkerboard, then solid with a few holes, and the busiest
+quarter is solid. The pattern says the level without relying on colour. A day with no messages is the plain square; a day before
+your first session or after today is an outline marked “no data”. All time shows one calendar year (January to December) with a
+year switcher that goes back to 2025; 30 days shows a month calendar, each day's date and message count on the plain square with
+its level as a pixel band below them; 7 days shows a column per day.</p>
 {sources("Sources/ClepsoApp (StatsCalendar, StatsSummary)")}
 
 <h2 id="charts">Charts</h2>
 <p>Tokens per day are stacked by model on a real date axis: days with nothing stay on the axis. Past 120 days the bars become
-weeks. The scale's top is the first round number at or above the tallest bar whose quarters are also round (for example
+weeks. Every bar chart is drawn as pixel columns: whole-pixel widths, heights in whole pixels from the baseline, stepped top corners. The scale's top is the first round number at or above the tallest bar whose quarters are also round (for example
 8M for a 6.5M peak). Models differ by colour and fill pattern, never colour alone. Point at a bar for its numbers.</p>
 """)
 
@@ -667,7 +698,7 @@ docs_page("privacy/", "Privacy", "What Clepso reads, what it keeps on your Mac, 
 <h2 id="mac">On your Mac</h2>
 <p>Clepso reads Claude Code's status line (limits, model, context, session cost estimate, durations, lines changed), and, only if you turn them
 on, Claude Code's statistics file, four background hooks that count subagents per task, and Codex's session files (only the
-limit and plan lines; prompts and replies in them are skipped unread). A helper drops everything else (prompts, replies,
+token count and model lines: limits, plan and tokens per day; prompts and replies in them are skipped unread). A helper drops everything else (prompts, replies,
 file paths, project names) before anything reaches the app. Readings stay in a local database for 90 days (sessions and tasks 30).
 Delete all removes everything Clepso stored and restores Claude Code's settings.</p>
 
@@ -716,9 +747,10 @@ GROUPS = [
         "details-stats-overview": ("Overview, all time", "A January–December activity calendar with a year switcher, tiles, hours and tokens by kind."),
         "details-stats-overview-30": ("Overview, 30 days", "A month calendar with message counts beside tokens per day."),
         "details-stats-overview-7": ("Overview, 7 days", "A column per day: messages, sessions and tokens."),
-        "details-stats-models": ("Models, chart", "Tokens per week stacked by model on a real date axis."),
-        "details-stats-arena": ("Models, arena", "A pixel character per model: level from output, specialty, tokens by kind."),
-        "details-stats-arena-tall": ("Models, how levels work", "The level ladder with each model placed on it, and what each kind of token means."),
+        "details-stats-models": ("Models, chart", "The roster beside tokens per week stacked by model, drawn as pixel columns on a real date axis."),
+        "details-stats-arena": ("Models, arena", "A ranked roster; the chosen model's dossier: its pixel character, tokens by kind, level bar, specialty and activity."),
+        "details-stats-arena-light": ("Models, light mode", "The same page in Phosphor light."),
+        "details-stats-arena-tall": ("Models, how levels work", "The level track with each model standing on its level, the next one marked, and how to level up."),
         "details-card": ("Card", "The player card: name, first session, plan, milestone stamps, output total, named level; copy, save or share."),
     }),
     ("Setup and safety", {
@@ -910,7 +942,7 @@ fast you are going, from what those agents report on your own Mac. These pages d
 <p>The menu bar panel and the arena, from the running app with demo data. <a href="/screens/">All screens →</a></p></div>
 <div class="halftone rv" style="display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));align-items:start">
 {f'<figure style="margin:0"><img src="/screens/img/{hero_shot}.png" alt="Menu bar panel: both limits with state, reset and pace estimate, and the current session" loading="lazy" style="width:100%;display:block"></figure>' if hero_shot else ""}
-{f'<figure style="margin:0"><img src="/screens/img/{home_shot}.png" alt="Stats › Models arena: a pixel character per model with level and tokens by kind" loading="lazy" style="width:100%;display:block;border:1px solid var(--p-line)"></figure>' if home_shot else ""}
+{f'<figure style="margin:0"><img src="/screens/img/{home_shot}.png" alt="Stats › Models arena: a ranked roster of models and the chosen model’s dossier with its level and tokens by kind" loading="lazy" style="width:100%;display:block;border:1px solid var(--p-line)"></figure>' if home_shot else ""}
 </div></section>
 
 <section class="section"><div class="section-head rv"><div><span class="idx">04 / TRY THE RULES</span><h2 id="try">Drag it past 80%</h2></div>
