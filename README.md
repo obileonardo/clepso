@@ -385,8 +385,13 @@ path inside it must stay under the 104-byte Unix limit, otherwise the panel repo
 <details>
 <summary><b>More on debug runs, and the screenshot probe</b></summary>
 
-With either argument set, sign-in state is kept in memory instead of the Keychain, so a debug run can never upload
-to, or sign out of, a real account. `-ClepsoHome` on its own stands in for your whole home folder: the data folder is
+A debug build has the same bundle identifier as an installed Clepso, so macOS treats it as the same app. With either
+argument (or `-ClepsoProbeOutput`) set, the run is isolated from everything macOS keeps per app: sign-in state is kept
+in memory instead of the Keychain (it can never upload to, or sign out of, a real account), the login item and the
+notification centre are stand-ins (permission reads as allowed; nothing is shown, scheduled or cancelled), Delete
+everything leaves the Keychain alone, a sign-in link it did not ask for is ignored, and no window size or open window
+is saved. With `-ClepsoDataDirectory` alone the run reads your real `~/.claude` but never rewrites Clepso's files there.
+The probe refuses to start without `-ClepsoHome` or `-ClepsoDataDirectory`. `-ClepsoHome` on its own stands in for your whole home folder: the data folder is
 then `<home>/Library/Application Support/Clepso`, and an old `<home>/Library/Application Support/Pulse` and
 `<home>/.claude/pulse` there are moved the way a real upgrade from a build named Pulse moves them.
 

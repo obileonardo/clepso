@@ -12,8 +12,15 @@ struct ShimHarness {
             let candidate = bundle.bundleURL.deletingLastPathComponent().appendingPathComponent("clepso-statusline")
             if FileManager.default.isExecutableFile(atPath: candidate.path) { return candidate }
         }
+        // Swift Testing runs without the .xctest bundle in `allBundles`: take the helper built in this test run's
+        // configuration, so `make perf` (release) times the release helper, not a stale debug one.
+        #if DEBUG
+        let configuration = "debug"
+        #else
+        let configuration = "release"
+        #endif
         return URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().appendingPathComponent(".build/debug/clepso-statusline")
+            .deletingLastPathComponent().appendingPathComponent(".build/\(configuration)/clepso-statusline")
     }()
 
     /// A short directory name keeps the socket path under the 104-byte `sun_path` limit.

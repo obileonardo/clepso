@@ -2,7 +2,6 @@
 import AppKit
 import enum Domain.Product
 import OSLog
-import ServiceManagement
 import SwiftUI
 
 /// Debug probe only: `-ClepsoProbeReduceMotion YES` runs every window as if System Settings › Accessibility › Display ›
@@ -65,7 +64,7 @@ enum PopoverProbe {
         try? await Task.sleep(for: .seconds(1))
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
         recorder.start(button)
-        recorder.log("login item: SMAppService.mainApp.status=\(SMAppService.mainApp.status.rawValue) model.loginItemEnabled=\(model.loginItemEnabled)")
+        recorder.log("login item (this run's stand-in, never the Mac's): \(model.loginItemEnabled)")
         recorder.log("keyboard navigation (the Mac's setting): \(NSApp.isFullKeyboardAccessEnabled) · reduce motion override: \(ProbeOverrides.reduceMotion)")
 
         // The driver clicks; wait for it (at most twenty minutes: idle runs wait between clicks).

@@ -47,7 +47,7 @@ extension AppModel {
         agentNameAllowlist.set(names)
         try? await store?.setPreference(Pref.approvedAgentNames, names, now: environment.clock.now())
         let installer = Self.installer(environment, forwardCost: forwardCost, approvedAgentTypes: names)
-        if installer.isInstalled { try? installer.repair() }
+        if environment.rewritesHome, installer.isInstalled { try? installer.repair() }
     }
 
     /// "Find my agents": the `name:` of each agent file in `~/.claude/agents`, read only when the user asks, names only

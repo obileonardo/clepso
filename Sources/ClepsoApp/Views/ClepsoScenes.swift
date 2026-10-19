@@ -65,6 +65,7 @@ struct ThemedRoot: ViewModifier {
             .modifier(Scheme(forced: model.appearance.colorScheme))
             .preferredColorScheme(model.appearance.colorScheme)
             .modifier(ReduceMotionRoot(forced: Self.forceReduceMotion))
+            .background { if model.environment.isolated { IsolatedWindowHook() } }
     }
 
     #if DEBUG
@@ -124,6 +125,28 @@ struct MenuBarLabel: View {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: ClepsoScenes.onboardingID)
             }
+        }
+    }
+}
+
+/// An isolated debug run's windows (`AppEnvironment.isolated`) keep no saved frame and are not reopened at the next
+/// launch: both live in the installed app's defaults and saved state (same bundle identifier), where a probe's window
+/// sizes would replace the user's.
+struct IsolatedWindowHook: NSViewRepresentable {
+    func makeNSView(context: Context) -> HookView { HookView() }
+    func updateNSView(_ view: HookView, context: Context) {}
+
+    final class HookView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            Self.detach(window)
+            DispatchQueue.main.async { Self.detach(window) }      // again once SwiftUI has named the scene's frame
+        }
+
+        static func detach(_ window: NSWindow) {
+            if !window.frameAutosaveName.isEmpty { window.setFrameAutosaveName("") }
+            window.isRestorable = false
         }
     }
 }
