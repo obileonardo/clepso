@@ -82,7 +82,7 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="design/screens/details-home.png">
     <source media="(prefers-color-scheme: light)" srcset="design/screens/details-home-light.png">
-    <img src="design/screens/details-home-light.png" width="860" alt="Dashboard Home with demo data: a greeting, what needs attention today (the 5-hour limit at 83%, a missed goal, a task running with two agents), both limits, a 30-day token chart and the current level">
+    <img src="design/screens/details-home-light.png" width="860" alt="Dashboard Home with demo data: a greeting, what needs attention today (the 5-hour limit at 83%, two missed goals, a task running with two agents), both limits, a 30-day token chart and the current level">
   </picture>
 </p>
 
@@ -103,6 +103,16 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
 <p align="center">
   <img src="design/screens/details-limits.png" width="860" alt="Dashboard Limits with demo data: the 5-hour and 7-day limits each charted over their own window, with 80% and 95% bands, a now marker and a dashed pace estimate">
 </p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="design/screens/details-stats-arena.png">
+    <source media="(prefers-color-scheme: light)" srcset="design/screens/details-stats-arena-light.png">
+    <img src="design/screens/details-stats-arena-light.png" width="860" alt="Dashboard Models with demo data: a ranked roster of three models with tokens, share and level; the chosen model's dossier with tokens by kind, a level track to the next target, specialty and an activity band; and the ladder of levels with how to level up">
+  </picture>
+</p>
+
+<p align="center"><sub>Models: a ranked roster, the chosen model's dossier and the level ladder (only output tokens count towards a level).</sub></p>
 
 Every self-drawn control has a pixel focus ring, charts and the calendar move with the arrow keys, <kbd>⌘</kbd><kbd>,</kbd>
 opens Settings, and all animation goes through one Reduce Motion switch ([`docs/A11Y_CHECKS.md`](docs/A11Y_CHECKS.md)).
