@@ -59,9 +59,38 @@ struct CalendarAxisTests {
         let theme = Theme.phosphor
         for width in stride(from: CGFloat(560), through: 1100, by: 7) {
             let cell = CalendarGridView.cell(fitting: width, weeks: 53, theme: theme)
-            let gap = max(theme.stroke(.hairline) * 2, cell * CalendarGridView.gapRatio)
+            let gap = CalendarGridView.gap(cell, theme)
             let drawn = CalendarGridView.labelColumn(theme) + gap + 53 * (cell + gap)
             #expect(drawn <= width + 0.001, "\(width): drawn \(drawn)")
+            // Pixel art: squares and gaps are whole points (whole device pixels at 1× and 2×), squares a pixel tile.
+            #expect(cell == cell.rounded() && gap == gap.rounded() && cell == PixelDensity.tile(fitting: cell, px: 2), "\(width)")
         }
+        // The Dashboard's default width (a 750-point content side): GitHub's 10-point squares with 3-point gaps.
+        #expect(CalendarGridView.cell(fitting: 750, weeks: 53, theme: theme) == 10)
+        #expect(CalendarGridView.gap(10, theme) == 3)
+    }
+
+    @Test("The year switcher goes back to 2025 (Claude Code's release) before the first session, and never past this year")
+    @MainActor func yearBounds() throws {
+        // Today comes from the injected clock, the way AppModel derives it: 19 Oct 2026, 09:00 in London.
+        let today = AppModel.dayLabel(Date(timeIntervalSince1970: 1_792_396_800), zone: TimeZone(identifier: "Europe/London")!)
+        #expect(today == "2026-10-19")
+        // The founder's case: history starts in 2026, so 2025 is reachable (shown empty) and nothing earlier.
+        let years = StatsCalendar.years(firstDay: "2026-09-22T09:00:00.000Z", today: today)
+        #expect(years == [2025, 2026])
+        #expect(StatsCalendar.shownYear(nil, of: years) == 2026, "today's year first")
+        #expect(StatsCalendar.shownYear(2025, of: years) == 2025)
+        #expect(StatsCalendar.shownYear(2024, of: years) == 2025, "held at the floor")
+        #expect(StatsCalendar.shownYear(2027, of: years) == 2026, "never after today's year")
+        #expect(StatsCalendar.years(firstDay: nil, today: today) == [2025, 2026], "no history yet")
+        #expect(StatsCalendar.years(firstDay: "2025-03-01", today: "2025-12-31") == [2025])
+        #expect(StatsCalendar.years(firstDay: "2026-01-05", today: "2028-02-01") == [2025, 2026, 2027, 2028])
+        #expect(StatsCalendar.years(firstDay: "2024-05-02", today: today) == [2024, 2025, 2026], "a history older than the floor is kept")
+        // The empty year before the history is all "no data", with no day to choose and no active days.
+        let s = try stats()
+        let grid = StatsCalendar.year(2025, stats: s, levels: [:], today: today, firstDay: "2026-09-22")
+        let cells = grid.weeks.flatMap { $0 }.compactMap { $0 }
+        #expect(cells.count == 365 && cells.allSatisfy { $0.state == .noData })
+        #expect(grid.day(from: nil) == nil)
     }
 }

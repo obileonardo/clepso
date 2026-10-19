@@ -34,11 +34,22 @@ public enum StatsCalendar {
         layout(from: StatsSummary.Day.adding(-(days - 1), to: today), through: today, stats: stats, levels: levels, today: today, firstDay: firstDay)
     }
 
-    /// Years with any possible data: the first session's year through today's.
+    /// Claude Code's first public release (a research preview, February 2025): no statistics file holds an earlier day.
+    public static let firstYear = 2025
+
+    /// The years the all-time calendar can show: from 2025, or the first session's year if that is earlier, through
+    /// today's year. Before the first session a year is drawn as "no data" (founder, 19 Oct 2026: the switcher has to go
+    /// back past the first year with data); never a year after today's, and never further back than Claude Code.
     public static func years(firstDay: String?, today: String) -> [Int] {
         let last = Int(today.prefix(4)) ?? 0
-        let first = firstDay.flatMap { Int($0.prefix(4)) } ?? last
+        let first = min(firstDay.flatMap { Int($0.prefix(4)) } ?? firstYear, firstYear)
         return Array(min(first, last)...last)
+    }
+
+    /// The year to show for a chosen one: today's year when none is chosen, otherwise the chosen year held to `years`.
+    public static func shownYear(_ chosen: Int?, of years: [Int]) -> Int {
+        guard let first = years.first, let last = years.last else { return chosen ?? 0 }
+        return min(max(chosen ?? last, first), last)
     }
 
     static func layout(from start: String, through end: String, stats: ClaudeCodeStats, levels: [String: Int],
