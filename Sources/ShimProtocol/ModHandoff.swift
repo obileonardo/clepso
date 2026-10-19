@@ -18,7 +18,7 @@ public enum ModHandoff {
     static let kinds = Set(Allowlist.rateLimitWindows)
     static let maxWindows = 8
     static let maxOtherWindows = 64.0
-    static let fields: Set<String> = ["v", "surface", "session_id", "version", "rate_limits", "other_windows", "context"]
+    static let fields: Set<String> = ["v", "surface", "session_id", "version", "model", "rate_limits", "other_windows", "context"]
 
     public enum NoFrameReason: String, Sendable, Equatable {
         case stdinTooLarge, notJSON, notObject, tooDeep, unsupportedVersion, frameOversize
@@ -53,6 +53,13 @@ public enum ModHandoff {
             scrubs += 1
         }
         if let version = top["version"] { statusLine["version"] = version }       // FrameBuilder's string rule applies
+        // `$.session.model()`, the main loop's model: the status line's `model.id` (founder decision 19 Oct 2026). Only
+        // `id` is read; FrameBuilder's `model.id` rule (64, scrubbed) applies. The mod has no display name to send.
+        if case .object(let model)? = top["model"] {
+            if let id = model["id"] { statusLine["model"] = .object(["id": id]) }
+        } else if top["model"] != nil {
+            scrubs += 1
+        }
 
         if case .array(let list)? = top["rate_limits"] {
             var windows: [String: JSONValue] = [:]

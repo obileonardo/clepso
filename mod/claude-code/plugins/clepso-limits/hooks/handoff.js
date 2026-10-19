@@ -33,11 +33,14 @@ export function surfaceOf(surfaces) {
 }
 
 // `measure` is the session.measure event (its rateLimits and context), `sessionId` the session's id, `version` the
-// Claude Code version. Returns plain data: numbers, the known kind names, the id and the version string.
-export function handoff(measure, sessionId, surfaces, version) {
+// Claude Code version, `model` the session's model id (`$.session.model()`). Returns plain data: numbers, the known
+// kind names, the id, the version string and the model id.
+export function handoff(measure, sessionId, surfaces, version, model) {
   const out = { v: HANDOFF_VERSION, surface: surfaceOf(surfaces), rate_limits: [], other_windows: 0 }
   if (typeof sessionId === 'string' && sessionId.length > 0 && sessionId.length <= 128) out.session_id = sessionId
   if (typeof version === 'string' && version.length <= 32) out.version = version
+  // The status line's `model.id` bound (64); the helper checks it again with the status line's string scrub.
+  if (typeof model === 'string' && model.length > 0 && model.length <= 64) out.model = { id: model }
 
   const limits = Array.isArray(measure?.rateLimits) ? measure.rateLimits : []
   for (const r of limits.slice(0, 8)) {

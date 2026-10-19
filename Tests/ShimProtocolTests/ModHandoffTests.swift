@@ -23,6 +23,7 @@ struct ModHandoffTests {
     /// The desktop app's second measurement on 19 Oct 2026 (evidence/mod-spike-19oct), as the mod hands it over.
     static let desktop = """
     {"v": 1, "surface": "desktop", "session_id": "00000000-0000-4000-8000-00000000d351", "version": "2.1.299",
+     "model": {"id": "claude-opus-5-5"},
      "rate_limits": [{"kind": "five_hour", "percent_used": 26, "resets_at": "2026-10-19T14:30:00.000Z"},
                      {"kind": "seven_day", "percent_used": 70, "resets_at": "2026-10-22T04:00:00.000Z"}],
      "other_windows": 0, "context": {"tokens": 93615, "window": 1000000, "percent": 9}}
@@ -42,7 +43,9 @@ struct ModHandoffTests {
         #expect(f.lookup(["context", "total_input_tokens"]) == .value(.number(93615)))
         #expect(f["source_version"] == .string("2.1.299"))
         #expect(f["session_ref"] == .string(FrameBuilder.sessionRef("00000000-0000-4000-8000-00000000d351", key: Self.key)))
-        #expect(f["model"] == nil && f["cost_usd_estimate"] == nil, "the mod sends neither")
+        #expect(f.lookup(["model", "id"]) == .value(.string("claude-opus-5-5")), "the status line's model.id")
+        #expect(f.lookup(["model", "display_name"]) == .absent, "the mod has no display name")
+        #expect(f["cost_usd_estimate"] == nil, "the mod sends no cost")
         #expect(f.lookup(["health", "original_present"]) == .value(.bool(false)))
         #expect(f.lookup(["health", "scrub_count"]) == .value(.number(0)))
         #expect(f.lookup(["health", "unknown_top_level_keys"]) == .value(.number(0)))
@@ -71,6 +74,30 @@ struct ModHandoffTests {
         // Two stated by the mod, plus the unknown kind, the duplicate and the non-object.
         #expect(f.lookup(["health", "unknown_rate_limit_windows"]) == .value(.number(5)))
         #expect(f.lookup(["health", "unknown_top_level_keys"]) == .value(.number(2)))
+    }
+
+    @Test("Model: only model.id, under the status line's rule (64, scrubbed); any other member is dropped")
+    func model() throws {
+        let named = try frame(#"{"v": 1, "surface": "desktop", "model": {"id": "claude-opus-5-5[1m]", "display_name": "canary-display", "canary": 1}}"#)
+        #expect(named["model"] == .object(["id": .string("claude-opus-5-5[1m]")]))
+        #expect(named.lookup(["health", "scrub_count"]) == .value(.number(0)))
+        #expect(!String(decoding: try FrameCodec.payload(named), as: UTF8.self).contains("canary"))
+
+        let unsafe = try frame(#"{"v": 1, "surface": "desktop", "model": {"id": "/Users/canary/model"}}"#)
+        #expect(unsafe.lookup(["model", "id"]) == .null, "a path is scrubbed, as on the status line")
+        let long = try frame(#"{"v": 1, "surface": "desktop", "model": {"id": "\#(String(repeating: "m", count: 65))"}}"#)
+        #expect(long.lookup(["model", "id"]) == .null, "longer than 64 bytes")
+        let number = try frame(#"{"v": 1, "surface": "desktop", "model": {"id": 5}}"#)
+        #expect(number.lookup(["model", "id"]) == .null)
+        for f in [unsafe, long, number] { #expect(f.lookup(["health", "scrub_count"]) == .value(.number(1))) }
+
+        let flat = try frame(#"{"v": 1, "surface": "desktop", "model": "claude-opus-5-5"}"#)
+        #expect(flat["model"] == nil, "only the object shape is read")
+        #expect(flat.lookup(["health", "scrub_count"]) == .value(.number(1)))
+        #expect(flat.lookup(["health", "unknown_top_level_keys"]) == .value(.number(0)))
+
+        let without = try frame(#"{"v": 1, "surface": "desktop"}"#)
+        #expect(without["model"] == nil, "a hand-off from the 0.3.0 mod (no model) still builds")
     }
 
     @Test("Bounds: out-of-range numbers are scrubbed by FrameBuilder's rules, a bad reset time drops only itself")
@@ -128,7 +155,7 @@ struct ModHandoffTests {
     @Test("The largest hand-off the mod can produce stays inside the 4 KiB frame")
     func size() throws {
         let windows = (0..<8).map { i in #"{"kind": "\#(["five_hour", "seven_day", "spend_limit"][i % 3])", "percent_used": 100.5, "resets_at": "2026-10-19T14:30:00.000Z"}"# }
-        let f = try frame(#"{"v": 1, "surface": "desktop", "session_id": "\#(String(repeating: "a", count: 128))", "version": "\#(String(repeating: "9", count: 32))", "rate_limits": [\#(windows.joined(separator: ","))], "other_windows": 64, "context": {"tokens": 9007199254740991, "window": 100000000, "percent": 1000}}"#)
+        let f = try frame(#"{"v": 1, "surface": "desktop", "session_id": "\#(String(repeating: "a", count: 128))", "version": "\#(String(repeating: "9", count: 32))", "model": {"id": "\#(String(repeating: "m", count: 64))"}, "rate_limits": [\#(windows.joined(separator: ","))], "other_windows": 64, "context": {"tokens": 9007199254740991, "window": 100000000, "percent": 1000}}"#)
         #expect(try FrameCodec.payload(f).count <= FrameCodec.maxPayloadBytes)
     }
 }

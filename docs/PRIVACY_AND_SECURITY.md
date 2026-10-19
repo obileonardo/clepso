@@ -184,23 +184,25 @@ Off by default, available once the status line is connected, and held back in re
 test (`ReleaseFeatures.claudeMod`; `docs/specs/mod-bridge.md`). The desktop app's Code tab and the VS Code panel run
 hooks but not the status line, so without this Clepso sees their tasks but not their limits.
 
-Clepso copies its own Claude Code mod, `clepso-limits`, from the app bundle to `~/.claude/clepso/claude-mod/` and turns
-it on in `~/.claude/settings.json` (§7). A mod runs inside Claude Code with the user's permissions and is not
+Clepso copies its own Claude Code mod, `clepso-limits`, from the app bundle to `~/.claude/clepso/claude-mod/` and
+turns it on in `~/.claude/settings.json` (§7). A mod runs inside Claude Code with the user's permissions and is not
 sandboxed, so this one is kept small and its calls are fixed: one hook, `session.measure` (after each turn), and the
-calls `$.session.surfaces`, `$.session.id`, `$.session.version` and `$.process.run` (`claude plugin validate`; `make ci`
-fails if that list changes). It never hooks prompts, tool calls or transcript rows, and reads no file, setting,
-environment variable or credential. It does nothing in sessions a terminal draws (the status line covers them) or that
-nothing draws (`claude -p`, the Agent SDK).
+calls `$.session.surfaces`, `$.session.id`, `$.session.version`, `$.session.model` and `$.process.run` (`claude plugin
+validate`; `make ci` fails if that list changes). It never hooks prompts, tool calls or transcript rows, and reads no
+file, setting, environment variable or credential. It does nothing in sessions a terminal draws (the status line
+covers them) or that nothing draws (`claude -p`, the Agent SDK).
 
-In the other sessions it starts `~/.claude/clepso/mod-handoff.sh` (which execs the helper as `clepso-statusline --mod`,
-or exits 0 if the app is gone) and hands it, on stdin, only: the session id, the Claude Code version, which app drew
-the session (`desktop`, `vscode`, `mobile`), and for each limit window its kind (`five_hour`, `seven_day`,
-`spend_limit`; any other kind is counted, never named), percent used and reset time, and the context window's size,
-fill percentage and token count. The helper is the allowlist gate here too (`Sources/ShimProtocol/ModHandoff.swift`):
-at most 64 KiB, only those fields, each translated to its status-line counterpart and then put through `FrameBuilder`
-with every bound and scrub rule above; the session id becomes its keyed hash; unknown keys are counted, never copied.
-The frame is frame v1 with two optional fields, `via: "mod"` and `surface`. Cost is not sent on this path. The helper
-always exits 0 and prints nothing. Nothing leaves the Mac.
+In the other sessions it starts `~/.claude/clepso/mod-handoff.sh` (which execs the helper as `clepso-statusline
+--mod`, or exits 0 if the app is gone) and hands it, on stdin, only: the session id, the Claude Code version, the
+session's model id (what `$.session.model()` answers, the value the status line sends as `model.id`; founder decision
+19 Oct 2026), which app drew the session (`desktop`, `vscode`, `mobile`), and for each limit window its kind
+(`five_hour`, `seven_day`, `spend_limit`; any other kind is counted, never named), percent used and reset time, and
+the context window's size, fill percentage and token count. The helper is the allowlist gate here too
+(`Sources/ShimProtocol/ModHandoff.swift`): at most 64 KiB, only those fields, each translated to its status-line
+counterpart and then put through `FrameBuilder` with every bound and scrub rule above (the model id under the
+`model.id` rule: 64 characters, scrubbed; no display name is sent, so the app shows the id); the session id becomes
+its keyed hash; unknown keys are counted, never copied. The frame is frame v1 with two optional fields, `via: "mod"`
+and `surface`. Cost is not sent on this path. The helper always exits 0 and prints nothing. Nothing leaves the Mac.
 
 Readings from the mod are stored like status-line readings, marked `{"channel":"mod"}` in the ledger's
 `metadata_json`, so the status line can hold a window it is reporting (mod-bridge.md §7). Turning it off removes both
