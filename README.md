@@ -8,12 +8,14 @@
 
 <p align="center">
   <b>Your coding-agent limits, before you hit them.</b><br>
-  A local-first macOS menu bar app that shows how much of your Claude Code and Codex usage limits you have used,<br>
-  when they reset and how fast you are going, from what those agents report on your own Mac.
+  A local-first macOS menu bar app that shows how much of your Claude Code and Codex<br>
+  usage limits you have used, when they reset and how fast you are going,<br>
+  from what those agents report on your own Mac.
 </p>
 
 <p align="center">
   <a href="https://github.com/obileonardo/clepso/actions/workflows/ci.yml"><img src="https://github.com/obileonardo/clepso/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status"></a>
+  <a href="https://github.com/obileonardo/clepso/releases"><img src="https://img.shields.io/github/v/release/obileonardo/clepso?include_prereleases&amp;sort=semver&amp;label=release&amp;color=0A7238" alt="Latest release, including pre-releases"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-MIT-0A7238" alt="Licence: MIT"></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-0A7238?logo=apple&amp;logoColor=white" alt="Platform: macOS 14 or later">
   <img src="https://img.shields.io/badge/Swift-6-F05138?logo=swift&amp;logoColor=white" alt="Swift 6">
@@ -24,6 +26,7 @@
   <a href="https://github.com/obileonardo/clepso/releases/tag/v0.1.0-alpha.1"><b>Download</b></a> ·
   <a href="https://clepso-app.vercel.app"><b>Website</b></a> ·
   <a href="#docs"><b>Docs</b></a> ·
+  <a href="https://clepso-app.vercel.app/privacy/"><b>Privacy</b></a> ·
   <a href="https://clepso-app.vercel.app/design-system/"><b>Design system</b></a> ·
   <a href="https://clepso-app.vercel.app/progress/"><b>Progress</b></a> ·
   <a href="https://clepso-app.vercel.app/changelog/"><b>Changelog</b></a>
@@ -69,6 +72,19 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
   and how many agents the last task used.
 - Codex's 5-hour and weekly limits beside Claude Code's (*opt-in*).
 
+<table>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/readme/panel-detail.png" width="400" alt="The panel's Claude Code page with demo data: the 5-hour limit at 83% with its reset, countdown and pace estimate, the 7-day limit at 21%, the current session's model, context, cost estimate, cache hits, lines changed and API time, and the connection observed just now">
+      <p><b>Claude Code</b><br><sub>Both limits with the pace estimate, the current session and how fresh the connection is.</sub></p>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/readme/panel-inspector.png" width="400" alt="The panel's Where this number comes from page with demo data for the 5-hour limit at 83%: provider field, source, measured and received times, quality, adapter and Claude Code version, when the reading counts as stale, and the last three readings">
+      <p><b>Where this number comes from</b><br><sub>The field, source, times and quality behind a reading, and the readings before it.</sub></p>
+    </td>
+  </tr>
+</table>
+
 ### Alerts before you hit a limit
 
 - Notifications at 80%, 95% and 100% of a limit, when a reset is expected, and when a limit is ready again; on once
@@ -78,14 +94,6 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
 - **Reset reminders** (off by default): a notice 5, 15, 30 or 60 minutes before a limit resets.
 
 ### The Dashboard
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="design/screens/details-home.png">
-    <source media="(prefers-color-scheme: light)" srcset="design/screens/details-home-light.png">
-    <img src="design/screens/details-home-light.png" width="860" alt="Dashboard Home with demo data: a greeting, what needs attention today (the 5-hour limit at 83%, two missed goals, a task running with two agents), both limits, a 30-day token chart and the current level">
-  </picture>
-</p>
 
 - **Home**: what needs attention now (limits, goals, a running task), both limits, the last 30 days, your level.
 - **Limits**: each limit charted over its own window, with 80/95% bands, "now", and the dashed pace estimate
@@ -101,19 +109,38 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
   notification), the Claude Code connection (connect / remove), opt-ins (statistics file, agents per task, Codex),
   export, demo data, diagnostics log, delete all.
 
-<p align="center">
-  <img src="design/screens/details-limits.png" width="860" alt="Dashboard Limits with demo data: the 5-hour and 7-day limits each charted over their own window, with 80% and 95% bands, a now marker and a dashed pace estimate">
-</p>
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="design/screens/details-stats-arena.png">
-    <source media="(prefers-color-scheme: light)" srcset="design/screens/details-stats-arena-light.png">
-    <img src="design/screens/details-stats-arena-light.png" width="860" alt="Dashboard Models with demo data: a ranked roster of three models with tokens, share and level; the chosen model's dossier with tokens by kind, a level track to the next target, specialty and an activity band; and the ladder of levels with how to level up">
-  </picture>
-</p>
-
-<p align="center"><sub>Models: a ranked roster, the chosen model's dossier and the level ladder (only output tokens count towards a level).</sub></p>
+<table>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <a href="design/screens/details-home.png"><img src="design/screens/details-home.png" width="400" alt="Dashboard Home with demo data, dark: a greeting, what needs attention today (the 5-hour limit at 83%, two missed goals, a task running with two agents), both limits, a 30-day token chart and the current level"></a>
+      <p><b>Home</b> · dark<br><sub>What needs attention today, both limits, the last 30 days and your level.</sub></p>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <a href="design/screens/details-limits.png"><img src="design/screens/details-limits.png" width="400" alt="Dashboard Limits with demo data: the 5-hour and 7-day limits each charted over their own window, with 80% and 95% bands, a now marker and a dashed pace estimate"></a>
+      <p><b>Limits</b> · dark<br><sub>Each limit over its own window: 80% and 95% bands, "now" and the dashed pace estimate.</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <a href="design/screens/details-session.png"><img src="design/screens/details-session.png" width="400" alt="Dashboard Session with demo data: context used, cost estimate, lines changed, cache hits and API time, the status line's details, and agents per task with three agents running now and the latest task"></a>
+      <p><b>Session</b> · dark<br><sub>The current session in full, with agents per task: running now, the latest task and recent ones.</sub></p>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <a href="design/screens/details-stats-arena.png"><img src="design/screens/details-stats-arena.png" width="400" alt="Dashboard Models with demo data, dark: a ranked roster of three models with tokens, share and level; the chosen model's dossier with tokens by kind, a level track to the next target, specialty and an activity band; and the ladder of levels with how to level up"></a>
+      <p><b>Models</b> · dark<br><sub>Models: a ranked roster, the chosen model's dossier and the level ladder (only output tokens count towards a level).</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <a href="design/screens/details-home-light.png"><img src="design/screens/details-home-light.png" width="400" alt="Dashboard Home with demo data in light appearance: a greeting, what needs attention today (the 5-hour limit at 83%, two missed goals, a task running with two agents), both limits, a 30-day token chart and the current level"></a>
+      <p><b>Home</b> · light<br><sub>Every theme has a light palette too, on warm paper instead of white.</sub></p>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <a href="design/screens/details-stats-arena-light.png"><img src="design/screens/details-stats-arena-light.png" width="400" alt="Dashboard Models with demo data in light appearance: a ranked roster of three models with tokens, share and level; the chosen model's dossier with tokens by kind, a level track to the next target, specialty and an activity band; and the ladder of levels with how to level up"></a>
+      <p><b>Models</b> · light<br><sub>The same roster, dossier and level ladder in light appearance.</sub></p>
+    </td>
+  </tr>
+</table>
 
 Every self-drawn control has a pixel focus ring, charts and the calendar move with the arrow keys, <kbd>⌘</kbd><kbd>,</kbd>
 opens Settings, and all animation goes through one Reduce Motion switch ([`docs/A11Y_CHECKS.md`](docs/A11Y_CHECKS.md)).
@@ -342,7 +369,7 @@ known limitations.
 
 ### Requirements for building from source
 
-| | Version | Notes |
+| Tool | Version | Notes |
 |---|---|---|
 | macOS | 14 Sonoma or later (deployment target) | Development runs on a current macOS release |
 | Xcode | 27.1 (pinned by `make ci`; `make ci-contributor` accepts any Swift 6 toolchain) | Provides the macOS SDK and `xcodebuild` |
@@ -424,10 +451,14 @@ then `<home>/Library/Application Support/Clepso`, and an old `<home>/Library/App
 **Screenshots and popover timing** (debug builds):
 
 ```sh
-python3 -I scripts/probe-home.py /tmp/clepso-home                 # synthetic ~/.claude/stats-cache.json, fixed seed
+# synthetic ~/.claude/stats-cache.json, fixed seed
+python3 -I scripts/probe-home.py /tmp/clepso-home
+
+# add -ClepsoProbeLight YES for light mode
 build/DerivedData/Build/Products/Debug/Clepso.app/Contents/MacOS/Clepso \
     -ClepsoDataDirectory /tmp/clepso-data -ClepsoHome /tmp/clepso-home \
-    -ClepsoProbeOutput /tmp/clepso-shots -ClepsoProbeDemo YES &       # add -ClepsoProbeLight YES for light mode
+    -ClepsoProbeOutput /tmp/clepso-shots -ClepsoProbeDemo YES &
+
 swift scripts/probe-popover.swift /tmp/clepso-shots 40
 ```
 
@@ -444,11 +475,11 @@ change to `settings.json` before writing anything. The headless CLI does the sam
 `--confirm`:
 
 ```sh
-swift run clepso install --shim <path to clepso-statusline>           # preview only
-swift run clepso install --shim <path to clepso-statusline> --confirm # install
+swift run clepso install --shim <path to clepso-statusline>             # preview only
+swift run clepso install --shim <path to clepso-statusline> --confirm   # install
 swift run clepso status
-swift run clepso uninstall --confirm                                 # restore your settings
-swift run clepso recover                                             # finish or roll back an interrupted install
+swift run clepso uninstall --confirm   # restore your settings
+swift run clepso recover               # finish or roll back an interrupted install
 ```
 
 ## Quality gates (`make ci`)
@@ -511,7 +542,7 @@ backend/supabase/          Accounts schema with row-level security, pgTAP tests,
 design/screens/            App screenshots (demo data, synthetic statistics)
 design/brand/              The Clepso mark, app icon, typefaces and their build pipeline
 docs/                      Architecture, data model, privacy and security, fixtures, open-source readiness
-docs/readme/               Images drawn for this README by scripts/readme-menubar-strip.py
+docs/readme/               Images drawn for this README by scripts/readme-menubar-strip.py and scripts/readme-screens.py
 scripts/                   ci.sh, bootstrap.sh, site generators, fixture oracle, probe driver and synthetic home
 site/                      Generated documentation website (static HTML)
 ```
