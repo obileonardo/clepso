@@ -91,6 +91,9 @@ public final class AppModel {
     public private(set) var goals = Goals()
     /// Agents per task: the hooks are in Claude Code's settings (read from Clepso's install record).
     public private(set) var agentsCounting = false
+    /// Custom agent names the user approved to be shown by name (`AppModel+AgentNames`).
+    public internal(set) var approvedAgentNames: [String] = []
+    let agentNameAllowlist = AgentNameAllowlist()
     public private(set) var stats: Result<ClaudeCodeStats, StatsReader.Problem>?
     /// When the statistics file was last checked for changes (each tick re-reads it only when Claude Code rewrote it).
     public private(set) var statsCheckedAt: Date?
@@ -182,6 +185,8 @@ public final class AppModel {
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
+            approvedAgentNames = (try await store.preference(Pref.approvedAgentNames, as: [String].self) ?? []).filter(HookFrame.isApprovableAgentName)
+            agentNameAllowlist.set(approvedAgentNames)
             lastSync = try await store.preference(Pref.lastSync, as: Date.self)
             appearance = try await store.preference(Pref.appearance, as: Appearance.self) ?? .dark
             themeName = Theme.named(try await store.preference(Pref.theme, as: String.self) ?? Theme.phosphor.name).name
@@ -198,7 +203,7 @@ public final class AppModel {
         if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
         // The status line's wrapper names the helper by its full path; after the app moves or is renamed (Clepso.app →
         // Clepso.app) it points at nothing and Claude Code quietly falls back. Re-point it, like the hooks above.
-        let statusLine = Self.installer(environment, forwardCost: forwardCost)
+        let statusLine = Self.installer(environment, forwardCost: forwardCost, approvedAgentTypes: approvedAgentNames)
         if statusLine.needsRepair() { try? statusLine.repair() }
         listen()
         let interval = environment.tickInterval
@@ -235,7 +240,7 @@ public final class AppModel {
         do {
             let socket = try IngestSocket(path: environment.socketPath, wallClock: { [clock = environment.clock] in clock.now() })
             socket.start()
-            let ingestor = Ingestor(connectionID: store.connectionID, sink: StoreSink(store: store) { [weak self] events in
+            let ingestor = Ingestor(connectionID: store.connectionID, sink: StoreSink(store: store, agentNames: agentNameAllowlist) { [weak self] events in
                 await self?.didIngest(events: events)
             })
             tasks.append(Task { await ingestor.consume(socket.frames) })
@@ -392,7 +397,7 @@ public final class AppModel {
     public func setForwardCost(_ on: Bool) async {
         forwardCost = on
         try? await store?.setPreference(Pref.forwardCost, on, now: environment.clock.now())
-        let installer = Self.installer(environment, forwardCost: on)
+        let installer = Self.installer(environment, forwardCost: on, approvedAgentTypes: approvedAgentNames)
         if installer.isInstalled { try? installer.repair() }
     }
 
@@ -426,7 +431,7 @@ public final class AppModel {
 
     /// The only path that writes Claude Code's settings, and only from the consent screen's `Install`.
     public func install() async -> InstallOutcome {
-        let installer = Self.installer(environment, forwardCost: forwardCost)
+        let installer = Self.installer(environment, forwardCost: forwardCost, approvedAgentTypes: approvedAgentNames)
         defer { refreshPreview() }
         do {
             let report = try installer.install()
@@ -702,9 +707,11 @@ public final class AppModel {
         }
     }
 
-    static func installer(_ environment: AppEnvironment, forwardCost: Bool) -> SettingsInstaller {
+    /// `approvedAgentTypes` nil keeps the names the helper's config already lists (callers that only read or remove).
+    static func installer(_ environment: AppEnvironment, forwardCost: Bool, approvedAgentTypes: [String]? = nil) -> SettingsInstaller {
         SettingsInstaller(paths: .init(home: environment.home), shimPath: environment.shimPath,
-                          socketPath: environment.socketPath, forwardCost: forwardCost, now: { [clock = environment.clock] in clock.now() })
+                          socketPath: environment.socketPath, forwardCost: forwardCost, approvedAgentTypes: approvedAgentTypes,
+                          now: { [clock = environment.clock] in clock.now() })
     }
 
     // MARK: - The layout from before the rename to Clepso
@@ -967,6 +974,8 @@ public final class AppModel {
         demo = false
         showPercent = true
         forwardCost = true
+        approvedAgentNames = []
+        agentNameAllowlist.set([])
         statsEnabled = false
         stats = nil
         codexEnabled = false
@@ -1011,12 +1020,14 @@ public final class AppModel {
         static let quietHours = "alerts.quietHours"
         static let reminderLead = "alerts.resetReminderLeadMinutes"
         static let theme = "general.theme"
+        static let approvedAgentNames = "claudeCode.approvedAgentNames"
     }
 }
 
 /// Ingest → store (ARCHITECTURE §4): one transaction per frame, then a snapshot refresh.
 struct StoreSink: IngestSink {
     let store: Store
+    var agentNames = AgentNameAllowlist()
     let didIngest: @Sendable ([EngineEvent]) async -> Void
 
     func ingest(_ batch: IngestBatch) async {
@@ -1033,7 +1044,8 @@ struct StoreSink: IngestSink {
         case .subagentStopped: .subagentStopped
         case .stopped: .stopped
         }
-        guard (try? await store.record(.init(kind: kind, sessionRef: hook.sessionRef, agentRef: hook.agentRef, agentType: hook.agentType, at: at))) != nil
+        let type = hook.agentType.map(agentNames.filter)
+        guard (try? await store.record(.init(kind: kind, sessionRef: hook.sessionRef, agentRef: hook.agentRef, agentType: type, at: at))) != nil
         else { return }
         await didIngest([])
     }

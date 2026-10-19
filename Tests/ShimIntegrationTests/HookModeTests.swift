@@ -68,6 +68,46 @@ struct HookModeTests {
         #expect(HookFrame.decode(try FrameCodec.decode(wire))?.agentType == "custom")
     }
 
+    /// One SubagentStart through the real helper with `approved` in its config; the wire bytes and the decoded type.
+    func sendAgent(_ agentType: String, approved: Any?) throws -> (wire: String, type: String?) {
+        let harness = try ShimHarness(); defer { harness.cleanUp() }
+        try harness.writeConfig(originalCommand: nil, approvedAgentTypes: approved)
+        let agent = try FakeAgent(path: harness.socketPath, mode: .readAll); defer { agent.stop() }
+        let result = try harness.run(stdin: Self.event("SubagentStart", agentType: agentType), arguments: ["--hook"])
+        #expect(result.status == 0 && result.stdout.isEmpty)
+        for _ in 0..<50 where agent.frames.isEmpty { Thread.sleep(forTimeInterval: 0.02) }
+        let wire = try #require(agent.frames.first)
+        return (String(decoding: wire, as: UTF8.self), HookFrame.decode(try FrameCodec.decode(wire))?.agentType)
+    }
+
+    @Test("An approved custom agent arrives by its exact name; an unapproved one, or another case, still arrives as \"custom\"")
+    func approvedName() throws {
+        let approved = ["code-reviewer", "db-helper"]
+        let ok = try sendAgent("code-reviewer", approved: approved)
+        #expect(ok.type == "code-reviewer" && ok.wire.contains("\"code-reviewer\""))
+        for blocked in ["canary-db-migrator", "Code-Reviewer"] {
+            let sent = try sendAgent(blocked, approved: approved)
+            #expect(sent.type == "custom")
+            #expect(!sent.wire.lowercased().contains("migrator") && !sent.wire.contains("Code-Reviewer"), "\(blocked) reached the socket")
+            for marker in Self.markers { #expect(!sent.wire.lowercased().contains(marker)) }
+        }
+    }
+
+    @Test("A malformed approved list approves nothing and breaks nothing: the frame is still sent, typed \"custom\"")
+    func malformedApprovedList() throws {
+        for value: Any in ["code-reviewer", 42, ["code-reviewer": true], [1, 2], NSNull()] {
+            #expect(try sendAgent("code-reviewer", approved: value).type == "custom", "\(value)")
+        }
+        // The status line reads the same config: a malformed list must not stop it running the user's command or sending.
+        let harness = try ShimHarness(); defer { harness.cleanUp() }
+        try harness.writeConfig(originalCommand: "printf 'still here'", approvedAgentTypes: ["oops": 1])
+        let agent = try FakeAgent(path: harness.socketPath, mode: .readAll); defer { agent.stop() }
+        let result = try harness.run(stdin: f08Stdin)
+        #expect(result.text == "still here" && result.status == 0)
+        for _ in 0..<50 where agent.frames.isEmpty { Thread.sleep(forTimeInterval: 0.02) }
+        #expect(!agent.frames.isEmpty, "the status-line frame was still sent")
+    }
+
     @Test("No app, no config, garbage or a 5 MB prompt: still exit 0, nothing printed")
     func neverFails() throws {
         let harness = try ShimHarness(); defer { harness.cleanUp() }

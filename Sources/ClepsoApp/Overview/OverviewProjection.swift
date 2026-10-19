@@ -118,8 +118,18 @@ public enum OverviewProjection {
     /// minutes after Claude had already stopped.
     static let internalAgentType = "unknown"
 
+    /// A task's types in display order: the built-in types, then custom agents the user approved by name (A to Z), then
+    /// Custom. Claude Code's internal agents (`internalAgentType`) are left out.
+    static func orderedAgentTypes(_ types: some Sequence<String>) -> [String] {
+        let present = Set(types)
+        let builtIn = agentTypeOrder.dropLast().filter(present.contains)
+        let approved = present.subtracting(agentTypeOrder).subtracting([internalAgentType]).sorted()
+        return builtIn + approved + agentTypeOrder.suffix(1).filter(present.contains)          // "custom", last
+    }
+
     /// Display names for the types Claude Code sends, made readable: Claude Code's own names, with what Explore is for
-    /// (its read-only research agent). A custom or plugin agent's own name never reaches Clepso (DECISIONS C8).
+    /// (its read-only research agent). A custom or plugin agent's own name reaches Clepso only when the user approved
+    /// it in Settings, letter for letter (DECISIONS C8, amended 19 Oct 2026); it is shown exactly as approved.
     static func agentTypeName(_ type: String) -> String {
         switch type {
         case "general-purpose": Copy.Agents.general
@@ -154,7 +164,7 @@ public enum OverviewProjection {
             var task = AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
                                           running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
                                           agents: agents, finished: finished,
-                                          byType: agentTypeOrder.compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
+                                          byType: orderedAgentTypes(t.byType.keys).compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
             task.stillRunning = stillRunning
             task.noStopSeen = max(0, agents - finished - stillRunning)
             return task

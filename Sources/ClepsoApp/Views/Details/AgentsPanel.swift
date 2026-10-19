@@ -125,12 +125,14 @@ struct AgentsPanel: View {
             .joined(separator: " · ")
     }
 
-    /// Counts per display name, in the order the types come in Clepso's type order.
+    /// Counts per display name, in the order the types come in Clepso's type order: built-in types, then approved custom
+    /// names (A to Z), then Custom.
     nonisolated static func typeCounts(_ names: [String]) -> [(name: String, count: Int)] {
         let order = OverviewProjection.agentTypeOrder.map(OverviewProjection.agentTypeName)
+        let custom = order.count - 1                                   // Custom is last in the type order
+        func rank(_ name: String) -> Int { order.firstIndex(of: name).map { $0 == custom ? custom + 1 : $0 } ?? custom }
         let counts = Dictionary(names.map { ($0, 1) }, uniquingKeysWith: +)
-        return counts.keys.sorted { (order.firstIndex(of: $0) ?? order.count, $0) < (order.firstIndex(of: $1) ?? order.count, $1) }
-            .map { ($0, counts[$0] ?? 0) }
+        return counts.keys.sorted { (rank($0), $0) < (rank($1), $1) }.map { ($0, counts[$0] ?? 0) }
     }
 
     /// "under 1m", "14m", "1h 5m": how long a subagent has run, to the minute (the page refreshes about once a minute).

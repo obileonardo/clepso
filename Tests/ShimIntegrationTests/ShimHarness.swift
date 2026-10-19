@@ -28,11 +28,13 @@ struct ShimHarness {
 
     func cleanUp() { try? FileManager.default.removeItem(at: home) }
 
-    func writeConfig(originalCommand: String?, forwardCost: Bool = true, withKey: Bool = true) throws {
+    /// `approvedAgentTypes`: the `approved_agent_types` value as written (any JSON, to test malformed ones); nil leaves it out.
+    func writeConfig(originalCommand: String?, forwardCost: Bool = true, withKey: Bool = true, approvedAgentTypes: Any? = nil) throws {
         let keyPath = home.appendingPathComponent(".claude/clepso/session.key").path
         if withKey { try Data(repeating: 7, count: 32).write(to: URL(fileURLWithPath: keyPath)) }
         var config: [String: Any] = ["v": 1, "socket": socketPath, "forward_cost": forwardCost, "hmac_key_file": keyPath]
         config["original_command"] = originalCommand ?? NSNull()
+        if let approvedAgentTypes { config["approved_agent_types"] = approvedAgentTypes }
         let data = try JSONSerialization.data(withJSONObject: config)
         try data.write(to: home.appendingPathComponent(".claude/clepso/config.json"))
     }

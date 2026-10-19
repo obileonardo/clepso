@@ -21,12 +21,26 @@ public enum StatusLineShim {
         let originalCommand: String?
         let forwardCost: Bool?
         let hmacKeyFile: String?
+        /// Custom agent names the user approved in Settings (hook mode only). A missing or malformed list is empty, never
+        /// a reason to drop the whole config: the status line must keep working whatever this field holds.
+        let approvedAgentTypes: [String]
 
         enum CodingKeys: String, CodingKey {
             case v, socket
             case originalCommand = "original_command"
             case forwardCost = "forward_cost"
             case hmacKeyFile = "hmac_key_file"
+            case approvedAgentTypes = "approved_agent_types"
+        }
+
+        init(from decoder: any Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            v = try c.decode(Int.self, forKey: .v)
+            socket = try c.decode(String.self, forKey: .socket)
+            originalCommand = try c.decodeIfPresent(String.self, forKey: .originalCommand)
+            forwardCost = try c.decodeIfPresent(Bool.self, forKey: .forwardCost)
+            hmacKeyFile = try c.decodeIfPresent(String.self, forKey: .hmacKeyFile)
+            approvedAgentTypes = (try? c.decodeIfPresent([String].self, forKey: .approvedAgentTypes)) ?? []
         }
     }
 
@@ -80,8 +94,9 @@ public enum StatusLineShim {
         if truncated { drainStdin() }
         guard !truncated, let config = environment["HOME"].flatMap({ loadConfig(home: $0) }) else { return 0 }
         let key = config.hmacKeyFile.flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
+        let approved = Set(config.approvedAgentTypes.prefix(HookFrame.maxApprovedAgentNames))
         if case .frame(let frame) = HookFrame.build(stdin: stdin, now: wallClock(environment), shimVersion: version,
-                                                    hmacKey: key?.count == 32 ? key : nil),
+                                                    hmacKey: key?.count == 32 ? key : nil, approvedAgentTypes: approved),
            let wire = try? FrameCodec.encode(frame) {
             _ = send(wire, socketPath: config.socket, t0: now(), scale: budgetScale(environment))   // budget starts once parsed
         }

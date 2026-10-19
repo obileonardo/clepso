@@ -22,6 +22,29 @@ extension Store {
 
     static let agentTypes: Set<String> = ["general-purpose", "Explore", "Plan", "statusline-setup", "claude-code-guide", "custom"]
 
+    /// A type the store keeps: a built-in type, "custom", or a name of a Claude Code agent name's shape (an approved
+    /// custom agent; the helper sends no other). Mirrors `HookFrame.isApprovableAgentName`, which Storage doesn't
+    /// depend on; the `agent_runs` CHECK enforces the same shape.
+    static func storableAgentType(_ type: String) -> Bool {
+        if agentTypes.contains(type) { return true }
+        let bytes = type.utf8, lowered = type.lowercased()
+        return (1...40).contains(bytes.count) && lowered != "custom" && lowered != "unknown" && bytes.allSatisfy { byte in
+            (UInt8(ascii: "a")...UInt8(ascii: "z")).contains(byte) || (UInt8(ascii: "A")...UInt8(ascii: "Z")).contains(byte)
+                || (UInt8(ascii: "0")...UInt8(ascii: "9")).contains(byte) || byte == UInt8(ascii: "_") || byte == UInt8(ascii: "-")
+        }
+    }
+
+    /// The user took a name off the approved list: its runs become "custom", so the name is no longer kept anywhere.
+    /// Returns the number of runs changed. Built-in types and Clepso's own buckets are never touched.
+    @discardableResult
+    public func forgetAgentName(_ name: String) throws -> Int {
+        guard !Self.agentTypes.contains(name), name != "unknown" else { return 0 }
+        return try writer.write { db in
+            try db.execute(sql: "UPDATE agent_runs SET agent_type = 'custom' WHERE agent_type = ?", arguments: [name])
+            return db.changesCount
+        }
+    }
+
     /// A prompt opens a task (closing the session's previous one if Claude never reported stopping); Claude stopping
     /// closes it. A subagent belongs to the session's latest task that started before it; with none, a task is opened
     /// for it (`fromPrompt` false: Clepso missed the prompt, for instance because the hooks were added mid-task).
@@ -41,7 +64,7 @@ extension Store {
                     """, arguments: [at, event.sessionRef, at])
             case .subagentStarted, .subagentStopped:
                 guard let agent = event.agentRef else { return }
-                let type = event.agentType.flatMap { Self.agentTypes.contains($0) ? $0 : nil } ?? "unknown"
+                let type = event.agentType.flatMap { Self.storableAgentType($0) ? $0 : nil } ?? "unknown"
                 if let existing = try String.fetchOne(db, sql: """
                     SELECT r.task_id FROM agent_runs r JOIN agent_tasks t ON t.id = r.task_id WHERE t.session_ref = ? AND r.agent_ref = ?
                     """, arguments: [event.sessionRef, agent]) {
@@ -76,7 +99,7 @@ extension Store {
         public let startedAt: Date
         public let endedAt: Date?
         public let fromPrompt: Bool
-        /// Subagents by type, built-in names or "custom"/"unknown".
+        /// Subagents by type: built-in names, approved custom names, or "custom"/"unknown".
         public let byType: [String: Int]
         public let finished: Int
         public var agents: Int { byType.values.reduce(0, +) }

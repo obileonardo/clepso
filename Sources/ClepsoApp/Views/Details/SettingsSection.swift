@@ -16,6 +16,9 @@ struct SettingsSection: View {
     @State private var exportMessage: String?
     @State private var deleteMessage: String?
     @State private var showLog = false
+    @State private var newAgentName = ""
+    @State private var agentNameMessage: String?
+    @State private var agentSuggestions: [String]?
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
     @Environment(\.openWindow) private var openWindow
@@ -103,6 +106,10 @@ struct SettingsSection: View {
                     }
                     .disabled(!model.preview.installed && !model.agentsCounting)
                 }
+                row("person.crop.circle.badge.checkmark", Copy.Agents.namesTitle, Copy.Agents.namesSub) {
+                    Button(Copy.Agents.findNames) { agentSuggestions = model.suggestedAgentNames() }.buttonStyle(PixelButtonStyle())
+                }
+                agentNames
                 if let message { note(message) }
             }
             group(Copy.SettingsPage.codex) {
@@ -161,6 +168,72 @@ struct SettingsSection: View {
             }
         } message: {
             Text(Copy.Explainer.restoreExact + " " + Copy.Explainer.restoreSurgical)
+        }
+    }
+
+    // MARK: - Approved agent names
+
+    /// The approved names, one per line with its Remove button, the field to add one, and suggestions once asked for.
+    var agentNames: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            if model.approvedAgentNames.isEmpty {
+                Text(Copy.Agents.noNames).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+            ForEach(model.approvedAgentNames, id: \.self) { name in
+                HStack(spacing: theme.spacing(.standard)) {
+                    Text(name).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme)).textSelection(.enabled)
+                    Spacer(minLength: theme.spacing(.standard))
+                    Button(Copy.Agents.removeNameShort) { Task { await model.removeApprovedAgentName(name) } }
+                        .buttonStyle(PixelButtonStyle()).accessibilityLabel(Copy.Agents.removeName(name))
+                }
+            }
+            HStack(spacing: theme.spacing(.standard)) {
+                TextField(Copy.Agents.namePlaceholder, text: $newAgentName)
+                    .textFieldStyle(.plain).font(theme.font(.label)).padding(theme.spacing(.standard))
+                    .background(theme.color(.surfaceMuted, scheme))
+                    .autocorrectionDisabled()
+                    .accessibilityLabel(Copy.Agents.namesTitle)
+                    .onSubmit { addAgentName(newAgentName) }
+                Button(Copy.Agents.addName) { addAgentName(newAgentName) }
+                    .buttonStyle(PixelButtonStyle(prominent: true)).fixedSize()
+                    .disabled(newAgentName.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            if let agentNameMessage { note(agentNameMessage) }
+            if let suggestions = agentSuggestions {
+                Text(suggestions.isEmpty ? Copy.Agents.noSuggestions : Copy.Agents.suggestionsNote)
+                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(suggestions, id: \.self) { name in
+                    HStack(spacing: theme.spacing(.standard)) {
+                        Text(name).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        Spacer(minLength: theme.spacing(.standard))
+                        Button(Copy.Agents.addName) { addAgentName(name) }
+                            .buttonStyle(PixelButtonStyle()).accessibilityLabel(Copy.Agents.addSuggested(name))
+                    }
+                }
+            }
+        }
+        .padding(.leading, theme.spacing(.spacious) * 2.8)            // under the row's text, past its icon
+        .padding(.bottom, theme.spacing(.standard) + theme.spacing(.compact))
+        #if DEBUG
+        .onAppear { if ProbeOverrides.agentSuggestions { agentSuggestions = model.suggestedAgentNames() } }
+        #endif
+    }
+
+    func addAgentName(_ name: String) {
+        Task {
+            let outcome = await model.approveAgentName(name)
+            agentNameMessage = switch outcome {
+            case .added: nil
+            case .invalid: Copy.Agents.nameInvalid
+            case .builtIn: Copy.Agents.nameBuiltIn
+            case .duplicate: Copy.Agents.nameDuplicate
+            case .full: Copy.Agents.nameFull
+            }
+            if outcome == .added {
+                if name == newAgentName { newAgentName = "" }
+                agentSuggestions = agentSuggestions?.filter { $0 != name }
+            }
         }
     }
 

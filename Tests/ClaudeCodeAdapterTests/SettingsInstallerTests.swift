@@ -315,6 +315,34 @@ struct RecoveryTests {
         let wrapper = String(decoding: try #require(box.bytes(box.claude.appendingPathComponent("clepso/statusline.sh"))), as: UTF8.self)
         #expect(wrapper.contains("CLEPSO_SHIM='/Users/Shared/Clepso.app/Contents/Helpers/clepso-statusline'"))
     }
+
+    @Test("Approved agent names: written cleaned (agent-name shapes only, once each, sorted), kept by callers that don't pass them, repaired when they differ")
+    func approvedAgentNamesInConfig() throws {
+        let box = try Sandbox(settingsFixture: "plain.json"); defer { box.cleanUp() }
+        func installer(_ names: [String]?) -> SettingsInstaller {
+            SettingsInstaller(paths: .init(home: box.home), shimPath: Sandbox.shim, socketPath: box.home.appendingPathComponent("a.sock").path,
+                              forwardCost: true, approvedAgentTypes: names, now: { Sandbox.fixedNow }, beforeSettingsWrite: nil)
+        }
+        func written() throws -> [String]? {
+            let bytes = try #require(box.bytes(box.claude.appendingPathComponent("clepso/config.json")))
+            let config = try #require(jsonObject(bytes))
+            return config["approved_agent_types"] as? [String]
+        }
+        _ = try installer(["db-helper", "code-reviewer", "two words", "/Users/x", "Explore", "custom", "code-reviewer"]).install()
+        #expect(try written() == ["code-reviewer", "db-helper"])
+
+        #expect(!installer(nil).needsRepair(), "nil means: leave the list alone")
+        try installer(nil).repair()
+        #expect(try written() == ["code-reviewer", "db-helper"], "a repair that isn't about names keeps them")
+
+        let changed = installer(["code-reviewer"])
+        #expect(changed.needsRepair())
+        try changed.repair()
+        #expect(try written() == ["code-reviewer"] && !changed.needsRepair())
+        try installer([]).repair()
+        #expect(try written() == [])
+        #expect(SettingsInstaller.cleanAgentNames((0..<80).map { "agent-\($0)" }).count == 50, "at most 50")
+    }
 }
 
 @Suite("Wrapper script behaviour", .serialized)
