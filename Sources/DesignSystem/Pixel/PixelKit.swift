@@ -558,9 +558,13 @@ public struct PixelCheckboxStyle: ToggleStyle {
 
 /// 1.15: the quiet tier under `PixelButtonStyle`: no frame, small capitals in the secondary colour, brightening on hover
 /// and press. For actions that should be reachable but never compete (Quit, Exit demo, Show more).
-public struct PixelQuietButtonStyle: ButtonStyle {
+public struct PixelQuietButtonStyle: PrimitiveButtonStyle {
     public init() {}
-    public func makeBody(configuration: Configuration) -> some View { QuietBody(configuration: configuration) }
+    public func makeBody(configuration: Configuration) -> some View { PixelFocusTracked(configuration: configuration, face: Face()) }
+
+    struct Face: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View { QuietBody(configuration: configuration) }
+    }
 
     struct QuietBody: View {
         let configuration: ButtonStyleConfiguration
@@ -568,7 +572,7 @@ public struct PixelQuietButtonStyle: ButtonStyle {
         @Environment(\.theme) private var theme
         @Environment(\.colorScheme) private var scheme
         @Environment(\.isEnabled) private var enabled
-        @Environment(\.isFocused) private var focused
+        @Environment(\.pixelButtonFocused) private var focused
 
         var body: some View {
             let px = theme.stroke(.hairline) * 2

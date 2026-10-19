@@ -237,17 +237,46 @@ extension View {
     public func pixelFocusRing(_ focused: Bool) -> some View { modifier(PixelFocusRing(focused: focused)) }
 }
 
+extension EnvironmentValues {
+    /// Item 9: whether the pixel-styled button around this view holds keyboard focus, set by `PixelFocusTracked`.
+    /// The button styles read this, not `isFocused`: on macOS `isFocused` stays false inside a `ButtonStyle` body even
+    /// while the button holds focus (the focus-gallery probe showed it: focused, yet no ring drawn).
+    @Entry public var pixelButtonFocused: Bool = false
+}
+
+/// Item 9: how every pixel button style builds its button: a real `Button` from the primitive configuration (so
+/// VoiceOver's press, Space, and the caller's keyboard shortcut and role all stay the system's), wearing `face`, with
+/// its keyboard focus tracked through `@FocusState` and handed to the face as `pixelButtonFocused`. The system's
+/// rounded ring is turned off here, and only here, because the face draws the pixel ring from that signal.
+struct PixelFocusTracked<Face: ButtonStyle>: View {
+    let configuration: PrimitiveButtonStyleConfiguration
+    let face: Face
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(configuration)
+            .buttonStyle(face)
+            .focused($focused)
+            .focusEffectDisabled()                       // the pixel ring instead of the system's rounded one
+            .environment(\.pixelButtonFocused, focused)
+    }
+}
+
 /// Item 9: the style for a button whose label draws itself (sidebar rows, limit cards, chips, swatches, segments):
 /// no chrome of its own, a dimmed label while pressed (callers dim a disabled label themselves, as with `.plain`),
 /// and the pixel focus ring. Use it instead of
 /// `.plain`, which draws no focus indicator of the app's own (`scripts/ci.sh` checks).
-public struct PixelPlainButtonStyle: ButtonStyle {
+public struct PixelPlainButtonStyle: PrimitiveButtonStyle {
     public init() {}
-    public func makeBody(configuration: Configuration) -> some View { PlainBody(configuration: configuration) }
+    public func makeBody(configuration: Configuration) -> some View { PixelFocusTracked(configuration: configuration, face: Face()) }
+
+    struct Face: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View { PlainBody(configuration: configuration) }
+    }
 
     struct PlainBody: View {
         let configuration: ButtonStyleConfiguration
-        @Environment(\.isFocused) private var focused
+        @Environment(\.pixelButtonFocused) private var focused
         var body: some View {
             configuration.label
                 .opacity(configuration.isPressed ? 0.75 : 1)
@@ -257,7 +286,7 @@ public struct PixelPlainButtonStyle: ButtonStyle {
 }
 
 /// Bevelled pixel button: a lit top-left edge and a shaded bottom-right edge that swap when pressed.
-public struct PixelButtonStyle: ButtonStyle {
+public struct PixelButtonStyle: PrimitiveButtonStyle {
     public var prominent: Bool
     /// 1.15: an irreversible action (Delete All): the blocked colour as the face, so it never looks like the safe choice.
     public var destructive: Bool
@@ -267,7 +296,15 @@ public struct PixelButtonStyle: ButtonStyle {
     }
 
     public func makeBody(configuration: Configuration) -> some View {
-        PixelButtonBody(configuration: configuration, prominent: prominent, destructive: destructive)
+        PixelFocusTracked(configuration: configuration, face: Face(prominent: prominent, destructive: destructive))
+    }
+
+    struct Face: ButtonStyle {
+        let prominent: Bool
+        let destructive: Bool
+        func makeBody(configuration: Configuration) -> some View {
+            PixelButtonBody(configuration: configuration, prominent: prominent, destructive: destructive)
+        }
     }
 
     struct PixelButtonBody: View {
@@ -277,7 +314,7 @@ public struct PixelButtonStyle: ButtonStyle {
         @Environment(\.theme) private var theme
         @Environment(\.colorScheme) private var scheme
         @Environment(\.isEnabled) private var enabled
-        @Environment(\.isFocused) private var focused
+        @Environment(\.pixelButtonFocused) private var focused
 
         var body: some View {
             let px = theme.stroke(.hairline) * 2
