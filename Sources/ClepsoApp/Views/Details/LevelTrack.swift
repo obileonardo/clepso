@@ -26,11 +26,16 @@ struct LevelTrack: View {
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
                 .padding(.bottom, -theme.spacing(.spacious))
             let metrics = Self.metrics(width: width, levels: roster.trackLength, gap: gap, decadeGap: decadeGap, minimum: minimumCell)
-            if metrics.scrolls {
-                ScrollView(.horizontal) { track(metrics.cell) }.scrollIndicators(.visible)
-            } else {
-                track(metrics.cell)
+            Group {
+                if metrics.scrolls {
+                    ScrollView(.horizontal) { track(metrics.cell) }.scrollIndicators(.visible)
+                } else {
+                    track(metrics.cell)
+                }
             }
+            // minWidth 0: a track sized for a wider window must not widen this stack, or the measure above reads the
+            // stack's width and the track never narrows (the Arena ran past the window after it was made narrower).
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             if !roster.unplaced.isEmpty {
                 Text(Copy.ModelsPage.levelUnknownList(roster.unplaced.map(\.name))).font(theme.font(.supporting))
                     .foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)

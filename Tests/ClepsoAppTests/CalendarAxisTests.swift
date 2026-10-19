@@ -1,3 +1,4 @@
+import AppKit
 import ClaudeCodeAdapter
 import DesignSystem
 import Foundation
@@ -74,7 +75,7 @@ struct CalendarAxisTests {
     @MainActor func monthBand() {
         for theme in Theme.all {
             let px = theme.stroke(.hairline) * 2
-            // Every square the month view can draw (`OverviewSection.monthCell`: two to three and a half spacious steps).
+            // The month view's usual squares (`CalendarGridView.monthLayout`: up to three and a half spacious steps).
             for limit in stride(from: theme.spacing(.spacious) * 2, through: theme.spacing(.spacious) * 3.5, by: 1) {
                 let cell = PixelDensity.tile(fitting: limit, px: px), band = CalendarGridView.monthBand(cell, theme)
                 #expect(band.rows >= 1 && band.ground == band.ground.rounded() && band.ground.truncatingRemainder(dividingBy: px) == 0, "\(theme.name) \(cell)")
@@ -84,6 +85,58 @@ struct CalendarAxisTests {
         }
         // The pixel themes' usual square (70 pt, 35 pixels): 13 rows of pattern under 44 pt of ground.
         #expect(CalendarGridView.monthBand(70, .phosphor) == (rows: 13, ground: 44))
+    }
+
+    /// The width Overview's content side gets in a window `window` points wide: the window less the sidebar and its
+    /// hairline, the pane's padding (`DetailsView`), then the page column's label and gap (`PageColumn`, `PageSection`).
+    @MainActor static func monthWidths(window: CGFloat, _ theme: Theme) -> (given: CGFloat, section: CGFloat) {
+        let pane = window - DetailsMetrics.sidebarWidth - theme.stroke(.hairline) - 2 * theme.spacing(.spacious)
+        let given = PageMetrics.content(min(PageMetrics.column(fitting: pane), pane))
+        // What `PageSection` really leaves its content: the column less the label column and the stack's spacing.
+        let section = min(PageMetrics.column(fitting: pane), pane) - PageMetrics.labelColumn - theme.spacing(.spacious) * 1.5
+        return (given, section)
+    }
+
+    @Test("30 days at the 1100 pt minimum window: seven squares and six gaps fit the content side, with two lines of figures")
+    @MainActor func monthFitsMinimumWindow() {
+        for theme in Theme.all {
+            let widths = Self.monthWidths(window: DetailsMetrics.minWidth, theme)
+            let (cell, gap) = CalendarGridView.monthLayout(fitting: widths.given, theme: theme)
+            let drawn = 7 * cell + 6 * gap
+            #expect(drawn <= widths.given && widths.given <= widths.section, "\(theme.name): drawn \(drawn) in \(widths.given) (section \(widths.section))")
+            #expect(CalendarGridView.monthBand(cell, theme).ground >= 2 * CalendarGridView.figureLine, "\(theme.name) \(cell): date and count fit")
+            #expect(gap == CalendarGridView.gap(cell, theme), "\(theme.name): GitHub's gap, not squeezed")
+        }
+        // The pixel themes at the minimum: 66 pt squares and 17 pt gaps in 569 pt (70 pt squares drew 598 and clipped SAT).
+        #expect(Self.monthWidths(window: 1100, .phosphor).given == 569)
+        #expect(CalendarGridView.monthLayout(fitting: 569, theme: .phosphor) == (cell: 66, gap: 17))
+    }
+
+    @Test("30 days at any width: never drawn wider than given; gaps close before the figures lose a line")
+    @MainActor func monthLayoutAnyWidth() {
+        for theme in Theme.all {
+            let px = theme.stroke(.hairline) * 2
+            let smallest = PixelDensity.tile(fitting: 0, px: px)
+            // The smallest square whose ground holds both lines.
+            let twoLines = stride(from: CGFloat(5), through: 99, by: 2).map { $0 * px }
+                .filter { CalendarGridView.monthBand($0, theme).ground >= 2 * CalendarGridView.figureLine }.min() ?? 0
+            for width in stride(from: CGFloat(0), through: 1400, by: 3) {
+                let (cell, gap) = CalendarGridView.monthLayout(fitting: width, theme: theme)
+                let drawn = 7 * cell + 6 * gap, ground = CalendarGridView.monthBand(cell, theme).ground
+                #expect(drawn <= width || (cell == smallest && gap == px), "\(theme.name) \(width): drawn \(drawn)")
+                #expect(cell <= PixelDensity.tile(fitting: theme.spacing(.spacious) * 3.5, px: px) && gap >= px && gap == gap.rounded(),
+                        "\(theme.name) \(width)")
+                // Whenever two lines of figures fit with one-pixel gaps, they are kept.
+                if 7 * twoLines + 6 * px <= width { #expect(ground >= 2 * CalendarGridView.figureLine, "\(theme.name) \(width): \(cell)") }
+            }
+        }
+    }
+
+    @Test("A line of the month view's figures is at least as tall as Clepso Mono at 12 pt draws it")
+    @MainActor func figureLine() throws {
+        #expect(PixelFonts.ensureRegistered())
+        let font = try #require(NSFont(name: PixelFonts.bodyMedium, size: 12))
+        #expect(CalendarGridView.figureLine >= font.ascender - font.descender, "\(font.ascender - font.descender)")
     }
 
     @Test("The year switcher goes back to 2025 (Claude Code's release) before the first session, and never past this year")

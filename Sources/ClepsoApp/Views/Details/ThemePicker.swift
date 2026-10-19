@@ -9,13 +9,26 @@ struct ThemePicker: View {
     @Environment(\.theme) private var theme
 
     var body: some View {
-        HStack(alignment: .top, spacing: theme.spacing(.standard)) {
-            ForEach(Theme.selectable, id: \.name) { candidate in
-                ThemeSwatch(candidate: candidate, selected: candidate.name == selection) { choose(candidate.name) }
+        let gap = theme.spacing(.standard)
+        // One row; where that doesn't fit (the 1100 pt minimum window), rows of three.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: gap) {
+                ForEach(Theme.selectable, id: \.name) { swatch($0) }
+            }
+            Grid(alignment: .topLeading, horizontalSpacing: gap, verticalSpacing: gap) {
+                ForEach(Array(stride(from: 0, to: Theme.selectable.count, by: 3)), id: \.self) { i in
+                    GridRow {
+                        ForEach(Theme.selectable[i..<min(i + 3, Theme.selectable.count)], id: \.name) { swatch($0) }
+                    }
+                }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Copy.SettingsPage.theme)
+    }
+
+    func swatch(_ candidate: Theme) -> some View {
+        ThemeSwatch(candidate: candidate, selected: candidate.name == selection) { choose(candidate.name) }
     }
 }
 

@@ -52,7 +52,11 @@ public struct DetailsView: View {
                 #endif
             }
             .padding(theme.spacing(.spacious))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            // minWidth 0: the pane is exactly what the window leaves it, whatever its page draws. Without it a page wider
+            // than the pane (a calendar fitted to a wider window) raised the window's content minimum and widened the
+            // pane past the window's edge, so `pageWidth` read that width and the calendar never shrank back: Overview's
+            // 30 days clipped at the 1100 pt minimum, and a dragged window stopped short of the minimum.
+            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .environment(\.pageWidth, pageWidth)
         }
         .frame(minWidth: DetailsMetrics.minWidth, minHeight: DetailsMetrics.minHeight, alignment: .topLeading)
@@ -293,6 +297,11 @@ struct WindowFitter: NSViewRepresentable {
             guard let window else { return }
             // After SwiftUI has placed the window, so this frame wins. Reopens where the user left it; the first time,
             // three quarters of the screen, centred, which the user can then make bigger or smaller.
+            #if DEBUG
+            // Probe runs size the window themselves, and must not overwrite the size the user left the Dashboard at
+            // (they share the app's defaults; a probe's restore also raced its first page's width).
+            if UserDefaults.standard.string(forKey: "ClepsoProbeOutput") != nil { return }
+            #endif
             DispatchQueue.main.async {
                 guard window.frameAutosaveName != Self.autosaveName else { return }
                 let restored = window.setFrameUsingName(Self.autosaveName)
