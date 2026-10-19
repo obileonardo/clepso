@@ -408,16 +408,17 @@ struct HourChart: View {
         VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
             if showsTitle { Text(Copy.Stats.hours).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme)) }
             Canvas { context, size in
-                let plot = CGRect(x: 0, y: 0, width: size.width, height: size.height - footer)
+                let plot = PixelColumns.plot(CGRect(x: 0, y: 0, width: size.width, height: size.height - footer))
                 let slot = plot.width / 24
                 let px = theme.stroke(.hairline) * 2
                 for h in 0..<24 {
                     let n = counts[h] ?? 0
                     let x = CGFloat(h) * slot
-                    if hover == h { context.fill(Path(CGRect(x: x, y: plot.minY, width: slot, height: plot.height)), with: .color(theme.color(.surfaceMuted, scheme))) }
-                    let height = max(px / 2, plot.height * CGFloat(n) / CGFloat(top))
-                    context.fill(Path(CGRect(x: x + slot * 0.14, y: plot.maxY - height, width: slot * 0.72, height: height)),
-                                 with: .color(theme.color(.accent, scheme).opacity(n == 0 ? 0.2 : 1)))
+                    if hover == h { context.fill(Path(PixelColumns.slot(h, of: 24, in: plot)), with: .color(theme.color(.surfaceMuted, scheme))) }
+                    // The same pixel bars as Home's last 30 days; an hour with none is a faint one-pixel stub.
+                    let bar = PixelColumns.bar(h, of: 24, in: plot, share: 0.72, px: px)
+                    PixelColumns.fill(&context, x: bar.x, width: bar.width, height: n == 0 ? px : PixelColumns.height(Double(n) / Double(top), of: plot.height, px: px),
+                                      baseline: plot.maxY, px: px, color: theme.color(.accent, scheme).opacity(n == 0 ? 0.2 : 1))
                     if h % 6 == 0 {
                         ChartLabel.draw(context, Text(String(format: "%02d", h)).font(theme.font(.micro)).foregroundColor(theme.color(.textSecondary, scheme)),
                                         centeredAt: x + slot / 2, top: plot.maxY + px * 3, width: size.width)
