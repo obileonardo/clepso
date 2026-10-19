@@ -94,9 +94,22 @@ func renderPhosphor(images: URL, now: Date, used: (Decimal?, Double, AbsenceReas
                            xRange: -48...20, yRange: 0...100, guides: [80, 95, 100], guideLabel: { $0 == 95 ? "" : "\(Int($0))%" },
                            projection: ((12, 83), (19, 100)), marker: 12, summary: "5-hour usage history, demo")
                 .frame(height: 140))),
-        ("heatmap", "PixelHeatmap", "Activity like /stats: Monday on top, four levels, Less → More", 640, AnyView(
+        ("heatmap", "PixelHeatmap", "Activity like /stats: Monday on top, four levels as pixel density, Less → More", 640, AnyView(
             PixelHeatmap(weeks: (0..<13).map { w in (0..<7).map { d in (w * 7 + d) % 11 == 0 ? 4 : (w > 8 ? (w * 3 + d) % 5 : ((w + d) % 9 == 0 ? 1 : 0)) } },
                          months: [(1, "Aug"), (5, "Sep"), (9, "Oct")], summary: "Activity heatmap, demo"))),
+        ("tiles", "PixelLevelTile", "No data (outline), levels 0–4 as pixel density, and the 30-day view's band under the figures", 420, AnyView(
+            HStack(alignment: .bottom, spacing: 14) {
+                ForEach(Array(([nil, 0, 1, 2, 3, 4] as [Int?]).enumerated()), id: \.offset) { _, level in
+                    VStack(spacing: 6) {
+                        PixelLevelTile(level: level).frame(width: 30, height: 30)
+                        Text(level.map(String.init) ?? "NONE").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, .dark))
+                    }
+                }
+                VStack(spacing: 6) {
+                    PixelLevelTile(level: 3, rows: 8).frame(width: 46, height: 46)
+                    Text("BAND").font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, .dark))
+                }
+            })),
         ("panel", "PixelPanel", "Stepped corners, outer frame, inner rule (glass in the app)", 420, AnyView(
             PixelPanel { Text("AI CAPACITY").font(theme.font(.title)).foregroundStyle(theme.color(.accent, .dark)).frame(maxWidth: .infinity, alignment: .leading) })),
         ("type", "Typography", "Clepso Pixel for figures and labels, Clepso Mono for sentences", 420, AnyView(
