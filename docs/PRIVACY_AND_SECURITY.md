@@ -121,6 +121,31 @@ checks each type against its own list again on arrival, the database CHECK allow
 counts them as `custom`, so they stay on the Mac. "Find my agents" reads `~/.claude/agents/*.md` only when the user
 clicks it, keeps only each file's frontmatter `name:`, and approves nothing by itself. Tests: the helper with approved
 and unapproved names, a malformed list, and a canary run through the real helper into the database, export and log.
+The same list applies to Codex's agent roles (sheet item 10, §4.3).
+
+**Background work as counts** (founder decision 19 Oct 2026, sheet item 9; privacy review of 19 Oct 2026). `Stop` and
+`SubagentStop` also carry `background_tasks`, Claude Code's in-flight background work for the session (Claude Code
+hooks reference, "Stop input", https://code.claude.com/docs/en/hooks): per task `id`, `type`, `status`, `description`
+(free text, up to 1,000 characters) and, by type, `command` (shell), `agent_type` (subagent), `server` and `tool`
+(monitor, MCP task) and `name` (workflow). The helper reads only `type`, `status` and a subagent's `agent_type`, maps
+each onto a closed set and sends only how many of each, as the frame's optional `background` object:
+`tasks` = {type → {status → count}} with type one of `shell subagent monitor workflow teammate cloud_session mcp_task`
+or `other` (any other label, including a future one) and status `running`, `pending` or `other`; `agents` = the
+subagents again, {agent type → {status → count}}, the type under the same rule as `agent_type` above (built-in,
+exactly approved, else `custom`; a subagent with no type is counted only under `tasks`). Counts stop at 9999 and at
+most 16 agent types are sent (the rest are added to `custom`), so the largest possible frame is 2,086 bytes of the
+4,096 allowed; if one were ever too large, it goes without `background` rather than not at all. **Never sent:** task ids, descriptions,
+commands, MCP server and tool names, workflow names, and `session_crons` (whose `prompt` is free text). A missing or
+malformed list sends no `background`, and the app keeps inferring from starts and stops. Review: the object is built
+from the allowlist (not by deleting fields); no label can carry user text, since every key is from a closed set or an
+approved name; counts reveal how much background work a session has, which the start and stop events already showed
+in part; nothing is added to the account sync. In the app, `HookFrame.decode` drops a `background` object with any
+unknown key, label or out-of-range count (the event itself is kept), each agent type is checked against the app's own
+list again, and only a stop's exact report is stored, one per session, in `agent_background` and
+`agent_background_counts` (DATA_MODEL §3.3: CHECKs on every label and count; 30 days; export; delete all). Tests:
+`HookFrameBackgroundTests` (mapping, markers in every free-text field, bounds, decode gate), `HookModeTests` (the real
+helper), `CanaryLeakTests` (markers in every background field through the real helper into the database, WAL, export
+and log), `AgentBackgroundTests` (storage, CHECKs, migration v5 with backup).
 
 ### 4.3 Codex session files (opt-in)
 
@@ -147,7 +172,9 @@ integer, or null; a value with an escape, a space or any other character is refu
 a JSON key, because quotes inside strings are escaped, so text in a prompt or reply can't pass for one. Event lines are
 searched only in their first 512 bytes, where Codex writes their type and ids. Read: the event type, turn ids with their
 parent and root turn ids, the turn's trigger, timestamps and line numbers, whether a thread is a spawned agent, and the
-agent's role (Codex's built-in role names; any other role is kept only as "custom"). Never read: prompts, replies,
+agent's role (Codex's built-in role names, or exactly a name on the approved list in Settings, which applies to Claude
+Code and Codex alike; any other role is shown only as "custom", and one of an agent name's shape is held in memory
+only as its SHA-256 digest, so approving it later needs no re-read; sheet item 10). Never read: prompts, replies,
 instructions, paths, git details, account ids, agent nicknames and agent paths. Kept, in memory only like the token
 counts: each task's times, its agents by role, how many finished and how many auto-reviews ran. They are not synced.
 

@@ -20,6 +20,10 @@ public enum Migrations {
         migrator.registerMigration("v4_agent_type_approved_names") { db in
             try db.execute(sql: SchemaV4.agentRunsRebuild)
         }
+        // Sheet item 9 (19 Oct 2026): Claude Code's in-flight background work per session, as counts (two new tables).
+        migrator.registerMigration("v5_agent_background") { db in
+            try db.execute(sql: SchemaV5.agentBackground)
+        }
         return migrator
     }
 

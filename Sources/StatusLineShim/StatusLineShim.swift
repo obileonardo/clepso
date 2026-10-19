@@ -97,10 +97,18 @@ public enum StatusLineShim {
         let approved = Set(config.approvedAgentTypes.prefix(HookFrame.maxApprovedAgentNames))
         if case .frame(let frame) = HookFrame.build(stdin: stdin, now: wallClock(environment), shimVersion: version,
                                                     hmacKey: key?.count == 32 ? key : nil, approvedAgentTypes: approved),
-           let wire = try? FrameCodec.encode(frame) {
+           let wire = encodeHook(frame) {
             _ = send(wire, socketPath: config.socket, t0: now(), scale: budgetScale(environment))   // budget starts once parsed
         }
         return 0
+    }
+
+    /// The frame's bytes. The background counts are bounded well under the frame limit; should a frame still be too
+    /// large, it goes without them, so the event itself (a task's end) is never lost.
+    static func encodeHook(_ frame: JSONValue) -> Data? {
+        if let wire = try? FrameCodec.encode(frame) { return wire }
+        guard case .object(var members) = frame, members.removeValue(forKey: "background") != nil else { return nil }
+        return try? FrameCodec.encode(.object(members))
     }
 
     /// Reads and discards whatever is left on stdin.

@@ -39,7 +39,8 @@ struct SchemaV1Tests {
                              "alert_suppressions", "subscription_identities", "plan_catalog_versions", "entitlements",
                              "entitlement_pool_links", "reset_schedules", "calendar_sync_receipts", "connector_health",
                              "preferences", "devices", "sync_cursors",
-                             "agent_tasks", "agent_runs"]                // migration v3 (increment 1.9)
+                             "agent_tasks", "agent_runs",                // migration v3 (increment 1.9)
+                             "agent_background", "agent_background_counts"]   // migration v5 (sheet item 9)
         #expect(names == expected)
     }
 

@@ -169,7 +169,7 @@ public enum ExportValue: Sendable, Equatable {
 extension Store {
     /// §8 step 2: exactly these tables, nothing else.
     public static let exportTables = ["accounts", "observations", "pool_snapshots", "sessions", "notification_receipts", "preferences",
-                                      "agent_tasks", "agent_runs"]
+                                      "agent_tasks", "agent_runs", "agent_background", "agent_background_counts"]
     /// Internal bookkeeping with no meaning to the user (a content hash used for dedupe).
     static let exportExcludedColumns: [String: Set<String>] = ["observations": ["dedupe_key"]]
 
@@ -255,6 +255,7 @@ extension Store {
             // Agents per task follow sessions: 30 days. Runs go with their task.
             try db.execute(sql: "DELETE FROM agent_tasks WHERE started_at < ?", arguments: [sessionsCutoff])
             report.tasks = db.changesCount
+            try db.execute(sql: "DELETE FROM agent_background WHERE reported_at < ?", arguments: [sessionsCutoff])    // counts cascade
             return report
         }
     }

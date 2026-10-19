@@ -54,7 +54,10 @@ enum DemoData {
                                                  at: start.addingTimeInterval(stop * 60)))
                 }
             }
-            if let end = task.end { try await store.record(.init(kind: .stopped, sessionRef: "demo", agentRef: nil, agentType: nil, at: now.addingTimeInterval(end * 60))) }
+            if let end = task.end {
+                try await store.record(.init(kind: .stopped, sessionRef: "demo", agentRef: nil, agentType: nil, at: now.addingTimeInterval(end * 60),
+                                             background: demoReport(through: i, at: end)))
+            }
         }
         var input = try await AppModel.read(store, now: now)
         input.agentsTracking = true
@@ -62,12 +65,41 @@ enum DemoData {
         return input
     }
 
+    /// What Claude Code would list as in flight when task `index` stops at `end` (minutes from now): every agent started
+    /// by then without a stop by then, and one shell command (sheet item 9). Probe scenarios that show the inference
+    /// alone (`stale`) send none; `exact` adds a subagent whose start Clepso never saw and leaves out one it did.
+    static func demoReport(through index: Int, at end: Double) -> Store.BackgroundCounts? {
+        var agents: [String: [String: Int]] = [:]
+        for (i, task) in agentsPlan.prefix(index + 1).enumerated() {
+            for (j, agent) in task.agents.enumerated() where task.start + Double(20 + j * 15) / 60 <= end {
+                guard agent.stop.map({ task.start + $0 > end }) ?? true, !(probeScenario == "exact" && i == 0) else { continue }
+                agents[agent.type, default: [:]]["running", default: 0] += 1
+            }
+        }
+        switch probeScenario {
+        case "stale": return nil
+        case "exact": agents["general-purpose", default: [:]]["running", default: 0] += 1
+        default: break
+        }
+        let subagents = agents.values.flatMap(\.values).reduce(0, +)
+        return Store.BackgroundCounts(tasks: ["shell": ["running": 1]].merging(subagents > 0 ? ["subagent": ["running": subagents]] : [:]) { a, _ in a },
+                                      agents: agents)
+    }
+
+    static var probeScenario: String? {
+        #if DEBUG
+        UserDefaults.standard.string(forKey: "ClepsoProbeAgents")
+        #else
+        nil
+        #endif
+    }
+
     typealias DemoAgent = (type: String, stop: Double?)            // stop: minutes after its task started; nil = no stop yet
     typealias DemoTask = (start: Double, end: Double?, agents: [DemoAgent])   // minutes from now
 
     static var agentsPlan: [DemoTask] {
         #if DEBUG
-        // Debug probe only: `-ClepsoProbeAgents none|background|one|many|finished|stale|approved` for the agents panel's other states.
+        // Debug probe only: `-ClepsoProbeAgents none|background|one|many|finished|stale|approved|exact` for the agents panel's other states.
         if let scenario = UserDefaults.standard.string(forKey: "ClepsoProbeAgents"), let plan = probeAgentsPlans[scenario] { return plan }
         #endif
         return [(-55, -41, [("Explore", 4), ("Explore", 5), ("Plan", 7)]), (-38, -30, []),
@@ -89,6 +121,9 @@ enum DemoData {
         // Approved agent names (19 Oct 2026): two custom agents shown by name, one not approved (Custom).
         "approved": [(-30, -20, [("Explore", 5), ("code-reviewer", 8)]),
                      (-9, nil, [("Explore", 3), ("code-reviewer", nil), ("db-helper", 6), ("custom", nil), ("Plan", 4)])],
+        // Sheet item 9: Claude Code's report at the second task's stop lists three General agents (one started before Clepso
+        // saw it) and not the Explore agent from the first task, whose stop never arrived.
+        "exact": [(-40, -35, [("Explore", nil)]), (-24, -22, [("general-purpose", nil), ("general-purpose", nil)]), (-3, nil, [("Plan", nil)])],
         // The session went quiet 25 minutes ago with two subagents never reported stopped, and one from 7 hours ago.
         "stale": [(-7 * 60, -7 * 60 + 5, [("general-purpose", nil)]), (-40, -25, [("general-purpose", nil), ("Explore", nil), ("Plan", 10)])],
     ]

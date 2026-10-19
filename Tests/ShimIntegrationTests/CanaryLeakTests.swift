@@ -100,6 +100,17 @@ struct CanaryLeakTests {
                                     "agent_transcript_path": "/Users/canary/agent.jsonl"]
         if let agent { event["agent_id"] = agent }
         if let type { event["agent_type"] = type }
+        // Sheet item 9: a stop lists the session's in-flight background work, free text in every field.
+        if name.hasSuffix("Stop") {
+            func task(_ type: String, _ extra: [String: String]) -> [String: String] {
+                ["id": "canary-task-\(type)", "type": type, "status": "running", "description": "canary refactor 424242 \(fakeToken)"].merging(extra) { a, _ in a }
+            }
+            event["background_tasks"] = [task("shell", ["command": "rm -rf /Users/canary-project"]),
+                                         task("subagent", ["agent_type": "canary-db-migrator"]), task("subagent", ["agent_type": "code-reviewer"]),
+                                         task("subagent", ["agent_type": "Code-Reviewer"]), task("MCP task", ["server": "canary-srv", "tool": "canary_tool"]),
+                                         task("workflow", ["name": "canary-wf"])]
+            event["session_crons"] = [["id": "canary-cron", "schedule": "0 9 * * 1-5", "recurring": true, "prompt": "canary cron prompt"]]
+        }
         return (try? JSONSerialization.data(withJSONObject: event)) ?? Data()
     }
 
@@ -136,9 +147,11 @@ struct CanaryLeakTests {
             try await Task.sleep(for: .milliseconds(50))
             guard case .success = await model.export(to: export) else { continue }
             exported = String(decoding: try Data(contentsOf: export), as: UTF8.self)
-        } while !(exported.contains("\"code-reviewer\"") && exported.components(separatedBy: "\"custom\"").count == 3) && Date() < deadline
+        } while !(exported.contains("\"code-reviewer\"") && exported.components(separatedBy: "\"custom\"").count == 4) && Date() < deadline
         #expect(exported.contains("\"code-reviewer\""), "the approved name arrived exactly")
-        #expect(exported.components(separatedBy: "\"custom\"").count == 3, "the unapproved name and the other case arrived as custom")
+        // Two runs and one background count: the unapproved name and the other case arrived as custom.
+        #expect(exported.components(separatedBy: "\"custom\"").count == 4, "the unapproved name and the other case arrived as custom")
+        #expect(exported.contains("\"agent_background_counts\"") && exported.contains("\"mcp_task\""), "the background counts arrived")
 
         let database = model.environment.databaseURL
         let places: [(String, URL)] = [("database", database), ("database WAL", URL(fileURLWithPath: database.path + "-wal")),

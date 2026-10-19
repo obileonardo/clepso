@@ -122,6 +122,25 @@ Settings (founder decision 19 Oct 2026): its CHECK allows the built-in names, `c
 characters of `A–Z a–z 0–9 _ -` and nothing else, so no sentence or path can be stored whatever arrives. The approved
 list itself is the preference `claudeCode.approvedAgentNames`. Taking a name off the list rewrites its runs to `custom`
 (`Store.forgetAgentName`). The account sync counts approved names under `custom`, so they never leave the Mac.
+The same list names Codex's agent roles (sheet item 10); Codex is read in the app and its roles are never stored.
+
+### 3.3 Migration v5: background reports (sheet item 9, 19 Oct 2026)
+
+`Stop` and `SubagentStop` frames carry Claude Code's in-flight background work as counts (`docs/specs/hook-frame.md`,
+PRIVACY_AND_SECURITY §4.2). `agent_background(session_ref, connection_id, reported_at, event)` keeps one row per
+session: its latest **exact** report, from a `Stop`, or from a `SubagentStop` while none of the session's prompts was
+in progress (during a prompt a foreground subagent isn't on Claude Code's list, so such a report is not kept). An older
+report never replaces a newer one. `agent_background_counts(session_ref, task_type, agent_type, status, count)` holds
+its counts: `task_type` one of `shell subagent monitor workflow teammate cloud_session mcp_task other`, `status` one of
+`running pending other`, `count` 1–9999, and `agent_type` `''` for the per-type rows or, for subagents, a built-in
+name, `custom` or an approved name (same shape CHECK as `agent_runs`). Counts cascade with their report. Purged at 30
+days; in export and delete-all. Taking a name off the list folds its counts into `custom`.
+
+Running now with a report (`Store.backgroundSnapshots`, `OverviewProjection.agents`): of a session's subagents that
+started before its report, exactly as many of each type run as the report listed, less the stops received at or
+after it (a background subagent is still listed at its own `SubagentStop`); extra open runs are "no stop seen", and a
+shortfall is shown as running with its start not seen. Subagents started after the report, and sessions without one,
+use the start-and-stop rule above.
 
 **Before the rename to Clepso** the folder was `~/Library/Application Support/Pulse` and the file `pulse.sqlite`. At
 launch, before the database, the diagnostics log or the socket is opened, `LegacyDataMigration`
@@ -143,7 +162,7 @@ moves and the database stays closed for that launch.
 6. Every migration has a test; v2 is checked row for row (every row and rowid kept).
 
 Applied: `v1_initial`; `v2_value_kinds_count_duration_flag` (adds the `count`, `duration` and `flag` value kinds);
-`v3_agent_tasks` (§3.1).
+`v3_agent_tasks` (§3.1); `v4_agent_type_approved_names` (§3.2); `v5_agent_background` (§3.3).
 
 Retention: limit readings and engine events 90 days; sessions, agent tasks and notification receipts 30 days;
 diagnostics 7 days. It runs at launch and daily. A session row goes only once no reading references it.

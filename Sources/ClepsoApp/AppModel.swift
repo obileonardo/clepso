@@ -374,6 +374,7 @@ public final class AppModel {
         input.lastEventAt = try await store.lastEventAt()
         input.agentTasks = try await store.agentTasks(limit: 500)
         input.openAgentRuns = try await store.openAgentRuns(since: now.addingTimeInterval(-OverviewProjection.agentRunCap))
+        input.backgroundSnapshots = try await store.backgroundSnapshots(since: now.addingTimeInterval(-OverviewProjection.agentRunCap))
         // Increment 3.4: other agents' pools never mix into Claude Code's section.
         input.codexPools = input.pools.filter { $0.poolKey.hasPrefix("codex.") }
         input.pools = input.pools.filter { !$0.poolKey.hasPrefix("codex.") }
@@ -1049,8 +1050,22 @@ struct StoreSink: IngestSink {
         case .stopped: .stopped
         }
         let type = hook.agentType.map(agentNames.filter)
-        guard (try? await store.record(.init(kind: kind, sessionRef: hook.sessionRef, agentRef: hook.agentRef, agentType: type, at: at))) != nil
+        guard (try? await store.record(.init(kind: kind, sessionRef: hook.sessionRef, agentRef: hook.agentRef, agentType: type, at: at,
+                                             background: hook.background.map(Self.counts(agentNames))))) != nil
         else { return }
         await didIngest([])
+    }
+
+    /// A frame's background counts as the store keeps them, each agent type re-checked against the current list.
+    static func counts(_ names: AgentNameAllowlist) -> (HookFrame.Background) -> Store.BackgroundCounts {
+        { background in
+            var agents: [String: [String: Int]] = [:]
+            for (type, statuses) in background.agents {
+                for (status, n) in statuses { agents[names.filter(type), default: [:]][status.rawValue, default: 0] += n }
+            }
+            return Store.BackgroundCounts(tasks: Dictionary(uniqueKeysWithValues: background.tasks.map { type, statuses in
+                (type.rawValue, Dictionary(uniqueKeysWithValues: statuses.map { ($0.key.rawValue, $0.value) }))
+            }), agents: agents)
+        }
     }
 }
