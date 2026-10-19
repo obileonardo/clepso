@@ -92,6 +92,56 @@ extension Store {
         }
     }
 
+    /// A subagent with a start and no stop yet: possibly still working, whichever task it was started in. Claude Code
+    /// sends nothing while a subagent works, so `sessionLastEvent` (the newest hook event Clepso has from its session:
+    /// a prompt, a stop, any subagent starting or stopping) is the latest sign of life there is.
+    public struct OpenAgentRun: Sendable, Equatable {
+        public let taskID: String
+        public let sessionRef: String
+        public let agentType: String
+        public let startedAt: Date
+        public let taskStartedAt: Date
+        public let sessionLastEvent: Date
+
+        public init(taskID: String, sessionRef: String, agentType: String, startedAt: Date, taskStartedAt: Date, sessionLastEvent: Date) {
+            self.taskID = taskID
+            self.sessionRef = sessionRef
+            self.agentType = agentType
+            self.startedAt = startedAt
+            self.taskStartedAt = taskStartedAt
+            self.sessionLastEvent = sessionLastEvent
+        }
+    }
+
+    /// Every subagent started since `since` that has no stop, in any task, newest first. Claude Code's internal agents
+    /// (stored as "unknown") are left out: they are only ever stored from a stop.
+    public func openAgentRuns(since: Date) throws -> [OpenAgentRun] {
+        try writer.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT r.task_id, t.session_ref, r.agent_type, r.started_at, t.started_at AS task_started_at
+                FROM agent_runs r JOIN agent_tasks t ON t.id = r.task_id
+                WHERE r.stopped_at IS NULL AND r.agent_type != 'unknown' AND r.started_at >= ?
+                ORDER BY r.started_at DESC
+                """, arguments: [ms(since)])
+            var lastEvent: [String: Int64] = [:]
+            for session in Set(rows.map { $0["session_ref"] as String }) {
+                lastEvent[session] = try Int64.fetchOne(db, sql: """
+                    SELECT MAX(v) FROM (
+                      SELECT MAX(started_at, COALESCE(ended_at, 0)) AS v FROM agent_tasks WHERE session_ref = ?
+                      UNION ALL
+                      SELECT MAX(r.started_at, COALESCE(r.stopped_at, 0)) FROM agent_runs r JOIN agent_tasks t ON t.id = r.task_id
+                      WHERE t.session_ref = ?)
+                    """, arguments: [session, session])
+            }
+            return rows.map { row in
+                let session: String = row["session_ref"]
+                let started: Int64 = row["started_at"]
+                return OpenAgentRun(taskID: row["task_id"], sessionRef: session, agentType: row["agent_type"], startedAt: date(started),
+                                    taskStartedAt: date(row["task_started_at"]), sessionLastEvent: date(max(started, lastEvent[session] ?? started)))
+            }
+        }
+    }
+
     /// The most recent tasks, newest first.
     public func agentTasks(limit: Int) throws -> [AgentTask] {
         try writer.read { db in

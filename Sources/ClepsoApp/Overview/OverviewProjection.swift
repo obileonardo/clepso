@@ -74,7 +74,7 @@ public enum OverviewProjection {
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
         return OverviewSnapshot(now: now, isDemo: input.isDemo, icon: icon, iconStaleMark: staleMark, iconText: text,
                                 aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty,
-                                agents: input.agentsTracking ? agents(input.agentTasks, now: now) : nil,
+                                agents: input.agentsTracking ? agents(input.agentTasks, open: input.openAgentRuns, now: now, staleAfter: staleAfter) : nil,
                                 codex: codexSection, codexAgentsShown: input.codexEnabled && !input.isDemo,
                                 codexAgents: input.codexEnabled && !input.isDemo ? input.codexAgentTasks.map { codexAgents($0, now: now) } : nil)
     }
@@ -110,10 +110,13 @@ public enum OverviewProjection {
     /// minutes after Claude had already stopped.
     static let internalAgentType = "unknown"
 
-    /// Display names for the stored types.
+    /// Display names for the types Claude Code sends, made readable: Claude Code's own names, with what Explore is for
+    /// (its read-only research agent). A custom or plugin agent's own name never reaches Clepso (DECISIONS C8).
     static func agentTypeName(_ type: String) -> String {
         switch type {
         case "general-purpose": Copy.Agents.general
+        case "Explore": Copy.Agents.explore
+        case "Plan": Copy.Agents.plan
         case "claude-code-guide": Copy.Agents.guide
         case "statusline-setup": Copy.Agents.statusLine
         case "custom": Copy.Agents.custom
@@ -121,18 +124,42 @@ public enum OverviewProjection {
         }
     }
 
+    /// How long a subagent with no stop counts as running, from its start. Claude Code sends a stop when a subagent
+    /// finishes, background ones too (founder's Mac, 19 Oct 2026: stops arriving up to 10 minutes after the task that
+    /// started them had ended), but nothing if Claude Code is closed or crashes first, and an async hook can be lost.
+    /// The longest run seen there took under two hours; the same six hours as a task without a stop.
+    static let agentRunCap: TimeInterval = 6 * 3600
+
     /// A task with no stop for 6 hours is treated as finished (Claude Code was closed mid-task). Claude Code's internal
     /// agents (`internalAgentType`) are left out of every count; they're stored only when a stop arrives, so each one
-    /// is also one of the task's finished runs.
-    static func agents(_ tasks: [Store.AgentTask], now: Date) -> AgentsSummary {
+    /// is also one of the task's finished runs. `open` are the subagents with no stop yet, from any task: each one
+    /// started under `agentRunCap` ago is running now, counted in `live` and in its own task's `stillRunning`, even
+    /// when that task has ended; older ones are the task's `noStopSeen`.
+    static func agents(_ tasks: [Store.AgentTask], open: [Store.OpenAgentRun] = [], now: Date,
+                       staleAfter: TimeInterval = Freshness.localTelemetryTTL) -> AgentsSummary {
+        let counted = open.filter { now.timeIntervalSince($0.startedAt) < agentRunCap }
+        let runningByTask = Dictionary(grouping: counted, by: \.taskID).mapValues(\.count)
         let mapped = tasks.sorted { $0.startedAt > $1.startedAt }.map { t in
             let internalRuns = t.byType[internalAgentType] ?? 0
-            return AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
-                                      running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
-                                      agents: t.agents - internalRuns, finished: max(0, t.finished - internalRuns),
-                                      byType: agentTypeOrder.compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
+            let agents = t.agents - internalRuns, finished = max(0, t.finished - internalRuns)
+            let stillRunning = min(runningByTask[t.id] ?? 0, agents - finished)
+            var task = AgentsSummary.Task(id: t.id, startedAt: t.startedAt, endedAt: t.endedAt,
+                                          running: t.endedAt == nil && now.timeIntervalSince(t.startedAt) < 6 * 3600,
+                                          agents: agents, finished: finished,
+                                          byType: agentTypeOrder.compactMap { type in t.byType[type].map { (agentTypeName(type), $0) } })
+            task.stillRunning = stillRunning
+            task.noStopSeen = max(0, agents - finished - stillRunning)
+            return task
         }
-        return summary(mapped, now: now)
+        var result = summary(mapped, now: now)
+        let latest = mapped.first?.id
+        result.live = counted.sorted { $0.startedAt > $1.startedAt }.map { run in
+            let lastSeen = max(run.startedAt, run.sessionLastEvent)
+            return AgentsSummary.LiveAgent(type: agentTypeName(run.agentType), startedAt: run.startedAt, taskStartedAt: run.taskStartedAt,
+                                           inLatestTask: run.taskID == latest, lastSeen: lastSeen,
+                                           stale: now.timeIntervalSince(lastSeen) >= staleAfter)
+        }
+        return result
     }
 
     /// Codex's built-in roles first, then the user's own (Custom).

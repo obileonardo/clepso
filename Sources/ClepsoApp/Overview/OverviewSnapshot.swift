@@ -166,6 +166,8 @@ public struct OverviewInput: Sendable {
     public var history: [String: [UsagePoint]] = [:]
     public var agentsTracking = false
     public var agentTasks: [Store.AgentTask] = []
+    /// Subagents with no stop yet, from any task (`Store.openAgentRuns`).
+    public var openAgentRuns: [Store.OpenAgentRun] = []
     /// Increment 3.4: Codex's pools, kept apart from Claude Code's; plan and model from its latest reading.
     public var codexEnabled = false
     public var codexPools: [PoolState] = []
@@ -191,11 +193,28 @@ public struct AgentsSummary: Sendable, Equatable {
         public let byType: [(name: String, count: Int)]
         /// Codex only: the approval auto-reviews it ran during the task (not agents).
         public var reviews = 0
+        /// Of `agents`, those with no stop yet that still count as running (`OverviewProjection.agentRunCap`), even
+        /// after the task itself ended: a background subagent outlives the prompt that started it.
+        public var stillRunning = 0
+        /// Of `agents`, those whose stop never arrived and that no longer count as running (Claude Code closed or
+        /// crashed, or a hook event was lost): neither finished nor running.
+        public var noStopSeen = 0
         public static func == (a: Task, b: Task) -> Bool {
             a.id == b.id && a.startedAt == b.startedAt && a.endedAt == b.endedAt && a.running == b.running && a.agents == b.agents
                 && a.finished == b.finished && a.byType.map(\.name) == b.byType.map(\.name) && a.byType.map(\.count) == b.byType.map(\.count)
-                && a.reviews == b.reviews
+                && a.reviews == b.reviews && a.stillRunning == b.stillRunning && a.noStopSeen == b.noStopSeen
         }
+    }
+    /// One subagent running now, from whichever task started it (founder review, 19 Oct 2026). Claude Code reports a
+    /// subagent only when it starts and stops, so `lastSeen` is the newest hook event from its session; `stale` once
+    /// that is older than the telemetry TTL (DECISIONS B2): the agent is still counted, labelled "last seen".
+    public struct LiveAgent: Sendable, Equatable {
+        public let type: String                  // display name
+        public let startedAt: Date
+        public let taskStartedAt: Date
+        public let inLatestTask: Bool
+        public let lastSeen: Date
+        public let stale: Bool
     }
     public let latest: Task?
     public let recent: [Task]                    // newest first, at most 8
@@ -203,6 +222,8 @@ public struct AgentsSummary: Sendable, Equatable {
     public let tasksWithAgents: Int
     public let totalAgents: Int
     public let mostInOneTask: Int
+    /// Subagents running now across every task, newest first; empty for Codex (no start and stop events).
+    public var live: [LiveAgent] = []
     public var averagePerTask: Double { tasks > 0 ? Double(totalAgents) / Double(tasks) : 0 }
 }
 

@@ -365,6 +365,7 @@ public final class AppModel {
         input.sourceVersion = try await store.latestSourceVersion()
         input.lastEventAt = try await store.lastEventAt()
         input.agentTasks = try await store.agentTasks(limit: 500)
+        input.openAgentRuns = try await store.openAgentRuns(since: now.addingTimeInterval(-OverviewProjection.agentRunCap))
         // Increment 3.4: other agents' pools never mix into Claude Code's section.
         input.codexPools = input.pools.filter { $0.poolKey.hasPrefix("codex.") }
         input.pools = input.pools.filter { !$0.poolKey.hasPrefix("codex.") }
