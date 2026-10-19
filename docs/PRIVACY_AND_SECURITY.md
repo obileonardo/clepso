@@ -252,7 +252,7 @@ automatic pools, and do not trigger automatic alerts. They are included in expor
 
 Scheduled reset notices are recorded in `reset_schedules` with their source observation, absolute reset and status.
 Only an actual delivered notification returned by macOS produces a delivered receipt; a missing pending request or
-elapsed timer is never proof. Future expected-reset notices say capacity has not been rechecked.
+elapsed timer is never proof. Expected-reset notices are decided by the app tick, with a 15-minute freshness limit, and say capacity has not been rechecked.
 
 ## 7. Changing `~/.claude/settings.json` safely
 

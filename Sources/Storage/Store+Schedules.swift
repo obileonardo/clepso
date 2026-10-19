@@ -4,15 +4,6 @@ import GRDB
 import UsageEngine
 
 extension Store {
-    /// The OS owns these expected-reset notices. Suppress the app-tick equivalent while their trigger is current,
-    /// even if the OS is still delivering it; a planned notice still does not count as a delivered one for B4.
-    public func pendingExpectedResetKeys(now: Date) throws -> Set<String> {
-        try writer.read { db in
-            Set(try String.fetchAll(db, sql: "SELECT id FROM reset_schedules WHERE channel = 'localNotification' AND kind = 'resetExpected' AND status = 'planned' AND reset_at >= ?",
-                                    arguments: [ms(now.addingTimeInterval(-AlertKind.resetExpected.maxAge))]))
-        }
-    }
-
     /// Persist the schedules successfully accepted by the notification center, with their source observation.
     /// Clock passage never means delivered: only an actual notification returned by the OS can write that receipt.
     public func recordNotificationSchedules(_ plans: [ReminderPlanner.Planned], now: Date, enabled: Bool, activeIdentifiers: Set<String>? = nil) throws {

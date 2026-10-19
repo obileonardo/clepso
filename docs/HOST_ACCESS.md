@@ -61,3 +61,11 @@ After the client grants access, compare the results:
   shared `ClepsoMac` scheme with Release archive configuration. This alone does not prove package resolution works.
 
 Then fetch/reconcile remote main and pass the full CI and signed/notarized release gates in `docs/RELEASE.md`.
+
+## Resolution on this host
+
+After the client enabled sandbox escalation approval, an explicitly approved `make doctor` run outside the sandbox
+passed all checks, including GitHub authentication, Developer ID visibility, notary profile access and actual
+creation of a temporary DMG. No certificate, notary credential or macOS service repair was necessary. Keep using
+normal scoped command approvals for the native CI/release workflows; the sandboxed baseline can still show the
+same restrictions and is not a valid release-host diagnosis by itself.

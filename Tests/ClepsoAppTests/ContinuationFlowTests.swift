@@ -46,8 +46,8 @@ import UsageEngine
         #expect(notes.delivered.filter { $0.identifier.contains("|readyAgain|") }.count == 1)
     }
 
-    @Test("An exhausted window gets an OS reset trigger; it is cancelled when alerts are disabled")
-    func expectedResetScheduled() async throws {
+    @Test("Expected resets use the age-checked app tick and never leave a stale OS trigger")
+    func expectedResetFreshness() async throws {
         let box = Sandbox(); defer { box.cleanUp() }
         let clock = TestClock(), notes = FakeNotifications()
         let model = box.model(clock: clock, notifications: notes)
@@ -57,16 +57,13 @@ import UsageEngine
         try await feed(model, clock: clock, used: 40, reset: reset)
         clock.advance(60)
         try await feed(model, clock: clock, used: 100, reset: reset)
-        let pending = try #require(notes.pending.first)
-        #expect(pending.notification.identifier.contains("|resetExpected|") && pending.fireAt == reset)
-        await model.setAlertsEnabled(false)
         #expect(notes.pending.isEmpty)
-        await model.setAlertsEnabled(true)
-        #expect(notes.pending.count == 1)
         clock.advance(3541)
-        try await feed(model, clock: clock, used: 3, reset: reset + 18_000)
-        #expect(!notes.pending.contains { $0.notification.identifier == pending.notification.identifier },
-                "an old expected-reset notice is cancelled after confirmed recovery, even if its trigger just passed")
+        await model.refreshNow()
+        #expect(notes.delivered.filter { $0.identifier.contains("|resetExpected|") }.count == 1)
+        await model.refreshNow()
+        #expect(notes.delivered.filter { $0.identifier.contains("|resetExpected|") }.count == 1)
+        #expect(notes.pending.isEmpty)
     }
 
     @Test("Calendar export uses the reported weekly instant and creates nothing without a tap")

@@ -16,8 +16,7 @@ extension AppModel {
         let now = environment.clock.now()
         await collectScheduledDeliveries()
         guard let history = try? await store.alertHistory(since: now.addingTimeInterval(-30 * 86_400)) else { return }
-        let scheduled = (try? await store.pendingExpectedResetKeys(now: now)) ?? []
-        let context = AlertPlanner.Context(delivered: history.delivered.union(scheduled), deliveredKinds: history.kinds,
+        let context = AlertPlanner.Context(delivered: history.delivered, deliveredKinds: history.kinds,
                                            snoozedUntil: alertsSnoozedUntil, enabled: alertsEnabled, isDemo: demo,
                                            quietHours: quietHours, timeZone: environment.timeZone)
         let decision = AlertPlanner.decide(events, context: context, now: now)
@@ -172,12 +171,11 @@ extension AppModel {
             }
         }
         let history = try? await store.alertHistory(since: now.addingTimeInterval(-30 * 86_400))
-        let expected = alertsEnabled ? windows.filter { history?.kinds[$0.windowID]?.contains(.exhausted) == true } : []
-        let desired = Array((ReminderPlanner.plan(windows, leadMinutes: reminderLead, now: now)
-            + ReminderPlanner.expected(expected, now: now)).filter { history?.delivered.contains($0.identifier) != true }
+        // Expected-reset alerts are decided on the app tick, where the 15-minute age limit can be enforced.
+        // A calendar notification has no expiration deadline and can otherwise appear days after a sleeping Mac wakes.
+        let desired = Array(ReminderPlanner.plan(windows, leadMinutes: reminderLead, now: now).filter { history?.delivered.contains($0.identifier) != true }
             .sorted { $0.fireAt < $1.fireAt }.prefix(ReminderPlanner.pendingLimit))
-        let active = Set((reminderLead != nil ? windows.map { ReminderPlanner.identifier(poolKey: $0.poolKey, windowID: $0.windowID) } : [])
-            + expected.map { AlertPlanner.key(poolKey: $0.poolKey, windowID: $0.windowID, kind: .resetExpected, level: nil) })
+        let active = Set(reminderLead != nil ? windows.map { ReminderPlanner.identifier(poolKey: $0.poolKey, windowID: $0.windowID) } : [])
         let pending = await environment.notifications.pendingReminders()
         let changes = ReminderPlanner.reconcile(desired: desired,
                                                 pending: pending.map { .init(identifier: $0.notification.identifier, fireAt: $0.fireAt) }, now: now,

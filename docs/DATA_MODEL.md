@@ -112,8 +112,7 @@ observation. Removing a manually tracked window removes its earlier entries too,
 Retention follows limit history; export and Delete all include the table. These readings do not sync or trigger
 automatic alerts.
 
-`reset_schedules`, present since v1, now records successfully scheduled local notices (`resetReminder` and
-`resetExpected`). It retains source observation, window, reset, lead, version and status. Rescheduling within a window
+`reset_schedules`, present since v1, now records successfully scheduled local notices (`resetReminder`). It retains source observation, window, reset, lead, version and status. Rescheduling within a window
 updates the same identifier. Disconnect, disable or confirmed recovery cancels obsolete requests, including triggers
 that just became due. Only actual macOS delivery can mark a schedule delivered and create its alert receipt.
 

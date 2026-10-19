@@ -67,16 +67,6 @@ public enum ReminderPlanner {
         isReminder(identifier) || identifier.hasSuffix("|" + AlertKind.resetExpected.rawValue + "|-")
     }
 
-    /// Only windows whose exhausted alert was actually delivered are passed by the app. A scheduled expected-reset
-    /// notice carries no claim that capacity has returned, and works while the app is quit or the Mac is asleep.
-    public static func expected(_ windows: [Window], now: Date) -> [Planned] {
-        windows.filter { $0.resetsAt > now }.map { window in
-            Planned(identifier: AlertPlanner.key(poolKey: window.poolKey, windowID: window.windowID, kind: .resetExpected, level: nil),
-                    poolKey: window.poolKey, windowID: window.windowID, resetsAt: window.resetsAt,
-                    leadMinutes: 0, fireAt: window.resetsAt, kind: .resetExpected)
-        }
-    }
-
     /// The reminders that should be pending now, nearest first, at most `limit`. Nothing when the user hasn't chosen
     /// a lead (`nil` or 0), for a reset under five minutes out, or for a fire instant already past.
     public static func plan(_ windows: [Window], leadMinutes: Int?, now: Date, limit: Int = pendingLimit) -> [Planned] {
