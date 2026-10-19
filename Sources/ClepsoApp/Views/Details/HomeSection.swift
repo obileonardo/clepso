@@ -81,6 +81,7 @@ struct HomeSection: View {
             return (row.model.scope, pct, state)
         }
         input.goals = model.goalStatuses
+        input.features = model.features
         input.runningTask = snapshot.agents?.latest.flatMap { $0.running ? $0 : nil }
         input.connected = snapshot.empty != .notConnected || snapshot.isDemo
         input.statsOn = model.statsEnabled
@@ -139,7 +140,9 @@ struct HomeSection: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(Copy.Card.levelBar(card.level.level, card.levelName)).font(theme.font(.metricMedium)).foregroundStyle(theme.color(.textPrimary, scheme))
                     Spacer()
-                    Button(Copy.HomePage.openCard) { model.detailsSection = .card }.buttonStyle(PixelButtonStyle())
+                    if model.features.playerCard {
+                        Button(Copy.HomePage.openCard) { model.detailsSection = .card }.buttonStyle(PixelButtonStyle())
+                    }
                 }
                 PixelBar(fraction: card.level.progress, role: .accent, pattern: .solid, segments: 30)
                 HStack {

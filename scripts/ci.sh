@@ -87,6 +87,25 @@ helper_linkage() {
     echo "no networking libraries or symbols"
 }
 
+# Release builds compile none of the debug-only code (`#if DEBUG`: probe flags, debug launch arguments, demo forcing,
+# the helper's CLEPSO_SHIM_NOW_MS and CLEPSO_SHIM_RELAXED_BUDGET). The debug build must contain the names (else the list
+# in scripts/debug-only-names.regex is stale); no release object may. scripts/release.sh checks the shipped binaries too.
+release_has_no_debug_code() {
+    local pattern; pattern=$(cat scripts/debug-only-names.regex) || return 1
+    swift build -c release --target ClepsoApp || return 1
+    swift build -c release --product clepso-statusline || return 1
+    local debug_names
+    debug_names=$(strings -a .build/debug/ClepsoApp.o .build/debug/clepso-statusline 2>/dev/null | grep -oE "$pattern" | sort -u || true)
+    [ "$(wc -l <<<"$debug_names")" -ge 10 ] || { echo "debug build shows too few debug-only names, list stale? $debug_names"; return 1; }
+    local file hits found=0
+    for file in .build/release/*.o .build/release/clepso-statusline; do
+        hits=$(strings -a "$file" | grep -oE "$pattern" | sort -u || true)
+        [ -z "$hits" ] || { echo "$file: $hits"; found=1; }
+    done
+    [ $found -eq 0 ] || { echo "debug-only names in a release build"; return 1; }
+    echo "$(wc -l <<<"$debug_names" | tr -d ' ') debug-only names in the debug build, none in the release build"
+}
+
 # Optional Clepso accounts make HTTPS calls from the Sync module, and only from there.
 no_networking_code() {
     local hits
@@ -250,6 +269,7 @@ run "toolchain pinned"              check_toolchain
 run "strict build (warnings=errors)" strict_build
 run "tests"                         all_tests
 run "helper links no networking"    helper_linkage
+run "release build has no debug code" release_has_no_debug_code
 run "networking only in Sync"       no_networking_code
 run "clock injected"                no_direct_clock
 run "design tokens only"             design_tokens_only

@@ -59,6 +59,8 @@ public struct AppEnvironment: Sendable {
     /// reads the real home (`-ClepsoDataDirectory` alone): its helper and socket are not the installed app's, so a
     /// repair would point the user's status line and hooks at this run.
     public var rewritesHome = true
+    /// What this build shows (`ReleaseFeatures`): everything unless `live()` says otherwise, so tests see every section.
+    public var features = ReleaseFeatures.all
 
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,
@@ -102,7 +104,11 @@ public struct AppEnvironment: Sendable {
 
     /// `live()` with the launch arguments read through `flag` (tests pass their own).
     static func live(bundle: Bundle, flag: (String) -> String?) -> AppEnvironment {
+        #if DEBUG
         let homeFlag = flag("ClepsoHome"), dataFlag = flag("ClepsoDataDirectory")
+        #else
+        let homeFlag: String? = nil, dataFlag: String? = nil   // release builds take no debug launch arguments
+        #endif
         let isolated = isIsolated(flag: flag)
         let home = homeFlag.map { URL(fileURLWithPath: $0) } ?? FileManager.default.homeDirectoryForCurrentUser
         let data = dataFlag.map { URL(fileURLWithPath: $0) } ?? home.appendingPathComponent("Library/Application Support/Clepso")
@@ -123,6 +129,7 @@ public struct AppEnvironment: Sendable {
                                           legacyDataDirectory: legacyData)
         environment.isolated = isolated
         environment.rewritesHome = !isolated || homeFlag != nil
+        environment.features = ReleaseFeatures.current(debugFlag: flag)
         #if DEBUG
         environment.calendarActions = UserDefaults.standard.bool(forKey: "ClepsoCalendarActions")
         #endif
@@ -130,8 +137,14 @@ public struct AppEnvironment: Sendable {
     }
 
     /// Any of the three debug flags that move Clepso off the installed app's files (`isolated`).
+    /// Release builds compile none of the flag names, so the shipped binary carries no debug launch argument
+    /// (`scripts/release.sh` checks its strings).
     static func isIsolated(flag: (String) -> String?) -> Bool {
+        #if DEBUG
         ["ClepsoHome", "ClepsoDataDirectory", "ClepsoProbeOutput"].contains { flag($0) != nil }
+        #else
+        false
+        #endif
     }
 
     /// This process, from its launch arguments; always false in release builds. For AppKit code without the model.
@@ -140,8 +153,12 @@ public struct AppEnvironment: Sendable {
     /// Why a debug launch must stop before it touches anything, or nil. A probe on the real data folder would bind the
     /// installed app's socket, write its preferences (demo, theme, profile name) and repair its status line.
     static func launchProblem(flag: (String) -> String?) -> String? {
+        #if DEBUG
         guard flag("ClepsoProbeOutput") != nil, flag("ClepsoHome") == nil, flag("ClepsoDataDirectory") == nil else { return nil }
         return "-ClepsoProbeOutput needs -ClepsoHome or -ClepsoDataDirectory: a probe must never run on the installed app's data."
+        #else
+        nil
+        #endif
     }
 
     /// A `-Clepso…` launch argument; always nil in release builds.

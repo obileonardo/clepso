@@ -40,7 +40,7 @@ statistics file and the made-up profile name "Sam", rendered by the app itself (
 > [!NOTE]
 > **Pre-release (v0.1.0).** Clepso runs daily on its maintainer's Mac against real Claude Code sessions, but there are
 > no signed builds and no releases yet: to try it, [build it from source](#build-from-source). Signing and notarization
-> are being prepared ([`docs/RELEASE.md`](docs/RELEASE.md)); the first public pre-release is planned as `v0.1.0-alpha`.
+> are being prepared ([`docs/RELEASE.md`](docs/RELEASE.md)); the first public pre-release is planned as `v0.1.0-alpha.1`.
 > This repository (`clepso`, formerly `tokone`) builds `Clepso.app`.
 
 ## Why Clepso

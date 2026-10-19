@@ -110,6 +110,15 @@ struct DetailsSidebar: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
+    /// The sidebar's groups, without the sections this build holds back (`ReleaseFeatures`).
+    static func groups(_ features: ReleaseFeatures) -> [(title: String?, sections: [AppModel.DetailsSection])] {
+        let all: [(title: String?, sections: [AppModel.DetailsSection])] = [
+            (nil, [.home]), (Copy.Details.usage, [.limits, .session]), (Copy.Details.stats, [.overview, .models, .card]),
+            (Copy.Details.you, [.goals, .account, .settings]),
+        ]
+        return all.map { ($0.title, $0.sections.filter(features.allows)) }.filter { !$0.sections.isEmpty }
+    }
+
     static func title(_ s: AppModel.DetailsSection) -> String {
         switch s {
         case .home: Copy.Home.title
@@ -159,10 +168,7 @@ struct DetailsSidebar: View {
             }
             .accessibilityElement(children: .combine)
             .padding(.bottom, theme.spacing(.standard))
-            group(nil, [.home])
-            group(Copy.Details.usage, [.limits, .session])
-            group(Copy.Details.stats, [.overview, .models, .card])
-            group(Copy.Details.you, [.goals, .account, .settings])
+            ForEach(Self.groups(model.features), id: \.sections) { group($0.title, $0.sections) }
             Spacer(minLength: theme.spacing(.spacious))
             planBadge
         }

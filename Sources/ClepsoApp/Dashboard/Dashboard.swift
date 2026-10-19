@@ -249,6 +249,8 @@ enum ForYou {
         var signedIn = true
         /// False in builds without an accounts project (builds from source): then sign-in is never suggested.
         var accountsAvailable = true
+        /// Items never point at a section this build holds back (`ReleaseFeatures`): no goal items without Goals.
+        var features = ReleaseFeatures.all
     }
 
     static func make(_ input: Input) -> [ForYouItem] {
@@ -258,7 +260,7 @@ enum ForYou {
                                detail: limit.state == .missed ? Copy.ForYou.limitCritical : Copy.ForYou.limitApproaching,
                                action: Copy.ForYou.view, section: .limits))
         }
-        for goal in input.goals where goal.state == .missed || goal.state == .atRisk {
+        for goal in input.goals where input.features.goals && (goal.state == .missed || goal.state == .atRisk) {
             items.append(.init(kind: .goal, title: Copy.ForYou.goal(GoalsSection.title(goal.kind), goal.state == .missed),
                                detail: goal.detail, action: Copy.ForYou.view, section: .goals))
         }
@@ -270,6 +272,7 @@ enum ForYou {
         if !input.statsOn { items.append(.init(kind: .stats, title: Copy.ForYou.statsTitle, detail: Copy.Home.statsBody, action: Copy.Home.turnOn, section: nil)) }
         if !input.agentsOn { items.append(.init(kind: .agents, title: Copy.ForYou.agentsTitle, detail: Copy.Home.agentsBody, action: Copy.Home.turnOn, section: .settings)) }
         if input.accountsAvailable && !input.signedIn { items.append(.init(kind: .account, title: Copy.ForYou.signInTitle, detail: Copy.ForYou.signInBody, action: Copy.ForYou.signIn, section: .account)) }
+        items.removeAll { item in item.section.map { !input.features.allows($0) } ?? false }
         if items.isEmpty { items.append(.init(kind: .allClear, title: Copy.ForYou.allClear, detail: Copy.ForYou.allClearBody, action: nil, section: nil)) }
         return items
     }

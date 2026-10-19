@@ -107,7 +107,12 @@ public final class AppModel {
     /// Navigation lives here so "Connect…" and similar can deep-link, and Escape always has one place to go back to.
     public var popoverRoute: PopoverRoute = .overview
     public var onboardingStep: OnboardingStep = .welcome
-    public var detailsSection: DetailsSection = .home
+    /// A section this build holds back (`ReleaseFeatures`) is never shown: every link into it lands on Home instead.
+    public var detailsSection: DetailsSection = .home {
+        didSet { if !features.allows(detailsSection) { detailsSection = .home } }
+    }
+    /// What this build shows (`ReleaseFeatures`).
+    public var features: ReleaseFeatures { environment.features }
     public var statsRange: StatsSummary.Range = .allTime
     /// The year the all-time calendar shows; nil means the current year.
     public var statsYear: Int?

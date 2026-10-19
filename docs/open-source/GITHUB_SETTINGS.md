@@ -93,8 +93,9 @@ Add a tag ruleset for `v*`: restrict creation, update and deletion to the owner.
 
 ### 6. Releases — Later
 
-- First public release: `v0.1.0-alpha` (owner decision), only after Stage C passes; further pre-releases
-  `v0.1.0-alpha.N` until there is a signed, notarized build.
+- First public release: `v0.1.0-alpha.1` (owner decision 19 Oct 2026: `.N` style tags, a rebuild of the same
+  release takes the next number), signed and notarised, only after Stage C passes. Build and publish steps:
+  `docs/RELEASE.md`.
 - Release notes from the changelog; attach the notarized DMG and its SHA-256; include third-party licence texts
   (GRDB, fonts) in the app bundle or the release download.
 - Signed builds run in a separate workflow bound to a `release` environment with the owner as required reviewer.

@@ -1,4 +1,4 @@
-.PHONY: ci ci-contributor build test perf design-site site clean-ci app backend-test
+.PHONY: ci ci-contributor build test perf design-site site clean-ci app release backend-test
 
 # Optional local settings (gitignored), e.g. DOCS for the site build. Template: Config/local.mk.example.
 -include Config/local.mk
@@ -51,6 +51,12 @@ app:
 	xcodebuild -project Clepso.xcodeproj -scheme ClepsoMac -configuration Debug -derivedDataPath build/DerivedData build -quiet
 	codesign --verify --deep --strict build/DerivedData/Build/Products/Debug/Clepso.app
 	@echo "Built and verified: build/DerivedData/Build/Products/Debug/Clepso.app"
+
+# Signed, notarised release (docs/RELEASE.md §3): make release TAG=v0.1.0-alpha.1. Output: build/release/<tag>/.
+# Stops before notarising (exit 3) until the clepso-notary keychain profile exists. Never tags, pushes or publishes.
+release:
+	$(if $(strip $(TAG)),,$(error TAG is not set: make release TAG=v0.1.0-alpha.1))
+	scripts/release.sh $(TAG)
 
 # Accounts backend: starts the local Supabase database and runs the pgTAP isolation tests in its container.
 # Needs Docker; not part of `make ci`, which must run without it.
