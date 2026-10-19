@@ -8,11 +8,11 @@ and after any change to a control style, a chart, the calendar, the card or an a
 | Check | Where | What it proves |
 |---|---|---|
 | `motion through tokens` | `scripts/ci.sh` | Every `withAnimation` / `.animation(` goes through `theme.motion(<MotionToken>, reduceMotion:)`; animation curves live only in `Tokens.swift`; every `TimelineView` pauses under Reduce Motion; nothing reads the system's Reduce Motion setting except `ReduceMotionRoot`. |
-| `keyboard reachable` | `scripts/ci.sh` | No `.buttonStyle(.plain)` (use `PixelPlainButtonStyle`, which draws the focus ring); `.focusEffectDisabled()` only where the pixel ring is drawn; every tap gesture is on a view that takes focus and answers keys; every hover readout is also reachable with `chartKeyboard` (decorative hover is marked `hover-ok`). |
+| `keyboard reachable` | `scripts/ci.sh` | No `.buttonStyle(.plain)` (use `PixelPlainButtonStyle`, which draws the focus ring); `.focusEffectDisabled()` only where the pixel ring is drawn from a tracked `@FocusState`; nothing reads `isFocused` (it stays false inside a button style on macOS) and no public `ButtonStyle` exists (each pixel style is a `PrimitiveButtonStyle` built on `PixelFocusTracked`); every tap gesture is on a view that takes focus and answers keys; every hover readout is also reachable with `chartKeyboard` (decorative hover is marked `hover-ok`). |
 | `Theme` tests | `Tests/DesignSystemTests` | Under Reduce Motion every motion token is nil except the card flip, which is a crossfade of at most 0.25 s; the window root's override reaches views. |
 | `KeyboardTests` | `Tests/ClepsoAppTests` | The chart cursor starts at the latest bar and holds at the ends; the calendar cursor moves by day and week over days with data only and walks a real year end to end. |
 
-Probe evidence (debug build, no key events are ever posted; see `Sources/ClepsoApp/Debug/PopoverProbe.swift`):
+Probe evidence (debug build; no key event is ever posted to the system; see `Sources/ClepsoApp/Debug/PopoverProbe.swift`):
 
 - `-ClepsoProbeAX YES` with `swift scripts/probe-ax.swift <dir>`: the accessibility tree of every popover page,
   Dashboard page, the delete-all sheet and every onboarding step, read-only, with counts of controls that offer
@@ -20,9 +20,13 @@ Probe evidence (debug build, no key events are ever posted; see `Sources/ClepsoA
   equivalents (⌘, Settings…, ⌘W Close).
 - `-ClepsoProbeFlipFrames YES` (add `-ClepsoProbeReduceMotion YES` for the reduced run): six frames of the player card
   turning over.
-- `-ClepsoProbeFocusGallery YES`: every self-drawn control focused in turn through `@FocusState`, captured. Buttons and
-  toggles take focus only while **Keyboard navigation** is on in System Settings, which the probe cannot turn on for
-  itself; run it with the setting on to see every button's ring.
+- `-ClepsoProbeFocusGallery YES`: every self-drawn control focused in turn through `@FocusState`, then by Tab,
+  Shift-Tab, Space, Return and Escape (key events handed to the probe's own window in process), captured and judged:
+  exactly one pixel ring (`PixelFocusRingCount`) and no pixels of the system focus colour. `probe.log` ends with
+  `focus gallery verdict: PASS` or `FAIL <captures>`, and lists the Tab order and what each key ran; it then Tabs
+  through the Dashboard's Home (`details-tab-N.png`). Buttons and toggles take focus only while **Keyboard
+  navigation** is on in System Settings, which the probe cannot turn on for itself: run it with the setting on (and
+  turn it off after), or the buttons are reported "not judged".
 
 ## B. Keyboard only
 
@@ -30,8 +34,9 @@ Setup: System Settings › Keyboard › **Keyboard navigation** on. Put the mous
 place below, press Tab repeatedly (Shift-Tab back) and check:
 
 - [ ] **Every control is reached**, in reading order (left to right, top to bottom), and nothing invisible takes a stop.
-- [ ] **The focused control is obvious**: a pixel frame in the theme's accent colour around it. Note it if you see a
-      second, rounded system ring as well (a double ring), or none at all; say which control.
+- [ ] **The focused control is obvious**: a pixel frame in the theme's accent colour around it, never macOS's blue
+      rounded ring. Text fields are the one exception: they keep the system's own ring. Note any control that shows
+      the blue ring, both rings (a double ring), or none at all.
 - [ ] **Space activates** a focused button or switch; **Return** activates the default (lit) button of a sheet or
       onboarding step.
 
