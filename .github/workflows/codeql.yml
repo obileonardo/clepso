@@ -22,7 +22,7 @@ permissions:
 
 concurrency:
   group: codeql-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}   # main always finishes; a newer PR push replaces the old run
 
 jobs:
   analyze:
