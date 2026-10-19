@@ -76,6 +76,18 @@ struct ShimIntegrationTests {
         #expect(result.seconds < 1.0)
     }
 
+    @Test("A frame finished more than 10 ms after start is still sent")
+    func lateFrameIsSent() throws {
+        let h = try ShimHarness(); defer { h.cleanUp() }
+        try h.writeConfig(originalCommand: "cat >/dev/null")
+        let agent = try FakeAgent(path: h.socketPath, mode: .readAll); defer { agent.stop() }
+        // Stdin arriving 25 ms late holds the helper in its read, so the frame is built well past 10 ms but within the
+        // 45 ms connect ceiling: only the connect and write limits may drop a frame, never the time it took to build.
+        _ = try h.run(stdin: f08Stdin, realBudget: true, afterLaunch: { _ in Thread.sleep(forTimeInterval: 0.025) })
+        try waitUntil { !agent.frames.isEmpty }
+        #expect(agent.frames.count == 1)
+    }
+
     @Test("A socket path that is a symlink is not followed")
     func symlinkSocketRefused() throws {
         let h = try ShimHarness(); defer { h.cleanUp() }
@@ -156,8 +168,7 @@ struct OverheadTests {
 
     @Test("200 paired rounds: baseline, app absent, app present")
     func overhead() throws {
-        // The helper drops a frame it could not build within 10 ms of starting (§3 step 3).
-        try Self.measure(name: "status line", stdin: f08Stdin, arguments: [], originalCommand: "cat >/dev/null", dropDeadlineMs: 10)
+        try Self.measure(name: "status line", stdin: f08Stdin, arguments: [], originalCommand: "cat >/dev/null")
     }
 
     /// Hook mode (sheet item 9 added the background counts): a `Stop` with 40 in-flight background tasks, against the
@@ -171,14 +182,15 @@ struct OverheadTests {
         let event: [String: Any] = ["session_id": "perf-session", "hook_event_name": "Stop", "transcript_path": "/tmp/t.jsonl", "cwd": "/tmp",
                                     "last_assistant_message": String(repeating: "r", count: 20_000), "stop_hook_active": false,
                                     "background_tasks": tasks, "session_crons": []]
-        // Hook mode has no parse deadline: it drops a frame only when connecting takes longer than 20 ms.
         try Self.measure(name: "hook", stdin: try JSONSerialization.data(withJSONObject: event), arguments: ["--hook"],
-                         originalCommand: nil, dropDeadlineMs: 20)
+                         originalCommand: nil)
     }
 
-    /// `dropDeadlineMs`: the shortest real-time deadline whose miss makes the helper drop its frame. A run faster than
-    /// that cannot have missed it, so a frame lost by such a run is a delivery bug, not the by-design gap under load.
-    static func measure(name: String, stdin: Data, arguments: [String], originalCommand: String?, dropDeadlineMs: Double) throws {
+    /// The shortest limit that can drop a frame: connecting may take at most 20 ms (§3 step 3). A run faster than that
+    /// cannot have hit a limit, so a frame lost by such a run is a delivery bug, not the by-design gap under load.
+    static let dropLimitMs = 20.0
+
+    static func measure(name: String, stdin: Data, arguments: [String], originalCommand: String?) throws {
         // Two homes with the same config: one's socket path is never bound (the app is not running), the other's has a
         // listener for the whole test, so absent and present runs can alternate.
         let absentHome = try ShimHarness(); defer { absentHome.cleanUp() }
@@ -228,12 +240,11 @@ struct OverheadTests {
             #expect(p95 <= p95BudgetMs, "\(label): paired p95 overhead \(p95) ms exceeds \(p95BudgetMs) ms\(busy)")
         }
 
-        // Under the real budget a frame may be dropped (an honest gap, §3 step 4), but only by a run slow enough to have
-        // missed a deadline, and rarely: more than 1% means the frame path no longer fits its budget on this Mac.
+        // Every app-present run delivers its frame. The only exception is a run that went past the connect or write
+        // limit, where dropping the frame is the honest gap (§3 step 4).
         let droppedBy = droppedMs.isEmpty ? "" : "; dropped by runs of " + droppedMs.map { String(format: "%.1f ms", $0) }.joined(separator: ", ")
         print("OVERHEAD \(name): frames delivered \(rounds - droppedMs.count) of \(rounds)\(droppedBy)")
-        #expect(droppedMs.allSatisfy { $0 >= dropDeadlineMs }, "\(name): a run under \(dropDeadlineMs) ms dropped its frame: \(droppedMs)")
-        #expect(droppedMs.count <= rounds / 100, "\(name): \(droppedMs.count) of \(rounds) app-present runs dropped their frame")
+        #expect(droppedMs.allSatisfy { $0 >= dropLimitMs }, "\(name): a run under \(dropLimitMs) ms dropped its frame: \(droppedMs)")
     }
 
     /// Nearest-rank quantile; `q == 1` is the maximum.

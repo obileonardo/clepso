@@ -10,7 +10,6 @@ import ShimProtocol
 public enum StatusLineShim {
     public static let version = "0.1.0"
     static let stdinCeiling = 1 << 20                   // read at most 1 MiB; the rest never reaches the child
-    static let parseDeadlineNs: UInt64 = 10_000_000     // T0 + 10 ms
     static let connectBudgetNs: UInt64 = 20_000_000     // ≤ 20 ms for connect
     static let connectCeilingNs: UInt64 = 45_000_000    // and never past T0 + 45 ms
     static let writeCeilingNs: UInt64 = 48_000_000      // T0 + 48 ms
@@ -66,12 +65,11 @@ public enum StatusLineShim {
             let options = FrameBuilder.Options(shimVersion: version, forwardCost: config.forwardCost ?? true,
                                                hmacKey: key?.count == 32 ? key : nil,
                                                originalPresent: config.originalCommand != nil, truncated: truncated)
-            let scale = budgetScale(environment)
-            if case .frame(let built) = FrameBuilder.build(stdin: stdin, now: wallClock(environment), options: options),
-               now() - t0 <= parseDeadlineNs * scale {
+            // However long the build took, the frame goes out: only the connect and write limits below may drop it.
+            if case .frame(let built) = FrameBuilder.build(stdin: stdin, now: wallClock(environment), options: options) {
                 frame = built
                 if let wire = try? FrameCodec.encode(built) {
-                    _ = send(wire, socketPath: config.socket, t0: t0, scale: scale)
+                    _ = send(wire, socketPath: config.socket, t0: t0, scale: budgetScale(environment))
                 }
             }
         }
@@ -336,7 +334,7 @@ public enum StatusLineShim {
         return Date()
     }
 
-    /// Multiplies every deadline above. Debug builds accept `CLEPSO_SHIM_RELAXED_BUDGET=1` (×100: parse 1 s, write 4.8 s)
+    /// Multiplies every deadline above. Debug builds accept `CLEPSO_SHIM_RELAXED_BUDGET=1` (×100: connect 2 s, write 4.8 s)
     /// so tests about what a frame carries don't fail when a busy host misses the real-time budget; the tests about the
     /// budget itself and every release build use the real one.
     static func budgetScale(_ environment: [String: String]) -> UInt64 {

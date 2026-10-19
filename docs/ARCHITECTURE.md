@@ -68,8 +68,9 @@ with its own read time, because the status-line payload carries no timestamp.
 1. Read stdin (at most 1 MiB; anything beyond never reaches the child).
 2. Start the user's original command with `/bin/sh -c` and the exact bytes on its stdin. Its stdout and stderr are
    inherited, so Claude Code sees exactly what it would have seen; its exit status becomes the helper's.
-3. While the child runs: load `~/.claude/clepso/config.json`, build the frame (must finish within 10 ms of start),
-   connect without blocking (within 20 ms, never later than 45 ms after start) and write (finished by 48 ms).
+3. While the child runs: load `~/.claude/clepso/config.json`, build the frame, connect without blocking (within 20 ms,
+   never later than 45 ms after start) and write (finished by 48 ms). A frame that took long to build is still sent;
+   only these connect and write limits drop one.
 4. Never read a reply, never retry, never write to disk. If the app is not running the frame is dropped: an honest gap.
 5. If the user had no status line, print Clepso's own one-line summary instead.
 
