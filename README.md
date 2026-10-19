@@ -501,7 +501,7 @@ Xcode 27.1.
 | strict build | Everything, tests included, builds with warnings as errors |
 | tests | `swift test` passes |
 | helper links no networking | The release `clepso-statusline` links only allowed system libraries and no networking symbols |
-| release build has no debug code | A release build of the app and the helper contains none of the debug-only names (probe flags, demo hooks) listed in `scripts/debug-only-names.regex`, while the debug build shows them |
+| release build has no debug code | A release build of the app and the helper contains none of the debug-only names (probe flags, debug launch arguments, test-only helper settings) listed in `scripts/debug-only-names.regex`, while the debug build shows them |
 | networking only in Sync | No `URLSession`/`Network` use outside `Sources/Sync`; only the app imports `Sync` |
 | clock injected | No direct `Date()` in the pure layers and the app (time is injected) |
 | design tokens only | Components and screens use `Theme` tokens and pixel icons, never raw colours, sizes or system symbols |
