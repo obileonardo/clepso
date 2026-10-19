@@ -70,6 +70,22 @@ struct CalendarAxisTests {
         #expect(CalendarGridView.gap(10, theme) == 3)
     }
 
+    @Test("Month view: the level's band is whole pixel rows under plain ground for the figures (no plate cut into the dither)")
+    @MainActor func monthBand() {
+        for theme in Theme.all {
+            let px = theme.stroke(.hairline) * 2
+            // Every square the month view can draw (`OverviewSection.monthCell`: two to three and a half spacious steps).
+            for limit in stride(from: theme.spacing(.spacious) * 2, through: theme.spacing(.spacious) * 3.5, by: 1) {
+                let cell = PixelDensity.tile(fitting: limit, px: px), band = CalendarGridView.monthBand(cell, theme)
+                #expect(band.rows >= 1 && band.ground == band.ground.rounded() && band.ground.truncatingRemainder(dividingBy: px) == 0, "\(theme.name) \(cell)")
+                #expect(band.ground + CGFloat(band.rows) * px == cell, "\(theme.name) \(cell): ground and band fill the square")
+                #expect(band.ground > cell / 2, "\(theme.name) \(cell): the figures keep most of the square")
+            }
+        }
+        // The pixel themes' usual square (70 pt, 35 pixels): 13 rows of pattern under 44 pt of ground.
+        #expect(CalendarGridView.monthBand(70, .phosphor) == (rows: 13, ground: 44))
+    }
+
     @Test("The year switcher goes back to 2025 (Claude Code's release) before the first session, and never past this year")
     @MainActor func yearBounds() throws {
         // Today comes from the injected clock, the way AppModel derives it: 19 Oct 2026, 09:00 in London.

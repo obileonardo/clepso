@@ -338,20 +338,22 @@ struct CalendarGridView: View {
     }
 
     /// The level as pixel density (`PixelLevelTile`); "no data" is the tile's outline. In the month view the figures
-    /// sit on a plate of the tile's ground, so the dither never runs through them.
+    /// sit on the tile's plain ground, like an inactive day's, and the level lights a band of whole pixel rows below
+    /// them (`monthBand`): never a plate inside the dither, which read as a hole cut out of the tile (founder, 19 Oct
+    /// 2026). Every day keeps room for the count's line, so the day numbers line up across a week.
     func dayCell(_ c: StatsCalendar.Cell) -> some View {
         let px = theme.stroke(.hairline) * 2
         let level: Int? = if case .level(let l) = c.state { l } else { nil }
-        return ZStack {
-            PixelLevelTile(level: level)
+        let band = Self.monthBand(cell, theme)
+        return ZStack(alignment: .top) {
+            PixelLevelTile(level: level, rows: showDayNumbers ? band.rows : nil)
             if showDayNumbers {
                 VStack(spacing: 0) {
-                    Text(String(c.date.suffix(2))).font(theme.font(.micro))
-                    if let level, level > 0 { Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).opacity(0.8) }
+                    Text(String(c.date.suffix(2))).font(theme.font(.micro)).foregroundStyle(theme.color(.textPrimary, scheme))
+                    Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                        .opacity((level ?? 0) > 0 ? 1 : 0)
                 }
-                .foregroundStyle(theme.color(.textPrimary, scheme))
-                .padding(.horizontal, px)
-                .background { if let level, level > 0 { Rectangle().fill(theme.color(.surfaceMuted, scheme)) } }
+                .frame(width: cell, height: band.ground)
             }
         }
         .frame(width: cell, height: cell)
@@ -365,6 +367,15 @@ struct CalendarGridView: View {
         .help(tooltip(c))
         .accessibilityElement()
         .accessibilityLabel(tooltip(c))
+    }
+
+    /// The month view's split of a square into the plain ground the figures sit on (top, in points) and the band of
+    /// pixel rows the level lights (bottom): about three eighths of the rows, at least one. Whole pixels, so the
+    /// band's edge lands on a device pixel at 1× and 2×.
+    static func monthBand(_ cell: CGFloat, _ theme: Theme) -> (rows: Int, ground: CGFloat) {
+        let unit = PixelDensity.unit(for: cell, px: theme.stroke(.hairline) * 2), n = Int((cell / unit).rounded(.down))
+        let rows = max(1, n * 3 / 8)
+        return (rows, CGFloat(n - rows) * unit)
     }
 
     func tooltip(_ c: StatsCalendar.Cell) -> String {
