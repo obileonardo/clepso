@@ -1,4 +1,5 @@
 @testable import ClaudeCodeAdapter
+import DesignSystem
 import Foundation
 import Testing
 @testable import ClepsoApp
@@ -212,5 +213,31 @@ struct ModelsRosterTests {
         let (_, all) = try Self.roster(.allTime)
         let long = ModelsRoster.activity("claude-opus-5-5", summary: all, from: "2026-04-01")
         #expect(long.count == 29 && long.allSatisfy { (0...4).contains($0) })   // 200 days in weeks
+    }
+
+    @Test("Dossier ACTIVITY strip: one cell per entry on whole 2 pt pixels, a pixel apart, spanning the width; odd-pixel height")
+    @MainActor
+    func activityStripGeometry() {
+        let px: CGFloat = 2
+        for theme in Theme.selectable {
+            let height = ModelDossier.stripHeight(theme), rows = Int(height / px)
+            #expect(CGFloat(rows) * px == height && rows % 2 == 1 && height <= theme.spacing(.spacious), "\(theme.name): \(height)")
+        }
+        for width in [300, 570, 571.5, 899] as [CGFloat] {
+            for count in [1, 7, 30, 60, 105, 120, 200] {
+                let cells = ModelDossier.stripCells(count: count, width: width, height: 18, px: px)
+                #expect(cells.count == count, "one cell per day or week")
+                let gapped = Int(width / px) + 1 >= count * 2
+                for (a, b) in zip(cells, cells.dropFirst()) {
+                    #expect(b.minX - a.maxX == (gapped ? px : 0), "\(count) in \(width): one pixel between cells, or touching")
+                }
+                for cell in cells {
+                    for v in [cell.minX, cell.width] { #expect(v == (v / px).rounded() * px, "whole pixels: whole points at 1× and 2×") }
+                    #expect(cell.width >= (gapped ? px : 0) && cell.minY == 0 && cell.height == 18)
+                }
+                #expect(cells.first?.minX == 0 && cells.last!.maxX <= width && cells.last!.maxX > width - px, "spans the width")
+            }
+        }
+        #expect(ModelDossier.stripCells(count: 0, width: 500, height: 18, px: px).isEmpty)
     }
 }

@@ -329,15 +329,38 @@ public struct PixelHeatmap: View {
 public enum PixelDensity {
     /// Whether pixel (`column`, `row`) of an `count` × `count` tile is lit at `level` (0 none … 4 all).
     public static func isLit(level: Int, column c: Int, row r: Int, count n: Int) -> Bool {
-        guard level > 0, (0..<n).contains(c), (0..<n).contains(r) else { return false }
-        if (c == 0 || c == n - 1) && (r == 0 || r == n - 1) { return false }        // the notched corners
-        let hole = c % 2 == 1 && r % 2 == 1                                           // the odd–odd lattice, centred
+        isLit(level: level, column: c, row: r, columns: n, rows: n)
+    }
+
+    /// The same rule on a `columns` × `rows` cell, for strips whose cells are narrower or wider than tall (the Models
+    /// dossier's ACTIVITY strip). Corners are notched only on cells at least three pixels each way. A single pixel
+    /// column (or row) can't hold the odd–odd lattice, whose every other pixel would be level 2's checkerboard, so
+    /// there level 1's dots, and level 3's holes, fall every fourth pixel from the centre: still four patterns.
+    public static func isLit(level: Int, column c: Int, row r: Int, columns: Int, rows: Int) -> Bool {
+        guard level > 0, (0..<columns).contains(c), (0..<rows).contains(r) else { return false }
+        if columns >= 3, rows >= 3, (c == 0 || c == columns - 1) && (r == 0 || r == rows - 1) { return false }   // the notched corners
+        func sparse(_ i: Int, _ n: Int) -> Bool { ((i - n / 2) % 4 + 4) % 4 == 0 }     // every fourth, centred
+        let hole = columns == 1 ? sparse(r, rows) : rows == 1 ? sparse(c, columns)
+            : c % 2 == 1 && r % 2 == 1                                                // the odd–odd lattice, centred
         switch level {
         case 1: return hole
         case 2: return (c + r) % 2 == 1
         case 3: return !hole
         default: return true
         }
+    }
+
+    /// The lit pixels of `level` in `rect`, as whole `px` squares from its top-left corner: `rect`'s width and height
+    /// in whole pixels (rounded down) make the cell. Level 4 is the cell's ground (every pixel less the notches).
+    public static func pixels(level: Int, in rect: CGRect, px: CGFloat) -> Path {
+        let columns = Int((rect.width / px).rounded(.down)), rows = Int((rect.height / px).rounded(.down))
+        var p = Path()
+        for r in 0..<max(0, rows) {
+            for c in 0..<max(0, columns) where isLit(level: level, column: c, row: r, columns: columns, rows: rows) {
+                p.addRect(CGRect(x: rect.minX + CGFloat(c) * px, y: rect.minY + CGFloat(r) * px, width: px, height: px))
+            }
+        }
+        return p
     }
 
     /// The pixel for a tile `size` wide: the 2 pt pixel (`px`), or a hairline when five 2 pt pixels don't fit.

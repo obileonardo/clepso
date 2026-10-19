@@ -158,9 +158,15 @@ struct ModelDossier: View {
         }
     }
 
-    /// One row of cells across the range, lit in the model's colour by how many tokens it used (no tokens: muted).
+    /// One row of cells across the range in the activity calendar's pixel vocabulary (`PixelDensity`): each cell a
+    /// muted ground of whole 2-point pixels, lit in the model's colour as sparse dots, a checkerboard, solid with
+    /// holes, or solid by how many tokens it used (no tokens: the plain ground). The cells span the full width, so the
+    /// first sits under the range's start and the last under TODAY; they are as wide as the range allows (seven days
+    /// make wide cells, a long range one-pixel columns), and as tall as an odd number of pixels.
     var activityStrip: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+        let px = theme.stroke(.hairline) * 2
+        let height = Self.stripHeight(theme)
+        return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
             HStack {
                 Text(Copy.ModelsPage.activityTitle).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
                 Spacer()
@@ -168,21 +174,36 @@ struct ModelDossier: View {
                     .foregroundStyle(theme.color(.textSecondary, scheme))
             }
             Canvas { context, size in
-                let px = theme.stroke(.hairline) * 2
-                let count = max(1, activity.count)
-                let pitch = (size.width + px) / CGFloat(count)
-                let gap = pitch >= px * 3 ? px : 0
-                for (i, level) in activity.enumerated() {
-                    let x = (CGFloat(i) * pitch).rounded(), end = (CGFloat(i + 1) * pitch).rounded() - gap
-                    let rect = CGRect(x: x, y: 0, width: max(1, end - x), height: size.height)
-                    let color = level == 0 ? theme.color(.surfaceMuted, scheme) : theme.color(role, scheme).opacity([0.3, 0.55, 0.8, 1][min(3, level - 1)])
-                    context.fill(Path(rect), with: .color(color))
+                let ground = theme.color(.surfaceMuted, scheme), lit = theme.color(role, scheme)
+                for (rect, level) in zip(Self.stripCells(count: activity.count, width: size.width, height: height, px: px), activity) {
+                    context.fill(PixelDensity.pixels(level: 4, in: rect, px: px), with: .color(ground))
+                    if level > 0 { context.fill(PixelDensity.pixels(level: min(level, 4), in: rect, px: px), with: .color(lit)) }
                 }
             }
-            .frame(height: theme.spacing(.spacious))
+            .frame(height: height)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Copy.ModelsPage.activityLabel(entry.name, days: entry.activeDays, weekly: weekly))
+    }
+
+    /// The strip's height: the largest odd number of 2-point pixels within the spacious spacing (18 pt in Phosphor,
+    /// 14 pt in the 16-point themes), so each pattern sits centred top to bottom.
+    static func stripHeight(_ theme: Theme) -> CGFloat {
+        let px = theme.stroke(.hairline) * 2, rows = Int((theme.spacing(.spacious) / px).rounded(.down))
+        return CGFloat(max(1, rows % 2 == 0 ? rows - 1 : rows)) * px
+    }
+
+    /// `count` cells across `width`, on whole pixels of `px` from the left edge: the pixels shared out as evenly as
+    /// whole pixels allow, one pixel between cells while every cell keeps at least one of its own, and none when the
+    /// range is too long for that (then cells touch). The last cell ends within a pixel of the right edge.
+    static func stripCells(count: Int, width: CGFloat, height: CGFloat, px: CGFloat) -> [CGRect] {
+        guard count > 0, px > 0 else { return [] }
+        let total = Int((width / px).rounded(.down))
+        let gap = total + 1 >= count * 2 ? 1 : 0
+        return (0..<count).map { i in
+            let start = i * (total + gap) / count, end = (i + 1) * (total + gap) / count - gap
+            return CGRect(x: CGFloat(start) * px, y: 0, width: CGFloat(max(0, end - start)) * px, height: height)
+        }
     }
 }
 

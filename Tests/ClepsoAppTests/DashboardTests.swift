@@ -134,6 +134,73 @@ struct DashboardTests {
         #expect(try #require(natural.cgImage).height <= front.height)
     }
 
+    @Test("Activity log: one pixel tile a day on whole pixels, thirty weeks inside the card, today last")
+    @MainActor
+    func activityLogGeometry() throws {
+        let px: CGFloat = 2
+        #expect(PixelDensity.tile(fitting: ActivityLog.cell, px: px) == ActivityLog.cell, "the day is a whole tile: an odd number of 2 pt pixels")
+        #expect(PixelDensity.unit(for: ActivityLog.cell, px: px) == px, "2 pt pixels, not hairline ones")
+        for theme in Theme.selectable {
+            let gap = ActivityLog.gap(theme)
+            #expect(gap == (gap / px).rounded() * px, "\(theme.name): the gap is whole pixels, so every day starts on the grid")
+            let width = CGFloat(CardActivity.weeks) * (ActivityLog.cell + gap) - gap
+            #expect(width <= PlayerCardFront.width - theme.spacing(.spacious) * 1.4 * 2, "\(theme.name): \(width) pt fits the card")
+        }
+        let file = try stats()
+        let summary = StatsSummary.make(file, range: .allTime, today: "2026-10-17")
+        let activity = PlayerCard.make(file: file, summary: summary, name: "Elvis", plan: nil).activity
+        let days = activity.columns.joined().compactMap { $0 }
+        #expect(activity.columns.count == CardActivity.weeks && activity.columns.allSatisfy { $0.count == 7 })
+        #expect(days.count == 7 * CardActivity.weeks, "today is a Saturday: thirty full weeks, a tile for each day")
+        #expect(days.last?.date == "2026-10-17")
+        #expect(days.filter { !$0.beforeFirst }.count == activity.days)
+    }
+
+    @Test("The card's exported image draws the pixel tiles: single lit pixels on the muted ground, not flat squares")
+    @MainActor
+    func cardImageHasTiles() throws {
+        PixelFonts.ensureRegistered()
+        let file = try stats()
+        let summary = StatsSummary.make(file, range: .allTime, today: "2026-10-17")
+        let card = PlayerCard.make(file: file, summary: summary, name: "Elvis", plan: nil)
+        let theme = Theme.phosphor
+        for scheme in [ColorScheme.dark, .light] {
+            // As `CardSection.image`: the back, padded on the page background, at 2×.
+            let renderer = ImageRenderer(content: PlayerCardFace(card: card, back: true)
+                .padding(theme.spacing(.spacious)).background(theme.color(.background, scheme))
+                .environment(\.theme, theme).environment(\.colorScheme, scheme))
+            renderer.scale = 2
+            let image = try #require(renderer.cgImage)
+            let w = image.width, h = image.height
+            var pixels = [UInt8](repeating: 0, count: w * h * 4)
+            let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+                guard let ctx = CGContext(data: buffer.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                          space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+                else { return false }
+                ctx.interpolationQuality = .none
+                ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+                return true
+            }
+            #expect(drawn)
+            func matches(_ i: Int, _ rgb: RGB) -> Bool {
+                let want = [rgb.red, rgb.green, rgb.blue].map { Int(($0 * 255).rounded()) }
+                return (0..<3).allSatisfy { abs(Int(pixels[i * 4 + $0]) - want[$0]) <= 3 }
+            }
+            let accent = theme.rgb(.accent, scheme), muted = theme.rgb(.surfaceMuted, scheme)
+            // A lit tile pixel is 4 device pixels at 2×: count runs of exactly four accent pixels with the muted ground
+            // on both sides (level 1's dots, level 2's checkerboard). A flat square is a 30-pixel run: none.
+            var runs = 0
+            for y in 0..<h {
+                var x = 1
+                while x < w - 5 {
+                    let i = y * w + x
+                    if matches(i - 1, muted), (0..<4).allSatisfy({ matches(i + $0, accent) }), matches(i + 4, muted) { runs += 1; x += 4 } else { x += 1 }
+                }
+            }
+            #expect(runs > 40, "\(scheme): \(runs) single lit pixels between ground pixels")
+        }
+    }
+
     @Test("For you: limits and goals first, then a running task, then setup steps; all clear when nothing needs you")
     func forYou() {
         var input = ForYou.Input()
