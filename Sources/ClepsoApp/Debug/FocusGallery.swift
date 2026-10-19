@@ -5,18 +5,23 @@ import SwiftUI
 
 /// Item 9, debug probe only (`-ClepsoProbeFocusGallery YES`): every kind of control the app draws itself, beside the
 /// native ones for comparison, in a window of its own. The probe moves keyboard focus through them with SwiftUI's own
-/// `@FocusState` (no key event is posted) and captures each, so the focus indicator of every style can be seen.
+/// `@FocusState`, then with Tab key events handed to this window, and captures each, so the focus indicator of every
+/// style can be seen and judged (one pixel ring, no system ring).
 @MainActor @Observable
 final class FocusGalleryState {
     /// The control the probe wants focused, and the one SwiftUI reports focused.
     var request: Int?
     var reported: Int?
     var day: String?
+    /// How many pixel focus rings the window draws (`PixelFocusRingCount`): one while a self-drawn control is focused.
+    var rings = 0
+    /// Each control's action, by name, in the order they ran (Space, Return and Escape from the probe's key events).
+    var activations: [String] = []
+    var toggleOn = true
 }
 
 struct FocusGallery: View {
     @Bindable var state: FocusGalleryState
-    @State private var on = true
     @State private var segment = 0
     @State private var text = ""
     @State private var day: String?
@@ -38,12 +43,14 @@ struct FocusGallery: View {
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
             HStack(spacing: theme.spacing(.spacious)) {
-                Button("Secondary") {}.buttonStyle(PixelButtonStyle()).focused($focused, equals: 0)
-                Button("Primary") {}.buttonStyle(PixelButtonStyle(prominent: true)).focused($focused, equals: 1)
-                Button("Delete") {}.buttonStyle(PixelButtonStyle(destructive: true)).focused($focused, equals: 2)
-                Button("Quit") {}.buttonStyle(PixelQuietButtonStyle()).focused($focused, equals: 3)
+                // Escape and Return reach these through their shortcuts, as in the app's sheets and onboarding.
+                Button("Secondary") { ran(0) }.keyboardShortcut(.cancelAction).buttonStyle(PixelButtonStyle()).focused($focused, equals: 0)
+                Button("Primary") { ran(1) }.buttonStyle(PixelButtonStyle(prominent: true)).keyboardShortcut(.defaultAction)
+                    .focused($focused, equals: 1)
+                Button("Delete") { ran(2) }.buttonStyle(PixelButtonStyle(destructive: true)).focused($focused, equals: 2)
+                Button("Quit") { ran(3) }.buttonStyle(PixelQuietButtonStyle()).focused($focused, equals: 3)
             }
-            Button {} label: {
+            Button { ran(4) } label: {
                 Text("Plain row (sidebar, limit card, chip)").font(theme.font(.label))
                     .foregroundStyle(theme.color(.textPrimary, scheme))
                     .padding(theme.spacing(.standard))
@@ -51,7 +58,7 @@ struct FocusGallery: View {
             }
             .buttonStyle(PixelPlainButtonStyle())
             .focused($focused, equals: 4)
-            Toggle("Alerts", isOn: $on).toggleStyle(PixelToggleStyle()).focused($focused, equals: 5)
+            Toggle("Alerts", isOn: $state.toggleOn).toggleStyle(PixelToggleStyle()).focused($focused, equals: 5)
             PixelSegmented("Range", options: [(0, "All time"), (1, "30 days"), (2, "7 days")], selection: $segment)
                 .focused($focused, equals: 6)
             TextField("Name", text: $text).textFieldStyle(.roundedBorder).focused($focused, equals: 7)
@@ -65,6 +72,9 @@ struct FocusGallery: View {
         .onChange(of: state.request) { focused = state.request }
         .onChange(of: day) { state.day = day }
         .onChange(of: focused) { state.reported = focused }
+        .onPreferenceChange(PixelFocusRingCount.self) { [state] rings in MainActor.assumeIsolated { state.rings = rings } }
     }
+
+    private func ran(_ index: Int) { state.activations.append(Self.names[index]) }
 }
 #endif

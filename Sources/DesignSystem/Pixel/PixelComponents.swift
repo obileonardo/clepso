@@ -221,7 +221,15 @@ public struct PixelFocusRing: ViewModifier {
                     .accessibilityHidden(true)
             }
         }
+        .transformPreference(PixelFocusRingCount.self) { $0 += focused ? 1 : 0 }
     }
+}
+
+/// How many pixel focus rings a view tree draws right now. The focus-gallery probe checks it is exactly one while a
+/// self-drawn control holds focus (a style whose focus signal never turns true draws none).
+public struct PixelFocusRingCount: PreferenceKey {
+    public static let defaultValue = 0
+    public static func reduce(value: inout Int, nextValue: () -> Int) { value += nextValue() }
 }
 
 extension View {

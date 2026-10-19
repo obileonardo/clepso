@@ -1,6 +1,7 @@
 #if DEBUG
 import AppKit
 import enum Domain.Product
+import ImageIO
 import OSLog
 import SwiftUI
 
@@ -34,10 +35,12 @@ enum ProbeOverrides {
 /// Item 9 (keyboard and Reduce Motion): `-ClepsoProbeReduceMotion YES` runs every window as if Reduce Motion were on
 /// (`ProbeOverrides`); `-ClepsoProbeAX YES` pauses on every captured page until `scripts/probe-ax.swift` has read the
 /// accessibility tree (read-only); `-ClepsoProbeFlipFrames YES` captures the player card mid-flip;
-/// `-ClepsoProbeFocusGallery YES` focuses each self-drawn control through `@FocusState` and captures it. No key event
-/// is ever posted. (Buttons take focus only while the Mac's Keyboard navigation setting is on, which the probe
-/// cannot turn on for itself: neither an `-AppleKeyboardUIMode` argument nor answering `isFullKeyboardAccessEnabled`
-/// makes SwiftUI focus them, and `selectNextKeyView` does not move SwiftUI's focus.)
+/// `-ClepsoProbeFocusGallery YES` focuses each self-drawn control through `@FocusState`, then by Tab, Shift-Tab, Space,
+/// Return and Escape, captures each and writes a verdict (see `focusGallery`). Key events are handed to the probe's own
+/// windows in process (`NSApp.sendEvent`); none is ever posted to the system. (Buttons take focus only while the
+/// Mac's Keyboard navigation setting is on, which the probe cannot turn on for itself: neither an
+/// `-AppleKeyboardUIMode` argument nor answering `isFullKeyboardAccessEnabled` makes SwiftUI focus them, and
+/// `selectNextKeyView` does not move SwiftUI's focus; a Tab key event does.)
 @MainActor
 enum PopoverProbe {
     static let signposter = OSSignposter(subsystem: "com.elvisobi.clepso", category: "popover")
@@ -280,8 +283,11 @@ enum PopoverProbe {
         for _ in 0..<100 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(50)) }
     }
 
-    /// Each self-drawn control focused in turn through `@FocusState` (`FocusGallery`), captured, and whether SwiftUI
-    /// reports it focused.
+    /// Each self-drawn control focused in turn through `@FocusState` (`FocusGallery`), captured, and judged: exactly one
+    /// pixel ring (`PixelFocusRingCount`) and no system focus ring (pixels of the system's focus colour in the capture).
+    /// Then the same window driven by key events handed to it in process (`NSApp.sendEvent`, nothing is posted to the
+    /// system): Tab through every control, Shift-Tab back, Space, Return and Escape; then Tab on the Dashboard's Home.
+    /// Ends with `focus gallery verdict: PASS` or `FAIL <controls>` (controls that did not take focus are not judged).
     static func focusGallery(_ model: AppModel, _ recorder: Recorder, _ folder: URL) async {
         let state = FocusGalleryState()
         let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable], backing: .buffered, defer: false)
@@ -292,16 +298,158 @@ enum PopoverProbe {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         try? await Task.sleep(for: .milliseconds(600))
+        let hue = systemFocusHue()
+        recorder.log("focus gallery: system focus ring hue \(Int(hue))°")
+        var failures: [String] = [], judged = 0
+        /// Key events reach the window only while it is key; another app taking over mid-run is noted and undone.
+        func keepKey(_ step: String) {
+            guard !window.isKeyWindow else { return }
+            recorder.log("\(step): the gallery window had lost key status (another app activated); made key again")
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+        }
+        /// Captures the window and judges what it shows for the control SwiftUI reports focused.
+        func judge(_ capture: String, _ wanted: Int?) {
+            let shot = shoot(window, folder, capture)
+            let system = systemRingPixels(folder.appendingPathComponent("\(capture).png"), hue: hue)
+            let name = state.reported.map { FocusGallery.names[$0] } ?? "none"
+            var line = "\(capture): focused \(name), pixel rings \(state.rings), system-ring pixels \(system)"
+            if !window.isKeyWindow {
+                failures.append(capture)
+                line += " · WRONG (the window was not key, so this capture proves nothing; run again)"
+            } else if let reported = state.reported, wanted == nil || wanted == reported {
+                let native = FocusGallery.names[reported] == "native-textfield"
+                let ok = native ? state.rings == 0 : state.rings == 1 && system < systemRingThreshold
+                if !native { judged += 1 }
+                if !ok { failures.append(capture) }
+                line += ok ? " · ok" : " · WRONG (want \(native ? "the system ring only" : "one pixel ring, no system ring"))"
+            } else if wanted != nil && NSApp.isFullKeyboardAccessEnabled {
+                failures.append(capture)                 // with Keyboard navigation on, every control takes focus
+                line += " · WRONG (did not take focus)"
+            } else {
+                line += " · not judged (wanted \(wanted.map { FocusGallery.names[$0] } ?? "any"))"
+            }
+            recorder.log(line)
+            recorder.log(shot)
+        }
         for (index, name) in FocusGallery.names.enumerated() {
+            keepKey("focus-\(index)")
             state.request = index
             try? await Task.sleep(for: .milliseconds(400))
-            recorder.log("focus gallery \(name): requested \(index), focused \(state.reported.map(String.init) ?? "none")")
             if name == "calendar" {                // what a first arrow does, through the same function the view calls
                 recorder.log("calendar: first arrow chooses \(FocusGallery.grid.day(from: nil, weeks: 1) ?? "none")")
             }
-            recorder.log(shoot(window, folder, "focus-\(index)-\(name)"))
+            judge("focus-\(index)-\(name)", index)
         }
+
+        // Real key events through the window's own event path: Tab from no focus through every control, Shift-Tab back.
+        state.request = nil
+        try? await Task.sleep(for: .milliseconds(300))
+        window.makeFirstResponder(window.contentView)
+        var order: [String] = []
+        for step in 1...13 {
+            keepKey("tab-\(step)")
+            press(window, key: 48, "\t")
+            try? await Task.sleep(for: .milliseconds(300))
+            order.append(state.reported.map { FocusGallery.names[$0] } ?? "none")
+            judge("tab-\(step)", nil)
+        }
+        keepKey("tab-shift-back")
+        press(window, key: 48, "\u{19}", shift: true)
+        try? await Task.sleep(for: .milliseconds(300))
+        judge("tab-shift-back", nil)
+        recorder.log("tab order: \(order.joined(separator: " → "))")
+        // Every control once, in reading order (the segmented control is a stop per option), then round to the first.
+        let expected = FocusGallery.names.flatMap { $0 == "pixel-segmented" ? [$0, $0, $0] : [$0] } + [FocusGallery.names[0]]
+        if order != expected { failures.append("tab-order") }
+        if state.reported != FocusGallery.names.firstIndex(of: "calendar") { failures.append("tab-shift-back") }
+
+        // Space activates the focused button and switch; Return and Escape reach the default and cancel buttons.
+        func key(_ code: UInt16, _ characters: String, focus: Int, _ what: String, expect: String, flips: Bool = false) async {
+            state.request = focus
+            try? await Task.sleep(for: .milliseconds(300))
+            keepKey(what)
+            let before = state.activations.count, wasOn = state.toggleOn
+            press(window, key: code, characters)
+            try? await Task.sleep(for: .milliseconds(300))
+            let ran = state.activations.dropFirst(before).joined(separator: ",")
+            let ok = ran == expect && (wasOn != state.toggleOn) == flips
+            if !ok { failures.append("\(what)-\(FocusGallery.names[focus])") }
+            recorder.log("\(what) with \(FocusGallery.names[focus]) focused: ran [\(ran)]\(wasOn != state.toggleOn ? ", switch turned \(state.toggleOn ? "on" : "off")" : "")\(ok ? " · ok" : " · WRONG")")
+        }
+        await key(49, " ", focus: 0, "Space", expect: "pixel-button")
+        await key(49, " ", focus: 4, "Space", expect: "plain-row")
+        await key(49, " ", focus: 5, "Space", expect: "", flips: true)
+        await key(36, "\r", focus: 3, "Return", expect: "pixel-prominent")          // the default button, from anywhere
+        await key(53, "\u{1b}", focus: 3, "Escape", expect: "pixel-button")        // the cancel button
         window.close()
+
+        // The Dashboard's Home page, Tab by Tab from the sidebar, captured (judged by system-ring pixels only).
+        model.detailsSection = .home
+        if let details = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }) {
+            details.makeKeyAndOrderFront(nil)
+            details.makeFirstResponder(details.contentView)
+            try? await Task.sleep(for: .milliseconds(600))
+            for step in 1...12 {
+                if !details.isKeyWindow {
+                    recorder.log("details-tab-\(step): the Dashboard had lost key status; made key again")
+                    NSApp.activate(ignoringOtherApps: true)
+                    details.makeKeyAndOrderFront(nil)
+                }
+                press(details, key: 48, "\t")
+                try? await Task.sleep(for: .milliseconds(300))
+                let capture = "details-tab-\(step)"
+                let shot = shoot(details, folder, capture)
+                recorder.log("\(capture): system-ring pixels \(systemRingPixels(folder.appendingPathComponent("\(capture).png"), hue: hue))")
+                recorder.log(shot)
+            }
+        }
+        recorder.log(failures.isEmpty ? "focus gallery verdict: PASS (\(judged) judged)" : "focus gallery verdict: FAIL \(failures.joined(separator: " "))")
+    }
+
+    /// A key press (down and up) handed to `window` through the app's own event dispatch; nothing is posted to the system.
+    static func press(_ window: NSWindow, key: UInt16, _ characters: String, shift: Bool = false) {
+        for type in [NSEvent.EventType.keyDown, .keyUp] {
+            guard let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: shift ? .shift : [],
+                                               timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                                               context: nil, characters: characters, charactersIgnoringModifiers: characters,
+                                               isARepeat: false, keyCode: key) else { continue }
+            NSApp.sendEvent(event)
+        }
+    }
+
+    /// More pixels than this of the system's focus colour in a capture means its rounded ring is showing.
+    static let systemRingThreshold = 40
+
+    /// The hue (degrees) of the system's keyboard focus ring, which follows the Mac's accent colour.
+    static func systemFocusHue() -> CGFloat {
+        (NSColor.keyboardFocusIndicatorColor.usingColorSpace(.sRGB)?.hueComponent ?? 0.58) * 360
+    }
+
+    /// Pixels in a capture that are saturated, bright enough and within 14° of `hue`: the system focus ring.
+    static func systemRingPixels(_ url: URL, hue: CGFloat) -> Int {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil), let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+              let space = CGColorSpace(name: CGColorSpace.sRGB) else { return -1 }
+        let width = image.width, height = image.height
+        var bytes = [UInt8](repeating: 0, count: width * height * 4)
+        let drawn = bytes.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                          space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        guard drawn else { return -1 }
+        var count = 0
+        for i in stride(from: 0, to: bytes.count, by: 4) {
+            let r = CGFloat(bytes[i]) / 255, g = CGFloat(bytes[i + 1]) / 255, b = CGFloat(bytes[i + 2]) / 255
+            let high = max(r, g, b), low = min(r, g, b), range = high - low
+            guard high > 0.25, range / high > 0.4 else { continue }
+            var h: CGFloat = high == r ? (g - b) / range : high == g ? 2 + (b - r) / range : 4 + (r - g) / range
+            h = (h * 60 + 360).truncatingRemainder(dividingBy: 360)
+            let distance = abs(h - hue)
+            if min(distance, 360 - distance) < 14 { count += 1 }
+        }
+        return count
     }
 
     /// The player card turning over, captured as fast as the screenshot tool allows (about every 100 ms): with Reduce
