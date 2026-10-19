@@ -138,49 +138,32 @@ func waitUntil(timeout: Double = 2, _ condition: () -> Bool) throws {
     }
 }
 
-/// ARCHITECTURE §3 budget: shim-added overhead ≤ 20 ms p95, ≤ 50 ms max, measured baseline-relative.
-/// Opt-in because it spawns 600 processes: `CLEPSO_PERF=1 swift test -c release --filter Overhead`.
+/// ARCHITECTURE §3 budget: shim-added overhead ≤ 20 ms p95, ≤ 50 ms max, measured against a `/bin/sh -c` baseline.
+/// Opt-in because it times 1,260 launches: `make perf` (`CLEPSO_PERF=1 swift test -c release --filter Overhead`).
+///
+/// Each round runs the baseline, the helper with the app absent and the helper with the app present once, in a shuffled
+/// order, and the overhead is each helper run minus its own round's baseline. Pairing is what makes the number mean
+/// something on a busy Mac: load that comes and goes over seconds hits both halves of a pair, so it cancels instead of
+/// landing on whichever path happened to run during it (comparing the p95s of separately timed loops went negative).
+/// A stall inside a helper run still counts against the helper, so the estimate errs high, never low.
+/// The ≤ 50 ms max is reported, not asserted: on a shared Mac any launch, the baseline's included, now and then stalls
+/// for ~70 ms; inside the helper the frame path is cut off at 48 ms by construction (§3).
 @Suite("Overhead budget", .serialized, .enabled(if: ProcessInfo.processInfo.environment["CLEPSO_PERF"] == "1"))
 struct OverheadTests {
-    @Test("200 interleaved runs: baseline, app absent, app present")
+    static let rounds = 200
+    static let warmUpRounds = 10                       // first launches pay for cold caches; not timed
+    static let p95BudgetMs = 20.0
+
+    @Test("200 paired rounds: baseline, app absent, app present")
     func overhead() throws {
-        let h = try ShimHarness(); defer { h.cleanUp() }
-        try h.writeConfig(originalCommand: "cat >/dev/null")
-        let baselineShell = URL(fileURLWithPath: "/bin/sh")
-        let runs = 200
-        var baseline: [Double] = [], absent: [Double] = [], present: [Double] = []
-
-        for _ in 0..<runs {
-            baseline.append(try h.run(stdin: f08Stdin, executable: baselineShell, arguments: ["-c", "cat >/dev/null"]).seconds)
-            absent.append(try h.run(stdin: f08Stdin, realBudget: true).seconds)
-        }
-        let agent = try FakeAgent(path: h.socketPath, mode: .readAll); defer { agent.stop() }
-        for _ in 0..<runs { present.append(try h.run(stdin: f08Stdin, realBudget: true).seconds) }
-
-        func ms(_ values: [Double], _ q: Double) -> Double {
-            let sorted = values.sorted()
-            return sorted[min(sorted.count - 1, Int(Double(sorted.count) * q))] * 1000
-        }
-        let rows = [("baseline (/bin/sh -c only)", baseline), ("helper, app absent", absent), ("helper, app present", present)]
-        print("OVERHEAD runs=\(runs)")
-        for (name, values) in rows {
-            print(String(format: "OVERHEAD %-28@ p50 %6.2f ms  p95 %6.2f ms  max %6.2f ms", name as NSString,
-                         ms(values, 0.5), ms(values, 0.95), ms(values, 1.0)))
-        }
-        for (name, values) in rows.dropFirst() {
-            let p95Overhead = ms(values, 0.95) - ms(baseline, 0.95)
-            print(String(format: "OVERHEAD %@: p95 overhead %.2f ms", name, p95Overhead))
-            #expect(p95Overhead <= 20, "\(name) p95 overhead \(p95Overhead) ms exceeds 20 ms")
-        }
-        #expect(agent.frames.count == runs, "every app-present run should deliver one frame (got \(agent.frames.count))")
+        // The helper drops a frame it could not build within 10 ms of starting (§3 step 3).
+        try Self.measure(name: "status line", stdin: f08Stdin, arguments: [], originalCommand: "cat >/dev/null", dropDeadlineMs: 10)
     }
 
     /// Hook mode (sheet item 9 added the background counts): a `Stop` with 40 in-flight background tasks, against the
     /// same baseline. The helper runs async in Claude Code, but the budget is the same.
-    @Test("200 interleaved hook-mode runs: baseline, app absent, app present")
+    @Test("200 paired hook-mode rounds: baseline, app absent, app present")
     func hookOverhead() throws {
-        let h = try ShimHarness(); defer { h.cleanUp() }
-        try h.writeConfig(originalCommand: nil)
         let tasks = (0..<40).map { i -> [String: Any] in
             ["id": "task-\(i)", "type": ["shell", "subagent", "monitor", "MCP task"][i % 4], "status": i % 5 == 0 ? "pending" : "running",
              "description": String(repeating: "d", count: 1000), "command": String(repeating: "c", count: 1000), "agent_type": "general-purpose"]
@@ -188,33 +171,75 @@ struct OverheadTests {
         let event: [String: Any] = ["session_id": "perf-session", "hook_event_name": "Stop", "transcript_path": "/tmp/t.jsonl", "cwd": "/tmp",
                                     "last_assistant_message": String(repeating: "r", count: 20_000), "stop_hook_active": false,
                                     "background_tasks": tasks, "session_crons": []]
-        let stdin = try JSONSerialization.data(withJSONObject: event)
-        let baselineShell = URL(fileURLWithPath: "/bin/sh")
-        let runs = 200
-        var baseline: [Double] = [], absent: [Double] = [], present: [Double] = []
-        for _ in 0..<runs {
-            baseline.append(try h.run(stdin: stdin, executable: baselineShell, arguments: ["-c", "cat >/dev/null"]).seconds)
-            absent.append(try h.run(stdin: stdin, arguments: ["--hook"], realBudget: true).seconds)
-        }
-        let agent = try FakeAgent(path: h.socketPath, mode: .readAll); defer { agent.stop() }
-        for _ in 0..<runs { present.append(try h.run(stdin: stdin, arguments: ["--hook"], realBudget: true).seconds) }
+        // Hook mode has no parse deadline: it drops a frame only when connecting takes longer than 20 ms.
+        try Self.measure(name: "hook", stdin: try JSONSerialization.data(withJSONObject: event), arguments: ["--hook"],
+                         originalCommand: nil, dropDeadlineMs: 20)
+    }
 
-        func ms(_ values: [Double], _ q: Double) -> Double {
-            let sorted = values.sorted()
-            return sorted[min(sorted.count - 1, Int(Double(sorted.count) * q))] * 1000
+    /// `dropDeadlineMs`: the shortest real-time deadline whose miss makes the helper drop its frame. A run faster than
+    /// that cannot have missed it, so a frame lost by such a run is a delivery bug, not the by-design gap under load.
+    static func measure(name: String, stdin: Data, arguments: [String], originalCommand: String?, dropDeadlineMs: Double) throws {
+        // Two homes with the same config: one's socket path is never bound (the app is not running), the other's has a
+        // listener for the whole test, so absent and present runs can alternate.
+        let absentHome = try ShimHarness(); defer { absentHome.cleanUp() }
+        let presentHome = try ShimHarness(); defer { presentHome.cleanUp() }
+        try absentHome.writeConfig(originalCommand: originalCommand)
+        try presentHome.writeConfig(originalCommand: originalCommand)
+        let agent = try FakeAgent(path: presentHome.socketPath, mode: .readAll); defer { agent.stop() }
+        let shell = URL(fileURLWithPath: "/bin/sh")
+
+        var baseline: [Double] = [], absent: [Double] = [], present: [Double] = [], droppedMs: [Double] = []
+        for round in 0..<(warmUpRounds + rounds) {
+            var times = [0.0, 0.0, 0.0]
+            for path in [0, 1, 2].shuffled() {
+                switch path {
+                case 0: times[0] = try absentHome.run(stdin: stdin, executable: shell, arguments: ["-c", "cat >/dev/null"]).seconds
+                case 1: times[1] = try absentHome.run(stdin: stdin, arguments: arguments, realBudget: true).seconds
+                default:
+                    let before = agent.frames.count
+                    times[2] = try presentHome.run(stdin: stdin, arguments: arguments, realBudget: true).seconds
+                    // The agent reads on its own thread, after the helper has exited: wait for it instead of racing it.
+                    if !agent.waitForFrames(before + 1, timeout: 1), round >= warmUpRounds { droppedMs.append(times[2] * 1000) }
+                }
+            }
+            guard round >= warmUpRounds else { continue }
+            baseline.append(times[0]); absent.append(times[1]); present.append(times[2])
         }
-        let rows = [("hook baseline (/bin/sh -c)", baseline), ("hook, app absent", absent), ("hook, app present", present)]
-        print("OVERHEAD hook mode runs=\(runs) stdin=\(stdin.count) bytes")
-        for (name, values) in rows {
-            print(String(format: "OVERHEAD %-28@ p50 %6.2f ms  p95 %6.2f ms  max %6.2f ms", name as NSString,
-                         ms(values, 0.5), ms(values, 0.95), ms(values, 1.0)))
+
+        var load = [0.0, 0.0, 0.0]
+        getloadavg(&load, 3)
+        print(String(format: "OVERHEAD %@ rounds=%d stdin=%d bytes, load %.1f %.1f %.1f", name, rounds, stdin.count, load[0], load[1], load[2]))
+        let rows = [("\(name) baseline (/bin/sh -c)", baseline), ("\(name) helper, app absent", absent), ("\(name) helper, app present", present)]
+        for (label, seconds) in rows {
+            let ms = seconds.map { $0 * 1000 }
+            print(String(format: "OVERHEAD %-36@ p50 %6.2f ms  p95 %6.2f ms  max %6.2f ms", label as NSString,
+                         quantile(ms, 0.5), quantile(ms, 0.95), quantile(ms, 1)))
         }
-        for (name, values) in rows.dropFirst() {
-            let p95Overhead = ms(values, 0.95) - ms(baseline, 0.95)
-            print(String(format: "OVERHEAD %@: p95 overhead %.2f ms", name, p95Overhead))
-            #expect(p95Overhead <= 20, "\(name) p95 overhead \(p95Overhead) ms exceeds 20 ms")
+        // When the baseline alone spreads by more than the budget, the Mac is too busy for any verdict on the helper.
+        let baselineMs = baseline.map { $0 * 1000 }
+        let spread = quantile(baselineMs, 0.95) - quantile(baselineMs, 0.5)
+        let busy = spread > p95BudgetMs
+            ? String(format: "; the baseline alone spreads %.1f ms (p50 to p95, load %.1f): too busy to measure, rerun on a quiet Mac", spread, load[0]) : ""
+        for (label, seconds) in rows.dropFirst() {
+            let added = zip(seconds, baseline).map { ($0 - $1) * 1000 }
+            let p95 = quantile(added, 0.95)
+            print(String(format: "OVERHEAD %@: added p50 %.2f  p95 %.2f  max %.2f ms (paired); %d of %d rounds over 50 ms", label,
+                         quantile(added, 0.5), p95, quantile(added, 1), added.filter { $0 > 50 }.count, rounds))
+            #expect(p95 <= p95BudgetMs, "\(label): paired p95 overhead \(p95) ms exceeds \(p95BudgetMs) ms\(busy)")
         }
-        #expect(agent.frames.count == runs, "every app-present run should deliver one frame (got \(agent.frames.count))")
+
+        // Under the real budget a frame may be dropped (an honest gap, §3 step 4), but only by a run slow enough to have
+        // missed a deadline, and rarely: more than 1% means the frame path no longer fits its budget on this Mac.
+        let droppedBy = droppedMs.isEmpty ? "" : "; dropped by runs of " + droppedMs.map { String(format: "%.1f ms", $0) }.joined(separator: ", ")
+        print("OVERHEAD \(name): frames delivered \(rounds - droppedMs.count) of \(rounds)\(droppedBy)")
+        #expect(droppedMs.allSatisfy { $0 >= dropDeadlineMs }, "\(name): a run under \(dropDeadlineMs) ms dropped its frame: \(droppedMs)")
+        #expect(droppedMs.count <= rounds / 100, "\(name): \(droppedMs.count) of \(rounds) app-present runs dropped their frame")
+    }
+
+    /// Nearest-rank quantile; `q == 1` is the maximum.
+    static func quantile(_ values: [Double], _ q: Double) -> Double {
+        let sorted = values.sorted()
+        return sorted[min(sorted.count - 1, Int(Double(sorted.count) * q))]
     }
 }
 

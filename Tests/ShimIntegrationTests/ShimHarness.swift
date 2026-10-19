@@ -135,6 +135,16 @@ final class FakeAgent: @unchecked Sendable {
 
     var frames: [Data] { lock.withLock { received } }
 
+    /// Whether `count` connections have been read within `timeout` seconds. Records no issue: callers decide.
+    func waitForFrames(_ count: Int, timeout: Double) -> Bool {
+        let deadline = DispatchTime.now().uptimeNanoseconds + UInt64(timeout * 1e9)
+        while frames.count < count {
+            if DispatchTime.now().uptimeNanoseconds > deadline { return false }
+            usleep(500)
+        }
+        return true
+    }
+
     func stop() {
         close(fd)
         lock.withLock { held.forEach { close($0) } }

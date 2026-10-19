@@ -74,7 +74,8 @@ with its own read time, because the status-line payload carries no timestamp.
 5. If the user had no status line, print Clepso's own one-line summary instead.
 
 Signals (`SIGTERM`, `SIGINT`, `SIGHUP`) are forwarded to the child. The budget is enforced on the maintainer's Mac by
-`make perf`: helper overhead at most 20 ms p95 over 200 release-build runs.
+`make perf`: helper overhead at most 20 ms p95 over 200 release-build rounds, each helper run timed against a
+`/bin/sh -c` baseline run in the same round.
 
 **Listener** (`IngestSocket`): accepts on a private serial queue, checks the peer's user id, applies a 20 frames/s
 token bucket, reads at most 4 KiB with a 100 ms timeout, decodes, and publishes frames on an `AsyncStream`. Counters
