@@ -104,8 +104,10 @@ public struct HooksInstaller: Sendable {
         // Backup and the hook script before settings.json is touched.
         let h0 = FileOps.sha256(original.bytes)
         try FileOps.ensureRealDirectory(paths.backupsDir, mode: 0o700)
-        let backup = paths.backupsDir.appendingPathComponent("settings.json.\(FileOps.basicISO8601(now())).\(h0.prefix(12)).pre-hooks.bak")
-        try FileOps.writeExclusive(backup, bytes: original.bytes, mode: 0o600)
+        let stem = "settings.json.\(FileOps.basicISO8601(now())).\(h0.prefix(12)).pre-hooks"
+        guard let backup = try FileOps.writeBackup(original.bytes, in: paths.backupsDir, stem: stem) else {
+            throw InstallError.io("no free backup name")
+        }
         try writeScript()
 
         let hooks = originalObject["hooks"] as? [String: Any]

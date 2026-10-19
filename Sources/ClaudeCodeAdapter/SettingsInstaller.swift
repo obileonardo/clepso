@@ -247,9 +247,10 @@ public struct SettingsInstaller: Sendable {
         let h0 = original.map { FileOps.sha256($0.bytes) }
         var backupPath: String?
         if let original, let h0 {
-            let stamp = FileOps.basicISO8601(now())
-            let backup = paths.backupsDir.appendingPathComponent("settings.json.\(stamp).\(h0.prefix(12)).bak")
-            try FileOps.writeExclusive(backup, bytes: original.bytes, mode: 0o600)
+            let stem = "settings.json.\(FileOps.basicISO8601(now())).\(h0.prefix(12))"
+            guard let backup = try FileOps.writeBackup(original.bytes, in: paths.backupsDir, stem: stem) else {
+                throw InstallError.io("no free backup name")
+            }
             backupPath = backup.path
         }
         try appendManifest(hash: h0, mode: original?.mode, size: original?.bytes.count, createdByClepso: original == nil)
@@ -537,6 +538,23 @@ enum FileOps {
     static func readBytes(_ url: URL) -> [UInt8]? {
         guard let contents = try? readNoFollow(url) else { return nil }   // try? flattens: missing file is nil too
         return contents.bytes
+    }
+
+    /// A backup of `bytes` in `directory` (exclusive create, 0600), named `<stem>.bak`. The stem carries a one-second
+    /// stamp and the bytes' hash, so turning a feature off and on again within a second, with the file unchanged, names
+    /// the same backup: an existing one with exactly these bytes is reused, otherwise the next free `<stem>.<n>.bak`.
+    /// Never overwrites a file. nil when no name is free.
+    static func writeBackup(_ bytes: [UInt8], in directory: URL, stem: String) throws -> URL? {
+        for attempt in 0..<100 {
+            let url = directory.appendingPathComponent(attempt == 0 ? "\(stem).bak" : "\(stem).\(attempt).bak")
+            if let existing = try readNoFollow(url) {
+                if existing.bytes == bytes { return url }
+                continue
+            }
+            try writeExclusive(url, bytes: bytes, mode: 0o600)
+            return url
+        }
+        return nil
     }
 
     static func writeExclusive(_ url: URL, bytes: [UInt8], mode: mode_t) throws {

@@ -100,6 +100,36 @@ struct HooksInstallerTests {
         #expect(box.bytes(box.settings).map { String(decoding: $0, as: UTF8.self) } == expected)
     }
 
+    @Test("Off, on and off again within one second: each install backs up, and every removal is byte-exact")
+    func offOnOffSameSecond() throws {
+        let box = try Sandbox(settingsFixture: "plain.json"); defer { box.cleanUp() }
+        _ = try box.installer().install()
+        let withStatusLine = try #require(box.bytes(box.settings))
+        let installer = hooks(box)                          // one fixed clock: every step lands in the same second
+
+        try installer.install()
+        let first = try #require(installer.loadRecord()?.backupPath)
+        #expect(try installer.uninstall() == .restoredExactly)
+        #expect(box.bytes(box.settings) == withStatusLine)
+
+        // Same second, same bytes, so the same backup name: before the fix this threw `io("create …: errno 17")`.
+        try installer.install()
+        #expect(installer.loadRecord()?.backupPath == first, "the identical backup is reused, not duplicated")
+        #expect(try installer.uninstall() == .restoredExactly)
+        #expect(box.bytes(box.settings) == withStatusLine, "not byte-identical after the second removal")
+
+        // A file of that name with other bytes is never overwritten or trusted: the next free name is used instead.
+        try Data("not the backup\n".utf8).write(to: URL(fileURLWithPath: first))
+        try installer.install()
+        let third = try #require(installer.loadRecord()?.backupPath)
+        #expect(third != first && third.hasSuffix(".pre-hooks.1.bak"))
+        #expect(box.bytes(URL(fileURLWithPath: third)) == withStatusLine && box.mode(URL(fileURLWithPath: third)) == 0o600)
+        #expect(box.bytes(URL(fileURLWithPath: first)).map { String(decoding: $0, as: UTF8.self) } == "not the backup\n")
+        #expect(try installer.uninstall() == .restoredExactly)
+        #expect(box.bytes(box.settings) == withStatusLine)
+        #expect(!installer.isInstalled)
+    }
+
     @Test("Removal after the user deleted Clepso's entries by hand changes nothing")
     func alreadyGone() throws {
         let box = try Sandbox(); defer { box.cleanUp() }

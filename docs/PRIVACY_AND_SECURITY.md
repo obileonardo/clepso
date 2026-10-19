@@ -241,7 +241,9 @@ Install (`Sources/ClaudeCodeAdapter/SettingsInstaller.swift`):
 1. Read the bytes and their SHA-256. Refuse if the file is not valid JSON, or if an existing `statusLine` is not a
    command Clepso can wrap.
 2. Back the bytes up to `~/.claude/clepso-backups/` (0600, exclusive create, no symlinks) and append to
-   `manifest.jsonl`.
+   `manifest.jsonl`. The name carries the second and the bytes' hash; when turning a connection off and on again within
+   one second names an existing backup, it is reused only if its bytes are identical, else the next free name
+   (`….1.bak`) is used, and no backup is ever overwritten. The same rule applies to the hooks' and the mod's backups.
 3. Write the original `statusLine` verbatim to `~/.claude/clepso/original-statusline.json` (0600) and the wrapper
    `~/.claude/clepso/statusline.sh` (0700): it runs the helper if it exists, otherwise the original command (or exits 0
    if there was none).

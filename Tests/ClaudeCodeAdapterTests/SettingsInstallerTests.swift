@@ -230,6 +230,29 @@ struct SettingsInstallerTests {
         }
     }
 
+    @Test("Disconnect and connect again within one second: each install backs up, and every uninstall is byte-exact")
+    func offOnOffSameSecond() throws {
+        let box = try Sandbox(settingsFixture: "plain.json"); defer { box.cleanUp() }
+        let original = try #require(box.bytes(box.settings))
+
+        let first = try #require(try box.installer().install().backupPath)    // one fixed clock: the same second throughout
+        #expect(try box.installer().uninstall() == .restoredExactly)
+        #expect(box.bytes(box.settings) == original)
+
+        // Same second, same bytes, so the same backup name: before the fix this threw `io("create …: errno 17")`.
+        #expect(try box.installer().install().backupPath == first, "the identical backup is reused, not duplicated")
+        #expect(try box.installer().uninstall() == .restoredExactly)
+        #expect(box.bytes(box.settings) == original, "not byte-identical after the second uninstall")
+
+        // A file of that name with other bytes is never overwritten or trusted: the next free name is used instead.
+        try Data("not the backup\n".utf8).write(to: URL(fileURLWithPath: first))
+        let third = try #require(try box.installer().install().backupPath)
+        #expect(third != first && third.hasSuffix(".1.bak"))
+        #expect(box.bytes(URL(fileURLWithPath: third)) == original && box.mode(URL(fileURLWithPath: third)) == 0o600)
+        #expect(try box.installer().uninstall() == .restoredExactly)
+        #expect(box.bytes(box.settings) == original)
+    }
+
     @Test("A second install is refused while one is recorded")
     func alreadyInstalled() throws {
         let box = try Sandbox(settingsFixture: "plain.json"); defer { box.cleanUp() }
