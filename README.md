@@ -87,14 +87,17 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
   </picture>
 </p>
 
-- **Home**: what needs attention now (limits, goals, a running task), both limits, the last 30 days, your level.
+- **Home**: what needs attention now (limits, goals, a running task), both limits, the last 30 days, your level; after
+  an update, a one-time "What's new" card (compiled into the app, no network).
 - **Limits**: each limit charted over its own window, with 80/95% bands, "now", and the dashed pace estimate
   (Claude Code's, and Codex's when that is on).
 - **Session**: recent sessions, the selected session's details, agents per task, usage by model.
 - **Overview** and **Models**: a year activity calendar, tokens per day (Claude Code and Codex), streaks, model shares,
   and a "model arena" with levels earned from output tokens (*opt-in*: reads Claude Code's statistics file).
 - **Card**: a shareable pixel "player card" (copy image, save PNG, share). Nothing is sent unless you share it.
+  In releases from v0.2 (v0.1.0-alpha.1 hid it).
 - **Goals**: active days per week, keep the 5-hour peak under a target, finish the week under a target; streaks.
+  In releases from v0.2 (v0.1.0-alpha.1 hid it).
 - **Account**: profile name, chosen plan, optional sign-in (see [Optional accounts backend](#optional-accounts-backend)).
 - **Settings**: appearance (System / Light / Dark) and colour theme (Phosphor, Amber, Cobalt, Orchid, Graphite; each
   with light and dark palettes), launch at login, notifications (alerts, quiet hours, reset reminders, a test

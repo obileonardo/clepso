@@ -26,10 +26,14 @@ never need it, and nothing here is required to build from source (`make app` sig
   so the build never touches the network; `--with-accounts` keeps `Config/Sync.local.xcconfig`.
 - No auto-update in alpha (C3; opt-in update checks come at beta, v0.5). Testers reinstall from the DMG.
 - Release features (`Sources/ClepsoApp/System/ReleaseFeatures.swift`): release builds use `ReleaseFeatures.shipping`.
-  For v0.1 that hides the player Card and Goals (revealed in v0.2); their data keeps collecting. Debug builds show
-  everything; `-ClepsoReleaseFeatures shipping` shows what a release shows. Switch them on for v0.2 by changing
-  `shipping`.
-- Version: `MARKETING_VERSION` (numeric semver, `0.1.0`) in `project.yml`; `CURRENT_PROJECT_VERSION` is
+  v0.1 hid the player Card and Goals; v0.2 ships both, so `shipping` now shows every section. The switch stays for a
+  later hold-back. Debug builds show everything; `-ClepsoReleaseFeatures shipping` shows what a release shows.
+- What's new (`Sources/ClepsoApp/System/WhatsNew.swift`, from v0.2): Home shows the newest entry once after the version
+  changes (never on a fresh install). A release with something to spotlight adds an entry at the top of
+  `WhatsNew.entries` (its `version` equal to `MARKETING_VERSION`) and its text in `Copy.WhatsNewCard`; a patch without
+  one shows nothing. The seen version is a preference in the app's own database, so a probe run (always on a temporary
+  data folder) never changes the user's. `-ClepsoProbeWhatsNew YES` shows the card in probe screenshots.
+- Version: `MARKETING_VERSION` (numeric semver, `0.2.0` on the v0.2 branch) in `project.yml`; `CURRENT_PROJECT_VERSION` is
   `git rev-list --count HEAD` at the tagged commit, set by the script. The channel lives only in the tag and the DMG
   name: tags `v0.1.0-alpha.1`, `v0.1.0-alpha.2`, … (founder decision, 19 Oct 2026). The app shows its version under
   the name in the Dashboard's sidebar.
