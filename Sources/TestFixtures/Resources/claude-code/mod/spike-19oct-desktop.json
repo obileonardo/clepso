@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "source": "docs/evidence/mod-spike-19oct/desktop-code-tab.json (planning folder), Claude desktop app Code tab, Claude Code 2.1.299, 19 Oct 2026",
+    "scrubbed": true,
+    "note": "Each session.measure record turned into the hand-off clepso-limits would send (hooks/handoff.js). Numbers and reset times as recorded; the session id is synthetic. The session.start record and the /clepso-spike command record are left out: the mod sends only on session.measure."
+  },
+  "measures": [
+    {
+      "at": "2026-10-19T11:30:50.009Z",
+      "handoff": {
+        "v": 1,
+        "surface": "desktop",
+        "session_id": "00000000-0000-4000-8000-00000000d351",
+        "version": "2.1.299",
+        "rate_limits": [
+          {
+            "kind": "five_hour",
+            "percent_used": 26,
+            "resets_at": "2026-10-19T14:30:00.000Z"
+          },
+          {
+            "kind": "seven_day",
+            "percent_used": 70,
+            "resets_at": "2026-10-22T04:00:00.000Z"
+          }
+        ],
+        "other_windows": 0,
+        "context": {
+          "tokens": 88744,
+          "window": 1000000,
+          "percent": 9
+        }
+      }
+    },
+    {
+      "at": "2026-10-19T11:31:06.126Z",
+      "handoff": {
+        "v": 1,
+        "surface": "desktop",
+        "session_id": "00000000-0000-4000-8000-00000000d351",
+        "version": "2.1.299",
+        "rate_limits": [
+          {
+            "kind": "five_hour",
+            "percent_used": 26,
+            "resets_at": "2026-10-19T14:30:00.000Z"
+          },
+          {
+            "kind": "seven_day",
+            "percent_used": 70,
+            "resets_at": "2026-10-22T04:00:00.000Z"
+          }
+        ],
+        "other_windows": 0,
+        "context": {
+          "tokens": 93615,
+          "window": 1000000,
+          "percent": 9
+        }
+      }
+    },
+    {
+      "at": "2026-10-19T11:31:33.299Z",
+      "handoff": {
+        "v": 1,
+        "surface": "desktop",
+        "session_id": "00000000-0000-4000-8000-00000000d351",
+        "version": "2.1.299",
+        "rate_limits": [
+          {
+            "kind": "five_hour",
+            "percent_used": 27,
+            "resets_at": "2026-10-19T14:30:00.000Z"
+          },
+          {
+            "kind": "seven_day",
+            "percent_used": 70,
+            "resets_at": "2026-10-22T04:00:00.000Z"
+          }
+        ],
+        "other_windows": 0,
+        "context": {
+          "tokens": 104902,
+          "window": 1000000,
+          "percent": 10
+        }
+      }
+    }
+  ]
+}

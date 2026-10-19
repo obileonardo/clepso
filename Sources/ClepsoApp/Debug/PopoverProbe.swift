@@ -140,6 +140,20 @@ enum PopoverProbe {
         model.confirmingDeleteAll = false
         try? await Task.sleep(for: .milliseconds(300))
 
+        // v0.3: the Claude Code mod's consent sheet (opened, captured, cancelled; nothing is written).
+        if model.environment.features.claudeMod {
+            model.confirmingClaudeMod = true
+            try? await Task.sleep(for: .milliseconds(800))
+            await axCheckpoint(folder, "settings-claude-mod-sheet")
+            if let sheet = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name })?.attachedSheet {
+                recorder.log(shoot(sheet, folder, "settings-claude-mod-sheet"))
+            } else {
+                recorder.log("ERROR no Claude Code mod sheet")
+            }
+            model.confirmingClaudeMod = false
+            try? await Task.sleep(for: .milliseconds(300))
+        }
+
         openWindow()
         for step in AppModel.OnboardingStep.allCases {
             model.onboardingStep = step

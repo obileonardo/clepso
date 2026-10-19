@@ -1,0 +1,8 @@
+{
+  "name": "clepso-limits",
+  "version": "0.3.0",
+  "description": "Hands the Clepso menu bar app your plan-limit percentages, their reset times and your context-window numbers from the Claude desktop app's Code tab and the VS Code panel. Never prompts, replies, file paths, transcripts or credentials.",
+  "author": { "name": "Clepso" },
+  "homepage": "https://github.com/obileonardo/clepso",
+  "license": "MIT"
+}

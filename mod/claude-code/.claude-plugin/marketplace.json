@@ -1,0 +1,14 @@
+{
+  "name": "clepso",
+  "owner": {
+    "name": "Clepso"
+  },
+  "description": "Clepso's own Claude Code mod, installed by the Clepso app from inside its folder ~/.claude/clepso.",
+  "plugins": [
+    {
+      "name": "clepso-limits",
+      "source": "./plugins/clepso-limits",
+      "description": "Hands the Clepso menu bar app your plan-limit percentages from the Claude desktop app's Code tab and the VS Code panel. Numbers only."
+    }
+  ]
+}

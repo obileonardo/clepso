@@ -26,6 +26,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
     case purged(readings: Int, sessions: Int)
     case statsReading(on: Bool)
     case agentsCounting(outcome: String)              // a `HooksInstaller` outcome or error case name
+    case claudeMod(outcome: String)                   // a `ClaudeModInstaller` outcome or error case name (v0.3)
     case account(event: String)                       // signed in / signed out / account deleted (never the email)
     case alertShown(kind: String, level: Int?)        // 2.1: an `AlertKind` case name and threshold
     case alertsExpired(count: Int)                    // 2.4: alerts due while asleep, too old to show (`expired_stale`)
@@ -65,6 +66,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case .purged: "data.purged"
         case .statsReading: "stats.reading"
         case .agentsCounting: "agents.hooks"
+        case .claudeMod: "claudeCode.mod"
         case .account: "account.changed"
         case .alertShown: "alerts.shown"
         case .alertsExpired: "alerts.expired"
@@ -110,6 +112,7 @@ public enum DiagnosticEvent: Sendable, Equatable {
         case let .purged(readings, sessions): "Removed \(readings) reading(s) and \(sessions) session(s) past their keep time"
         case .statsReading(let on): on ? "Reading Claude Code's statistics file: on" : "Reading Claude Code's statistics file: off"
         case .agentsCounting(let outcome): "Agents per task hooks: \(outcome)"
+        case .claudeMod(let outcome): "Claude Code mod (desktop app and VS Code limits): \(outcome)"
         case .account(let event): "\(Product.name) account: \(event)"
         case let .alertShown(kind, level): "Limit alert shown: \(kind)" + (level.map { " at \($0)%" } ?? "")
         case .alertsExpired(let n): "\(n) limit alert(s) were due while the Mac was asleep and are too old to show"

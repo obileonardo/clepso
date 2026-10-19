@@ -91,6 +91,9 @@ public final class AppModel {
     public private(set) var goals = Goals()
     /// Agents per task: the hooks are in Claude Code's settings (read from Clepso's install record).
     public private(set) var agentsCounting = false
+    /// v0.3: Clepso's Claude Code mod is in Claude Code's settings (`AppModel+ClaudeMod`), and when it last delivered.
+    public internal(set) var claudeModOn = false
+    public internal(set) var claudeModLastReading: Date?
     /// Custom agent names the user approved to be shown by name (`AppModel+AgentNames`).
     public internal(set) var approvedAgentNames: [String] = []
     let agentNameAllowlist = AgentNameAllowlist()
@@ -121,6 +124,8 @@ public final class AppModel {
     public var modelsView: ModelsView = .arena
     /// The delete-all confirmation sheet; on the model so the verification probe can show it.
     public var confirmingDeleteAll = false
+    /// The Claude Code mod's consent sheet (Settings); on the model so the probe can capture it.
+    public var confirmingClaudeMod = false
     public let catalog: PlanCatalog?
     /// The Diagnostics drawer's events (PRIVACY_AND_SECURITY §5).
     public let diagnostics: DiagnosticsLog
@@ -192,6 +197,7 @@ public final class AppModel {
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
+            claudeModOn = Self.claudeMod(environment).isInstalled
             approvedAgentNames = (try await store.preference(Pref.approvedAgentNames, as: [String].self) ?? []).filter(HookFrame.isApprovableAgentName)
             agentNameAllowlist.set(approvedAgentNames)
             lastSync = try await store.preference(Pref.lastSync, as: Date.self)
@@ -210,6 +216,7 @@ public final class AppModel {
         await purgeIfDue()
         if environment.rewritesHome {
             if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
+            if Self.claudeMod(environment).needsRepair() { try? Self.claudeMod(environment).repair() }
             // The status line's wrapper names the helper by its full path; after the app moves or is renamed (Clepso.app →
             // Clepso.app) it points at nothing and Claude Code quietly falls back. Re-point it, like the hooks above.
             let statusLine = Self.installer(environment, forwardCost: forwardCost, approvedAgentTypes: approvedAgentNames)
@@ -345,6 +352,7 @@ public final class AppModel {
                 input.installed = Self.installer(environment, forwardCost: forwardCost).isInstalled
                 input.agentsTracking = Self.hooks(environment).isInstalled
                 agentsCounting = input.agentsTracking
+                claudeModOn = Self.claudeMod(environment).isInstalled
                 input.unreadLimitWindows = await ingestor?.counters.unknownRateLimitWindows ?? 0
             }
         } catch {
@@ -770,12 +778,13 @@ public final class AppModel {
         HooksInstaller(paths: .legacy(home: environment.home), shimPath: environment.shimPath, now: { [clock = environment.clock] in clock.now() })
     }
 
-    /// Takes Clepso out of Claude Code's settings: the hooks first (they call the helper through Clepso's folder), then
+    /// Takes Clepso out of Claude Code's settings: the mod and the hooks first (they call the helper through Clepso's folder), then
     /// the status line. One more try at moving an old layout first; whatever of it is still there (both folders existed,
     /// or settings.json couldn't be edited) is removed by its own install records, the same way, so Remove and Delete
     /// work from either layout. Each installer touches settings.json only where its own record or command matches.
     func removeFromClaudeCode() throws -> SettingsInstaller.UninstallOutcome {
         _ = Self.legacyLayout(environment).run()
+        if Self.claudeMod(environment).isInstalled { _ = try Self.claudeMod(environment).uninstall() }
         if Self.hooks(environment).isInstalled { _ = try Self.hooks(environment).uninstall() }
         var outcome = try Self.installer(environment, forwardCost: forwardCost).uninstall()
         let legacy = Self.legacyInstaller(environment, forwardCost: forwardCost)

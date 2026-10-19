@@ -208,6 +208,12 @@ no_committed_sync_project() {
     echo "no accounts project in tracked files; Config/*.local.xcconfig untracked"
 }
 
+# v0.3: Clepso's Claude Code mod validates (strict), calls only what the spec lists, and its tests pass, all with an
+# isolated HOME and CLAUDE_CONFIG_DIR (scripts/mod-check.sh). Contributor mode passes with a note when `claude` is absent.
+claude_mod() {
+    if [ "$MODE" = contributor ]; then scripts/mod-check.sh --optional; else scripts/mod-check.sh; fi
+}
+
 # Account emails (backend/supabase/templates) are generated: up to date, wired into config.toml, well-formed, no
 # comments (Supabase strips them), no scripts or web fonts, and under Gmail's clipping size. The logo they link is in
 # site/ and matches the brand pipeline's output.
@@ -250,6 +256,8 @@ app_bundle() {
     net=$(nm -u "$helper" 2>/dev/null | grep -E 'URLSession|NSURLConnection|CFHTTP|CFNetwork|_nw_|getaddrinfo|CFStream' || true)
     [ -z "$net" ] || { echo "networking symbols in the helper:"; echo "$net"; return 1; }
     [ "$(plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes.0 raw "$app/Contents/Info.plist")" = "clepso" ] || { echo "sign-in URL scheme missing"; return 1; }
+    # v0.3: the Claude Code mod ships exactly as reviewed (docs/specs/mod-bridge.md §3): byte-identical to mod/claude-code.
+    diff -r mod/claude-code "$app/Contents/Resources/claude-code" || { echo "bundled mod differs from mod/claude-code"; return 1; }
     local ack="$app/Contents/Resources/Acknowledgements.txt"
     grep -q 'Gwendal Rou' "$ack" 2>/dev/null && grep -q 'Permission is hereby granted' "$ack" || { echo "third-party licences missing: $ack"; return 1; }
     for font in ClepsoFonts; do
@@ -261,7 +269,7 @@ app_bundle() {
         [ -n "$sync" ] || { echo "no accounts project in strict mode (add Config/Sync.local.xcconfig)"; return 1; }
     fi
     echo "bundle signed ($MODE); helper com.elvisobi.clepso.statusline without networking; entitlements: ${keys:-none} (get-task-allow is debug-only);" \
-         "sign-in URL scheme; licences shipped; accounts project: $([ -n "$sync" ] && echo configured || echo none, Sync off)"
+         "sign-in URL scheme; licences shipped; mod bundled as reviewed; accounts project: $([ -n "$sync" ] && echo configured || echo none, Sync off)"
 }
 
 echo "Clepso local CI ($MODE) · $(date -u +%Y-%m-%dT%H:%M:%SZ) · $(git rev-parse --short HEAD 2>/dev/null || echo 'no commits')"
@@ -279,6 +287,7 @@ run "redaction audit"               redaction_audit
 run "secret scan"                   secret_scan
 run "no committed accounts project" no_committed_sync_project
 run "email templates"               email_templates
+run "Claude Code mod"               claude_mod
 run "app bundle"                    app_bundle
 
 echo

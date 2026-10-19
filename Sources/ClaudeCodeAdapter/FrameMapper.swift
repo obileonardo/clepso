@@ -36,6 +36,9 @@ public enum FrameMapper {
         let sessionRef = string(frame.lookup(["session_ref"]))
         let modelID = string(frame.lookup(["model", "id"]))
         let sourceVersion = string(frame.lookup(["source_version"]))
+        // Frame v1's optional `via` (mod-bridge.md §5.3): a reading Clepso's mod handed the helper. Any other value is
+        // read as the status line, which is what an older helper sends.
+        let channel: ObservationChannel? = string(frame.lookup(["via"])) == "mod" ? .mod : nil
 
         var observations: [IncomingObservation] = []
         var dropped = 0
@@ -54,7 +57,7 @@ public enum FrameMapper {
             observations.append(IncomingObservation(
                 subject: subject, sessionRef: sessionRef, modelID: modelID, kind: kind, value: value,
                 observedAt: observedAt, receivedAt: receivedAt, evidence: .officialLocalTelemetry, quality: quality,
-                sourceVersion: sourceVersion, dedupeKey: sha256(fingerprint)))
+                sourceVersion: sourceVersion, dedupeKey: sha256(fingerprint), channel: channel))
         }
 
         // Pools: five_hour and seven_day always produce an observation, absent when not reported.

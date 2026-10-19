@@ -14,7 +14,8 @@ struct ReleaseFeaturesTests {
     @Test("v0.2 ships the Card and Goals: the shipping configuration hides nothing; debug builds show everything")
     func shipping() {
         #expect(ReleaseFeatures.shipping.playerCard && ReleaseFeatures.shipping.goals)
-        #expect(ReleaseFeatures.shipping == .all)
+        #expect(ReleaseFeatures.shipping == ReleaseFeatures(playerCard: true, goals: true, claudeMod: false))
+        #expect(ReleaseFeatures.all.claudeMod && !ReleaseFeatures.shipping.claudeMod)
         #expect(AppModel.DetailsSection.allCases.allSatisfy(ReleaseFeatures.shipping.allows))
         #expect(AppModel.DetailsSection.allCases.allSatisfy(ReleaseFeatures.all.allows))
         let hidden = AppModel.DetailsSection.allCases.filter { !Self.heldBack.allows($0) }

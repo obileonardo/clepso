@@ -101,6 +101,25 @@ public enum StatusLineShim {
         return 0
     }
 
+    // MARK: - Mod mode (v0.3, docs/specs/mod-bridge.md)
+
+    /// One hand-off from Clepso's Claude Code mod (the desktop app's Code tab, the VS Code panel): read stdin to the end,
+    /// send the allowlisted frame (`ModHandoff`), and exit 0 with nothing on stdout or stderr, whatever happens. The mod
+    /// ignores the result; an absent or hung app costs it at most the socket deadlines.
+    public static func modMain(environment: [String: String] = ProcessInfo.processInfo.environment) -> Int32 {
+        signal(SIGPIPE, SIG_IGN)
+        let (stdin, truncated) = readStdin(ceiling: ModHandoff.maxStdinBytes)
+        if truncated { drainStdin() }
+        guard !truncated, let config = environment["HOME"].flatMap({ loadConfig(home: $0) }) else { return 0 }
+        let key = config.hmacKeyFile.flatMap { try? Data(contentsOf: URL(fileURLWithPath: $0)) }
+        if case .frame(let frame) = ModHandoff.build(stdin: stdin, now: wallClock(environment), shimVersion: version,
+                                                     hmacKey: key?.count == 32 ? key : nil),
+           let wire = try? FrameCodec.encode(frame) {
+            _ = send(wire, socketPath: config.socket, t0: now(), scale: budgetScale(environment))   // budget starts once parsed
+        }
+        return 0
+    }
+
     /// The frame's bytes. The background counts are bounded well under the frame limit; should a frame still be too
     /// large, it goes without them, so the event itself (a task's end) is never lost.
     static func encodeHook(_ frame: JSONValue) -> Data? {

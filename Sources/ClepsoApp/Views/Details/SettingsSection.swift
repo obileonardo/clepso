@@ -106,6 +106,14 @@ struct SettingsSection: View {
                     }
                     .disabled(!model.preview.installed && !model.agentsCounting)
                 }
+                if model.environment.features.claudeMod {
+                    row("chevron.left.forwardslash.chevron.right", Copy.ClaudeMod.toggle, claudeModLine) {
+                        toggle(model.claudeModOn) { on in
+                            if on { model.confirmingClaudeMod = true } else { Task { message = Self.message(await model.setClaudeMod(false)) } }
+                        }
+                        .disabled(!model.preview.installed && !model.claudeModOn)
+                    }
+                }
                 row("person.crop.circle.badge.checkmark", Copy.Agents.namesTitle, Copy.Agents.namesSub) {
                     Button(Copy.Agents.findNames) { agentSuggestions = model.suggestedAgentNames() }.buttonStyle(PixelButtonStyle())
                 }
@@ -145,11 +153,19 @@ struct SettingsSection: View {
             model.refreshPreview()
             await model.refreshNotificationStatus()
             await model.refreshIngestHealth()
+            await model.refreshClaudeModStatus()
         }
         .sheet(isPresented: $confirmAgents) {
             AgentsConsentSheet(model: model) { outcome in
                 confirmAgents = false
                 if let outcome { message = Self.message(outcome) }
+            }
+        }
+        .sheet(isPresented: $model.confirmingClaudeMod) {
+            ClaudeModConsentSheet(model: model) { outcome in
+                model.confirmingClaudeMod = false
+                if let outcome { message = Self.message(outcome) }
+                Task { await model.refreshClaudeModStatus() }
             }
         }
         .sheet(isPresented: $model.confirmingDeleteAll) {
@@ -415,6 +431,24 @@ struct SettingsSection: View {
             case .success(let summary): Copy.Export.done(summary.rows, summary.scrubbed)
             case .failure(let failure): failure.reason
             }
+        }
+    }
+
+    /// The mod row's line (mod-bridge.md §8): what it does, whether it has reported yet, or that it needs the connection.
+    var claudeModLine: String {
+        guard model.preview.installed || model.claudeModOn else { return Copy.ClaudeMod.needsConnection }
+        guard model.claudeModOn else { return Copy.ClaudeMod.toggleSublabel }
+        guard let last = model.claudeModLastReading else { return Copy.ClaudeMod.waiting }
+        return Copy.ClaudeMod.lastReading(Copy.Inspector.ago(model.environment.clock.now().timeIntervalSince(last)))
+    }
+
+    static func message(_ outcome: AppModel.ClaudeModOutcome) -> String {
+        switch outcome {
+        case .added: Copy.ClaudeMod.added
+        case .removedExactly: Copy.ClaudeMod.removedExact
+        case .removedEntries: Copy.ClaudeMod.removedEntries
+        case .alreadyGone: Copy.ClaudeMod.alreadyGone
+        case .failed(let reason): Copy.ClaudeMod.failed(reason)
         }
     }
 
