@@ -40,6 +40,10 @@ never need it, and nothing here is required to build from source (`make app` sig
 
 ## 2. Prerequisites (one time)
 
+Run `make doctor` before a release to check host network, Keychain and disk-image access without changing credentials
+or publishing. For session-permission troubleshooting, see [HOST_ACCESS.md](HOST_ACCESS.md). This does not replace CI
+or the signed release gates below.
+
 | Item | State | Notes |
 |---|---|---|
 | Developer ID Application certificate (DECISIONS A6) | **Present** in the maintainer's login keychain (`security find-identity -v -p codesigning`) | Export the `.p12` once and keep it in the password manager: Apple can't re-issue a lost private key |

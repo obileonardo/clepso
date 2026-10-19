@@ -26,6 +26,16 @@ settings:
 packages:
   Clepso:
     path: .
+# Stable CLI/archive scheme in every fresh checkout, without relying on Xcode's user-local auto-created schemes.
+schemes:
+  ClepsoMac:
+    build:
+      targets:
+        ClepsoMac: all
+    run:
+      config: Debug
+    archive:
+      config: Release
 targets:
   ClepsoMac:
     type: application
