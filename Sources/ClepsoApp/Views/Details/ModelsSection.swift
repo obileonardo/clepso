@@ -187,12 +187,11 @@ struct StackedModelChart: View {
             Text(weekly ? Copy.Stats.tokensPerWeek : Copy.Stats.tokensPerDay).font(theme.font(.micro)).tracking(1)
                 .foregroundStyle(theme.color(.textSecondary, scheme))
             Canvas { context, size in
-                let plot = CGRect(x: gutter, y: theme.spacing(.standard), width: size.width - gutter, height: size.height - footer - theme.spacing(.standard))
-                let slot = plot.width / CGFloat(max(1, buckets.count))
-                let barWidth = max(1, slot * 0.72)
+                let plot = PixelColumns.plot(CGRect(x: gutter, y: theme.spacing(.standard), width: size.width - gutter,
+                                                    height: size.height - footer - theme.spacing(.standard)))
                 let px = theme.stroke(.hairline) * 2
                 let secondary = theme.color(.textSecondary, scheme)
-                func y(_ v: Int64) -> CGFloat { plot.maxY - CGFloat(Double(v) / Double(max(1, top))) * plot.height }
+                func y(_ v: Int64) -> CGFloat { plot.maxY - PixelColumns.height(Double(v) / Double(max(1, top)), of: plot.height, px: px) }
                 for step in 0...4 {
                     let v = top / 4 * Int64(step)
                     var x0 = plot.minX
@@ -200,17 +199,26 @@ struct StackedModelChart: View {
                     context.draw(Text(Formatting.compact(v)).font(theme.font(.micro)).foregroundColor(secondary), at: CGPoint(x: plot.minX - theme.spacing(.standard), y: y(v)), anchor: .trailing)
                 }
                 if let hover, hover < buckets.count {
-                    context.fill(Path(CGRect(x: plot.minX + CGFloat(hover) * slot, y: plot.minY, width: slot, height: plot.height)),
-                                 with: .color(theme.color(.surfaceMuted, scheme)))
+                    context.fill(Path(PixelColumns.slot(hover, of: buckets.count, in: plot)), with: .color(theme.color(.surfaceMuted, scheme)))
                 }
                 var lastLabelX = -CGFloat.infinity
                 for (i, b) in buckets.enumerated() {
-                    let x = plot.minX + CGFloat(i) * slot + (slot - barWidth) / 2
-                    var base = plot.maxY
+                    let (x, barWidth) = PixelColumns.bar(i, of: buckets.count, in: plot, share: 0.72, px: px)
+                    // A pixel bar: each model's part ends on the pixel grid (at least one pixel tall), and the whole stack
+                    // takes the stepped top of the other bar charts.
+                    var base = plot.maxY, sum: Int64 = 0
+                    var parts: [(index: Int, rect: CGRect)] = []
                     for (m, v) in b.byModel.enumerated() where v > 0 {
-                        let h = max(px / 2, plot.maxY - y(v))
-                        ModelStyle.fill(&context, CGRect(x: x, y: base - h, width: barWidth, height: h), index: m, theme: theme, scheme: scheme)
-                        base -= h
+                        sum += v
+                        let top = min(y(sum), base - px)
+                        parts.append((m, CGRect(x: x, y: top, width: barWidth, height: base - top)))
+                        base = top
+                    }
+                    if !parts.isEmpty {
+                        context.drawLayer { layer in
+                            layer.clip(to: PixelColumns.shape(CGRect(x: x, y: base, width: barWidth, height: plot.maxY - base), px: px))
+                            for part in parts { ModelStyle.fill(&layer, part.rect, index: part.index, theme: theme, scheme: scheme) }
+                        }
                     }
                     // Month starts (or every 7th day in short ranges) on the axis, never overlapping.
                     let marks = buckets.count <= 45 ? i % 7 == 0 : (i > 0 && b.start.prefix(7) != buckets[i - 1].start.prefix(7))

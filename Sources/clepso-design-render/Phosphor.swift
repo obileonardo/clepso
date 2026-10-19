@@ -56,11 +56,26 @@ func renderPhosphor(images: URL, now: Date, used: (Decimal?, Double, AbsenceReas
     }
 
     let extras: [(String, String, String, CGFloat, AnyView)] = [
-        ("bars", "PixelBar", "Solid, dithered (stale) and outlined (no value): the non-colour cues", 420, AnyView(VStack(spacing: 12) {
+        ("bars", "PixelBar", "Solid, dithered (stale) and outlined (no value): the non-colour cues. The fill steps one pixel in from the frame",
+         420, AnyView(VStack(spacing: 12) {
             PixelBar(fraction: 0.41, role: .statusSuccess, pattern: .solid)
             PixelBar(fraction: 0.83, role: .statusStale, pattern: .hatched)
             PixelBar(fraction: nil, role: .statusUnknown, pattern: .outline)
+            PixelBar(fraction: 0.02, role: .accent, pattern: .solid, segments: 30)
+            PixelBar(fraction: 1, role: .statusBlocked, pattern: .solid, segments: 20)
         })),
+        ("columns", "PixelColumns", "Bar charts: whole-pixel bars with stepped tops, a faint stub for none", 420, AnyView(
+            Canvas { context, size in
+                let px = theme.stroke(.hairline) * 2
+                let plot = PixelColumns.plot(CGRect(origin: .zero, size: size))
+                let values: [Double] = [0.35, 0.8, 0.5, 0, 0.15, 1, 0.65, 0.02, 0.45, 0.9, 0, 0.3]
+                for (i, v) in values.enumerated() {
+                    let bar = PixelColumns.bar(i, of: values.count, in: plot, share: 0.7, px: px)
+                    PixelColumns.fill(&context, x: bar.x, width: bar.width, height: v == 0 ? px : PixelColumns.height(v, of: plot.height, px: px),
+                                      baseline: plot.maxY, px: px, color: theme.color(.accent, .dark).opacity(v == 0 ? 0.2 : 1))
+                }
+            }
+            .frame(height: 96))),
         ("buttons", "PixelButtonStyle", "Prominent, normal and disabled; the bevel swaps when pressed", 420, AnyView(HStack(spacing: 8) {
             Button("Details") {}.buttonStyle(PixelButtonStyle(prominent: true))
             Button("Stats") {}.buttonStyle(PixelButtonStyle())

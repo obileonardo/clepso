@@ -32,8 +32,47 @@ public struct PixelRect: InsettableShape {
     public func inset(by amount: CGFloat) -> PixelRect { var copy = self; copy.inset += amount; return copy }
 }
 
+/// A rectangle with each corner cut in its own number of pixel steps (0 = square), clockwise from the top-left.
+/// `PixelRect` is this with two steps at every corner; a fill inside a frame takes one step fewer than the frame,
+/// so its corners run parallel to the frame's, one pixel in (as the lit segment of `PixelSegmented` does).
+public struct PixelSteppedRect: Shape {
+    public var step: CGFloat
+    public var corners: (topLeft: Int, topRight: Int, bottomRight: Int, bottomLeft: Int)
+
+    public init(step: CGFloat, steps: Int) { self.init(step: step, corners: (steps, steps, steps, steps)) }
+    public init(step: CGFloat, corners: (topLeft: Int, topRight: Int, bottomRight: Int, bottomLeft: Int)) {
+        self.step = step
+        self.corners = corners
+    }
+
+    public func path(in r: CGRect) -> Path {
+        // One corner's staircase from the left edge to the top edge, in steps: (0,n), (1,n), (1,n-1), … (n,0).
+        func stairs(_ n: Int) -> [(CGFloat, CGFloat)] {
+            guard n > 0 else { return [(0, 0)] }
+            var points: [(CGFloat, CGFloat)] = []
+            for k in 0..<n { points += [(CGFloat(k), CGFloat(n - k)), (CGFloat(k + 1), CGFloat(n - k))] }
+            return points + [(CGFloat(n), 0)]
+        }
+        let s = step
+        var points: [CGPoint] = []
+        points += stairs(corners.topLeft).map { CGPoint(x: r.minX + $0.0 * s, y: r.minY + $0.1 * s) }
+        points += stairs(corners.topRight).reversed().map { CGPoint(x: r.maxX - $0.0 * s, y: r.minY + $0.1 * s) }
+        points += stairs(corners.bottomRight).map { CGPoint(x: r.maxX - $0.0 * s, y: r.maxY - $0.1 * s) }
+        points += stairs(corners.bottomLeft).reversed().map { CGPoint(x: r.minX + $0.0 * s, y: r.maxY - $0.1 * s) }
+        var p = Path()
+        p.addLines(points)
+        p.closeSubpath()
+        return p
+    }
+}
+
 /// A segmented "health bar": filled blocks in the state's colour with a lit top edge; stale data is dithered
-/// (a checkerboard, the non-colour cue for hatched); no value draws only the empty frame.
+/// (a checkerboard, the non-colour cue for hatched); no value draws the frame in the state's colour over empty blocks.
+///
+/// Founder review (19 Oct 2026): the fill follows the frame's pixel pattern. The lit run and the empty run are each a
+/// block whose corners step one pixel in from the frame's (`PixelSteppedRect`), so a one-pixel gap of background runs
+/// all the way round, corners included, and the fill reads as part of the frame rather than a rectangle laid on it.
+/// Every edge sits on a whole point, so nothing is anti-aliased at 1× or 2×.
 public struct PixelBar: View {
     let fraction: Double?
     let role: ColorToken
@@ -53,38 +92,85 @@ public struct PixelBar: View {
         let px = theme.stroke(.hairline) * 2
         Canvas { context, size in
             let frame = CGRect(origin: .zero, size: size)
-            context.fill(PixelRect(step: px).path(in: frame), with: .color(theme.color(.separator, scheme)))
+            let outlined = fraction == nil || pattern == .outline || pattern == .dashed
+            context.fill(PixelRect(step: px).path(in: frame), with: .color(theme.color(outlined ? role : .separator, scheme)))
             context.fill(PixelRect(step: px).path(in: frame.insetBy(dx: px, dy: px)), with: .color(theme.color(.background, scheme)))
-            let inner = frame.insetBy(dx: px * 2, dy: px * 2)
-            let gap = px
-            let width = (inner.width - gap * CGFloat(segments - 1)) / CGFloat(segments)
-            let lit = fraction.map { Int((min(max($0, 0), 1) * Double(segments)).rounded(.up)) } ?? 0
-            for i in 0..<segments {
-                let cell = CGRect(x: inner.minX + CGFloat(i) * (width + gap), y: inner.minY, width: width, height: inner.height)
-                guard i < lit else {
-                    context.fill(Path(cell), with: .color(theme.color(.surfaceMuted, scheme)))
-                    continue
-                }
-                let color = theme.color(role, scheme)
-                if pattern == .hatched {                      // dither: every other pixel
-                    var y = cell.minY, row = 0
-                    while y < cell.maxY {
-                        var x = cell.minX + (row % 2 == 0 ? 0 : px)
-                        while x < cell.maxX { context.fill(Path(CGRect(x: x, y: y, width: px, height: px)), with: .color(color)); x += px * 2 }
-                        y += px; row += 1
-                    }
-                } else {
-                    context.fill(Path(cell), with: .color(color))
-                    context.fill(Path(CGRect(x: cell.minX, y: cell.minY, width: cell.width, height: px)),
-                                 with: .color(theme.color(.textPrimary, scheme).opacity(0.35)))
+            let layout = Self.layout(width: size.width, height: size.height, px: px, segments: segments, fraction: fraction)
+            if let empty = layout.empty {
+                Self.drawRun(&context, empty, cells: layout.cells[layout.lit...], px: px) { layer, _ in
+                    layer.fill(Path(empty.rect), with: .color(theme.color(.surfaceMuted, scheme)))
                 }
             }
-            if fraction == nil || pattern == .outline || pattern == .dashed {
-                context.stroke(PixelRect(step: px).path(in: frame.insetBy(dx: px / 2, dy: px / 2)), with: .color(theme.color(role, scheme)), lineWidth: px / 2)
+            if let lit = layout.litRun {
+                let color = theme.color(role, scheme)
+                Self.drawRun(&context, lit, cells: layout.cells[..<layout.lit], px: px) { layer, shape in
+                    if pattern == .hatched {              // dither: every other pixel, on one grid across the segments
+                        var y = lit.rect.minY, row = 0
+                        while y < lit.rect.maxY {
+                            var x = layout.inner.minX + (row % 2 == 0 ? 0 : px)
+                            while x < lit.rect.maxX { layer.fill(Path(CGRect(x: x, y: y, width: px, height: px)), with: .color(color)); x += px * 2 }
+                            y += px; row += 1
+                        }
+                    } else {                              // solid, and a lit top edge that follows the stepped corners
+                        layer.fill(Path(lit.rect), with: .color(color))
+                        var edge = shape
+                        edge.addPath(shape.offsetBy(dx: 0, dy: px))
+                        layer.fill(edge, with: .color(theme.color(.textPrimary, scheme).opacity(0.35)), style: FillStyle(eoFill: true))
+                    }
+                }
             }
         }
         .frame(height: theme.spacing(.standard) + theme.spacing(.compact) * 2)
         .accessibilityHidden(true)
+    }
+
+    /// A run of segments drawn as one stepped block: `rect` is its bounding box, `steps` its corner cut.
+    struct Run: Equatable {
+        let rect: CGRect
+        let steps: Int
+    }
+
+    /// Where everything goes, in whole points (pure, so tests can check the grid): the area inside the frame, each
+    /// segment's cell, how many are lit, and the lit and empty runs (nil when there is none).
+    struct Layout {
+        let inner: CGRect
+        let cells: [CGRect]
+        let lit: Int
+        let litRun: Run?
+        let empty: Run?
+    }
+
+    nonisolated static func layout(width: CGFloat, height: CGFloat, px: CGFloat, segments: Int, fraction: Double?) -> Layout {
+        let inner = CGRect(x: px * 2, y: px * 2, width: max(0, width - px * 4), height: max(0, height - px * 4))
+        let count = max(1, segments)
+        // Segment edges on whole points: segment i spans [start(i), start(i+1) - gap); the last one ends exactly at the
+        // frame's inner edge (the frame itself is pixel-aligned by layout).
+        let pitch = (inner.width + px) / CGFloat(count)
+        func start(_ i: Int) -> CGFloat { inner.minX + (CGFloat(i) * pitch).rounded() }
+        func end(_ i: Int) -> CGFloat { i == count - 1 ? inner.maxX : start(i + 1) - px }
+        let cells = (0..<count).map { i in CGRect(x: start(i), y: inner.minY, width: max(0, end(i) - start(i)), height: inner.height) }
+        let lit = fraction.map { min(count, Int((min(max($0, 0), 1) * Double(count)).rounded(.up))) } ?? 0
+        // One step in from the frame's two, when the run is wide and tall enough to show it.
+        func run(_ range: Range<Int>) -> Run? {
+            guard !range.isEmpty else { return nil }
+            let first = cells[range.lowerBound], last = cells[range.upperBound - 1]
+            let rect = CGRect(x: first.minX, y: inner.minY, width: last.maxX - first.minX, height: inner.height)
+            return Run(rect: rect, steps: rect.width >= px * 3 && rect.height >= px * 3 ? 1 : 0)
+        }
+        return Layout(inner: inner, cells: cells, lit: lit, litRun: run(0..<lit), empty: run(lit..<count))
+    }
+
+    /// Clips to the run's stepped block and to its segments (the gaps), then lets `body` paint inside.
+    static func drawRun(_ context: inout GraphicsContext, _ run: Run, cells: ArraySlice<CGRect>, px: CGFloat,
+                        _ body: (inout GraphicsContext, Path) -> Void) {
+        let shape = PixelSteppedRect(step: px, steps: run.steps).path(in: run.rect)
+        var segments = Path()
+        for cell in cells { segments.addRect(cell) }
+        context.drawLayer { layer in
+            layer.clip(to: shape)
+            layer.clip(to: segments)
+            body(&layer, shape)
+        }
     }
 }
 

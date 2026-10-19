@@ -223,11 +223,12 @@ struct DailyBars: View {
         let gutter = theme.spacing(.spacious) * 2.4, footer = theme.spacing(.spacious) * 1.2
         VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
             Canvas { context, size in
-                let plot = CGRect(x: gutter, y: theme.spacing(.standard), width: size.width - gutter, height: size.height - footer - theme.spacing(.standard))
+                let plot = PixelColumns.plot(CGRect(x: gutter, y: theme.spacing(.standard), width: size.width - gutter,
+                                                    height: size.height - footer - theme.spacing(.standard)))
                 let slot = plot.width / CGFloat(max(1, values.count))
                 let px = theme.stroke(.hairline) * 2
                 let secondary = theme.color(.textSecondary, scheme)
-                func y(_ v: Int64) -> CGFloat { plot.maxY - CGFloat(Double(v) / Double(max(1, top))) * plot.height }
+                func y(_ v: Int64) -> CGFloat { plot.maxY - PixelColumns.height(Double(v) / Double(max(1, top)), of: plot.height, px: px) }
                 for step in 0...4 {
                     let v = top / 4 * Int64(step)
                     var x0 = plot.minX
@@ -236,10 +237,11 @@ struct DailyBars: View {
                 }
                 for (i, item) in values.enumerated() {
                     let x = plot.minX + CGFloat(i) * slot
-                    if hover == i { context.fill(Path(CGRect(x: x, y: plot.minY, width: slot, height: plot.height)), with: .color(theme.color(.surfaceMuted, scheme))) }
-                    let h = max(px / 2, plot.maxY - y(item.value))
-                    context.fill(Path(CGRect(x: x + slot * 0.15, y: plot.maxY - h, width: slot * 0.7, height: h)),
-                                 with: .color(theme.color(.accent, scheme).opacity(item.value == 0 ? 0.2 : 1)))
+                    if hover == i { context.fill(Path(PixelColumns.slot(i, of: values.count, in: plot)), with: .color(theme.color(.surfaceMuted, scheme))) }
+                    // A pixel bar (stepped top, whole pixels); a quiet day is a faint one-pixel stub.
+                    let bar = PixelColumns.bar(i, of: values.count, in: plot, share: 0.7, px: px)
+                    PixelColumns.fill(&context, x: bar.x, width: bar.width, height: item.value == 0 ? px : plot.maxY - y(item.value), baseline: plot.maxY,
+                                      px: px, color: theme.color(.accent, scheme).opacity(item.value == 0 ? 0.2 : 1))
                     if (i % 7 == 0 && values.count - 1 - i >= 4) || i == values.count - 1 {     // never two labels side by side
                         ChartLabel.draw(context, Text(StatsFormat.day(item.day).uppercased()).font(theme.font(.micro)).foregroundColor(secondary),
                                         centeredAt: x + slot / 2, top: plot.maxY + px * 3, width: size.width)
