@@ -75,6 +75,7 @@ enum PopoverProbe {
         // The Details window, each tab; Stats from the probe home's file (synthetic: scripts/probe-home.py).
         await model.setStatsEnabled(true)
         openDetails()
+        try? await Task.sleep(for: .milliseconds(500))      // the window is up before the first page sizes it
         let pages: [(String, AppModel.DetailsSection, StatsSummary.Range, AppModel.ModelsView)] = [
             ("limits", .limits, .allTime, .arena), ("session", .session, .allTime, .arena),
             ("stats-overview", .overview, .allTime, .arena), ("stats-overview-30", .overview, .last30, .arena),
@@ -95,14 +96,21 @@ enum PopoverProbe {
             model.detailsSection = section
             model.statsRange = range
             model.modelsView = view
+            // `-ClepsoProbeWidth <pt>`: every page at that window width (the minimum is 1100), the tall pages included,
+            // full screen height. Without it, tall pages (and every page under `-ClepsoProbeTall YES`) are 1500 pt wide.
+            // `-ClepsoProbeFromWidth <pt>` lays each page out at that width first, then narrows it to `-ClepsoProbeWidth`,
+            // as a user dragging the window narrower (a calendar once kept its wider size: see `DetailsView`).
+            let width = defaults.double(forKey: "ClepsoProbeWidth"), from = defaults.double(forKey: "ClepsoProbeFromWidth")
             if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }), let screen = window.screen?.visibleFrame,
-               name.hasSuffix("-tall") || defaults.bool(forKey: "ClepsoProbeTall") {
+               width > 0, from > 0 {
+                window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: from, height: screen.height), display: true)
+                try? await Task.sleep(for: .milliseconds(600))
+            }
+            if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }), let screen = window.screen?.visibleFrame,
+               width > 0 || name.hasSuffix("-tall") || defaults.bool(forKey: "ClepsoProbeTall") {
                 // As tall as the screen allows, so content below the fold is captured too.
-                window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: min(screen.width, 1500), height: screen.height), display: true)
-            } else if let window = NSApp.windows.first(where: { $0.isVisible && $0.title == Product.name }), let screen = window.screen?.visibleFrame,
-                      defaults.double(forKey: "ClepsoProbeWidth") > 0 {
-                // `-ClepsoProbeWidth <pt>`: every page at one window width (the minimum is 1100), full screen height.
-                window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: defaults.double(forKey: "ClepsoProbeWidth"), height: screen.height), display: true)
+                window.setFrame(NSRect(x: screen.minX, y: screen.minY, width: width > 0 ? width : min(screen.width, 1500), height: screen.height),
+                                display: true)
             }
             try? await Task.sleep(for: .milliseconds(name.hasPrefix("card") ? 1600 : 800))      // the card's flip settles
             await axCheckpoint(folder, "details-\(name)")

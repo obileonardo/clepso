@@ -50,19 +50,16 @@ struct CardSection: View {
                     .frame(maxWidth: PageMetrics.labelColumn * 1.6, alignment: .leading)
                 Spacer(minLength: theme.spacing(.spacious))
                 if let note { Text(note).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme)) }
-                HStack(spacing: theme.spacing(.standard)) {
-                    // 1.15: the primary action leads, as in every action row.
-                    Button(Copy.Card.save) { save(card) }.buttonStyle(PixelButtonStyle(prominent: true))
-                    Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
-                    let image = image(card)
-                    ShareLink(item: Image(nsImage: image), preview: SharePreview(card.name.isEmpty ? Product.name : card.name, image: Image(nsImage: image))) {
-                        Text(Copy.Card.share)
+                // 1.15: the primary action leads, as in every action row. One row; two beside the 600 pt card when the
+                // window is too narrow for one (the 1100 pt minimum).
+                let gap = theme.spacing(.standard), image = image(card)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: gap) { saveButtons(card); shareButtons(card, image) }.fixedSize()
+                    VStack(alignment: .leading, spacing: gap) {
+                        HStack(spacing: gap) { saveButtons(card) }.fixedSize()
+                        HStack(spacing: gap) { shareButtons(card, image) }.fixedSize()
                     }
-                    .buttonStyle(PixelButtonStyle())
-                    Button(model.cardShowsBack ? Copy.Card.showFront : Copy.Card.showBack) { model.cardShowsBack.toggle() }
-                        .buttonStyle(PixelButtonStyle())
                 }
-                .fixedSize()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             FlipCard(card: card, showsBack: $model.cardShowsBack, previewTilt: model.cardTiltPreview)
@@ -70,6 +67,20 @@ struct CardSection: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, theme.spacing(.section))
         .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
+    }
+
+    @ViewBuilder func saveButtons(_ card: PlayerCard) -> some View {
+        Button(Copy.Card.save) { save(card) }.buttonStyle(PixelButtonStyle(prominent: true))
+        Button(Copy.Card.copy) { copy(card) }.buttonStyle(PixelButtonStyle())
+    }
+
+    @ViewBuilder func shareButtons(_ card: PlayerCard, _ image: NSImage) -> some View {
+        ShareLink(item: Image(nsImage: image), preview: SharePreview(card.name.isEmpty ? Product.name : card.name, image: Image(nsImage: image))) {
+            Text(Copy.Card.share)
+        }
+        .buttonStyle(PixelButtonStyle())
+        Button(model.cardShowsBack ? Copy.Card.showFront : Copy.Card.showBack) { model.cardShowsBack.toggle() }
+            .buttonStyle(PixelButtonStyle())
     }
 
     /// Tripadvisor's ladders as rows: the category and its tier on the left, the rungs, then what reaches the next.

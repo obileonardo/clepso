@@ -147,16 +147,12 @@ struct OverviewSection: View {
 
     func monthView(_ contentWidth: CGFloat) -> some View {
         let grid = StatsCalendar.recent(30, stats: file, levels: summary.heatmap, today: summary.today, firstDay: file.firstSessionDate)
+        let layout = CalendarGridView.monthLayout(fitting: contentWidth, theme: theme)
         return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            CalendarGridView(grid: grid, cell: monthCell(contentWidth), showDayNumbers: true, transposed: true, selected: selectedDay, onSelect: { selectedDay = $0 })
+            CalendarGridView(grid: grid, cell: layout.cell, spacing: layout.gap, showDayNumbers: true, transposed: true,
+                             selected: selectedDay, onSelect: { selectedDay = $0 })
             CalendarLegend()
         }
-    }
-
-    /// Day squares sized so the calendar takes about half the width, never smaller than two lines of figures.
-    func monthCell(_ contentWidth: CGFloat) -> CGFloat {
-        let fit = contentWidth / (7 + 6 * CalendarGridView.gapRatio)
-        return PixelDensity.tile(fitting: min(max(fit, theme.spacing(.spacious) * 2), theme.spacing(.spacious) * 3.5), px: theme.stroke(.hairline) * 2)
     }
 
     // MARK: - 7 days: one column per day
@@ -225,6 +221,8 @@ struct OverviewSection: View {
 struct CalendarGridView: View {
     let grid: StatsCalendar.Grid
     let cell: CGFloat
+    /// The gap between squares when the layout chose one (`monthLayout`); otherwise GitHub's proportion of the square.
+    var spacing: CGFloat? = nil
     let showDayNumbers: Bool
     var transposed = false
     /// Steep's inspector (1.12): a day can be chosen to see it in full beside the calendar.
@@ -236,7 +234,7 @@ struct CalendarGridView: View {
 
     /// GitHub's proportions: a 10-point day has a 3-point gap.
     static let gapRatio: CGFloat = 0.25
-    var gap: CGFloat { Self.gap(cell, theme) }
+    var gap: CGFloat { spacing ?? Self.gap(cell, theme) }
     /// Whole points, so every square starts on a device pixel at 1× and 2×.
     static func gap(_ cell: CGFloat, _ theme: Theme) -> CGFloat { max(theme.stroke(.hairline) * 2, (cell * gapRatio).rounded()) }
     /// The weekday labels' column (year view).
@@ -254,6 +252,33 @@ struct CalendarGridView: View {
             cell = PixelDensity.tile(fitting: cell - 1, px: px)
         }
         return cell
+    }
+
+    /// One line of the month view's figures: Clepso Mono at 12 pt is 14.4 pt from ascender to descender, laid out on
+    /// 15 (the date, then the count, sit in the plain ground above the level's band).
+    static let figureLine: CGFloat = 15
+
+    /// The month view's square and gap for seven columns in `width`. The largest square up to three and a half
+    /// spacious steps whose seven squares and six GitHub-proportioned gaps fit; never below the smallest square whose
+    /// ground holds the date and the count (`figureLine`). Narrower than that, the gaps close to one pixel first, and
+    /// only then the square shrinks, dropping the count's line (`dayCell`): never drawn wider than `width`, down to
+    /// the smallest tile.
+    static func monthLayout(fitting width: CGFloat, theme: Theme) -> (cell: CGFloat, gap: CGFloat) {
+        let px = theme.stroke(.hairline) * 2
+        func drawn(_ cell: CGFloat, _ gap: CGFloat) -> CGFloat { 7 * cell + 6 * gap }
+        var cell = PixelDensity.tile(fitting: theme.spacing(.spacious) * 3.5, px: px)
+        // Down to the smallest square with room for both lines.
+        while drawn(cell, gap(cell, theme)) > width, cell > px * 2.5 {
+            let smaller = PixelDensity.tile(fitting: cell - 1, px: px)
+            guard monthBand(smaller, theme).ground >= 2 * figureLine else { break }
+            cell = smaller
+        }
+        if drawn(cell, gap(cell, theme)) <= width { return (cell, gap(cell, theme)) }
+        // Then narrower gaps, whole points, at least one pixel.
+        if drawn(cell, px) <= width { return (cell, max(px, ((width - 7 * cell) / 6).rounded(.down))) }
+        // Then smaller squares with one-pixel gaps.
+        while drawn(cell, px) > width, cell > px * 2.5 { cell = PixelDensity.tile(fitting: cell - 1, px: px) }
+        return (cell, px)
     }
 
     /// Item 9: a calendar a day can be chosen in takes keyboard focus as one control (not 365 Tab stops): ← → ↑ ↓
@@ -345,13 +370,18 @@ struct CalendarGridView: View {
         let px = theme.stroke(.hairline) * 2
         let level: Int? = if case .level(let l) = c.state { l } else { nil }
         let band = Self.monthBand(cell, theme)
+        // A square squeezed below two lines of figures (`monthLayout`) keeps the date and drops the count (the
+        // tooltip and VoiceOver still give it), rather than letting it run into the band.
+        let lines = Int(band.ground / Self.figureLine)
         return ZStack(alignment: .top) {
             PixelLevelTile(level: level, rows: showDayNumbers ? band.rows : nil)
-            if showDayNumbers {
+            if showDayNumbers, lines >= 1 {
                 VStack(spacing: 0) {
                     Text(String(c.date.suffix(2))).font(theme.font(.micro)).foregroundStyle(theme.color(.textPrimary, scheme))
-                    Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                        .opacity((level ?? 0) > 0 ? 1 : 0)
+                    if lines >= 2 {
+                        Text(Formatting.compact(Int64(c.messages))).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+                            .opacity((level ?? 0) > 0 ? 1 : 0)
+                    }
                 }
                 .frame(width: cell, height: band.ground)
             }
@@ -464,7 +494,9 @@ struct FittedCalendar: View {
 
     var body: some View {
         CalendarGridView(grid: grid, cell: CalendarGridView.cell(fitting: width, weeks: grid.weeks.count, theme: theme), showDayNumbers: false)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // minWidth 0: the frame is the width offered, never the drawn calendar's, so a calendar fitted to a wider
+            // window can't hold the measurement (and itself) at that width after the window narrows.
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 }
