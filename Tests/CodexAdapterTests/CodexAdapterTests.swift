@@ -95,6 +95,64 @@ struct CodexAdapterTests {
         #expect(keys == [.pool(providerPoolKey: "codex.rate_limits.five_hour"), .pool(providerPoolKey: "codex.rate_limits.seven_day")])
     }
 
+    /// A token count in the shape of the 9 Oct 2026 Reserve events (synthetic numbers): labelled "codex", one 10080-minute
+    /// window in the primary slot, no 5-hour window, a reset of its own.
+    static func reserveUnderCodexLabel(at: String, pct: Double, resets: Int = 1_791_783_900, limitID: String = "codex",
+                                       limitName: String? = nil) -> String {
+        let name = limitName.map { "\"\($0)\"" } ?? "null"
+        return #"{"timestamp":"\#(at)","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"limit_id":"\#(limitID)","limit_name":\#(name),"primary":{"used_percent":\#(pct),"window_minutes":10080,"resets_at":\#(resets)},"secondary":null,"plan_type":"plus","credits":{"has_credits":false,"unlimited":false,"balance":"0"},"individual_limit":null,"spend_control_reached":null,"rate_limit_reached_type":null}}}"#
+    }
+
+    static func turnContext(model: String) -> String {
+        #"{"timestamp":"2026-10-09T12:39:00.000Z","type":"turn_context","payload":{"model":"\#(model)","cwd":"\#(canary)"}}"#
+    }
+
+    /// Regression, founder's Mac 9 Oct 2026 12:39–12:42 UTC: after a switch to gpt-reserve ("Luna Reserve"), Codex wrote
+    /// 11 token counts labelled "codex" carrying only a weekly window at 27–31% that belonged to the Reserve allowance
+    /// (31% at 12:43 under "base_model_inference"). Codex's own weekly figure was 11%. They must never become Codex's
+    /// weekly reading: the reading before them stands.
+    @Test func reserveReadingsUnderCodexsLabelAreNotCodexsLimits() throws {
+        let data = Self.file([Self.turnContext(model: "gpt-6-astra"),
+                              Self.tokenCount(at: "2026-10-09T12:14:05.000Z", primary: 69, secondary: 11),
+                              Self.turnContext(model: "gpt-reserve"),
+                              Self.reserveUnderCodexLabel(at: "2026-10-09T12:39:34.000Z", pct: 27),
+                              Self.reserveUnderCodexLabel(at: "2026-10-09T12:42:42.000Z", pct: 31),
+                              Self.reserveUnderCodexLabel(at: "2026-10-09T12:43:52.000Z", pct: 31, limitID: "base_model_inference",
+                                                          limitName: "gpt-reserve")])
+        let r = try #require(CodexRollout.latest(in: data))
+        #expect(r.observedAt == CodexRollout.timestamp("2026-10-09T12:14:05.000Z"))
+        #expect(r.primary?.usedPct == 69 && r.secondary?.usedPct == 11 && r.model == "gpt-6-astra")
+        let weekly = CodexMapper.observations(r, connectionID: UUID(), receivedAt: Date(timeIntervalSince1970: 1_791_600_000))
+            .filter { $0.subject == .pool(providerPoolKey: "codex.rate_limits.seven_day") && $0.kind == .quotaUsedPct }
+        #expect(weekly.map(\.value) == [.percent(11)])
+        // Only the Reserve events in the tail: nothing of Codex's own to report.
+        #expect(CodexRollout.latest(in: Self.file([Self.turnContext(model: "gpt-reserve"),
+                                                   Self.reserveUnderCodexLabel(at: "2026-10-09T12:39:34.000Z", pct: 27)])) == nil)
+    }
+
+    @Test("Each rule alone catches a Reserve reading: by its turn's model, and by a weekly window that isn't Codex's own")
+    func reserveReadingsAreCaughtByEitherField() throws {
+        let before = Self.tokenCount(at: "2026-10-09T12:14:05.000Z", primary: 69, secondary: 11)   // weekly resets 22 Oct
+        // Model unknown (its turn_context fell outside the tail): the weekly window's reset (ten days before Codex's,
+        // whose window is still open) gives it away.
+        let byReset = try #require(CodexRollout.latest(in: Self.file([before, Self.reserveUnderCodexLabel(at: "2026-10-09T12:39:34.000Z", pct: 27)])))
+        #expect(byReset.secondary?.usedPct == 11)
+        // Model renamed, but another bucket names it as its own: its turns' readings are that bucket's.
+        let renamed = Self.file([Self.turnContext(model: "gpt-reserve-2"),
+                                 Self.reserveUnderCodexLabel(at: "2026-10-09T12:39:34.000Z", pct: 27, resets: 1_792_651_827),
+                                 Self.reserveUnderCodexLabel(at: "2026-10-09T12:43:52.000Z", pct: 31, limitID: "base_model_inference",
+                                                             limitName: "gpt-reserve-2")])
+        #expect(CodexRollout.latest(in: renamed) == nil)
+        // The rules leave Codex's own weekly-only readings alone: one matching Codex's weekly window (a few seconds of
+        // jitter, as Codex reports), and one with nothing earlier to compare with.
+        let matching = Self.file([before, Self.reserveUnderCodexLabel(at: "2026-10-09T12:39:34.000Z", pct: 12, resets: 1_792_651_829)])
+        #expect(CodexRollout.latest(in: matching)?.primary?.usedPct == 12)
+        #expect(CodexRollout.latest(in: Self.file([Self.reserveUnderCodexLabel(at: "2026-10-09T12:39:34.000Z", pct: 27)]))?.primary?.usedPct == 27)
+        // Once Codex's weekly window has reset (22 Oct 06:50), a new weekly reset is Codex's next window.
+        let afterReset = Self.file([before, Self.reserveUnderCodexLabel(at: "2026-10-23T12:00:00.000Z", pct: 3, resets: 1_793_300_000)])
+        #expect(CodexRollout.latest(in: afterReset)?.primary?.usedPct == 3)
+    }
+
     @Test("Codex sometimes writes a token count without its plan: the plan from earlier in the file stands")
     func planCarriesOverAMissingOne() throws {
         let data = Self.file([Self.tokenCount(at: "2026-10-16T17:35:13.000Z", primary: 34),

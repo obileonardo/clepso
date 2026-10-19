@@ -164,8 +164,37 @@ enum PaceText {
     }
 }
 
+/// The span of a limit's chart that no reading covers: from shortly after the newest reading to NOW (founder decision
+/// 19 Oct 2026, decision sheet §2, option D). A 3-day-old 100% drawn solid to NOW looked like a live 100%, so the chart
+/// hatches this span as it hatches "not watching yet", and shows whether the window's reported reset passed inside it.
+struct UnmeasuredSpan: Equatable {
+    /// The newest reading.
+    let lastReading: Date
+    /// Where the hatch starts: a reading stands for the staleness span after it (10 minutes), so ordinary gaps between
+    /// turns stay solid.
+    let from: Date
+    /// The window's reported reset, when it fell after the newest reading and has passed.
+    let resetPassed: Date?
+
+    /// Nil while the newest reading is fresh, or when there is none.
+    static func make(lastReading: Date?, resetsAt: Date?, now: Date, staleAfter: TimeInterval) -> UnmeasuredSpan? {
+        guard let last = lastReading, now.timeIntervalSince(last) > staleAfter else { return nil }
+        let reset = resetsAt.flatMap { $0 > last && $0 <= now ? $0 : nil }
+        return UnmeasuredSpan(lastReading: last, from: last.addingTimeInterval(staleAfter), resetPassed: reset)
+    }
+
+    /// The chart's time axis: the window the reported reset closes (`ChartAxis.window`); when that reset passed less
+    /// than a window ago, carried on to NOW, so the reset and NOW are both on the chart.
+    static func axis(length: TimeInterval, resetsAt: Date?, now: Date) -> ClosedRange<Date> {
+        if let reset = resetsAt, reset < now, reset > now.addingTimeInterval(-length) { return reset.addingTimeInterval(-length)...now }
+        return ChartAxis.window(length: length, resetsAt: resetsAt, now: now)
+    }
+}
+
 /// One limit's window, start to reset: a 0–100% scale, threshold bands at 80% and 95%, the readings as a filled step
 /// line, the span before Clepso had readings shaded, NOW where it is, and the pace projection dashed to the reset.
+/// After a stale reading the span to NOW is hatched and labelled, never carried on as a line (`UnmeasuredSpan`); a
+/// reset that passed in it is a dashed drop, with "reset passed" under NOW.
 struct WindowChart: View {
     let row: PoolRow
     let now: Date
@@ -176,9 +205,17 @@ struct WindowChart: View {
 
     var length: TimeInterval { row.poolKey.hasSuffix("five_hour") ? 5 * 3600 : 7 * 86_400 }
 
+    /// The newest reading: the card's measured value, or the history's last point if that is newer.
+    var lastReading: Date? { [row.model.used.observedAt, row.history.last?.at].compactMap { $0 }.max() }
+
+    var unmeasured: UnmeasuredSpan? {
+        UnmeasuredSpan.make(lastReading: lastReading, resetsAt: row.model.resetsAt.value, now: now, staleAfter: Freshness.localTelemetryTTL)
+    }
+
     var body: some View {
-        let window = ChartAxis.window(length: length, resetsAt: row.model.resetsAt.value, now: now)
+        let window = UnmeasuredSpan.axis(length: length, resetsAt: row.model.resetsAt.value, now: now)
         let points = row.history.filter { $0.at >= window.lowerBound && $0.at <= now }
+        let gap = unmeasured
         let ticks = ChartAxis.ticks(window, zone: zone, maxTicks: length > 86_400 ? 8 : 6)
         let gutter = theme.spacing(.spacious) * 2.4                     // left: the % scale
         let footer = theme.spacing(.spacious) * 1.2                     // bottom: the time ticks
@@ -209,19 +246,28 @@ struct WindowChart: View {
                 ChartLabel.draw(context, Text(label(tick)).font(theme.font(.micro)).foregroundColor(secondary),
                                 centeredAt: x(tick), top: plot.maxY + px * 3, width: size.width)
             }
-            // Before the first reading inside the window: Clepso was not watching (hatched, labelled).
-            let firstAt = points.first?.at ?? now
-            if firstAt > window.lowerBound {
-                let gap = CGRect(x: plot.minX, y: plot.minY, width: x(firstAt) - plot.minX, height: plot.height)
-                var hatch = Path()
-                var x0 = gap.minX - gap.height
-                while x0 < gap.maxX { hatch.move(to: CGPoint(x: x0, y: gap.maxY)); hatch.addLine(to: CGPoint(x: x0 + gap.height, y: gap.minY)); x0 += px * 4 }
-                context.clip(to: Path(gap))
-                context.stroke(hatch, with: .color(theme.color(.separator, scheme).opacity(0.6)), lineWidth: px / 2)
-                let note = context.resolve(Text(Copy.Details.notWatching).font(theme.font(.micro)).foregroundColor(secondary))
-                if note.measure(in: size).width + theme.spacing(.spacious) * 2 < gap.width {          // only where it fits clear of the scale
-                    context.draw(note, at: CGPoint(x: gap.midX, y: gap.midY), anchor: .center)
+            // A span without readings: hatched, labelled where the label fits clear of the scale.
+            let hatchColor = theme.color(.separator, scheme).opacity(0.6), micro = theme.font(.micro), clearance = theme.spacing(.spacious) * 2
+            func hatch(from: Date, to: Date, label: String) {
+                let rect = CGRect(x: x(from), y: plot.minY, width: x(to) - x(from), height: plot.height).intersection(plot)
+                guard !rect.isNull, rect.width > 0 else { return }
+                var area = context                                      // a copy, so the clip stays with this span
+                area.clip(to: Path(rect))
+                var lines = Path()
+                var x0 = rect.minX - rect.height
+                while x0 < rect.maxX { lines.move(to: CGPoint(x: x0, y: rect.maxY)); lines.addLine(to: CGPoint(x: x0 + rect.height, y: rect.minY)); x0 += px * 4 }
+                area.stroke(lines, with: .color(hatchColor), lineWidth: px / 2)
+                let note = area.resolve(Text(label).font(micro).foregroundColor(secondary))
+                if note.measure(in: size).width + clearance < rect.width {
+                    area.draw(note, at: CGPoint(x: rect.midX, y: rect.midY), anchor: .center)
                 }
+            }
+            // Before the first reading inside the window: Clepso was not watching. When the newest reading is older than
+            // the whole window, the window is all "no reading since" instead.
+            let firstAt = points.first?.at ?? (gap == nil ? now : window.lowerBound)
+            if firstAt > window.lowerBound { hatch(from: window.lowerBound, to: firstAt, label: Copy.Details.notWatching) }
+            if let gap {
+                hatch(from: max(gap.from, window.lowerBound), to: min(now, window.upperBound), label: Copy.Details.noReadingSince(pastTime(gap.lastReading)))
             }
         }
         .overlay {
@@ -233,6 +279,9 @@ struct WindowChart: View {
                 func y(_ pct: Double) -> CGFloat { plot.maxY - CGFloat(min(max(pct, 0), 100) / 100) * plot.height }
                 let px = theme.stroke(.hairline) * 2
                 let accent = theme.color(.accent, scheme)
+                let nowX = x(min(max(now, window.lowerBound), window.upperBound))
+                // The line runs to NOW while the newest reading is fresh; after a stale one it stops where the hatch starts.
+                let solidEnd = gap.map { min(max($0.from, window.lowerBound), now) } ?? now
                 if let first = points.first {
                     var line = Path(), area = Path()
                     line.move(to: CGPoint(x: x(first.at), y: y(first.usedPct)))
@@ -243,27 +292,50 @@ struct WindowChart: View {
                         area.addLine(to: CGPoint(x: x(p.at), y: y(last.usedPct))); area.addLine(to: CGPoint(x: x(p.at), y: y(p.usedPct)))
                         last = p
                     }
-                    line.addLine(to: CGPoint(x: x(now), y: y(last.usedPct)))
-                    area.addLine(to: CGPoint(x: x(now), y: y(last.usedPct))); area.addLine(to: CGPoint(x: x(now), y: plot.maxY)); area.closeSubpath()
+                    let end = max(solidEnd, last.at)
+                    line.addLine(to: CGPoint(x: x(end), y: y(last.usedPct)))
+                    area.addLine(to: CGPoint(x: x(end), y: y(last.usedPct))); area.addLine(to: CGPoint(x: x(end), y: plot.maxY)); area.closeSubpath()
                     context.fill(area, with: .color(accent.opacity(0.18)))
                     context.stroke(line, with: .color(accent), style: StrokeStyle(lineWidth: px, lineCap: .square, lineJoin: .miter))
-                    // Projection.
-                    let to: (Date, Double)? = switch row.pace {
-                    case .reachesLimit(let at): (min(at, window.upperBound), at <= window.upperBound ? 100 : last.usedPct)
-                    case .belowAtReset(let pct): (window.upperBound, pct)
-                    default: nil
-                    }
-                    if let to {
-                        var dash = Path()
-                        dash.move(to: CGPoint(x: x(now), y: y(last.usedPct))); dash.addLine(to: CGPoint(x: x(to.0), y: y(to.1)))
-                        context.stroke(dash, with: .color(theme.color(.statusAttention, scheme)), style: StrokeStyle(lineWidth: px, dash: [px * 2, px * 2]))
+                    if let gap {
+                        // The newest reading as one pixel block, so a reading minutes long still shows beside the hatch.
+                        context.fill(Path(CGRect(x: x(last.at) - px, y: y(last.usedPct) - px, width: px * 2, height: px * 2)), with: .color(accent))
+                        // The reset that passed since: a dashed drop to 0% (the window ended; Clepso has no reading after it).
+                        if let reset = gap.resetPassed, window.contains(reset) {
+                            var drop = Path()
+                            drop.move(to: CGPoint(x: x(reset), y: y(last.usedPct))); drop.addLine(to: CGPoint(x: x(reset), y: y(0)))
+                            context.stroke(drop, with: .color(theme.color(.textSecondary, scheme)), style: StrokeStyle(lineWidth: px, dash: [px * 2, px * 2]))
+                        }
+                    } else {
+                        // Projection: only from a fresh reading.
+                        let to: (Date, Double)? = switch row.pace {
+                        case .reachesLimit(let at): (min(at, window.upperBound), at <= window.upperBound ? 100 : last.usedPct)
+                        case .belowAtReset(let pct): (window.upperBound, pct)
+                        default: nil
+                        }
+                        if let to {
+                            var dash = Path()
+                            dash.move(to: CGPoint(x: x(now), y: y(last.usedPct))); dash.addLine(to: CGPoint(x: x(to.0), y: y(to.1)))
+                            context.stroke(dash, with: .color(theme.color(.statusAttention, scheme)), style: StrokeStyle(lineWidth: px, dash: [px * 2, px * 2]))
+                        }
                     }
                 }
-                // NOW, labelled where it is.
-                let nowX = x(min(max(now, window.lowerBound), window.upperBound))
+                // NOW, labelled where it is; "reset passed" just under it when the window's reset passed with no reading since.
                 context.fill(Path(CGRect(x: nowX, y: plot.minY, width: px / 2, height: plot.height)), with: .color(theme.color(.textPrimary, scheme).opacity(0.6)))
-                context.draw(Text(Copy.Details.now).font(theme.font(.micro)).foregroundColor(theme.color(.textPrimary, scheme)),
-                             at: CGPoint(x: nowX, y: plot.minY - px), anchor: .bottom)
+                // Kept inside the chart when NOW is its right edge (a window that ends now).
+                let nowLabel = context.resolve(Text(Copy.Details.now).font(theme.font(.micro)).foregroundColor(theme.color(.textPrimary, scheme)))
+                let half = nowLabel.measure(in: size).width / 2
+                context.draw(nowLabel, at: CGPoint(x: min(nowX, size.width - half), y: plot.minY - px), anchor: .bottom)
+                if gap?.resetPassed != nil {
+                    let note = context.resolve(Text(Copy.Details.resetPassed).font(theme.font(.micro)).foregroundColor(theme.color(.textPrimary, scheme)))
+                    let width = note.measure(in: size).width + px * 4
+                    let left = nowX - width - px * 2 >= plot.minX            // beside NOW, inside the plot, on whichever side fits
+                    let origin = CGPoint(x: left ? nowX - px * 2 - width : nowX + px * 2, y: plot.minY + px * 2)
+                    let box = CGRect(origin: origin, size: CGSize(width: width, height: note.measure(in: size).height + px * 2))
+                    context.fill(Path(box), with: .color(theme.color(.surfaceElevated, scheme)))
+                    context.stroke(Path(box), with: .color(theme.color(.separator, scheme)), lineWidth: px / 2)
+                    context.draw(note, at: CGPoint(x: box.midX, y: box.midY), anchor: .center)
+                }
             }
             .allowsHitTesting(false)
         }
@@ -278,8 +350,26 @@ struct WindowChart: View {
         return d.formatted(style).uppercased()
     }
 
+    /// A time in the past: the clock today, weekday and time within six days, the date beyond.
+    func pastTime(_ date: Date) -> String {
+        now.timeIntervalSince(date) < 6 * 86_400 ? Formatting.resetTime(date, now: now, zone: zone, locale: locale)
+            : Formatting.age(of: date, now: now, zone: zone, locale: locale)
+    }
+
+    /// What VoiceOver reads: the readings in the window, then, after a stale reading, that the span to now is not
+    /// measured and whether the window's reset passed in it.
     func summary(_ points: [UsagePoint]) -> String {
-        guard let first = points.first, let last = points.last else { return Copy.Details.noHistory(row.model.scope) }
-        return Copy.Details.historySummary(scope: row.model.scope, from: Int(first.usedPct.rounded()), to: Int(last.usedPct.rounded()), readings: points.count)
+        let gap = unmeasured
+        var parts: [String]
+        if let first = points.first, let last = points.last {
+            parts = [Copy.Details.historySummary(scope: row.model.scope, from: Int(first.usedPct.rounded()), to: Int(last.usedPct.rounded()), readings: points.count)]
+        } else {
+            parts = [gap == nil ? Copy.Details.noHistory(row.model.scope) : Copy.Details.noReadingsInWindow(row.model.scope)]
+        }
+        if let gap {
+            parts.append(Copy.Details.notMeasuredSince(pastTime(gap.lastReading)))
+            if let reset = gap.resetPassed { parts.append(Copy.Details.resetPassedAt(pastTime(reset))) }
+        }
+        return parts.joined(separator: "; ")
     }
 }

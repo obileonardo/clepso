@@ -32,6 +32,17 @@ public struct CodexReading: Sendable, Equatable {
     public let model: String?
     /// Codex's version as its session file records it (`session_meta.cli_version`); nil when not found.
     public var version: String?
+    /// The bucket's `limit_name`: on another allowance, the model it belongs to ("gpt-reserve"); null on Codex's own.
+    public var limitName: String?
+}
+
+extension CodexReading {
+    /// The reported window of this length, in either slot (Codex has put a weekly window in the primary slot).
+    func window(minutes: Int) -> Window? {
+        [primary, secondary].compactMap { $0 }.first { $0.windowMinutes == minutes }
+    }
+
+    var hasFiveHourWindow: Bool { window(minutes: 300) != nil }
 }
 
 public enum CodexRollout {
@@ -44,30 +55,68 @@ public enum CodexRollout {
     /// limits, so they never stand in for the 5-hour and weekly numbers.
     public static let limitID = "codex"
 
+    /// Models with an allowance of their own, whose turns' token counts never report Codex's limits even when labelled
+    /// `codex`. "gpt-reserve" is the model the Codex CLI calls "Luna Reserve" (`codex-rs/tui/src/model_catalog.rs`); its
+    /// bucket is `base_model_inference` with `limit_name` "gpt-reserve". Any other bucket's `limit_name` seen in the same
+    /// data joins this list, as Codex's own UI watches the bucket whose `limit_name` matches the selected model.
+    public static let ownAllowanceModels: Set<String> = ["gpt-reserve"]
+
+    /// A Codex weekly reset this far from the one Codex's own weekly window already reported is another window.
+    static let resetTolerance: TimeInterval = 15 * 60
+
     /// The latest reading in `data` (the tail of a rollout file), or nil if it holds no token count with limits.
     /// Only Codex's own allowance counts (`limitID`), and only a token count that reports at least one window: one
     /// with both windows null says nothing about them. The first line may be cut by the tail read; it fails to decode
     /// and is skipped like any malformed line.
+    ///
+    /// Regression, founder's Mac 9 Oct 2026, 12:39–12:42 UTC: just after a switch to `gpt-reserve`, Codex wrote 11 token
+    /// counts labelled `limit_id` "codex" that carried only a 10080-minute window (in the primary slot) at 27–31%, with a
+    /// reset four days before Codex's own weekly reset. They continued the Reserve bucket (31% at 12:43); Codex's own
+    /// weekly figure was 11% at 12:14. Such a token count is not Codex's own (`isOwnAllowance`).
     public static func latest(in data: Data) -> CodexReading? {
         var model: String?
         var plan: String?
-        var best: CodexReading?
+        var candidates: [CodexReading] = []
+        var separateModels = ownAllowanceModels
         for line in data.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: true) {
             guard line.count <= maxLine else { continue }
             // Cheap byte checks first, so lines carrying prompts or replies are never handed to the JSON decoder.
             if contains(line, #""turn_context""#) {
                 if let m = decodeModel(Data(line)) { model = m }
-            } else if contains(line, #""token_count""#), let reading = decodeTokenCount(Data(line), model: model),
-                      reading.limitID == nil || reading.limitID == limitID, reading.primary != nil || reading.secondary != nil {
-                if let p = reading.plan { plan = p }
-                if best == nil || reading.observedAt >= best!.observedAt { best = reading }
+            } else if contains(line, #""token_count""#), let reading = decodeTokenCount(Data(line), model: model) {
+                guard reading.limitID == nil || reading.limitID == limitID else {
+                    if let name = reading.limitName { separateModels.insert(name) }     // another allowance names its model
+                    continue
+                }
+                if reading.primary != nil || reading.secondary != nil { candidates.append(reading) }
             }
+        }
+        // In file order, so "Codex's own weekly window so far" is what came before each reading.
+        var best: CodexReading?
+        var weekly: CodexReading.Window?
+        for reading in candidates where isOwnAllowance(reading, separateModels: separateModels, weekly: weekly, at: reading.observedAt) {
+            if let p = reading.plan { plan = p }
+            if reading.hasFiveHourWindow, let w = reading.window(minutes: 10_080) { weekly = w }
+            if best == nil || reading.observedAt >= best!.observedAt { best = reading }
         }
         guard let b = best else { return nil }
         // The model line can follow the token count it belongs to; Codex sometimes writes a token count with no plan.
         return CodexReading(observedAt: b.observedAt, limitID: b.limitID, plan: b.plan ?? plan, primary: b.primary,
                             secondary: b.secondary, sessionTokens: b.sessionTokens, contextWindow: b.contextWindow,
                             model: b.model ?? model)
+    }
+
+    /// Whether a token count labelled `codex` (or unlabelled) reports Codex's own allowance. It does not when:
+    /// - its turn ran on a model with an allowance of its own (`separateModels`): the numbers are that model's; or
+    /// - it carries no 5-hour window, only a weekly one, whose reset disagrees with the weekly window Codex's own
+    ///   readings already reported (`weekly`) while that window is still open at this reading's time: a different
+    ///   weekly window under Codex's label. A weekly-only reading that matches Codex's window, or one with nothing
+    ///   earlier to compare with (a plan that reports only a weekly window), still counts.
+    static func isOwnAllowance(_ reading: CodexReading, separateModels: Set<String>, weekly: CodexReading.Window?, at: Date) -> Bool {
+        if let model = reading.model, separateModels.contains(model) { return false }
+        guard !reading.hasFiveHourWindow, let candidate = reading.window(minutes: 10_080), let known = weekly?.resetsAt,
+              known > at, let reset = candidate.resetsAt else { return true }
+        return abs(reset.timeIntervalSince(known)) <= resetTolerance
     }
 
     /// Codex's version from the head of a session file: its first line (`session_meta`) names it within the first few
@@ -106,7 +155,8 @@ public enum CodexRollout {
         }
         return CodexReading(observedAt: at, limitID: identifier(limits?["limit_id"]), plan: identifier(limits?["plan_type"]),
                             primary: window(limits?["primary"]), secondary: window(limits?["secondary"]),
-                            sessionTokens: tokens, contextWindow: count(info?["model_context_window"]), model: model)
+                            sessionTokens: tokens, contextWindow: count(info?["model_context_window"]), model: model,
+                            limitName: identifier(limits?["limit_name"]))
     }
 
     static func window(_ any: Any?) -> CodexReading.Window? {

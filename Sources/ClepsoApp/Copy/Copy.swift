@@ -80,6 +80,19 @@ enum Copy {
         static let codexVersion = "Codex version"
         static let adapterCodex = "Codex session reader, token_count events"
         static let ttl = "Considered stale after 10 minutes"
+        // Founder decision 19 Oct 2026 (decision sheet §3): how old the number is, and whether its window has ended.
+        static func measured(_ stamp: String, age: String) -> String { "\(stamp) · \(age)" }
+        static let window = "Window"
+        static func resetPassed(_ time: String) -> String { "Reset passed \(time): this number is from the last window" }
+        /// "just now", "1 minute ago", "5 hours ago", "3 days ago": whole units, rounded down.
+        static func ago(_ seconds: TimeInterval) -> String {
+            func unit(_ n: Int, _ name: String) -> String { "\(n) \(name)\(n == 1 ? "" : "s") ago" }
+            let s = max(0, seconds)
+            if s < 60 { return "just now" }
+            if s < 3600 { return unit(Int(s / 60), "minute") }
+            if s < 86_400 { return unit(Int(s / 3600), "hour") }
+            return unit(Int(s / 86_400), "day")
+        }
         static let recent = "Last 3 readings"
         static let copy = "Copy details"
         static let absent = "Not sent by provider"
@@ -120,6 +133,12 @@ enum Copy {
         static let limitsSubtitle = "Each limit over its own window, with readings, thresholds and a pace estimate"
         static let sessionSubtitle = "The current Claude Code session in full, and recent ones beside it"
         static let notWatching = "NOT WATCHING YET"
+        // Founder decision 19 Oct 2026 (decision sheet §2): the span after an old reading is hatched, never drawn as measured.
+        static func noReadingSince(_ time: String) -> String { "NO READING SINCE \(time.uppercased())" }
+        static let resetPassed = "RESET PASSED"
+        static func noReadingsInWindow(_ scope: String) -> String { "\(scope) usage history: no readings in this window" }
+        static func notMeasuredSince(_ time: String) -> String { "not measured since \(time)" }
+        static func resetPassedAt(_ time: String) -> String { "its window reset at \(time), after the last reading" }
         static let recentSessions = "RECENT SESSIONS"
         static let byModelNote = "Grouped by each session's main model. Claude Code also uses smaller models in the background; those count under the main one. For exact per-model figures, see Stats."
     }

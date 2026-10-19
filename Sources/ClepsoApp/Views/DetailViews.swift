@@ -182,10 +182,12 @@ struct InspectorView: View {
         HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.spacious)) {
             Text(label).font(valueFirst ? theme.font(.label).monospacedDigit() : theme.font(.supporting))
                 .foregroundStyle(theme.color(valueFirst ? .textPrimary : .textSecondary, scheme))
+                .fixedSize()
             Spacer(minLength: theme.spacing(.standard))
+            // A long value (a reading's age, "Reset passed …") wraps under itself rather than being cut off.
             Text(value).font(valueFirst ? theme.font(.supporting).monospacedDigit() : theme.font(.supporting))
                 .foregroundStyle(theme.color(valueFirst ? .textSecondary : .textPrimary, scheme))
-                .multilineTextAlignment(.trailing).textSelection(.enabled)
+                .multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
         }
         .padding(.vertical, theme.spacing(.compact) + theme.stroke(.hairline))
         .overlay(alignment: .top) {
@@ -196,16 +198,32 @@ struct InspectorView: View {
 
     var fields: [(String, String)] {
         let used = row.model.used
+        // Founder decision 19 Oct 2026 (decision sheet §3): the reading's age on the row that holds its time, and a row
+        // saying its window has already ended, only when it has, so a live reading reads as before.
+        let measured = used.observedAt.map { Copy.Inspector.measured(stamp($0), age: Copy.Inspector.ago(now.timeIntervalSince($0))) }
         return [
             (row.model.scope, used.value.map(Formatting.percent) ?? Copy.Inspector.absent),
             (Copy.Inspector.field, row.providerField),
             (Copy.Inspector.source, isDemo ? Copy.Inspector.sourceDemo("(built-in)") : row.origin.source),
-            (Copy.Inspector.observedAt, used.observedAt.map(stamp) ?? "—"),
+            (Copy.Inspector.observedAt, measured ?? "—"),
+        ] + (resetPassed.map { [(Copy.Inspector.window, Copy.Inspector.resetPassed(resetStamp($0)))] } ?? []) + [
             (Copy.Inspector.receivedAt, row.receivedAt.map(stamp) ?? "—"),
             (Copy.Inspector.quality, Copy.Inspector.quality(used.value == nil ? .unknown : used.quality)),
             (Copy.Inspector.adapterVersion, row.origin.adapter),
             (row.origin.versionLabel, row.origin.version ?? "—"),
         ]
+    }
+
+    /// The reading's reported reset, when it has passed after the reading: the number is from a window that has ended.
+    var resetPassed: Date? {
+        guard let reset = row.model.resetsAt.value, reset <= now else { return nil }
+        if let measured = row.model.used.observedAt, measured >= reset { return nil }
+        return reset
+    }
+
+    /// A reset time to the minute: "16 Oct 2026 at 22:23" (en_GB).
+    func resetStamp(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened, locale: locale, timeZone: zone))
     }
 
     /// Absolute time with seconds and zone, so two readings never look identical.
