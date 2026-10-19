@@ -2,62 +2,63 @@ import ClaudeCodeAdapter
 import DesignSystem
 import SwiftUI
 
-/// Tokens per model (increment 1.8f), two ways: Arena, a pixel character per model showing what it spent its tokens
-/// on; and Chart, tokens per day stacked by model on a real date axis.
+/// Tokens per model, as the founder chose it on 19 Oct 2026 (docs/design-concepts/models, proposal A "Roster +
+/// Dossier", drawn from his five references: Revolut Business, Life Reset, Duolingo, Nike Run Club, Azar): every model
+/// in a ranked roster on the left with the range's total at its head, the chosen model's dossier (Arena) or tokens per
+/// day with that model picked out (Chart) on the right, and "How levels work" as a track with each model standing at
+/// its level. The numbers come from `ModelsRoster`.
 struct ModelsSection: View {
     @Bindable var model: AppModel
     let summary: StatsSummary
     let file: ClaudeCodeStats
+    /// The model the user chose. Kept across range changes; `ModelsRoster.resolve` falls back to #1 when it has gone.
+    @State private var selected: String? = Self.initialSelection
+    /// The right-hand pane's height: the roster scrolls on its own when it is taller.
+    @State private var paneHeight: CGFloat = 0
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        if summary.models.isEmpty {
+        let roster = ModelsRoster(summary)
+        if let chosen = roster.resolve(selected) {
+            PageColumn {
+                split(roster, chosen)
+                if model.modelsView == .arena {
+                    LevelTrack(roster: roster, selected: chosen.id) { selected = $0 }
+                }
+            }
+        } else {
             PageColumn {
                 PageSection(Copy.Stats.models, nil) {
                     Text(Copy.Stats.noModels).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
             }
-        } else {
-            // 1.14: Account's structure. The share, then the models (Arena) or tokens by day (Chart), then how levels work.
-            PageColumn {
-                PageSection(Copy.ModelsPage.distributionTitle, Copy.ModelsPage.distributionSub) { distribution }
-                switch model.modelsView {
-                case .arena: ModelArena(summary: summary)
-                case .chart:
-                    PageSection(Copy.ModelsPage.chartTitle, Copy.ModelsPage.chartSub) {
-                        VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-                            StackedModelChart(summary: summary, from: first, to: summary.today)
-                            ModelLegend(models: summary.models)
-                        }
-                    }
-                }
-            }
         }
     }
 
-    /// Krea's "usage distribution" (1.12): the share of tokens as a ring with the total inside, beside a card per model.
-    var distribution: some View {
-        HStack(alignment: .center, spacing: theme.spacing(.spacious) * 1.5) {
-            ZStack {
-                PixelDonut(shares: summary.models.map(\.share))
-                VStack(spacing: 0) {
-                    Text(Formatting.compact(summary.totalTokens)).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
-                    Text(Copy.ModelsPage.tokens).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+    /// The roster in the page's label column, the dossier or the chart in its content side. One model: no list to
+    /// choose from, so the total sits over the dossier and the dossier takes the width.
+    func split(_ roster: ModelsRoster, _ chosen: ModelsRoster.Entry) -> some View {
+        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
+            if roster.showsRoster {
+                RosterList(roster: roster, selected: chosen.id, height: paneHeight) { selected = $0 }
+                    .frame(width: PageMetrics.labelColumn)
+            }
+            VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
+                if !roster.showsRoster { RosterTotal(roster: roster) }
+                switch model.modelsView {
+                case .arena:
+                    ModelDossier(entry: chosen, range: summary.range, activity: ModelsRoster.activity(chosen.id, summary: summary, from: first),
+                                 weekly: StatsSummary.Day.between(first, summary.today) + 1 > 120, from: first)
+                case .chart:
+                    StackedModelChart(summary: summary, from: first, to: summary.today, highlight: roster.showsRoster ? chosen.id : nil)
                 }
             }
-            .frame(width: theme.spacing(.spacious) * 8, height: theme.spacing(.spacious) * 8)
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(summary.models.enumerated()), id: \.element.id) { i, m in
-                    HStack(spacing: theme.spacing(.standard)) {
-                        Canvas { context, size in ModelStyle.fill(&context, CGRect(origin: .zero, size: size), index: i, theme: theme, scheme: scheme) }
-                            .frame(width: theme.spacing(.standard) + theme.spacing(.compact), height: theme.spacing(.standard) + theme.spacing(.compact))
-                            .accessibilityHidden(true)
-                        FactRow(label: m.name, value: "\(Formatting.compact(m.tokens)) · \(String(format: "%.1f", m.share * 100))%")
-                    }
-                }
-            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { paneHeight = $0 }
         }
+        .padding(.vertical, theme.spacing(.section))
+        .overlay(alignment: .top) { Rectangle().fill(theme.color(.separator, scheme)).frame(height: theme.stroke(.hairline)) }
     }
 
     var first: String {
@@ -66,6 +67,200 @@ struct ModelsSection: View {
         case .last30: StatsSummary.Day.adding(-29, to: summary.today)
         case .last7: StatsSummary.Day.adding(-6, to: summary.today)
         }
+    }
+
+    /// Debug builds: `-ClepsoProbeModel <model id>` opens the page on that model, for screenshots of a later row.
+    static var initialSelection: String? {
+        #if DEBUG
+        UserDefaults.standard.string(forKey: "ClepsoProbeModel")
+        #else
+        nil
+        #endif
+    }
+}
+
+/// The range's total tokens over the roster (Revolut's "All · 2" list header, with the figure).
+struct RosterTotal: View {
+    let roster: ModelsRoster
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+            Text(Copy.ModelsPage.rosterTitle(roster.entries.count)).font(theme.font(.title)).foregroundStyle(theme.color(.accent, scheme))
+            HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
+                Text(Formatting.compact(roster.total)).font(theme.font(.metricMedium)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                Text(Copy.ModelsPage.totalIn(roster.range)).font(theme.font(.micro)).tracking(1).foregroundStyle(theme.color(.textSecondary, scheme))
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Every model in rank order (Revolut's compact list, Duolingo's ranked rows): rank, sprite, name and share; its
+/// pattern swatch, tokens and level chip. Divided where output crosses 1K, 1M, 1B (Duolingo's promotion zone). One
+/// keyboard stop: ↑ ↓ move the choice and the dossier follows, Home and End jump to the ends, a letter jumps to the
+/// next model starting with it.
+struct RosterList: View {
+    let roster: ModelsRoster
+    let selected: String
+    /// The pane beside it; the list scrolls within this height.
+    let height: CGFloat
+    let onSelect: (String) -> Void
+    @State private var headerHeight: CGFloat = 0
+    @State private var listHeight: CGFloat = 0
+    @FocusState private var focused: Bool
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            RosterTotal(roster: roster)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
+            ScrollViewReader { proxy in
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                        ForEach(Array(roster.zones.enumerated()), id: \.offset) { _, zone in
+                            ZoneDivider(zone: zone)
+                            ForEach(zone.entries) { entry in
+                                RosterRow(entry: entry, chosen: entry.id == selected)
+                                    .id(entry.id)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { onSelect(entry.id) }
+                                    .accessibilityAction { onSelect(entry.id) }
+                            }
+                        }
+                    }
+                    .padding(theme.stroke(.focus) * 3)            // room for the focus ring inside the scroll view
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { listHeight = $0 }
+                }
+                .frame(height: Self.listFrame(content: listHeight, pane: height - headerHeight - theme.spacing(.standard),
+                                              rows: roster.entries.count, floor: theme.spacing(.spacious) * 10))
+                .onChange(of: selected) { _, id in proxy.scrollTo(id) }
+            }
+            .focusable()
+            .focused($focused)
+            .focusEffectDisabled()                                 // the pixel ring instead of the system's rounded one
+            .pixelFocusRing(focused)
+            .onMoveCommand { direction in
+                switch direction {
+                case .up: if let id = roster.step(selected, by: -1) { onSelect(id) }
+                case .down: if let id = roster.step(selected, by: 1) { onSelect(id) }
+                default: break
+                }
+            }
+            .onKeyPress(keys: [.home, .end]) { press in
+                guard let id = press.key == .home ? roster.firstID : roster.lastID else { return .ignored }
+                onSelect(id)
+                return .handled
+            }
+            .onKeyPress(characters: .letters, phases: .down) { press in
+                guard let id = roster.typeSelect(press.characters, after: selected) else { return .ignored }
+                onSelect(id)
+                return .handled
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(Copy.ModelsPage.rosterLabel)
+            .accessibilityHint(Copy.ModelsPage.rosterHint)
+        }
+    }
+}
+
+extension RosterList {
+    /// The list's height: all of it while there are at most `fullRows` models (no half-cut row beside a short pane);
+    /// beyond that, the pane's height (never under `floor`), and the list scrolls.
+    nonisolated static func listFrame(content: CGFloat, pane: CGFloat, rows: Int, floor: CGFloat, fullRows: Int = 8) -> CGFloat {
+        rows <= fullRows ? max(content, floor) : min(content, max(pane, floor))
+    }
+}
+
+/// Duolingo's "PROMOTION ZONE" line, for output: hairlines either side of the zone's floor.
+struct ZoneDivider: View {
+    let zone: ModelsRoster.Zone
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let target = zone.floorLevel.map { Formatting.compact(ModelsRoster.target(of: $0)) } ?? ""
+        let color = theme.color(zone.floorLevel == nil ? .textSecondary : .accent, scheme)
+        HStack(spacing: theme.spacing(.standard)) {
+            Rectangle().fill(color.opacity(0.5)).frame(height: theme.stroke(.hairline))
+            Text(Copy.ModelsPage.zoneLabel(floorLevel: zone.floorLevel, target: target)).font(theme.font(.micro)).tracking(1)
+                .foregroundStyle(color).lineLimit(1).fixedSize()
+            Rectangle().fill(color.opacity(0.5)).frame(height: theme.stroke(.hairline))
+        }
+        .padding(.vertical, theme.spacing(.compact))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Copy.ModelsPage.zoneSpoken(floorLevel: zone.floorLevel, target: ModelsRoster.spoken(ModelsRoster.target(of: zone.floorLevel ?? 1))))
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
+struct RosterRow: View {
+    let entry: ModelsRoster.Entry
+    let chosen: Bool
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let px = theme.stroke(.hairline) * 2
+        let role = ModelStyle.role(entry.style)
+        HStack(alignment: .center, spacing: theme.spacing(.standard)) {
+            Text("\(entry.rank)").font(theme.font(.title)).monospacedDigit()
+                .foregroundStyle(theme.color(chosen ? .textPrimary : .textSecondary, scheme))
+                .frame(minWidth: theme.spacing(.spacious) * 1.25, alignment: .center)
+            ModelSprite(family: ModelSprite.Family(entry.id), role: role, animated: false)
+                .frame(width: theme.spacing(.spacious) * 2.25, height: theme.spacing(.spacious) * 2.25)
+            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
+                    Text(entry.name.uppercased()).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                        .lineLimit(1).truncationMode(.tail)
+                    Spacer(minLength: 0)
+                    Text(ModelsRoster.percent(entry.share.share)).font(theme.font(.label)).monospacedDigit()
+                        .foregroundStyle(theme.color(.textPrimary, scheme))
+                }
+                HStack(alignment: .center, spacing: theme.spacing(.standard)) {
+                    Canvas { context, size in ModelStyle.fill(&context, CGRect(origin: .zero, size: size), index: entry.style, theme: theme, scheme: scheme) }
+                        .frame(width: theme.spacing(.standard) + theme.spacing(.compact), height: theme.spacing(.standard) + theme.spacing(.compact))
+                    Text(Formatting.compact(entry.share.tokens)).font(theme.font(.supporting)).monospacedDigit()
+                        .foregroundStyle(theme.color(.textSecondary, scheme))
+                    Spacer(minLength: 0)
+                    LevelChip(level: entry.level?.level, role: role)
+                }
+            }
+        }
+        .padding(.vertical, theme.spacing(.standard))
+        .padding(.horizontal, theme.spacing(.standard))
+        .background {
+            if chosen {
+                PixelRect(step: px).fill(theme.color(.surfaceMuted, scheme))
+                PixelRect(step: px).strokeBorder(theme.color(.separator, scheme), lineWidth: px / 2)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Copy.ModelsPage.rowLabel(rank: entry.rank, name: entry.name, level: entry.level?.level,
+                                                     tokens: ModelsRoster.spoken(entry.share.tokens), share: ModelsRoster.spokenPercent(entry.share.share)))
+        .accessibilityAddTraits(chosen ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// Azar's level chip: "LV 14" in the model's colour on a tint of it ("LV —" when the level is unknown).
+struct LevelChip: View {
+    let level: Int?
+    let role: ColorToken
+    var large = false
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        let px = theme.stroke(.hairline) * 2
+        let color = theme.color(level == nil ? .textSecondary : role, scheme)
+        Text(level.map { Copy.Stats.level($0) } ?? Copy.Stats.levelUnknown)
+            .font(large ? theme.font(.title) : theme.font(.micro)).monospacedDigit().foregroundStyle(color)
+            .lineLimit(1).fixedSize()
+            .padding(.horizontal, large ? theme.spacing(.standard) + theme.spacing(.compact) : theme.spacing(.standard))
+            .padding(.vertical, large ? theme.spacing(.compact) : theme.spacing(.compact) / 2)
+            .background(PixelRect(step: px).fill(color.opacity(0.16)))
     }
 }
 
@@ -99,28 +294,6 @@ enum ModelStyle {
     }
 }
 
-struct ModelLegend: View {
-    let models: [StatsSummary.ModelShare]
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: theme.spacing(.spacious))], alignment: .leading, spacing: theme.spacing(.standard)) {
-            ForEach(Array(models.enumerated()), id: \.element.id) { i, m in
-                HStack(spacing: theme.spacing(.standard)) {
-                    Canvas { context, size in ModelStyle.fill(&context, CGRect(origin: .zero, size: size), index: i, theme: theme, scheme: scheme) }
-                        .frame(width: theme.spacing(.spacious) * 0.8, height: theme.spacing(.spacious) * 0.8).accessibilityHidden(true)
-                    Text(m.name).font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                    Spacer(minLength: theme.spacing(.standard))
-                    Text("\(Formatting.compact(m.tokens)) · \(Int((m.share * 100).rounded()))%").font(theme.font(.supporting)).monospacedDigit()
-                        .foregroundStyle(theme.color(.textSecondary, scheme))
-                }
-                .accessibilityElement(children: .combine)
-            }
-        }
-    }
-}
-
 /// Tokens per day (or per week over long ranges) stacked by model, every calendar day on the axis whether or not
 /// there was activity, a labelled scale, and a hover readout of the day under the pointer.
 /// Tokens per day by model, for `StackedModelChart`: Claude Code's from its stats file, Codex's from its session files.
@@ -142,8 +315,9 @@ struct TokenSeries {
 }
 
 extension StackedModelChart {
-    init(summary: StatsSummary, from: String, to: String, stacked: Bool = true, height: CGFloat = DetailsMetrics.chartHeight * 1.5) {
-        self.init(series: TokenSeries(summary), from: from, to: to, stacked: stacked, height: height)
+    init(summary: StatsSummary, from: String, to: String, stacked: Bool = true, height: CGFloat = DetailsMetrics.chartHeight * 1.5,
+         highlight: String? = nil) {
+        self.init(series: TokenSeries(summary), from: from, to: to, stacked: stacked, height: height, highlight: highlight)
     }
 }
 
@@ -154,6 +328,9 @@ struct StackedModelChart: View {
     /// False draws one series (all models together) in the accent colour.
     var stacked = true
     var height = DetailsMetrics.chartHeight * 1.5
+    /// A model id to pick out (Models › Chart, the roster's choice): the other models' parts are dimmed and the
+    /// readout leads with it.
+    var highlight: String? = nil
     @State private var hover: Int?
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
@@ -217,7 +394,15 @@ struct StackedModelChart: View {
                     if !parts.isEmpty {
                         context.drawLayer { layer in
                             layer.clip(to: PixelColumns.shape(CGRect(x: x, y: base, width: barWidth, height: plot.maxY - base), px: px))
-                            for part in parts { ModelStyle.fill(&layer, part.rect, index: part.index, theme: theme, scheme: scheme) }
+                            for part in parts {
+                                guard let highlight, stacked, series.ids[part.index] != highlight else {
+                                    ModelStyle.fill(&layer, part.rect, index: part.index, theme: theme, scheme: scheme); continue
+                                }
+                                layer.drawLayer { dim in
+                                    dim.opacity = 0.3
+                                    ModelStyle.fill(&dim, part.rect, index: part.index, theme: theme, scheme: scheme)
+                                }
+                            }
                         }
                     }
                     // Month starts (or every 7th day in short ranges) on the axis, never overlapping.
@@ -261,6 +446,10 @@ struct StackedModelChart: View {
         let b = buckets[hover]
         let when = b.start == b.end ? StatsFormat.day(b.start) : "\(StatsFormat.day(b.start))–\(StatsFormat.day(b.end))"
         guard stacked else { return "\(when) · \(Copy.Stats.tokensTotal(Formatting.compact(b.byModel.reduce(0, +))))" }
+        if let highlight, let i = series.ids.firstIndex(of: highlight), i < b.byModel.count {
+            return Copy.ModelsPage.chartHighlight(when, name: series.names[i], value: Formatting.compact(b.byModel[i]),
+                                                  all: Formatting.compact(b.byModel.reduce(0, +)))
+        }
         let parts = zip(series.names, b.byModel).filter { $0.1 > 0 }.map { "\($0.0) \(Formatting.compact($0.1))" }
         return parts.isEmpty ? "\(when) · \(Copy.Stats.noTokens)" : "\(when) · \(parts.joined(separator: " · "))"
     }
@@ -282,102 +471,6 @@ struct StackedModelChart: View {
 private struct ChartWidthKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
-}
-
-// MARK: - Arena
-
-/// One pixel character per model. Its level grows each time its tokens double; its bars show what it spent them on
-/// (all time, from Claude Code's per-model totals). Idle animation only when Reduce Motion is off.
-struct ModelArena: View {
-    let summary: StatsSummary
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        ForEach(Array(ranked.enumerated()), id: \.element.share.id) { rank, entry in
-            let specialty = ModelSpecialty.of(entry.share.totals, party: summary.models.compactMap(\.totals))
-            PageSection("#\(rank + 1) " + entry.share.name, specialty.map { Copy.Stats.specialty($0.kind.doing, times: $0.ratio) } ?? Copy.Stats.activityUnknown) {
-                FighterCard(share: entry.share, index: entry.index, rank: rank + 1, daysActive: daysActive(entry.share.model), range: summary.range,
-                            specialty: specialty)
-            }
-        }
-        PageSection(Copy.Stats.legendTitle.capitalized, summary.range == .allTime ? Copy.Stats.arenaNote : Copy.Stats.arenaRangeNote) {
-            LevelLegend(models: ranked.compactMap { entry in entry.share.totals.map { (entry.share.name, ModelLevel(output: $0.output)) } })
-        }
-    }
-
-    func daysActive(_ id: String) -> Int { summary.dailyTokens.filter { ($0.byModel[id] ?? 0) > 0 }.count }
-
-    /// Ranked by level, so the rank and the level never disagree: most output first, then most tokens. `index` is the
-    /// model's place in the chart's legend, which keeps its colour the same in both views.
-    var ranked: [(share: StatsSummary.ModelShare, index: Int)] {
-        summary.models.enumerated().map { (share: $0.element, index: $0.offset) }
-            .sorted { ($0.share.totals?.output ?? -1, $0.share.tokens) > ($1.share.totals?.output ?? -1, $1.share.tokens) }
-    }
-}
-
-struct FighterCard: View {
-    let share: StatsSummary.ModelShare
-    let index: Int
-    let rank: Int
-    let daysActive: Int
-    let range: StatsSummary.Range
-    let specialty: ModelSpecialty?
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
-
-    /// Nil when Claude Code has no tokens-by-kind record for the model, so its output is unknown.
-    var level: ModelLevel? { share.totals.map { ModelLevel(output: $0.output) } }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
-            VStack(spacing: theme.spacing(.compact)) {
-                ModelSprite(family: ModelSprite.Family(share.model), role: ModelStyle.role(index))
-                    .frame(width: theme.spacing(.spacious) * 4.8, height: theme.spacing(.spacious) * 4.8)
-                    .background(theme.color(.surfaceMuted, scheme))
-                Text(level.map { Copy.Stats.level($0.level) } ?? Copy.Stats.levelUnknown).font(theme.font(.title))
-                    .foregroundStyle(theme.color(ModelStyle.role(index), scheme))
-            }
-            VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-                if let level {
-                    VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
-                        HStack {
-                            Text(Copy.Stats.progressTo(level.level + 1)).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                            Spacer()
-                            Text(Copy.Stats.outputOf(Formatting.compact(level.output), Formatting.compact(level.next), toGo: Formatting.compact(level.next - level.output)))
-                                .font(theme.font(.supporting)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
-                        }
-                        PixelBar(fraction: level.progress, role: ModelStyle.role(index), pattern: .solid, segments: 40)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Copy.Stats.levelLabel(level.level, output: Formatting.compact(level.output), next: Formatting.compact(level.next)))
-                }
-                if let t = share.totals, t.total > 0 {
-                    Grid(alignment: .leading, horizontalSpacing: theme.spacing(.standard), verticalSpacing: theme.spacing(.compact)) {
-                        stat(Copy.Stats.input, t.input, of: t.total)
-                        stat(Copy.Stats.output, t.output, of: t.total)
-                        stat(Copy.Stats.cacheRead, t.cacheRead, of: t.total)
-                        stat(Copy.Stats.cacheWrite, t.cacheWrite, of: t.total)
-                    }
-                }
-                Text(Copy.Stats.tokensLine(Formatting.compact(share.tokens), Int((share.share * 100).rounded()), days: daysActive, allTime: range == .allTime))
-                    .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme)).fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    func stat(_ name: String, _ n: Int64, of total: Int64) -> some View {
-        GridRow {
-            Text(name.uppercased()).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-                .gridColumnAlignment(.leading)
-            PixelBar(fraction: Double(n) / Double(total), role: ModelStyle.role(index), pattern: .solid, segments: 24)
-            Text(Formatting.compact(n)).font(theme.font(.label)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
-                .frame(minWidth: theme.spacing(.spacious) * 3, alignment: .trailing)   // one width, so every model's meters end together
-                .gridColumnAlignment(.trailing)
-        }
-        .accessibilityElement(children: .combine)
-    }
 }
 
 /// The token kind a model leans on most compared with all models together: its share of that kind over the party's
@@ -450,77 +543,6 @@ struct ModelLevel: Equatable {
     }
 }
 
-/// "How levels work": the ladder of output targets with each model placed on it, what each kind of token is, and how
-/// rank and specialty are worked out. The same rules are published on the documentation site (Metrics page).
-struct LevelLegend: View {
-    let models: [(name: String, level: ModelLevel)]
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
-
-    /// Levels 1 to 20, or further when a model has gone past 20.
-    var shown: Int { max(20, (models.map(\.level.level).max() ?? 0) + 1) }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: theme.spacing(.spacious) * 1.5) {
-            ladder.frame(maxWidth: .infinity, alignment: .topLeading)
-            definitions.frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-    }
-
-    var ladder: some View {
-        let half = (shown + 1) / 2
-        return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(Copy.Stats.ladderTitle).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-            HStack(alignment: .top, spacing: theme.spacing(.spacious)) {
-                column(1...half)
-                column((half + 1)...shown)
-            }
-            Text(Copy.Stats.ladderNote).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    func column(_ levels: ClosedRange<Int>) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: theme.spacing(.standard), verticalSpacing: theme.spacing(.compact)) {
-            ForEach(Array(levels), id: \.self) { level in
-                let here = models.filter { $0.level.level == level }.map(\.name)
-                GridRow {
-                    Text(Copy.Stats.level(level)).font(theme.font(.label)).monospacedDigit()
-                        .foregroundStyle(theme.color(here.isEmpty ? .textSecondary : .accent, scheme))
-                    Text(level == 1 ? "0" : Formatting.compact(ModelLevel.targets[level - 2])).font(theme.font(.label)).monospacedDigit()
-                        .foregroundStyle(theme.color(here.isEmpty ? .textSecondary : .textPrimary, scheme))
-                        .gridColumnAlignment(.trailing)
-                    Text(here.joined(separator: ", ")).font(theme.font(.supporting)).foregroundStyle(theme.color(.accent, scheme))
-                        .lineLimit(1).truncationMode(.tail)
-                }
-                .accessibilityElement(children: .combine)
-            }
-        }
-    }
-
-    var definitions: some View {
-        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
-            Text(Copy.Stats.kindsTitle).font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
-            ForEach(Copy.Stats.kindDefinitions, id: \.0) { name, meaning, counts in
-                VStack(alignment: .leading, spacing: theme.spacing(.compact) / 2) {
-                    HStack(spacing: theme.spacing(.standard)) {
-                        Text(name.uppercased()).font(theme.font(.label).weight(.semibold)).foregroundStyle(theme.color(.textPrimary, scheme))
-                        Text(counts ? Copy.Stats.countsForLevel : Copy.Stats.notForLevel).font(theme.font(.micro))
-                            .foregroundStyle(theme.color(counts ? .accent : .textSecondary, scheme))
-                    }
-                    Text(meaning).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .accessibilityElement(children: .combine)
-            }
-            Text(Copy.Stats.rankRule).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                .fixedSize(horizontal: false, vertical: true)
-            Text(Copy.Stats.specialtyRule).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-}
-
 /// A 12×12 pixel character per model family, drawn from a bitmap, with a one-pixel idle bob.
 struct ModelSprite: View {
     enum Family {
@@ -532,14 +554,16 @@ struct ModelSprite: View {
     }
     let family: Family
     let role: ColorToken
+    /// False draws one still frame: the roster's small sprites stay still, so only the chosen model moves.
+    var animated = true
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
     @Environment(\.reduceMotion) private var reduceMotion
 
     var body: some View {
         // Under Reduce Motion the schedule is paused: one still frame, and no timer waking the app every 0.6 s.
-        TimelineView(.animation(minimumInterval: 0.6, paused: reduceMotion)) { timeline in
-            let frame = reduceMotion ? 0 : Int(timeline.date.timeIntervalSinceReferenceDate / 0.6) % 2
+        TimelineView(.animation(minimumInterval: 0.6, paused: reduceMotion || !animated)) { timeline in
+            let frame = reduceMotion || !animated ? 0 : Int(timeline.date.timeIntervalSinceReferenceDate / 0.6) % 2
             Canvas { context, size in
                 let rows = Self.bitmap(family)
                 let unit = floor(min(size.width, size.height) / CGFloat(rows.count + 2))
@@ -583,36 +607,5 @@ struct ModelSprite: View {
             "...a.aa.a...", ".aaaaaaaaaa.", ".a.aaaaaa.a.", "...aaaaaa...", "...a....a...", "..aa....aa.."]
         }
         return rows.map(Array.init)
-    }
-}
-
-/// A ring of square pixels split into consecutive arcs, one per share, in each model's colour (Krea's donut).
-struct PixelDonut: View {
-    let shares: [Double]
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
-
-    var body: some View {
-        Canvas { context, size in
-            let count = 48
-            let radius = min(size.width, size.height) / 2 - theme.spacing(.standard)
-            let block = radius * 0.17
-            let total = max(shares.reduce(0, +), 0.0001)
-            var bounds: [Int] = []
-            var acc = 0.0
-            for share in shares { acc += share / total; bounds.append(Int((acc * Double(count)).rounded())) }
-            for i in 0..<count {
-                let angle = Double(i) / Double(count) * 2 * .pi - .pi / 2
-                let center = CGPoint(x: size.width / 2 + radius * cos(angle), y: size.height / 2 + radius * sin(angle))
-                let rect = CGRect(x: (center.x - block / 2).rounded(), y: (center.y - block / 2).rounded(), width: block, height: block)
-                if let index = bounds.firstIndex(where: { i < $0 }) {
-                    var ctx = context
-                    ModelStyle.fill(&ctx, rect, index: index, theme: theme, scheme: scheme)
-                } else {
-                    context.fill(Path(rect), with: .color(theme.color(.surfaceMuted, scheme)))
-                }
-            }
-        }
-        .accessibilityHidden(true)
     }
 }

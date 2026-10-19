@@ -171,12 +171,8 @@ enum Copy {
         static let noModels = "No model activity in this range yet."
         static func level(_ n: Int) -> String { "LV \(n)" }
         static let levelUnknown = "LV —"
-        static func progressTo(_ n: Int) -> String { "PROGRESS TO LV \(n)" }
         static func outputOf(_ output: String, _ next: String, toGo: String) -> String { "\(output) of \(next) output · \(toGo) to go" }
-        static let legendTitle = "HOW LEVELS WORK"
-        static let ladderTitle = "OUTPUT TOKENS NEEDED FOR EACH LEVEL"
-        static let ladderNote = "Targets follow 1, 2, 5 in every power of ten. A model is at the highest level whose target its all-time output has reached; the bar on its card is the way from that target to the next."
-        static let kindsTitle = "WHAT THE TOKENS ARE"
+        static let ladderNote = "Targets follow 1, 2, 5 in every power of ten. A model is at the highest level whose target its all-time output has reached; the bar in its dossier is the way from that target to the next."
         static let countsForLevel = "COUNTS FOR LEVEL", notForLevel = "NOT FOR LEVEL"
         /// (kind, what it is, whether it counts toward a level)
         static let kindDefinitions: [(String, String, Bool)] = [
@@ -190,17 +186,12 @@ enum Copy {
         static func levelLabel(_ level: Int, output: String, next: String) -> String {
             "Level \(level): \(output) output tokens written; level \(level + 1) at \(next)"
         }
-        static func tokensLine(_ n: String, _ pct: Int, days: Int, allTime: Bool) -> String {
-            "\(n) tokens · \(pct)% of all · active \(days) day\(days == 1 ? "" : "s")\(allTime ? "" : " in this range")"
-        }
         static let doingRecall = "Reading from cache", doingStore = "Writing to cache", doingWrite = "Writing output", doingRead = "Reading input"
-        static let activityUnknown = "Tokens by kind appear in All time"
         static func specialty(_ doing: String, times: Double) -> String {
             times < 1.1 ? "All-rounder" : "\(doing) · \(times < 10 ? String(format: "%.1f", times) : String(Int(times)))× the party"
         }
-        static let specialtyHelp = "Its specialty: the token kind this model uses most compared with all models together. All-rounder: no kind stands out."
         static let arenaNote = "All figures are all time, from Claude Code's statistics file."
-        static let arenaRangeNote = "Levels and ranks use all-time output. Tokens, share and active days are for this range; the bars show all-time tokens by kind, the only breakdown Claude Code records."
+        static let arenaRangeNote = "Levels and ranks use all-time output. Tokens, share and active days are for this range; the token-kind table shows all-time tokens by kind, the only breakdown Claude Code records."
         static let toggle = "Read Claude Code's statistics file"
         static let toggleSublabel = "For the Stats tab: dates, counts and model names only"
     }
@@ -273,11 +264,78 @@ enum Copy {
 
     /// Models page (1.12, after the founder's Krea pick).
     enum ModelsPage {
-        static let distribution = "USAGE DISTRIBUTION", tokens = "TOKENS"
-        static let distributionTitle = "Distribution", distributionSub = "Each model's share of all tokens in this range."
-        static let chartTitle = "Tokens over time"
-        static let chartSub = "Stacked by model; every day on the axis, quiet ones included."
-        static func ofTotal(_ pct: String) -> String { "\(pct)% of all tokens" }
+        // Roster + Dossier (founder's pick, 19 Oct 2026: docs/design-concepts/models, proposal A).
+        static func totalIn(_ range: StatsSummary.Range) -> String { range == .allTime ? "TOKENS, ALL TIME" : "TOKENS IN THIS RANGE" }
+        static func rosterTitle(_ n: Int) -> String { "ROSTER · \(n)" }
+        static let rosterLabel = "Models"
+        static let rosterHint = "Up and down arrows choose a model; Home and End jump to the first and last."
+        static func rowLabel(rank: Int, name: String, level: Int?, tokens: String, share: String) -> String {
+            "Rank \(rank), \(name), \(level.map { "level \($0)" } ?? "level unknown"), \(tokens) tokens, \(share)"
+        }
+        static func rank(_ n: Int) -> String { "#\(n)" }
+        static func specialtyAbout(_ name: String) -> String { "About \(name)'s specialty" }
+        /// What this model's specialty means, in its own numbers.
+        static func specialtyExplained(_ name: String, kind: ModelSpecialty.Kind, times: Double) -> String {
+            let ratio = times < 10 ? String(format: "%.1f", times) : String(Int(times))
+            guard times >= 1.1 else {
+                return "\(name) uses every kind of token within 1.1× of all models together, so no kind stands out: an all-rounder."
+            }
+            let part: String = switch kind {
+            case .output: "Output (text it wrote)"
+            case .input: "New input"
+            case .cacheRead: "Reading from cache"
+            case .cacheWrite: "Writing to cache"
+            }
+            return "\(part) is \(ratio)× as large a part of \(name)'s tokens as it is of all models' tokens together."
+        }
+        static let specialtyUnknown = "Specialty unknown"
+        static func levelFrom(_ level: Int, _ target: String) -> String { "LV \(level) · \(target)" }
+        static let kindsUnknown = "Claude Code's statistics file has no tokens-by-kind record for this model, so its output and its level are unknown. Its tokens, share and active days are still counted."
+        static func aboutKind(_ name: String) -> String { "About \(name)" }
+        static func kindLabel(_ name: String, value: String, pct: String, counts: Bool) -> String {
+            "\(name): \(value) tokens, \(pct) of this model's tokens\(counts ? "; counts for level" : "")"
+        }
+        static let activityTitle = "ACTIVITY"
+        static func activityLabel(_ name: String, days: Int, weekly: Bool) -> String {
+            "\(name) was active \(days) day\(days == 1 ? "" : "s") in this range" + (weekly ? "; one cell per week" : "; one cell per day")
+        }
+        static func dossierLabel(_ name: String) -> String { "\(name), details" }
+        static let trackTitle = "How levels work"
+        static func trackIntro(_ range: StatsSummary.Range) -> String {
+            "A model's level is its all-time output tokens. Targets go 1, 2, 5 in every power of ten."
+                + (range == .allTime ? "" : " Levels stay all time in every range.")
+        }
+        static let next = "NEXT"
+        static func cellLabel(_ level: Int, target: String, models: [String], next: Bool) -> String {
+            "Level \(level), \(target) output" + (models.isEmpty ? "" : ", " + models.joined(separator: ", "))
+                + (next ? ", next level for the chosen model" : "")
+        }
+        static func spriteLabel(_ name: String, _ level: Int) -> String { "\(name), level \(level)" }
+        static func levelUnknownList(_ names: [String]) -> String { "Level unknown (no tokens-by-kind record): " + names.joined(separator: ", ") }
+        static let rulesTitle = "Rules: rank, specialty, and where the figures come from"
+        static let expanded = "expanded", collapsed = "collapsed"
+        static func zoneLabel(floorLevel: Int?, target: String) -> String {
+            guard let floorLevel else { return "LEVEL UNKNOWN" }
+            return floorLevel == 1 ? "LV 1 · UNDER 1K OUTPUT" : "LV \(floorLevel)+ · \(target)+ OUTPUT"
+        }
+        static func zoneSpoken(floorLevel: Int?, target: String) -> String {
+            guard let floorLevel else { return "Level unknown" }
+            return floorLevel == 1 ? "Level 1, under 1 thousand output" : "Level \(floorLevel) and up, \(target) output and more"
+        }
+        static func toNext(_ toGo: String, _ next: Int) -> String { "\(toGo) output to LV \(next)" }
+        static let outputWritten = "OUTPUT WRITTEN"
+        static let today = "TODAY"
+        static let levelUnknownLine = "Level unknown: its output is not in Claude Code's statistics file."
+        static let factSpecialty = "Specialty", factShare = "Share of all tokens", factActive = "Active days"
+        static func factTokens(_ range: StatsSummary.Range) -> String { range == .allTime ? "Tokens, all time" : "Tokens in this range" }
+        static let howTitle = "HOW TO LEVEL UP"
+        static let howOutputTitle = "Write output"
+        static let howOutputLine = "Every output token counts. Each target reached is one level up."
+        static let howOtherTitle = "Reading doesn't count"
+        static let howOtherLine = "Input and the prompt cache are counted in tokens and share, never in level."
+        static func chartHighlight(_ when: String, name: String, value: String, all: String) -> String {
+            "\(when) · \(name) \(value) · all models \(all)"
+        }
     }
 
     /// Overview page (1.12, after the founder's Steep and Mixpanel picks).
