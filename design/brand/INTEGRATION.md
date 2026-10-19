@@ -55,14 +55,16 @@ Applied (item 7). The app draws the kit's status family: `logo.menubar_states()`
 |---|---|---|
 | `ok` | `beat` | live readings (also "reporting, no rate limits sent") |
 | `approaching` | `approaching` (!) | a limit is nearing capacity |
-| `exhausted` | `flatline` | a limit is reached or a reset is awaited: the beat with its spike removed |
+| `exhausted` | `flatline` | a limit is reached, or the reset of a limit that was reached is awaited: the beat with its spike removed |
 | `stale` | `stale` (clock) | no live reading; the last one is old |
 | `demo` | `demo` (broken ring) | demo data, not the account |
 | `waiting` | `waiting` (…) | installed, no reading yet |
 | `notConnected` | `not-connected` (empty ring) | nothing to read: no trace at all |
 
 The stale modifier (`state-approaching-stale.png`, `state-flatline-stale.png`) marks a shape built from old readings:
-the ring opens at five o'clock and a 2 × 2 dot sits in the gap. The % text (Clepso Pixel, 10 pt) follows any glyph.
+the ring opens at five o'clock and a 2 × 2 dot sits in the gap. The % text (Clepso Pixel, 10 pt) can follow any glyph;
+the app shows it beside the beat and approaching only, from the live readings behind the shape, never beside the
+flatline (founder, 19 Oct 2026; UX_SPEC 1.4).
 The status item's accessibility value says the state in words (`MenuBarIcon.spokenState`). The beat matrix is in
 `menubar/clepso-menubar-matrix.txt`. Template PNGs, if an image asset is ever preferred to code drawing:
 `menubar/ClepsoMenuBarTemplate-16.png` / `-16@2x.png` (16 pt) and `-18.png` / `-18@2x.png` (18 pt, 1 pt padding);

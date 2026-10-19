@@ -59,8 +59,105 @@ struct MenuBarStateTests {
         #expect(snap.iconStaleMark, "the flatline is built from a 2-day-old Codex reading")
         #expect(snap.iconText == nil)                                      // UX_SPEC 1.4: icon.exhausted, text none
         #expect(snap.iconAccessibilityValue == "Limit reached, last reading is old")
-        #expect(snap.aggregateLine.hasPrefix("Codex limit reached · reset expected"), "\(snap.aggregateLine)")
-        #expect(!snap.aggregateLine.contains("last seen"), "Claude Code is live, so the line has no 'last seen' (UX_SPEC 1.4)")
+        // DECISIONS 19 Oct 2026: the flatline comes from Friday's Codex reading, so the line says how old it is, even
+        // though Claude Code is live; Codex's idle 5-hour window (35 %, reset passed) drives nothing.
+        #expect(snap.aggregateLine == "Codex limit reached · reset expected Thu 6:50 AM · last seen Oct 16", "\(snap.aggregateLine)")
+    }
+
+    /// DECISIONS 19 Oct 2026 (founder), decision 1: only a window that reached its limit flatlines after its reset.
+    @Test("Founder's case without the used-up week: Codex's idle 5-hour reset leaves the beat and Claude Code's 56 %")
+    func liveCodexCaseIdleResetOnly() async throws {
+        let s = try Scenario()
+        let codexRead = t0 + 3 * 3600 + 35 * 60
+        try await s.pool(Self.codex5h, at: codexRead, used: 35, reset: t0 + 8 * 3600 + 23 * 60)
+        let claudeRead = t0 + 2 * 86_400 + 9 * 3600 + 42 * 60
+        try await s.pool(Self.claude5h, at: claudeRead, used: 1, reset: claudeRead + 4 * 3600)
+        try await s.pool(Self.claude7d, at: claudeRead, used: 56, reset: claudeRead + 3 * 86_400)
+        let snap = try await s.menuBar(now: claudeRead + 3 * 60)
+        // The card stays honest: Codex's 5-hour still reads "Reset expected" (UX_SPEC 1.2); only the icon ignores it.
+        #expect(snap.codex?.pools.map(\.model.card) == [.resetExpected])
+        #expect(snap.codex?.pools.first?.model.windowReachedLimit == false)
+        #expect(snap.icon == .ok && snap.iconShape == .beat && !snap.iconStaleMark && snap.iconText == "56%")
+        #expect(snap.aggregateLine == "Reported limits available · updated 3m ago")
+    }
+
+    @Test("An idle window past its reset is an old reading to the icon: the clock alone, under a live card, behind an old approach")
+    func idleResetIsOnlyAnOldReading() async throws {
+        // Alone, with its reading still recent (reset two minutes after it): the clock, never the flatline.
+        let alone = try Scenario()
+        try await alone.pool(Self.claude5h, at: t0, used: 35, reset: t0 + 120)
+        let clock = try await alone.menuBar(now: t0 + 180)
+        #expect(clock.provider?.pools.first?.model.card == .resetExpected)
+        #expect(clock.icon == .stale && clock.iconShape == .stale && !clock.iconStaleMark && clock.iconText == nil)
+        #expect(clock.aggregateLine == "Last seen 3m ago")
+
+        // Never above a live card: the live approaching card drives the shape and its %.
+        let underLive = try Scenario()
+        try await underLive.pool(Self.codex5h, at: t0, used: 60, reset: t0 + 120)
+        try await underLive.pool(Self.claude5h, at: t0 + 150, used: 88, reset: t0 + 4 * 3600)
+        let approaching = try await underLive.menuBar(now: t0 + 180)
+        #expect(approaching.icon == .approaching && !approaching.iconStaleMark && approaching.iconText == "88%")
+        #expect(approaching.aggregateLine == "1 limit nearing capacity")
+
+        // Beside an old approaching card and a live 30 %: "!" with the mark, no %, and how old.
+        let behindOld = try Scenario()
+        try await behindOld.pool(Self.codex5h, at: t0, used: 40, reset: t0 + 120)
+        try await behindOld.pool(Self.codex7d, at: t0, used: 90, reset: t0 + 3 * 86_400)
+        try await behindOld.pool(Self.claude5h, at: t0 + 20 * 60, used: 30, reset: t0 + 4 * 3600)
+        let old = try await behindOld.menuBar(now: t0 + 21 * 60)
+        #expect(old.icon == .approaching && old.iconStaleMark && old.iconText == nil)
+        #expect(old.aggregateLine == "1 limit nearing capacity · last seen 21m ago")
+    }
+
+    @Test("A window that reached its limit keeps the flatline past its reset until a fresh reading (G6), with the mark once old")
+    func reachedLimitKeepsFlatline() async throws {
+        let s = try Scenario()
+        // 100 then 99 in the same window: still a window that reached its limit (100 → 99 is not a reset, G6).
+        try await s.pool(Self.claude5h, at: t0, used: 100, reset: t0 + 5 * 60)
+        try await s.pool(Self.claude5h, at: t0 + 60, used: 99, reset: t0 + 5 * 60)
+        try await s.pool(Self.claude7d, at: t0 + 60, used: 30, reset: t0 + 3 * 86_400)
+        let past = try await s.menuBar(now: t0 + 6 * 60)
+        #expect(past.provider?.pools.first?.model.card == .resetExpected)
+        #expect(past.provider?.pools.first?.model.windowReachedLimit == true)
+        #expect(past.icon == .exhausted && past.iconShape == .flatline && !past.iconStaleMark && past.iconText == nil)
+        #expect(past.aggregateLine == "Claude Code reset expected · awaiting next update")
+
+        let old = try await s.menuBar(now: t0 + 12 * 60)
+        #expect(old.icon == .exhausted && old.iconStaleMark && old.iconText == nil)
+        #expect(old.aggregateLine == "Claude Code reset expected · awaiting next update · last seen 11m ago")
+
+        // The fresh reading after the reset (G6) ends it: the beat, with the % of the one live card.
+        try await s.pool(Self.claude5h, at: t0 + 13 * 60, used: 2, reset: t0 + 5 * 3600)
+        let ready = try await s.menuBar(now: t0 + 13 * 60 + 30)
+        #expect(ready.icon == .ok && ready.iconText == "2%")
+    }
+
+    @Test("Decision 2: no % beside the flatline, live or old, whatever the setting")
+    func flatlineHasNoText() async throws {
+        let s = try Scenario()
+        try await s.pool(Self.claude5h, at: t0, used: 100, reset: t0 + 3600)          // exhausted
+        try await s.pool(Self.claude7d, at: t0, used: 100, reset: nil)                // exhausted, reset not reported
+        try await s.pool(Self.codex5h, at: t0, used: 100, reset: t0 + 120)           // reached, then reset expected
+        try await s.pool(Self.codex7d, at: t0, used: 97, reset: t0 + 3 * 86_400)     // nearly exhausted
+        for minutes in [3.0, 11.0, 70.0] {
+            for showPercent in [true, false] {
+                let snap = try await s.menuBar(now: t0 + minutes * 60, showPercent: showPercent)
+                #expect(snap.iconShape == .flatline && snap.iconText == nil, "\(minutes)m: \(String(describing: snap.iconText))")
+            }
+        }
+    }
+
+    @Test("Decision 3: the % is the approaching card's own, not a higher available one's")
+    func percentFollowsTheDrivingCard() async throws {
+        let s = try Scenario()
+        // 85 then 78 stays approaching (re-arms below 77); a separate limit at 79 is still available.
+        try await s.pool(Self.claude5h, at: t0, used: 85, reset: t0 + 4 * 3600)
+        try await s.pool(Self.claude5h, at: t0 + 60, used: 78, reset: t0 + 4 * 3600)
+        try await s.pool(Self.codex5h, at: t0 + 60, used: 79, reset: t0 + 4 * 3600)
+        let snap = try await s.menuBar(now: t0 + 120)
+        #expect(snap.provider?.pools.first?.model.card == .approaching)
+        #expect(snap.icon == .approaching && !snap.iconStaleMark && snap.iconText == "78%")
+        #expect(try await s.menuBar(now: t0 + 120, showPercent: false).iconText == nil)
     }
 
     @Test("A fresh Codex limit beside fresh Claude Code readings: flatline, no stale mark")
@@ -90,7 +187,9 @@ struct MenuBarStateTests {
         let snap = try await s.menuBar(now: t0 + 3600 + 60)
         #expect(snap.icon == .approaching && snap.iconShape == .approaching && snap.iconStaleMark)
         #expect(snap.iconAccessibilityValue == "Nearing a limit, last reading is old")
-        #expect(snap.aggregateLine == "1 limit nearing capacity")
+        // DECISIONS 19 Oct 2026, decision 3: the driving card is old, so no % (not Claude Code's 30 %), and its age.
+        #expect(snap.iconText == nil)
+        #expect(snap.aggregateLine == "1 limit nearing capacity · last seen 2:00 PM")
     }
 
     @Test("Approaching from a live reading: the ring stays closed, and the % is the highest live value")
