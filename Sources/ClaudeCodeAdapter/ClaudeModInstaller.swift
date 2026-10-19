@@ -146,20 +146,14 @@ public struct ClaudeModInstaller: Sendable {
                         createdPluginsKey: originalObject[Self.pluginsKey] == nil, originalMode: original.mode))
     }
 
-    /// The backup of `bytes` (exclusive create, 0600). Turning the mod off and on again within a second, with the file
-    /// unchanged, names the same backup: an existing one with exactly these bytes is reused, otherwise the next free name.
+    /// The backup of `bytes` (`FileOps.writeBackup`: an identical one from the same second is reused, otherwise the next
+    /// free name).
     func writeBackup(_ bytes: [UInt8], h0: String) throws -> URL {
         let stem = "settings.json.\(FileOps.basicISO8601(now())).\(h0.prefix(12)).pre-mod"
-        for attempt in 0..<100 {
-            let url = paths.backupsDir.appendingPathComponent(attempt == 0 ? "\(stem).bak" : "\(stem).\(attempt).bak")
-            if let existing = try FileOps.readNoFollow(url) {
-                if existing.bytes == bytes { return url }
-                continue
-            }
-            try FileOps.writeExclusive(url, bytes: bytes, mode: 0o600)
-            return url
+        guard let url = try FileOps.writeBackup(bytes, in: paths.backupsDir, stem: stem) else {
+            throw InstallError.io("no free backup name")
         }
-        throw InstallError.io("no free backup name")
+        return url
     }
 
     /// Both keys absent or exactly one editable object each; neither may already name Clepso's marketplace or plugin;
