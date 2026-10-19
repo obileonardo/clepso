@@ -67,6 +67,9 @@ public struct PoolCardModel: Sendable {
     public let resetsAt: Provenanced<Date>
     public let card: CardState
     public let connection: ConnectionState
+    /// The current window reached its limit (its highest reading was 100 %). After a passed reset only such a window
+    /// keeps the menu bar's flatline (DECISIONS 19 Oct 2026); the card itself reads `resetExpected` either way.
+    public var windowReachedLimit = false
 
     public init(scope: String, source: SourceDescriptor, used: Provenanced<Decimal>, resetsAt: Provenanced<Date>,
                 card: CardState, connection: ConnectionState = .connected) {

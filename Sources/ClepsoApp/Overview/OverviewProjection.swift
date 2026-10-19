@@ -228,7 +228,10 @@ public enum OverviewProjection {
         }
         let state = CardState(limit: s.limit, hasResetTime: s.resetsAt != nil, connected: connection == .connected,
                               availableAgain: availableAgain(s, now: now))
-        return PoolCardModel(scope: scope(of: s.poolKey), source: source, used: used, resetsAt: resets, card: state, connection: connection)
+        var model = PoolCardModel(scope: scope(of: s.poolKey), source: source, used: used, resetsAt: resets, card: state, connection: connection)
+        // The window's high-water mark (cleared when a window opens), or the last value for a state built without one.
+        model.windowReachedLimit = [s.highWater, s.usedPct].compactMap { $0 }.max().map { $0 >= EngineConfig().exhausted } ?? false
+        return model
     }
 
     /// "Available again" only from the reducer's verified G6 transition, only while that reading is still
@@ -327,6 +330,11 @@ public enum OverviewProjection {
     /// (design system, Menu bar: "A state built from old readings opens the ring at five o'clock and sets a dot in the
     /// gap"): the cards that put that shape there have no live reading, whatever the other cards say. A Codex limit
     /// reached two days ago shows the flatline with the mark even while Claude Code's readings are live.
+    ///
+    /// DECISIONS 19 Oct 2026 (founder): (1) a passed reset flatlines the icon only for a window that reached its limit;
+    /// a window past its reset that never reached it is just an old reading to the icon, never above a live card.
+    /// (2) No % beside the flatline. (3) The % is that of the cards behind the shape, from their live readings only, and
+    /// the line ends "· last seen {age}" whenever the shape comes from old readings.
     static func aggregate(_ cards: [PoolCardModel], input: OverviewInput, empty: OverviewSnapshot.Empty?, lastSeen: Date?,
                           now: Date, staleAfter: TimeInterval, zone: TimeZone, locale: Locale)
         -> (OverviewSnapshot.Icon, Bool, String?, String) {
@@ -336,21 +344,30 @@ public enum OverviewProjection {
         case .waitingForFirstReading: return (.waiting, false, nil, "Installed · waiting for first reading")
         case nil: break
         }
-        let live = cards.filter { $0.valueState(now: now, staleAfter: staleAfter) == .live }
+        func isLive(_ card: PoolCardModel) -> Bool { card.valueState(now: now, staleAfter: staleAfter) == .live }
+        // Decision 1: an idle window past its reset leaves the shape to the other cards.
+        let shaping = cards.filter { $0.card != .resetExpected || $0.windowReachedLimit }
+        let live = shaping.filter(isLive)
         let age = lastSeen.map { Formatting.age(of: $0, now: now, zone: zone, locale: locale) }
         // F06: Claude Code is reporting but sends no rate limits, so no pool has a value. That is "not available", not stale.
         let reporting = lastSeen.map { now.timeIntervalSince($0) < staleAfter } ?? false
         if live.isEmpty, reporting, cards.allSatisfy({ $0.used.value == nil }) {
             return (.ok, false, nil, "Account quota not available" + (age.map { " · updated \($0)" } ?? ""))
         }
-        let staleSuffix = live.isEmpty ? age.map { " · last seen \($0)" } ?? "" : ""
-        let highest = input.showPercent && !live.isEmpty ? live.compactMap(\.used.value).max().map(Formatting.percent) : nil
         let blocked: [CardState] = [.exhausted, .exhaustedNoReset, .exhaustedOverage, .resetExpected]
         // True when none of the cards behind the shape showing has a live reading.
-        func fromOldReadings(_ behind: [PoolCardModel]) -> Bool {
-            !behind.contains { $0.valueState(now: now, staleAfter: staleAfter) == .live }
+        func fromOldReadings(_ behind: [PoolCardModel]) -> Bool { !behind.contains(where: isLive) }
+        // Decision 3: the highest live % among the cards behind the shape; none when they are all old.
+        func percent(_ behind: [PoolCardModel]) -> String? {
+            input.showPercent ? behind.filter(isLive).compactMap(\.used.value).max().map(Formatting.percent) : nil
         }
-        if let worst = blocked.lazy.compactMap({ state in cards.first { $0.card == state } }).first {
+        // Decision 3: a shape from old readings says how old, by the newest reading behind it.
+        func staleSuffix(_ behind: [PoolCardModel]) -> String {
+            guard fromOldReadings(behind), let newest = behind.compactMap(\.used.observedAt).max() ?? lastSeen else { return "" }
+            return " · last seen " + Formatting.age(of: newest, now: now, zone: zone, locale: locale)
+        }
+        if let worst = blocked.lazy.compactMap({ state in shaping.first { $0.card == state } }).first {
+            let behind = shaping.filter { blocked.contains($0.card) }
             let provider = worst.source.displayName      // the agent whose limit it is: Claude Code or Codex
             let line: String = switch worst.card {
             case .exhausted:
@@ -359,18 +376,19 @@ public enum OverviewProjection {
             case .resetExpected: "\(provider) reset expected · awaiting next update"
             default: "\(provider) limit reached · reset time not reported"
             }
-            return (.exhausted, fromOldReadings(cards.filter { blocked.contains($0.card) }), nil, line + staleSuffix)
+            return (.exhausted, fromOldReadings(behind), nil, line + staleSuffix(behind))     // decision 2: no %
         }
-        let nearingCards = cards.filter { $0.card == .approaching || $0.card == .critical }
+        let nearingCards = shaping.filter { $0.card == .approaching || $0.card == .critical }
         let nearing = nearingCards.count
         if nearing > 0 {
-            return (.approaching, fromOldReadings(nearingCards), highest,
-                    (nearing == 1 ? "1 limit nearing capacity" : "\(nearing) limits nearing capacity") + staleSuffix)
+            return (.approaching, fromOldReadings(nearingCards), percent(nearingCards),
+                    (nearing == 1 ? "1 limit nearing capacity" : "\(nearing) limits nearing capacity") + staleSuffix(nearingCards))
         }
         guard !live.isEmpty else { return age.map { (.stale, false, nil, "Last seen \($0)") } ?? (.notConnected, false, nil, "Not connected") }
-        let allAvailable = cards.allSatisfy { [.available, .availableAgain, .availableAgainUser].contains($0.card) }
+        // An idle window past its reset is left out: its reset has passed, so it is no reason to doubt availability.
+        let allAvailable = shaping.allSatisfy { [.available, .availableAgain, .availableAgainUser].contains($0.card) }
         let updated = age.map { " · updated \($0)" } ?? ""
         // C7: only the limits Claude Code reports are known; /usage can show others (a per-model weekly limit).
-        return (.ok, false, highest, (allAvailable ? "Reported limits available" : "Account quota not available") + updated)
+        return (.ok, false, percent(live), (allAvailable ? "Reported limits available" : "Account quota not available") + updated)
     }
 }

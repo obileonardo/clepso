@@ -249,6 +249,11 @@ Threshold events fire only on an upward crossing of the window's high-water mark
 | reset expected | reset expected | indefinitely, labelled as waiting for the next update; never flips by itself |
 | armed / reset expected | armed | a new reset time within 15 minutes updates the same window; beyond it opens a new one |
 
+The menu bar icon (founder decision, 19 Oct 2026) shows the flatline for "reset expected" only when that window reached
+its limit (its high-water mark hit 100 %), and keeps it until G6. A window whose reset passed without reaching its limit
+still reads "reset expected" on its card, but counts for the icon as an old reading: it can bring the clock, never the
+flatline, and never outranks a live reading.
+
 ## 8. Time-handling rules
 
 1. Storage: epoch milliseconds, UTC. No time-zone columns.
