@@ -139,6 +139,12 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .focus-in .w { animation: focus-in 1.1s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes focus-in { from { filter: blur(14px); opacity: 0; transform: translateY(6px); } to { filter: none; opacity: 1; transform: none; } }
 .hero .lede { margin-bottom: 26px; }
+.dl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 18px; }
+.dl-btn { display: inline-flex; align-items: center; height: 48px; padding: 0 20px; background: var(--p-accent); color: var(--p-ink);
+  font: 600 13px var(--p-mono); letter-spacing: .1em; text-transform: uppercase; text-decoration: none; border: 1px solid var(--p-accent); }
+.dl-btn:hover { background: transparent; color: var(--p-accent); }
+.dl-btn:focus-visible { outline: 2px solid var(--p-cream); outline-offset: 3px; }
+.dl-meta { font-size: 13px; color: var(--p-text2); }
 .searchbar { display: flex; align-items: center; gap: 12px; width: min(560px, 100%); height: 56px; padding: 0 16px; border: 1px solid var(--p-line);
   background: rgba(13,20,16,.85); color: var(--p-text2); font: 15px var(--p-mono); cursor: text; text-align: left; }
 .searchbar:hover { border-color: var(--p-accent); }

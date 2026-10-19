@@ -36,6 +36,9 @@ def git(*args):
 
 
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
+# The latest public build; bump with each release (docs/RELEASE.md).
+RELEASE_TAG = "v0.1.0-alpha.1"
+RELEASE_URL = f"https://github.com/obileonardo/clepso/releases/tag/{RELEASE_TAG}"
 
 NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
 MENU = [("Docs", [("", "Overview"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]),
@@ -915,6 +918,8 @@ page("", "Overview", "Technical documentation and progress for Clepso, a macOS m
 <p class="headline focus-in-later">{words("Your coding-agent limits,")} <span class="w code-voice" style="animation-delay:.3s">//before</span> {words("you hit them.", .36)}</p>
 <p class="lede">A macOS menu bar app that shows how much of your Claude Code and Codex limits you have used, when they reset and how
 fast you are going, from what those agents report on your own Mac. These pages document how it is built, what every number means and where the work stands.</p>
+<div class="dl-row"><a class="dl-btn" href="{RELEASE_URL}">Download {e(RELEASE_TAG)}</a>
+<span class="dl-meta">macOS 14+ · Apple silicon · signed and notarized · free and open source</span></div>
 <button class="searchbar" type="button" data-search-open><span>Search the docs: limits, levels, pace…</span><kbd>⌘K</kbd></button>
 <div class="chips">Popular: <a href="/metrics/#levels">Levels</a><a href="/metrics/#limits">Pace estimate</a><a href="/metrics/#agents">Agents per task</a>
 <a href="/privacy/#upload">What is uploaded</a><a href="/architecture/#flow-at-a-glance">A reading's path</a></div>

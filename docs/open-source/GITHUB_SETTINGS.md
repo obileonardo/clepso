@@ -28,7 +28,7 @@ visibility. **At public** = only available, or only free, once the repository is
 | Private vulnerability reporting | Not enabled (endpoint returns 404) | Enabled |
 | Merge methods | 18 Oct 2026: squash only (commit title = PR title, message = PR body); head branches deleted on merge; "Update branch" button on | Done |
 | Issues / Projects / Wiki / Discussions | On / On / Off / Off | On / Off unless used / Off / Off until there is a community |
-| Tags, releases | None | First pre-release tag after Stage C |
+| Tags, releases | `v0.1.0-alpha.1` published 19 Oct 2026 (pre-release, notarised DMG + SHA256SUMS); tag ruleset "Release tags: owner only" active | Done |
 | Community profile | 28% (README only) | 100% after the drafted files merge |
 
 ## Step by step
