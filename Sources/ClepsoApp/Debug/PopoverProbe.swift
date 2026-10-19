@@ -188,7 +188,9 @@ enum PopoverProbe {
             Task { @MainActor [weak self] in
                 while let self, !FileManager.default.fileExists(atPath: self.folder.appendingPathComponent("driver-done").path) {
                     if popoverWindow() == nil {
-                        let firstPool = model.snapshot.provider?.pools.first?.poolKey ?? ""
+                        // `-ClepsoProbeInspectorPool codex.rate_limits.five_hour` inspects that pool instead of Claude Code's first.
+                        let firstPool = UserDefaults.standard.string(forKey: "ClepsoProbeInspectorPool")
+                            ?? model.snapshot.provider?.pools.first?.poolKey ?? ""
                         let route: AppModel.PopoverRoute = switch page() {
                         case "shoot:detail": .detail
                         case "shoot:inspector": .inspector(poolKey: firstPool, fromDetail: false)

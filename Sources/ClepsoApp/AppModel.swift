@@ -340,6 +340,7 @@ public final class AppModel {
         input.codexEnabled = codexEnabled
         input.codexPlan = codexLatest?.plan
         input.codexModel = codexLatest?.model
+        input.codexVersion = codexLatest?.version
         input.codexAgentTasks = codexAgentTasks
         let snapshot = OverviewProjection.make(input, now: now, staleAfter: Freshness.localTelemetryTTL,
                                                zone: environment.timeZone, locale: environment.locale)

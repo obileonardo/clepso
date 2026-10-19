@@ -41,6 +41,7 @@ struct LimitsSection: View {
                         FactRow(label: Copy.Codex.plan, value: codex.plan?.capitalized ?? Copy.Account.planNotSet)
                         FactRow(label: Copy.Codex.model, value: codex.model ?? "—")
                         FactRow(label: Copy.LimitsPage.source, value: Copy.Codex.source)
+                        FactRow(label: Copy.Inspector.codexVersion, value: codex.pools.first?.origin.version ?? "—")
                         FactRow(label: Copy.Codex.lastReading, value: codex.lastSeen.map {
                             Formatting.age(of: $0, now: snapshot.now, zone: model.environment.timeZone, locale: model.environment.locale) } ?? "—")
                     }
@@ -54,8 +55,11 @@ struct LimitsSection: View {
         }
     }
 
+    /// Nil once the reported reset time has passed without a fresh reading: "Resets Fri 23:23" read on a Monday looks
+    /// like a reset still to come, and the status line already says "Reset expected · awaiting next update".
     func resetLine(_ row: PoolRow) -> String? {
-        row.model.resetsAt.value.map { Copy.Limits.resets(Formatting.resetTime($0, now: snapshot.now, zone: model.environment.timeZone,
+        guard row.model.card != .resetExpected else { return nil }
+        return row.model.resetsAt.value.map { Copy.Limits.resets(Formatting.resetTime($0, now: snapshot.now, zone: model.environment.timeZone,
                                                                               locale: model.environment.locale)) }
     }
 

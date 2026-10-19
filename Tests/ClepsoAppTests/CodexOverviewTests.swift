@@ -1,7 +1,7 @@
 import Domain
 import Foundation
 import Testing
-import UsageEngine
+@testable import UsageEngine
 @testable import CodexAdapter
 @testable import ClepsoApp
 
@@ -78,6 +78,89 @@ struct CodexOverviewTests {
         let snap = make(input)
         #expect(snap.empty == .notConnected)              // the panel still offers to connect Claude Code
         #expect(snap.icon == .ok && snap.iconText == "62%")
+    }
+}
+
+/// Founder report, 19 Oct 2026: "Where this number comes from" on a Codex limit named Claude Code's status line, its
+/// adapter and its version. Each agent's numbers now carry their own origin.
+@MainActor
+struct CodexProvenanceTests {
+    let now = Date(timeIntervalSince1970: 1_792_400_000)                     // 2026-10-19 UTC
+
+    func pool(_ key: String, used: Decimal, limit: LimitState, measured: Date, resetsAt: Date?) -> PoolState {
+        var s = PoolState(poolKey: key)
+        s.usedPct = used
+        s.limit = limit
+        s.lastProviderMeasured = measured
+        s.lastSeen = measured
+        s.window = WindowState(id: UUID(), openedAt: measured.addingTimeInterval(-3600), resetsAt: resetsAt, closedAt: nil, version: 1)
+        return s
+    }
+
+    func inspector(_ row: PoolRow) -> InspectorView {
+        InspectorView(row: row, isDemo: false, now: now, zone: TimeZone(identifier: "UTC")!, locale: Locale(identifier: "en_GB")) {}
+    }
+
+    /// The founder's Codex on 16–19 Oct: 35% of the 5-hour window, measured 16 Oct 17:35:38 UTC with its reset at 22:23
+    /// that night, and the weekly limit used up until 22 Oct 06:50 UTC. No reading since: Codex refused every turn.
+    func founderInput() -> OverviewInput {
+        let measured = Date(timeIntervalSince1970: 1_792_172_138)
+        var input = OverviewInput()
+        input.pools = [pool("claude-code.rate_limits.five_hour", used: 40, limit: .available, measured: now, resetsAt: now.addingTimeInterval(3600))]
+        input.sourceVersion = "2.1.302"
+        input.lastEventAt = now
+        input.installed = true
+        input.codexEnabled = true
+        input.codexVersion = "0.163.0"
+        input.codexPools = [
+            pool("codex.rate_limits.five_hour", used: 35, limit: .resetExpected, measured: measured, resetsAt: Date(timeIntervalSince1970: 1_792_189_411)),
+            pool("codex.rate_limits.seven_day", used: 100, limit: .exhausted, measured: measured, resetsAt: Date(timeIntervalSince1970: 1_792_651_827))]
+        return input
+    }
+
+    func make(_ input: OverviewInput) -> OverviewSnapshot {
+        OverviewProjection.make(input, now: now, staleAfter: Freshness.localTelemetryTTL, zone: TimeZone(identifier: "UTC")!, locale: Locale(identifier: "en_GB"))
+    }
+
+    @Test func codexInspectorNamesCodexNeverClaudeCode() throws {
+        let snap = make(founderInput())
+        let codex = try #require(snap.codex)
+        for row in codex.pools {
+            #expect(row.origin == .codex(version: "0.163.0"))
+            let details = inspector(row).details
+            #expect(!details.contains("Claude"), "\(details)")
+            #expect(details.contains("Source: Codex session files") && details.contains("Adapter: Codex session reader, token_count events"))
+            #expect(details.contains("Codex version: 0.163.0"))
+        }
+        #expect(codex.pools.map(\.providerField) == ["token_count › rate_limits.primary.used_percent",
+                                                     "token_count › rate_limits.secondary.used_percent"])
+        let claude = try #require(snap.provider?.pools.first)
+        let details = inspector(claude).details
+        #expect(details.contains("Source: Claude Code status line") && details.contains("Claude Code version: 2.1.302"))
+        #expect(!details.contains("Codex"))
+    }
+
+    @Test("Codex's version unknown: a dash, never Claude Code's version in its place")
+    func unknownCodexVersionIsADash() throws {
+        var input = founderInput()
+        input.codexVersion = nil
+        let row = try #require(make(input).codex?.pools.first)
+        #expect(inspector(row).details.contains("Codex version: —"))
+        #expect(!inspector(row).details.contains("2.1.302"))
+    }
+
+    /// UX_SPEC 1.2 and DATA_MODEL G9/G13: a passed reset with no fresh reading reads "Reset expected · awaiting next
+    /// update", the old figure is stale (hatched, "last seen"), and the menu bar leads with the used-up weekly limit.
+    @Test func passedResetWithoutAFreshReadingIsShownAsSuch() throws {
+        let snap = make(founderInput())
+        let codex = try #require(snap.codex)
+        let fiveHour = try #require(codex.pools.first), weekly = try #require(codex.pools.last)
+        #expect(fiveHour.model.card == .resetExpected)
+        #expect(fiveHour.model.valueState(now: now, staleAfter: Freshness.localTelemetryTTL) == .stale)
+        #expect(weekly.model.card == .exhausted)
+        #expect(weekly.model.valueState(now: now, staleAfter: Freshness.localTelemetryTTL) == .stale)
+        #expect(snap.icon == .exhausted)
+        #expect(snap.aggregateLine.hasPrefix("Codex limit reached · reset expected"), "\(snap.aggregateLine)")
     }
 }
 

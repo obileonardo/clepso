@@ -4,7 +4,8 @@ import Foundation
 
 /// Finds Codex's newest session files and reads only their tails (increment 3.4). Codex appends a token count after
 /// every turn, so the last 256 KB of the newest few files always hold the latest limits; older files and the rest of
-/// each file (where prompts and replies are) are never opened or read.
+/// each file (where prompts and replies are) are never read, apart from each file's first 4 KB for Codex's version,
+/// which is looked up by its bytes and never decoded.
 public enum CodexReader {
     public static let tailBytes = 256 * 1024
     /// Day folders looked at, newest first: a week covers a Mac left idle over a weekend.
@@ -20,10 +21,19 @@ public enum CodexReader {
 
     /// The latest reading across the newest session files, or nil when there is none in the last `daysBack` days.
     public static func latest(home: URL, now: Date, calendar: Calendar = Calendar(identifier: .gregorian)) -> CodexReading? {
-        newestFiles(home: home, now: now, calendar: calendar).compactMap { CodexRollout.latest(in: tail($0)) }
-            .max { $0.observedAt < $1.observedAt }
+        newestFiles(home: home, now: now, calendar: calendar).compactMap { url -> CodexReading? in
+            guard var reading = CodexRollout.latest(in: tail(url)) else { return nil }
+            reading.version = CodexRollout.version(inHead: head(url))
+            return reading
+        }
+        .max { $0.observedAt < $1.observedAt }
     }
 
+    /// The `filesRead` most recently written session files in the last `daysBack` day folders. Every folder in that
+    /// span is listed: Codex files a session under the day it started and keeps appending to it, so a session started
+    /// days ago can hold the newest reading while today's folder is full of finished ones. (On the founder's Mac, 16 Oct
+    /// 2026, stopping at the first folders that held a dozen files missed the last reading, 36% at 17:36:11 UTC, in a
+    /// session started on 13 Oct, and kept 35% from 33 seconds earlier.)
     static func newestFiles(home: URL, now: Date, calendar: Calendar) -> [URL] {
         let root = sessionsURL(home: home), fm = FileManager.default
         var found: [(URL, Date)] = []
@@ -39,9 +49,15 @@ public enum CodexReader {
                 let modified = (try? fm.attributesOfItem(atPath: url.path)[.modificationDate] as? Date) ?? .distantPast
                 found.append((url, modified))
             }
-            if found.count >= filesRead * 4 { break }
         }
         return found.sorted { $0.1 > $1.1 }.prefix(filesRead).map(\.0)
+    }
+
+    /// The first 4 KB of a session file, for its version (`CodexRollout.version(inHead:)`).
+    static func head(_ url: URL) -> Data {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return Data() }
+        defer { try? handle.close() }
+        return (try? handle.read(upToCount: 4096)) ?? Data()
     }
 
     static func tail(_ url: URL) -> Data {
@@ -82,10 +98,14 @@ public enum CodexMapper {
                                            quality: quality, sourceVersion: nil,
                                            dedupeKey: SHA256.hash(data: Data(fingerprint.utf8)).map { String(format: "%02x", $0) }.joined()))
         }
+        // A window the event doesn't report (null) has no length, so no pool to belong to: it is left out rather than
+        // stored as an absent value under a made-up "primary" or "secondary" pool. Its pool keeps its last reading,
+        // which ages into stale and, past its reset time, "reset expected" like any other.
         for (window, fallback) in [(reading.primary, "primary"), (reading.secondary, "secondary")] {
+            guard let window else { continue }
             let key = poolKey(window, fallback: fallback)
-            emit(key, .quotaUsedPct, window?.usedPct.map(MetricValue.percent) ?? .absent(window == nil ? .providerNull : .providerOmitted))
-            emit(key, .resetAt, window?.resetsAt.map(MetricValue.instant) ?? .absent(window == nil ? .providerNull : .providerOmitted))
+            emit(key, .quotaUsedPct, window.usedPct.map(MetricValue.percent) ?? .absent(.providerOmitted))
+            emit(key, .resetAt, window.resetsAt.map(MetricValue.instant) ?? .absent(.providerOmitted))
         }
         return out
     }

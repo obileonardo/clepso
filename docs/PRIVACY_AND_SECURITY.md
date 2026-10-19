@@ -113,9 +113,12 @@ delete all. Tests put canary markers in every content field of all four events a
 ### 4.3 Codex session files (opt-in)
 
 Off by default. Clepso lists `~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl` for the last 8 days and reads
-only the last 256 KB of the three newest files. It decodes only lines that are `token_count` events (5-hour and
-weekly used %, reset time, plan) and the turn's model name; every other line, including prompts and replies, is
-skipped before JSON decoding (`Sources/CodexAdapter/`).
+only the last 256 KB of the three most recently written files. It decodes only lines that are `token_count` events
+(5-hour and weekly used %, reset time, plan) and the turn's model name; every other line, including prompts and
+replies, is skipped before JSON decoding (`Sources/CodexAdapter/`). Of the limits in a `token_count` event it keeps
+only Codex's own allowance (`limit_id` `codex`); other allowances Codex reports beside it are dropped. From each of
+those three files it also reads the first 4 KB and looks up one key by its bytes, `cli_version` (Codex's version,
+shown in the inspector), with the same short-plain-value rule as below; nothing in that head is decoded.
 
 For Codex's tokens per day (Stats), Clepso also reads every session file under `~/.codex/sessions` once, in the
 background, and then only what Codex appends. The same rule holds: a line is decoded only when its bytes contain
