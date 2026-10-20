@@ -45,14 +45,19 @@ extension MenuBarIcon {
     }
 
     @MainActor
-    public static func pixelImage(_ shape: Shape, staleMark: Bool, text: String?, height: CGFloat = 16) -> NSImage {
+    public static func pixelImage(_ shape: Shape, staleMark: Bool, text: String?, height: CGFloat = 16,
+                                  reservingText: [String] = []) -> NSImage {
         _ = PixelFonts.ensureRegistered()
         let on = pixels(shape, staleMark: staleMark)
         let unit = height / 16
         let font = NSFont(name: PixelFonts.display, size: 10) ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
         let label = text.map { NSAttributedString(string: $0, attributes: [.font: font, .foregroundColor: NSColor.black]) }
         let gap: CGFloat = label == nil ? 0 : 4
-        let textWidth = ceil(label?.size().width ?? 0)
+        // Reserve the widest frame for a rotating readout; adjacent status items must not move every six seconds.
+        let reservedWidth = text == nil ? 0 : reservingText.map {
+            NSAttributedString(string: $0, attributes: [.font: font]).size().width
+        }.max() ?? 0
+        let textWidth = ceil(max(label?.size().width ?? 0, reservedWidth))
         let size = NSSize(width: height + gap + textWidth, height: height)
         let image = NSImage(size: size, flipped: true) { _ in
             NSColor.black.setFill()

@@ -41,6 +41,15 @@ struct SettingsSection: View {
                 row("percent", Copy.Settings.showPercent, Copy.SettingsPage.percentSub) {
                     toggle(model.showPercent) { on in Task { await model.setShowPercent(on) } }
                 }
+                row("clock.arrow.circlepath", Copy.SettingsPage.menuBarDisplay, Copy.SettingsPage.menuBarDisplaySub) {
+                    Picker(Copy.SettingsPage.menuBarDisplay, selection: Binding(get: { model.menuBarDisplay }, set: { value in
+                        Task { await model.setMenuBarDisplay(value) }
+                    })) {
+                        ForEach(MenuBarDisplay.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden()
+                    .disabled(!model.showPercent)
+                }
             }
             group(Copy.SettingsPage.notifications) {
                 row("bell", Copy.SettingsPage.notificationsTitle, notificationLine) { notificationControl }

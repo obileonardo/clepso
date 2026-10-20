@@ -19,6 +19,7 @@ public struct ClepsoScenes: Scene {
             PopoverView(model: model).themed(model)
         } label: {
             MenuBarLabel(model: model)
+                .modifier(ReduceMotionRoot(forced: ThemedRoot.forceReduceMotion))
         }
         .menuBarExtraStyle(.window)
 
@@ -100,16 +101,39 @@ extension View {
 struct MenuBarLabel: View {
     let model: AppModel
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.reduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    @State private var tick = 0
+    @State private var hovering = false
+
+    private var rotationKey: String {
+        guard model.showPercent, model.menuBarDisplay == .rotating, !reduceMotion, !voiceOver, !hovering,
+              model.snapshot.rotatingReadouts.count > 1 else { return "" }
+        return model.snapshot.rotatingReadouts.map(\.poolKey).joined(separator: "|")
+    }
 
     var body: some View {
         let snapshot = model.snapshot
-        // One template image (pixel ring + the % in the pixel face): the menu bar ignores custom fonts in Text.
-        Image(nsImage: MenuBarIcon.pixelImage(snapshot.iconShape, staleMark: snapshot.iconStaleMark, text: snapshot.iconText))
+        let readout = model.showPercent ? snapshot.menuBarReadout(display: model.menuBarDisplay, tick: reduceMotion || voiceOver ? 0 : tick) : nil
+        let shape = readout?.shape ?? snapshot.iconShape
+        let staleMark = readout?.staleMark ?? snapshot.iconStaleMark
+        // One template image, with the existing design-system state glyph and an attributed limit readout.
+        Image(nsImage: MenuBarIcon.pixelImage(shape, staleMark: staleMark, text: readout?.text ?? snapshot.iconText,
+                                            reservingText: readout == nil ? [] : reservedText))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(snapshot.iconAccessibilityLabel)
-        .accessibilityValue(snapshot.iconAccessibilityValue)
+        .accessibilityLabel("\(Product.name): \(snapshot.menuBarHelp)")
+        .accessibilityValue(MenuBarIcon.spokenState(shape, staleMark: staleMark))
         .accessibilityRemoveTraits(.isImage)
-        .help(snapshot.aggregateLine)
+        .help(snapshot.menuBarHelp)
+        .onHover { hovering = $0 } // hover-ok: pauses rotation; all readings are also in the accessible label and panel.
+        .task(id: rotationKey) {
+            guard !rotationKey.isEmpty else { return }
+            tick = 0
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(MenuBarReadout.rotationInterval)) } catch { return }
+                tick = (tick + 1) % max(1, model.snapshot.rotatingReadouts.count)
+            }
+        }
         .onChange(of: model.dashboardRequests) {                 // 2.1: a click on a limit alert opens Limits
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: ClepsoScenes.detailsID)
@@ -126,6 +150,12 @@ struct MenuBarLabel: View {
                 openWindow(id: ClepsoScenes.onboardingID)
             }
         }
+    }
+
+    /// Enough room for every current frame and the longest normal reading, including its explicit stale suffix.
+    /// This also keeps the width steady as a live percentage gains a digit.
+    private var reservedText: [String] {
+        model.snapshot.menuBarReadouts.map(\.text) + ["\(model.snapshot.isDemo ? "DEMO " : "")Claude 5h 100.0% OLD"]
     }
 }
 

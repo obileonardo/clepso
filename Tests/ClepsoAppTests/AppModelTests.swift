@@ -70,6 +70,7 @@ struct AppModelTests {
         let max5 = try #require(first.catalog?.claudePlans.first { $0.id == "anthropic.max.5x" })
         await first.choosePlan(max5, confirmed: true)
         await first.setShowPercent(false)
+        await first.setMenuBarDisplay(.codexSevenDay)
         await first.completeOnboarding()
         first.stop()
 
@@ -78,6 +79,7 @@ struct AppModelTests {
         #expect(second.problem == nil, "\(String(describing: second.problem))")
         #expect(second.plan?.catalogID == "anthropic.max.5x" && second.plan?.evidence == .userConfirmed)
         #expect(!second.showPercent && second.onboardingComplete)
+        #expect(second.menuBarDisplay == .codexSevenDay)
 
         await second.choosePlan(nil, confirmed: false)
         #expect(second.plan == nil, "Not sure ends the plan")

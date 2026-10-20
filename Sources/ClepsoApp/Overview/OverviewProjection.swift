@@ -73,10 +73,22 @@ public enum OverviewProjection {
                                                        empty: codexCards.isEmpty ? empty : nil,
                                                        lastSeen: [lastSeen, codexSeen].compactMap { $0 }.max(),
                                                        now: now, staleAfter: staleAfter, zone: zone, locale: locale)
+        let readouts = ["claude-code", "codex"].flatMap { agent in
+            ["five_hour", "seven_day"].map { window in
+                let key = "\(agent).rate_limits.\(window)"
+                let claude = agent == "claude-code"
+                let agentRows = claude ? rows : (codexSection?.pools ?? [])
+                return MenuBarReadout.make(poolKey: key, row: agentRows.first { $0.poolKey == key },
+                                           enabled: claude ? (input.installed || receiving || input.isDemo) : (input.codexEnabled && !input.isDemo),
+                                           waiting: agentRows.isEmpty, demo: claude && input.isDemo,
+                                           now: now, staleAfter: staleAfter, zone: zone, locale: locale)
+            }
+        }
         return OverviewSnapshot(now: now, isDemo: input.isDemo, icon: icon, iconStaleMark: staleMark, iconText: text,
                                 aggregateLine: line, updatedAt: lastSeen, provider: provider, empty: empty,
                                 agents: input.agentsTracking ? agents(input.agentTasks, open: input.openAgentRuns, background: input.backgroundSnapshots,
                                                                                now: now, staleAfter: staleAfter) : nil,
+                                menuBarReadouts: readouts,
                                 codex: codexSection, codexAgentsShown: input.codexEnabled && !input.isDemo,
                                 codexAgents: input.codexEnabled && !input.isDemo ? input.codexAgentTasks.map { codexAgents($0, now: now) } : nil)
     }

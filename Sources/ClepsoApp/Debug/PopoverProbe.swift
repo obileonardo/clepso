@@ -1,5 +1,6 @@
 #if DEBUG
 import AppKit
+import CryptoKit
 import enum Domain.Product
 import ImageIO
 import OSLog
@@ -66,6 +67,10 @@ enum PopoverProbe {
         if defaults.bool(forKey: "ClepsoProbeWhatsNew") { model.whatsNew = WhatsNew.entries.first }
         // `-ClepsoProbeApprovedAgents code-reviewer,db-helper`: approved agent names for the Settings screenshots.
         for name in defaults.string(forKey: "ClepsoProbeApprovedAgents")?.split(separator: ",") ?? [] { _ = await model.approveAgentName(String(name)) }
+        if defaults.bool(forKey: "ClepsoProbeMenuBar") {
+            await captureMenuBarRotation(folder, model: model)
+            return true
+        }
         PopoverWarmUp.run(model)          // as at a launch into this state (the app warms up after start, see ClepsoScenes)
         try? await Task.sleep(for: .seconds(1))
         guard let button = statusButton() else { recorder.log("ERROR no status item button"); return true }
@@ -498,6 +503,35 @@ enum PopoverProbe {
             return view.subviews.lazy.compactMap(find).first
         }
         return NSApp.windows.lazy.compactMap { find($0.contentView) }.first
+    }
+
+    /// Samples the actual native status button, without screen capture, clicks or Accessibility permission.
+    /// The probe's isolated home/store keeps this fixture run away from the installed app's preferences and data.
+    static func captureMenuBarRotation(_ folder: URL, model: AppModel) async {
+        await model.setDemo(true)
+        await model.setShowPercent(true)
+        await model.setMenuBarDisplay(.rotating)
+        try? await Task.sleep(for: .seconds(1))
+        var frames: [[String: String]] = []
+        for index in 0..<4 {
+            if index > 0 { try? await Task.sleep(for: .seconds(MenuBarReadout.rotationInterval + 0.25)) }
+            guard let button = statusButton(), let image = button.image, let data = image.tiffRepresentation,
+                  let bitmap = NSBitmapImageRep(data: data), let png = bitmap.representation(using: .png, properties: [:]) else {
+                frames.append(["error": "native status button image unavailable"])
+                continue
+            }
+            try? png.write(to: folder.appendingPathComponent("menu-bar-\(index).png"))
+            frames.append(["sha256": SHA256.hash(data: png).map { String(format: "%02x", $0) }.joined(),
+                           "width": String(describing: image.size.width), "height": String(describing: image.size.height)])
+        }
+        let hashes = Set(frames.compactMap { $0["sha256"] })
+        let widths = Set(frames.compactMap { $0["width"] })
+        let expected = ProbeOverrides.reduceMotion || NSWorkspace.shared.isVoiceOverEnabled ? 1 : 2
+        let report: [String: Any] = ["frames": frames, "distinct_images": hashes.count, "expected_images": expected,
+                                     "passed": frames.count == 4 && hashes.count == expected && widths.count == 1]
+        if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
+            try? data.write(to: folder.appendingPathComponent("menu-bar-report.json"))
+        }
     }
 
     static func popoverWindow() -> NSWindow? {
