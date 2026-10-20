@@ -112,7 +112,7 @@ struct ManualReadingSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: theme.spacing(.spacious)) {
-            Text(Copy.Manual.add.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
+            Text((initial == nil ? Copy.Manual.add : Copy.Manual.update).uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
             Text(Copy.Manual.empty).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
                 .fixedSize(horizontal: false, vertical: true)
             Picker(Copy.Manual.provider, selection: $providerID) {

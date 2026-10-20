@@ -83,4 +83,36 @@ struct MenuBarReadoutTests {
             #expect(abs(left - right) <= 2 * scale, "unequal ink margins: \(left) left, \(right) right")
         }
     }
+    @MainActor
+    @Test("Brand capsules preserve uppercase display type, contrast and stable centred geometry")
+    func coloredPill() throws {
+        _ = PixelFonts.ensureRegistered()
+        #expect(NSFont(name: PixelFonts.display, size: 10)?.fontName == PixelFonts.display)
+        let reservation = ["CLAUDE 5H 99.9% OLD"]
+        let labels = ["Claude 5h 1%", "Codex 7d 100% OLD", "Claude 5h RESET?", "Codex 7d WAIT"]
+        let images = labels.map { MenuBarIcon.pillImage(.beat, staleMark: false, text: $0, reservingText: reservation) }
+        #expect(Set(images.map { $0.size.width }).count == 1)
+        #expect(images.allSatisfy { !$0.isTemplate && $0.size.height == 20 })
+        for theme in Theme.all {
+            for shape: MenuBarIcon.Shape in [.beat, .approaching, .flatline, .stale, .demo, .waiting, .notConnected] {
+                let colors = MenuBarIcon.pillColors(shape, staleMark: false, theme: theme)
+                #expect(RGB.contrast(colors.ink, colors.fill) >= 4.5)
+            }
+        }
+        for (label, image) in zip(labels, images) {
+            let uppercase = MenuBarIcon.pillImage(.beat, staleMark: false, text: label.uppercased(), reservingText: reservation)
+            #expect(image.tiffRepresentation == uppercase.tiffRepresentation)
+            let bitmap = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
+            let colors = MenuBarIcon.pillColors(.beat, staleMark: false)
+            let columns = (0..<bitmap.pixelsWide).filter { x in
+                (0..<bitmap.pixelsHigh).contains { y in
+                    guard let c = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB), c.alphaComponent > 0.99 else { return false }
+                    return abs(c.redComponent - colors.ink.red) < 0.02 && abs(c.greenComponent - colors.ink.green) < 0.02
+                }
+            }
+            let left = try #require(columns.first), right = bitmap.pixelsWide - 1 - (try #require(columns.last))
+            #expect(abs(left - right) <= 2 * bitmap.pixelsHigh / 20)
+        }
+    }
+
 }

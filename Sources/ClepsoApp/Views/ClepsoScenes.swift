@@ -117,8 +117,8 @@ struct MenuBarLabel: View {
         let readout = model.showPercent ? snapshot.menuBarReadout(display: model.menuBarDisplay, tick: reduceMotion || voiceOver ? 0 : tick) : nil
         let shape = readout?.shape ?? snapshot.iconShape
         let staleMark = readout?.staleMark ?? snapshot.iconStaleMark
-        // One template image, with the existing design-system state glyph and an attributed limit readout.
-        Image(nsImage: MenuBarIcon.pixelImage(shape, staleMark: staleMark, text: readout?.text ?? snapshot.iconText,
+        // One coloured capsule, retaining the state glyph and the brand display face.
+        Image(nsImage: MenuBarIcon.pillImage(shape, staleMark: staleMark, text: readout?.text ?? snapshot.iconText, theme: model.theme,
                                             reservingText: readout == nil ? [] : reservedText))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(Product.name): \(snapshot.menuBarHelp)")
@@ -155,7 +155,7 @@ struct MenuBarLabel: View {
     /// Enough room for every current frame and the longest normal reading, including its explicit stale suffix.
     /// This also keeps the width steady as a live percentage gains a digit.
     private var reservedText: [String] {
-        model.snapshot.menuBarReadouts.map(\.text) + ["\(model.snapshot.isDemo ? "DEMO " : "")Claude 5h 100.0% OLD"]
+        model.snapshot.menuBarReadouts.map(\.text) + ["\(model.snapshot.isDemo ? "DEMO " : "")CLAUDE 5H 99.9% OLD"]
     }
 }
 

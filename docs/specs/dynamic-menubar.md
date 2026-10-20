@@ -1,8 +1,8 @@
 # Dynamic menu bar readout
 
 Founder request, 20 October 2026: follow Hearth's rotating status readout so Claude Code and Codex's individual
-5-hour and 7-day windows are visible without opening the panel. Keep Clepso's existing pixel state family and
-macOS template tinting, rather than copying Hearth's unrelated home-device symbols and colours.
+5-hour and 7-day windows are visible without opening the panel. Keep Clepso's existing pixel state family. Alpha 4 adds an opaque coloured capsule using the selected theme's
+accent and status tokens, as requested in the founder's second visual review.
 
 Default: rotate configured agents' windows every six seconds. Exhausted, critical and approaching windows lead
 the cycle, in that order; every other configured window still gets a turn. Each frame's glyph describes that
@@ -59,3 +59,12 @@ The founder's installed-app screenshot exposed a horizontal alignment regression
 width sat entirely after the label. Alpha 3 centers the entire icon/label group within that canvas, snapping its
 offset to whole points. The rendering test now measures the actual bitmap's left/right ink margins as well as
 the common frame width, so a left-aligned label cannot pass on canvas dimensions alone.
+
+Alpha 4 visual revision: visible labels are uppercase, with the actual bundled `ClepsoPixel-Regular` display face
+at 10 pt. Spoken labels retain natural case. The coloured capsule is 20 pt tall with 6 pt horizontal content
+padding (2 layout pixels less than the previous 8 pt inset). macOS still owns the status item's click target and
+popover. Shorter frames remain centred in a shared width; the maximum normal reservation is `CLAUDE 5H 99.9% OLD`.
+The dark palette's accent fills the normal capsule (Phosphor green by default); approaching and reached limits use
+amber and coral, stale/waiting/off use their semantic tokens. Ink is whichever theme text/background token has
+higher contrast against that fill. Tests require at least 4.5:1 for every state in every theme. The original
+template renderer remains available for brand assets and keeps its custom-height behaviour.
