@@ -153,6 +153,27 @@ The founder requested the current alpha in the repository's Latest release sideb
 marked as prereleases from Latest; retain the alpha tag, title and explicit limitations in the notes while using
 the regular GitHub release metadata for that display. This metadata choice does not claim stable software.
 
+### Update the Homebrew tap
+
+After the authorized release is public as Latest, update
+[`obileonardo/homebrew-clepso`](https://github.com/obileonardo/homebrew-clepso):
+
+```sh
+# From the clean tapped checkout (audit resolves casks by tap/name):
+cd "$(brew --repository obileonardo/clepso)"
+git switch -c update/clepso-release
+python3 scripts/update-cask.py
+python3 -m unittest discover -s tests -v
+brew style Casks/clepso.rb
+brew audit --cask --strict --online obileonardo/clepso/clepso
+git diff
+```
+
+Review and commit the version/checksum change, then push it and open a pull request. The updater checks the downloaded DMG against
+`SHA256SUMS` and GitHub's asset digest before editing the cask. The tap's CI verifies installation, signing,
+Gatekeeper and uninstall on Apple silicon. Its daily release monitor reports a stale cask without writing one.
+This step needs no new app build, signing credentials in GitHub Actions or extra server.
+
 ## 6. Open decisions that change the signed build
 
 - **Accounts in the alpha.** Default: none (section 1). Building with `--with-accounts` puts the accounts project in
