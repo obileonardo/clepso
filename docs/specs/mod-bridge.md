@@ -413,10 +413,13 @@ Buttons: **Cancel** (default, Escape) · **Add the mod**.
 
 | # | Question | How it gets answered |
 |---|---|---|
-| Q1 | Does `$.process.run` work in the desktop Code tab (F9)? | Runbook D3: a `via: "mod"` frame arrives from a desktop session |
-| Q2 | After removal, does `/plugin` show the deleted marketplace as an error? | Runbook U4; if so, the uninstall note suggests `claude plugin marketplace remove clepso` (which rewrites settings.json formatting, so Clepso does not run it) |
-| Q3 | Does the first session after install load the mod, or only the next one (R4)? | Runbook D2 |
+| Q1 | Does `$.process.run` work in the desktop Code tab (F9)? | **Verified 21 Oct:** context readings reached Clepso through the helper from desktop Code 2.1.299. Independent desktop-only pool adoption remains open; see the live result below |
+| Q2 | After removal, does `/plugin` show the deleted marketplace as an error? | **Partial 21 Oct:** CLI cache entry remains disabled after exact removal. Desktop plugin manager did not list the directory-backed mod even while it ran. Full supported-UI removal check remains open; do not rewrite unrelated settings just to clear a cache entry |
+| Q3 | Does the first session after install load the mod, or only the next one (R4)? | **Verified 21 Oct on the tested environment:** first new local session after installation/restart delivered |
 | Q4 | Should the mod also send the model name (`$.session.model()`, a fifth call) so desktop sessions are labelled? | **Answered 19 Oct 2026: yes** (founder decision). The mod sends `model.id` only (F11, §5.2); confirm in runbook D5 that a desktop session's value matches the terminal's status-line `model.id` |
 | Q5 | VS Code panel: are `surfaces` `["vscode"]`, does it run the status line (then rule §7.2 applies), and does the extension version matter? | Runbook V1–V3, needs VS Code with the extension ≥ 2.1.299 |
-| Q6 | Is the mod's session id the status line's and the hooks' (F7)? A desktop session's hook tasks and limit readings then share one session row | Runbook D4 |
+| Q6 | Is the mod's session id the status line's and the hooks' (F7)? A desktop session's hook tasks and limit readings then share one session row | **Hook identity verified 21 Oct:** two hook tasks match the mod's stored session. No status-line rows were retained for that desktop test session; broader IDE comparison remains open |
 | Q7 | Mods are new and change almost every release; `session.measure`'s shape could change | `ModHandoff` drops unknown shapes silently; the gate pins the calls; re-test on each Claude Code minor release |
+
+Live method, evidence boundaries and remaining release gates: [21 October desktop check](../qa/2026-10-21-desktop-mod.md).
+MCP, phone alarms and proposed version scope: [v0.3 integration plan](v0.3-integration-plan.md).
