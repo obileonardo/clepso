@@ -11,9 +11,9 @@ redirect each app asked for: /app on the web, clepso://auth-callback on the Mac.
 code, so {{ .Token }} is never shown. See docs/EMAIL.md.
 
 Email-client rules followed here: tables for layout, every style inline (a <style> block only adds dark-mode and
-small-screen refinements that clients without it can skip), no web fonts, no scripts, no tracking, the logo as a hosted
-PNG with alt text, and the whole message as real text. The design is dark in both colour schemes; the dark-mode rules
-only pin the brand's colours for clients that would re-colour them. No HTML comments: Supabase Auth renders templates
+small-screen refinements that clients without it can skip), no web fonts, no scripts, no tracking or remote images.
+Branding stays readable when an inbox blocks images. The light palette is Clepso's warm paper and deep phosphor;
+an explicit dark palette is an enhancement for clients that support it. No HTML comments: Supabase Auth renders templates
 with Go's html/template, which strips them (so Outlook conditional comments can't be used).
 """
 import html
@@ -27,13 +27,12 @@ repo = Path(__file__).resolve().parent.parent
 OUT = repo / "backend" / "supabase" / "templates"
 CONFIG = repo / "backend" / "supabase" / "config.toml"
 SITE = "https://clepso-app.vercel.app"
-LOGO = f"{SITE}/assets/email/clepso-logo-email-244.png"   # site/assets/email/, built by design/brand/pipeline
-LOGO_W, LOGO_H = 122, 32                                  # CSS px; the PNG is 2×, one brand p = 2 px
 GMAIL_CLIP = 102 * 1024                                   # Gmail hides everything after ~102 KB of HTML
 
-# Site tokens (scripts/site/shell.css). Contrast on SURFACE: TEXT 16.9:1, TEXT2 8.6:1, ACCENT 14.2:1; INK on ACCENT 14.5:1.
-BG, SURFACE, LINE, TEXT, TEXT2, ACCENT, INK = "#060907", "#0D1410", "#2C4034", "#EAF7EE", "#93B9A0", "#4DFF8F", "#06130B"
+# Phosphor light tokens (Sources/DesignSystem/Theme/Tokens.swift); email-safe system type.
+BG, SURFACE, LINE, TEXT, TEXT2, ACCENT, INK = "#F3F1E7", "#FBFAF4", "#D8D7CB", "#0F1A13", "#44564A", "#0A7238", "#FFFFFF"
 MONO = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace"
+SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
 
 def otp_expiry_words():
@@ -54,7 +53,7 @@ LINK = "{{ .ConfirmationURL }}"
 
 
 def strong(text):
-    return f'<strong style="color:{TEXT};font-weight:700;">{text}</strong>'
+    return f'<strong style="color:{TEXT};font-weight:600;overflow-wrap:anywhere;word-break:break-word;">{text}</strong>'
 
 
 SAME_DEVICE = "the Mac or browser that asked for it"
@@ -67,11 +66,11 @@ EMAILS = {
         tag="Sign-in link",
         preheader=f"Your one-time link to sign in to Clepso. It works once and expires in {EXPIRES}.",
         title="Sign in to Clepso",
-        body=[f"Use the button below to sign in as {strong(ME)}."],
-        button=("Sign in", LINK),
+        body=["Use this one-time link to sign in to your account."],
+        button=("Sign in to Clepso", LINK),
         facts=[("Expires", f"in {EXPIRES}"), ("Works", "once"), ("Open on", SAME_DEVICE)],
         fallback=SAME_DEVICE,
-        ignore="Didn't ask to sign in? Ignore this email. Nothing happens, and nobody gets in with it.",
+        ignore="Didn't request this? You can safely ignore this email.",
         reason=f"Sent because someone asked to sign in to Clepso as {ME}.",
     ),
     "confirmation": dict(
@@ -79,11 +78,11 @@ EMAILS = {
         tag="New account",
         preheader=f"One step left: confirm your email to create your Clepso account. The link expires in {EXPIRES}.",
         title="Confirm your email",
-        body=[f"Welcome to Clepso. Confirm {strong(ME)} to create your account. You'll be signed in straight away."],
+        body=["Welcome to Clepso. Confirm your email to create your account and sign in."],
         button=("Confirm and sign in", LINK),
         facts=[("Expires", f"in {EXPIRES}"), ("Works", "once"), ("Open on", SAME_DEVICE)],
         fallback=SAME_DEVICE,
-        ignore="Didn't ask for this? Ignore this email. Without the link, the account is never confirmed.",
+        ignore="Didn't request this? You can safely ignore this email.",
         reason=f"Sent because {ME} was used to sign in to Clepso for the first time.",
     ),
     "email_change": dict(
@@ -91,10 +90,10 @@ EMAILS = {
         tag="Email change",
         preheader=f"Confirm changing your Clepso account's email to {NEW}.",
         title="Confirm your new email",
-        body=[f"Your Clepso account's email is changing from {strong(ME)} to {strong(NEW)}.",
-              "Both addresses get this email. The change happens once the link in each one is opened."],
+        body=[f"Confirm changing your account's email from {strong(ME)} to {strong(NEW)}.",
+              "Open the confirmation link sent to each address to finish the change."],
         button=("Confirm the change", LINK),
-        facts=[("Expires", f"in {EXPIRES}"), ("Works", "once"), ("Needs", "a click from both addresses")],
+        facts=[("Expires", f"in {EXPIRES}"), ("Works", "once")],
         fallback="your browser",
         ignore=f"Didn't ask for this? Ignore this email. The account keeps {ME} unless both addresses confirm.",
         reason=f"Sent because an email change was requested for the Clepso account {ME}.",
@@ -104,13 +103,11 @@ EMAILS = {
         tag="Account notice",
         preheader="Clepso accounts have no password. To sign in, ask for a one-time link.",
         title="There's no password to reset",
-        body=[f"Someone asked to reset the password for the Clepso account {strong(ME)}. Clepso accounts don't have "
-              "passwords: you sign in with a one-time link sent to your email.",
-              "To sign in, open Clepso on your Mac (Clepso › Account), or enter your email on the web dashboard."],
+        body=["Clepso uses one-time email links instead of passwords. To sign in, open the dashboard and request a new link."],
         button=("Open the web dashboard", f"{SITE}/app/"),
         facts=[],
         fallback=False,
-        ignore="Didn't ask for this? Ignore this email. Nothing on your account has changed.",
+        ignore="Didn't request this? You can safely ignore this email. Your account is unchanged.",
         reason=f"Sent because a password reset was requested for {ME}.",
     ),
 }
@@ -128,24 +125,29 @@ HEAD = f"""<!DOCTYPE html>
 <title>[[subject]]</title>
 <style>
   :root {{ color-scheme: light dark; supported-color-schemes: light dark; }}
-  body {{ margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: {BG} !important; }}
+  body {{ margin: 0 !important; padding: 0 !important; width: 100% !important; }}
   a[x-apple-data-detectors] {{ color: inherit !important; text-decoration: none !important; }}
-  .cl-text a {{ color: {ACCENT}; }}
+  .cl-text a[x-apple-data-detectors], .cl-text a[href^="mailto:"], .cl-muted a[x-apple-data-detectors] {{ color: inherit !important; text-decoration: none !important; }}
+  .cl-button:hover {{ background-color: #085E2E !important; }}
+  a:focus-visible {{ outline: 2px solid {ACCENT}; outline-offset: 4px; }}
   @media (prefers-color-scheme: dark) {{
-    .cl-bg {{ background-color: {BG} !important; }}
-    .cl-card {{ background-color: {SURFACE} !important; }}
-    .cl-btn {{ background-color: {ACCENT} !important; }}
-    .cl-btn a {{ color: {INK} !important; }}
+    .cl-bg {{ background-color: #101612 !important; }}
+    .cl-card {{ background-color: #18231B !important; border-color: #354339 !important; }}
+    .cl-ink, .cl-title, .cl-text strong {{ color: #F1F4EB !important; }}
+    .cl-text, .cl-muted {{ color: #B5C5B6 !important; }}
+    .cl-rule {{ border-color: #354339 !important; }}
+    .cl-link {{ color: #8DE9A7 !important; }}
+    .cl-button {{ background-color: #4DFF8F !important; border-color: #4DFF8F !important; }}
+    .cl-button a {{ color: #0F1A13 !important; }}
+    .cl-button:hover {{ background-color: #8DE9A7 !important; border-color: #8DE9A7 !important; }}
+    a:focus-visible {{ outline-color: #8DE9A7; }}
   }}
-  [data-ogsb] .cl-btn {{ background-color: {ACCENT} !important; }}
-  [data-ogsc] .cl-btn a {{ color: {INK} !important; }}
   @media only screen and (max-width: 520px) {{
-    .cl-pad {{ padding-left: 22px !important; padding-right: 22px !important; }}
-    .cl-outer {{ padding-left: 12px !important; padding-right: 12px !important; padding-top: 20px !important; }}
-    .cl-title {{ font-size: 23px !important; line-height: 30px !important; }}
-    .cl-btn-table, .cl-btn-cell {{ width: 100% !important; }}
-    .cl-btn a {{ display: block !important; text-align: center !important; }}
-    .cl-fact-label {{ width: 74px !important; }}
+    .cl-pad {{ padding: 30px 24px 28px !important; }}
+    .cl-outer {{ padding: 24px 16px 32px !important; }}
+    .cl-title {{ font-size: 30px !important; line-height: 36px !important; }}
+    .cl-button-table {{ width: 100% !important; }}
+    .cl-button a {{ display: block !important; text-align: center !important; padding-left: 12px !important; padding-right: 12px !important; }}
   }}
 </style>
 </head>
@@ -154,26 +156,23 @@ HEAD = f"""<!DOCTYPE html>
 BODY = f"""<body class="cl-bg" style="margin:0;padding:0;width:100%;background-color:{BG};">
 <div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:{BG};">[[preheader]]&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
 <table role="presentation" class="cl-bg" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{BG}" style="width:100%;background-color:{BG};border-collapse:collapse;">
-<tr><td class="cl-outer" align="center" style="padding:40px 16px 48px 16px;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
-<tr><td style="padding:0 2px 20px 2px;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;"><tr>
-    <td valign="middle" style="padding:0;"><a href="{SITE}/" style="text-decoration:none;"><img src="{LOGO}" width="{LOGO_W}" height="{LOGO_H}" alt="Clepso" style="display:block;width:{LOGO_W}px;height:{LOGO_H}px;border:0;outline:none;text-decoration:none;color:{ACCENT};font-family:{MONO};font-size:20px;font-weight:700;line-height:{LOGO_H}px;background-color:{BG};"></a></td>
-    <td valign="middle" align="right" style="padding:0;font-family:{MONO};font-size:11px;line-height:16px;letter-spacing:1.6px;text-transform:uppercase;color:{TEXT2};">[[tag]]</td>
-  </tr></table>
+<tr><td class="cl-outer" align="center" style="padding:48px 24px 40px;">
+<table role="presentation" width="536" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:536px;border-collapse:collapse;">
+<tr><td style="padding:0 0 28px 2px;">
+  <a class="cl-ink" href="{SITE}/" style="font-family:{MONO};font-size:20px;line-height:28px;font-weight:700;letter-spacing:3px;color:{TEXT};text-decoration:none;">CLEPSO<span style="color:{ACCENT};">.</span></a>
 </td></tr>
-<tr><td class="cl-card cl-pad" bgcolor="{SURFACE}" style="background-color:{SURFACE};border:1px solid {LINE};border-top:2px solid {ACCENT};padding:36px 40px 32px 40px;">
-  <h1 class="cl-title" style="margin:0 0 16px 0;font-family:{MONO};font-size:26px;line-height:34px;font-weight:700;letter-spacing:-0.2px;color:{TEXT};">[[title]]</h1>
+<tr><td class="cl-card cl-pad" bgcolor="{SURFACE}" style="background-color:{SURFACE};border:1px solid {LINE};padding:40px 40px 32px;">
+  <p class="cl-muted" style="margin:0 0 18px;font-family:{MONO};font-size:10px;line-height:16px;letter-spacing:1.6px;text-transform:uppercase;color:{TEXT2};">[[tag]]</p>
+  <h1 class="cl-title" style="margin:0 0 18px;font-family:{SANS};font-size:34px;line-height:40px;font-weight:650;letter-spacing:-1px;color:{TEXT};">[[title]]</h1>
 [[body]]
 [[button]]
 [[facts]]
 [[fallback]]
-  <p style="margin:28px 0 0 0;padding-top:20px;border-top:1px solid {LINE};font-family:{MONO};font-size:13px;line-height:21px;color:{TEXT2};">[[ignore]]</p>
+  <p class="cl-muted cl-rule" style="margin:28px 0 0;padding-top:24px;border-top:1px solid {LINE};font-family:{SANS};font-size:13px;line-height:20px;color:{TEXT2};">[[ignore]]</p>
 </td></tr>
-<tr><td style="padding:24px 2px 0 2px;font-family:{MONO};font-size:12px;line-height:19px;color:{TEXT2};">
-  <p style="margin:0 0 8px 0;color:{TEXT2};"><strong style="color:{TEXT};font-weight:700;letter-spacing:1.6px;">CLEPSO</strong> &middot; how much of your AI coding agent's limits you have left, in your Mac's menu bar.</p>
-  <p style="margin:0 0 8px 0;color:{TEXT2};">[[reason]] Clepso only emails you about your account.</p>
-  <p style="margin:0;"><a href="{SITE}/" style="color:{ACCENT};text-decoration:underline;">clepso-app.vercel.app</a> <span style="color:{LINE};">&nbsp;/&nbsp;</span> <a href="{SITE}/privacy/" style="color:{ACCENT};text-decoration:underline;">Privacy</a></p>
+<tr><td style="padding:24px 2px 0;font-family:{SANS};font-size:12px;line-height:19px;">
+  <p class="cl-muted" style="margin:0 0 8px;color:{TEXT2};">Your coding-agent limits, before you hit them.</p>
+  <p style="margin:0;"><a class="cl-link" href="{SITE}/" style="color:{ACCENT};text-decoration:underline;">Clepso</a> &nbsp;&middot;&nbsp; <a class="cl-link" href="{SITE}/privacy/" style="color:{ACCENT};text-decoration:underline;">Privacy</a></p>
 </td></tr>
 </table>
 </td></tr>
@@ -185,40 +184,30 @@ BODY = f"""<body class="cl-bg" style="margin:0;padding:0;width:100%;background-c
 
 def para(text, first):
     top = "0" if first else "14px"
-    return (f'  <p class="cl-text" style="margin:{top} 0 0 0;font-family:{MONO};font-size:15px;line-height:24px;'
+    return (f'  <p class="cl-text" style="margin:{top} 0 0 0;font-family:{SANS};font-size:16px;line-height:25px;'
             f'color:{TEXT2};">{text}</p>')
 
 
 def button(label, href):
-    return f"""  <table role="presentation" class="cl-btn-table" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0 0;border-collapse:collapse;"><tr>
-    <td class="cl-btn cl-btn-cell" bgcolor="{ACCENT}" style="background-color:{ACCENT};border-radius:0;mso-padding-alt:15px 26px;">
-      <a href="{href}" target="_blank" style="display:inline-block;padding:15px 26px;font-family:{MONO};font-size:14px;line-height:18px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:{INK};text-decoration:none;">{html.escape(label)}&nbsp;&rarr;</a>
+    return f"""  <table role="presentation" class="cl-button-table" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0;border-collapse:separate;"><tr>
+    <td class="cl-button" align="center" bgcolor="{ACCENT}" style="background-color:{ACCENT};border:1px solid {ACCENT};border-radius:2px;mso-padding-alt:15px 24px;">
+      <a href="{href}" target="_blank" style="display:inline-block;padding:15px 24px;font-family:{SANS};font-size:15px;line-height:20px;font-weight:600;color:{INK};text-decoration:none;">{html.escape(label)}&nbsp;&nbsp;&rarr;</a>
     </td></tr></table>"""
 
 
 def facts(rows):
     if not rows:
         return ""
-    cells = []
-    for i, (label, value) in enumerate(rows):
-        rule = f"border-top:1px solid {LINE};" if i else ""
-        cells.append(
-            f'    <tr><td class="cl-fact-label" width="96" valign="top" style="width:96px;padding:9px 12px 9px 0;{rule}'
-            f'font-family:{MONO};font-size:11px;line-height:18px;letter-spacing:1.4px;text-transform:uppercase;color:{TEXT2};">'
-            f'{html.escape(label)}</td>'
-            f'<td valign="top" style="padding:9px 0;{rule}font-family:{MONO};font-size:13px;line-height:18px;color:{TEXT};">'
-            f'{html.escape(value)}</td></tr>')
-    return (f'  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0 0;'
-            f'border-collapse:collapse;border-top:1px solid {LINE};border-bottom:1px solid {LINE};">\n'
-            + "\n".join(cells) + "\n  </table>")
+    device = any(label == "Open on" for label, _ in rows)
+    note = f"Valid for {EXPIRES}. One use only."
+    if device:
+        note += "<br>Open on the Mac or browser that requested it."
+    return (f'  <p class="cl-muted" style="margin:16px 0 0;font-family:{SANS};font-size:13px;line-height:21px;color:{TEXT2};">{note}</p>')
 
 
 def fallback(where):
-    return (f'  <p style="margin:24px 0 8px 0;font-family:{MONO};font-size:13px;line-height:20px;color:{TEXT2};">'
-            f'Button not working? Paste this address into {where}:</p>\n'
-            f'  <p style="margin:0;padding:10px 12px;background-color:{BG};border:1px solid {LINE};font-family:{MONO};'
-            f'font-size:12px;line-height:18px;word-break:break-all;overflow-wrap:anywhere;">'
-            f'<a href="{LINK}" target="_blank" style="color:{ACCENT};text-decoration:underline;word-break:break-all;">{LINK}</a></p>')
+    return (f'  <p class="cl-muted" style="margin:18px 0 0;font-family:{SANS};font-size:13px;line-height:21px;color:{TEXT2};">'
+            f'Button not working? <a class="cl-link" href="{LINK}" target="_blank" style="color:{ACCENT};text-decoration:underline;">Open the link directly</a>.</p>')
 
 
 def render(e):
@@ -331,8 +320,7 @@ def main(argv):
         if preview:
             preview.mkdir(parents=True, exist_ok=True)
             sample = (text.replace(LINK, "http://127.0.0.1:54321/auth/v1/verify?token=pkce_3f9c1d8e7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f&amp;type=magiclink&amp;redirect_to=http://127.0.0.1:3000/app")
-                      .replace(ME, "ada@example.com").replace(NEW, "ada.lovelace@example.org")
-                      .replace(LOGO, (repo / "site/assets/email/clepso-logo-email-244.png").as_uri()))
+                      .replace(ME, "ada@example.com").replace(NEW, "ada.lovelace@example.org"))
             (preview / f"{name}.html").write_text(sample)
         print(f"{name}: {len(text.encode())} bytes, subject \"{e['subject']}\"")
     for m in errs:

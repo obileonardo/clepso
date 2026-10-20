@@ -11,58 +11,55 @@
 <title>Sign in to Clepso</title>
 <style>
   :root { color-scheme: light dark; supported-color-schemes: light dark; }
-  body { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #060907 !important; }
+  body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
   a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
-  .cl-text a { color: #4DFF8F; }
+  .cl-text a[x-apple-data-detectors], .cl-text a[href^="mailto:"], .cl-muted a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+  .cl-button:hover { background-color: #085E2E !important; }
+  a:focus-visible { outline: 2px solid #0A7238; outline-offset: 4px; }
   @media (prefers-color-scheme: dark) {
-    .cl-bg { background-color: #060907 !important; }
-    .cl-card { background-color: #0D1410 !important; }
-    .cl-btn { background-color: #4DFF8F !important; }
-    .cl-btn a { color: #06130B !important; }
+    .cl-bg { background-color: #101612 !important; }
+    .cl-card { background-color: #18231B !important; border-color: #354339 !important; }
+    .cl-ink, .cl-title, .cl-text strong { color: #F1F4EB !important; }
+    .cl-text, .cl-muted { color: #B5C5B6 !important; }
+    .cl-rule { border-color: #354339 !important; }
+    .cl-link { color: #8DE9A7 !important; }
+    .cl-button { background-color: #4DFF8F !important; border-color: #4DFF8F !important; }
+    .cl-button a { color: #0F1A13 !important; }
+    .cl-button:hover { background-color: #8DE9A7 !important; border-color: #8DE9A7 !important; }
+    a:focus-visible { outline-color: #8DE9A7; }
   }
-  [data-ogsb] .cl-btn { background-color: #4DFF8F !important; }
-  [data-ogsc] .cl-btn a { color: #06130B !important; }
   @media only screen and (max-width: 520px) {
-    .cl-pad { padding-left: 22px !important; padding-right: 22px !important; }
-    .cl-outer { padding-left: 12px !important; padding-right: 12px !important; padding-top: 20px !important; }
-    .cl-title { font-size: 23px !important; line-height: 30px !important; }
-    .cl-btn-table, .cl-btn-cell { width: 100% !important; }
-    .cl-btn a { display: block !important; text-align: center !important; }
-    .cl-fact-label { width: 74px !important; }
+    .cl-pad { padding: 30px 24px 28px !important; }
+    .cl-outer { padding: 24px 16px 32px !important; }
+    .cl-title { font-size: 30px !important; line-height: 36px !important; }
+    .cl-button-table { width: 100% !important; }
+    .cl-button a { display: block !important; text-align: center !important; padding-left: 12px !important; padding-right: 12px !important; }
   }
 </style>
 </head>
-<body class="cl-bg" style="margin:0;padding:0;width:100%;background-color:#060907;">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#060907;">Your one-time link to sign in to Clepso. It works once and expires in 1 hour.&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
-<table role="presentation" class="cl-bg" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#060907" style="width:100%;background-color:#060907;border-collapse:collapse;">
-<tr><td class="cl-outer" align="center" style="padding:40px 16px 48px 16px;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
-<tr><td style="padding:0 2px 20px 2px;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;"><tr>
-    <td valign="middle" style="padding:0;"><a href="https://clepso-app.vercel.app/" style="text-decoration:none;"><img src="https://clepso-app.vercel.app/assets/email/clepso-logo-email-244.png" width="122" height="32" alt="Clepso" style="display:block;width:122px;height:32px;border:0;outline:none;text-decoration:none;color:#4DFF8F;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:20px;font-weight:700;line-height:32px;background-color:#060907;"></a></td>
-    <td valign="middle" align="right" style="padding:0;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:11px;line-height:16px;letter-spacing:1.6px;text-transform:uppercase;color:#93B9A0;">Sign-in link</td>
-  </tr></table>
+<body class="cl-bg" style="margin:0;padding:0;width:100%;background-color:#F3F1E7;">
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:#F3F1E7;">Your one-time link to sign in to Clepso. It works once and expires in 1 hour.&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
+<table role="presentation" class="cl-bg" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F3F1E7" style="width:100%;background-color:#F3F1E7;border-collapse:collapse;">
+<tr><td class="cl-outer" align="center" style="padding:48px 24px 40px;">
+<table role="presentation" width="536" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:536px;border-collapse:collapse;">
+<tr><td style="padding:0 0 28px 2px;">
+  <a class="cl-ink" href="https://clepso-app.vercel.app/" style="font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:20px;line-height:28px;font-weight:700;letter-spacing:3px;color:#0F1A13;text-decoration:none;">CLEPSO<span style="color:#0A7238;">.</span></a>
 </td></tr>
-<tr><td class="cl-card cl-pad" bgcolor="#0D1410" style="background-color:#0D1410;border:1px solid #2C4034;border-top:2px solid #4DFF8F;padding:36px 40px 32px 40px;">
-  <h1 class="cl-title" style="margin:0 0 16px 0;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:26px;line-height:34px;font-weight:700;letter-spacing:-0.2px;color:#EAF7EE;">Sign in to Clepso</h1>
-  <p class="cl-text" style="margin:0 0 0 0;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:15px;line-height:24px;color:#93B9A0;">Use the button below to sign in as <strong style="color:#EAF7EE;font-weight:700;">{{ .Email }}</strong>.</p>
-  <table role="presentation" class="cl-btn-table" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0 0;border-collapse:collapse;"><tr>
-    <td class="cl-btn cl-btn-cell" bgcolor="#4DFF8F" style="background-color:#4DFF8F;border-radius:0;mso-padding-alt:15px 26px;">
-      <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 26px;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:14px;line-height:18px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#06130B;text-decoration:none;">Sign in&nbsp;&rarr;</a>
+<tr><td class="cl-card cl-pad" bgcolor="#FBFAF4" style="background-color:#FBFAF4;border:1px solid #D8D7CB;padding:40px 40px 32px;">
+  <p class="cl-muted" style="margin:0 0 18px;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:10px;line-height:16px;letter-spacing:1.6px;text-transform:uppercase;color:#44564A;">Sign-in link</p>
+  <h1 class="cl-title" style="margin:0 0 18px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:34px;line-height:40px;font-weight:650;letter-spacing:-1px;color:#0F1A13;">Sign in to Clepso</h1>
+  <p class="cl-text" style="margin:0 0 0 0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:16px;line-height:25px;color:#44564A;">Use this one-time link to sign in to your account.</p>
+  <table role="presentation" class="cl-button-table" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0;border-collapse:separate;"><tr>
+    <td class="cl-button" align="center" bgcolor="#0A7238" style="background-color:#0A7238;border:1px solid #0A7238;border-radius:2px;mso-padding-alt:15px 24px;">
+      <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 24px;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:15px;line-height:20px;font-weight:600;color:#FFFFFF;text-decoration:none;">Sign in to Clepso&nbsp;&nbsp;&rarr;</a>
     </td></tr></table>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0 0;border-collapse:collapse;border-top:1px solid #2C4034;border-bottom:1px solid #2C4034;">
-    <tr><td class="cl-fact-label" width="96" valign="top" style="width:96px;padding:9px 12px 9px 0;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:11px;line-height:18px;letter-spacing:1.4px;text-transform:uppercase;color:#93B9A0;">Expires</td><td valign="top" style="padding:9px 0;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:13px;line-height:18px;color:#EAF7EE;">in 1 hour</td></tr>
-    <tr><td class="cl-fact-label" width="96" valign="top" style="width:96px;padding:9px 12px 9px 0;border-top:1px solid #2C4034;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:11px;line-height:18px;letter-spacing:1.4px;text-transform:uppercase;color:#93B9A0;">Works</td><td valign="top" style="padding:9px 0;border-top:1px solid #2C4034;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:13px;line-height:18px;color:#EAF7EE;">once</td></tr>
-    <tr><td class="cl-fact-label" width="96" valign="top" style="width:96px;padding:9px 12px 9px 0;border-top:1px solid #2C4034;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:11px;line-height:18px;letter-spacing:1.4px;text-transform:uppercase;color:#93B9A0;">Open on</td><td valign="top" style="padding:9px 0;border-top:1px solid #2C4034;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:13px;line-height:18px;color:#EAF7EE;">the Mac or browser that asked for it</td></tr>
-  </table>
-  <p style="margin:24px 0 8px 0;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:13px;line-height:20px;color:#93B9A0;">Button not working? Paste this address into the Mac or browser that asked for it:</p>
-  <p style="margin:0;padding:10px 12px;background-color:#060907;border:1px solid #2C4034;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:12px;line-height:18px;word-break:break-all;overflow-wrap:anywhere;"><a href="{{ .ConfirmationURL }}" target="_blank" style="color:#4DFF8F;text-decoration:underline;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
-  <p style="margin:28px 0 0 0;padding-top:20px;border-top:1px solid #2C4034;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:13px;line-height:21px;color:#93B9A0;">Didn't ask to sign in? Ignore this email. Nothing happens, and nobody gets in with it.</p>
+  <p class="cl-muted" style="margin:16px 0 0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:21px;color:#44564A;">Valid for 1 hour. One use only.<br>Open on the Mac or browser that requested it.</p>
+  <p class="cl-muted" style="margin:18px 0 0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:21px;color:#44564A;">Button not working? <a class="cl-link" href="{{ .ConfirmationURL }}" target="_blank" style="color:#0A7238;text-decoration:underline;">Open the link directly</a>.</p>
+  <p class="cl-muted cl-rule" style="margin:28px 0 0;padding-top:24px;border-top:1px solid #D8D7CB;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:13px;line-height:20px;color:#44564A;">Didn't request this? You can safely ignore this email.</p>
 </td></tr>
-<tr><td style="padding:24px 2px 0 2px;font-family:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:12px;line-height:19px;color:#93B9A0;">
-  <p style="margin:0 0 8px 0;color:#93B9A0;"><strong style="color:#EAF7EE;font-weight:700;letter-spacing:1.6px;">CLEPSO</strong> &middot; how much of your AI coding agent's limits you have left, in your Mac's menu bar.</p>
-  <p style="margin:0 0 8px 0;color:#93B9A0;">Sent because someone asked to sign in to Clepso as {{ .Email }}. Clepso only emails you about your account.</p>
-  <p style="margin:0;"><a href="https://clepso-app.vercel.app/" style="color:#4DFF8F;text-decoration:underline;">clepso-app.vercel.app</a> <span style="color:#2C4034;">&nbsp;/&nbsp;</span> <a href="https://clepso-app.vercel.app/privacy/" style="color:#4DFF8F;text-decoration:underline;">Privacy</a></p>
+<tr><td style="padding:24px 2px 0;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;font-size:12px;line-height:19px;">
+  <p class="cl-muted" style="margin:0 0 8px;color:#44564A;">Your coding-agent limits, before you hit them.</p>
+  <p style="margin:0;"><a class="cl-link" href="https://clepso-app.vercel.app/" style="color:#0A7238;text-decoration:underline;">Clepso</a> &nbsp;&middot;&nbsp; <a class="cl-link" href="https://clepso-app.vercel.app/privacy/" style="color:#0A7238;text-decoration:underline;">Privacy</a></p>
 </td></tr>
 </table>
 </td></tr>

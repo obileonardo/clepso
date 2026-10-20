@@ -227,7 +227,7 @@ claude_mod() {
 email_templates() {
     python3 -I scripts/build-email.py --check || return 1
     cmp design/brand/logo/png/clepso-logo-email-244.png site/assets/email/clepso-logo-email-244.png || return 1
-    echo "email templates current; logo deployed with the site"
+    echo "email templates current; branding does not depend on remote images"
 }
 
 # The app bundle builds, is signed, embeds the helper under its identifier, carries no sandbox, network or exception
