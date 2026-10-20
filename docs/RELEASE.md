@@ -101,7 +101,8 @@ Output goes to `build/release/<tag>/` (gitignored), with `release.log` and every
    explicitly sized in 64 MiB increments with 16 MiB metadata headroom (automatic sizing failed integrity checks
    for the v0.2 payload on macOS 27). `hdiutil verify` must pass before signing, then it is signed with the Developer ID
    and a timestamp, checked with `codesign --verify --strict` and `hdiutil verify` again, then mounted read-only
-   to check its contents and that the app inside has the same CDHash as the checked one.
+   at an internal temporary mount point (external-volume mount points can be denied), to check its contents and that
+   the app inside has the same CDHash as the checked one. The mount is detached and the temporary directory removed.
 5. **Without the notary profile it stops here** (exit 3) and prints the command from section 2. Everything above is
    built and checked; the `-UNNOTARIZED` DMG must never be published.
 6. **Notarise the app** (`ditto` zip, `notarytool submit --keychain-profile clepso-notary --wait`, JSON in

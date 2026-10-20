@@ -50,3 +50,7 @@ An automatically sized DMG failed verification even before signing; the same che
 64 MiB HFS+/UDZO image passed. Release packaging now sizes the staged payload plus 16 MiB metadata headroom in
 64 MiB increments, verifies the unsigned image, then retains the signature, integrity and read-only mount checks.
 The host diagnostic checks its temporary image's integrity too. This changes packaging, not the app's behavior.
+
+The external output volume also denied the mount point; the same image mounted read-only beneath `/private/tmp`.
+Release verification now uses a unique internal temporary mount point and removes it after detaching. The README
+points at the new release and a direct GitHub DMG download; publication must complete before announcing the link.

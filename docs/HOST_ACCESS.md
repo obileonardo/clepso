@@ -74,3 +74,7 @@ The v0.2 packaging run then exposed a separate image-creation defect: automatic 
 that `hdiutil verify` rejected before signing. The same payload at explicit 64 MiB size passed. The release workflow
 now rounds staged files plus metadata headroom to 64 MiB increments and verifies both unsigned and signed images.
 `make doctor` also verifies the checksums of its temporary image; mere creation is no longer considered sufficient.
+
+Read-only mounting at an external output path was also denied by DiskArbitration. The identical verified image
+mounted successfully beneath `/private/tmp`; the release workflow now uses a unique internal temporary mount point
+and retains the mounted bundle/signature/CDHash checks and detach cleanup.

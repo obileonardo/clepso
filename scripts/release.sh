@@ -206,7 +206,7 @@ verify_app() {
 
 # make_dmg <app> <dmg>: the app and an Applications link, compressed, signed with a timestamp, and checked mounted.
 make_dmg() {
-    local app="$1" dmg="$2" stage="$OUT/dmg-staging" mnt="$OUT/dmg-mount" out
+    local app="$1" dmg="$2" stage="$OUT/dmg-staging" mnt out
     local stage_kb image_mb
     rm -rf "$stage" "$dmg"; mkdir -p "$stage"
     ditto "$app" "$stage/Clepso.app"
@@ -228,8 +228,11 @@ make_dmg() {
     grep -E '^(Authority=Developer|TeamIdentifier|Timestamp)' <<<"$out" | sed 's/^/   dmg: /' || true
     grep -q '^Timestamp=' <<<"$out" || fail "DMG has no secure timestamp"
     hdiutil verify "$dmg" >"$OUT/logs/hdiutil-verify.log" 2>&1 || { cat "$OUT/logs/hdiutil-verify.log"; fail "hdiutil verify"; }
-    mkdir -p "$mnt"
-    hdiutil attach "$dmg" -readonly -nobrowse -noautoopen -mountpoint "$mnt" >"$OUT/logs/hdiutil-attach.log" 2>&1 || fail "mounting the DMG"
+    # DiskArbitration can deny a mount point beneath an external output volume. Use an internal temporary
+    # directory, independent of where the checked image and archive are stored.
+    mnt=$(mktemp -d /private/tmp/clepso-dmg-mount.XXXXXX)
+    hdiutil attach "$dmg" -readonly -nobrowse -noautoopen -mountpoint "$mnt" >"$OUT/logs/hdiutil-attach.log" 2>&1 \
+        || { cat "$OUT/logs/hdiutil-attach.log"; rmdir "$mnt" 2>/dev/null || true; fail "mounting the DMG"; }
     local status=0 listing
     listing=$(ls "$mnt" | tr '\n' ' ')
     [ "$listing" = "Applications Clepso.app " ] || { echo "   DMG holds: $listing"; status=1; }
