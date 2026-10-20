@@ -58,11 +58,14 @@ extension MenuBarIcon {
             NSAttributedString(string: $0, attributes: [.font: font]).size().width
         }.max() ?? 0
         let textWidth = ceil(max(label?.size().width ?? 0, reservedWidth))
+        // Center the icon + current label inside the reserved canvas. Reserving only trailing space makes short
+        // frames sit against the left edge of macOS's pill. Snap to whole points to preserve the pixel grid.
+        let contentOffset = floor((textWidth - ceil(label?.size().width ?? 0)) / 2)
         let size = NSSize(width: height + gap + textWidth, height: height)
         let image = NSImage(size: size, flipped: true) { _ in
             NSColor.black.setFill()
             for index in on {
-                NSRect(x: CGFloat(index % 16) * unit, y: CGFloat(index / 16) * unit, width: unit, height: unit).fill()
+                NSRect(x: contentOffset + CGFloat(index % 16) * unit, y: CGFloat(index / 16) * unit, width: unit, height: unit).fill()
             }
             if let label {
                 // Clepso Pixel at 10 pt puts one font pixel on one point (INTEGRATION.md §2), and its 12 pt line box
@@ -73,7 +76,7 @@ extension MenuBarIcon {
                 NSGraphicsContext.current?.shouldAntialias = false
                 NSGraphicsContext.current?.cgContext.setShouldSmoothFonts(false)
                 let h = label.size().height
-                label.draw(at: NSPoint(x: height + gap, y: (height - h) / 2))
+                label.draw(at: NSPoint(x: contentOffset + height + gap, y: (height - h) / 2))
                 NSGraphicsContext.restoreGraphicsState()
             }
             return true

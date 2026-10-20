@@ -71,5 +71,16 @@ struct MenuBarReadoutTests {
         }
         #expect(Set(images.map { $0.size.width }).count == 1)
         #expect(images.allSatisfy { $0.isTemplate && $0.size.height == 16 && $0.size.width < 220 })
+        // Check the actual drawn pixels, not only the canvas width: the former implementation reserved all spare
+        // width on the right, which looked off-centre inside macOS's capsule even though every frame was 155 pt.
+        for image in images {
+            let bitmap = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
+            let columns = (0..<bitmap.pixelsWide).filter { x in
+                (0..<bitmap.pixelsHigh).contains { y in (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.5 }
+            }
+            let left = try #require(columns.first), right = bitmap.pixelsWide - 1 - (try #require(columns.last))
+            let scale = bitmap.pixelsHigh / 16
+            #expect(abs(left - right) <= 2 * scale, "unequal ink margins: \(left) left, \(right) right")
+        }
     }
 }

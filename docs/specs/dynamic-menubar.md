@@ -54,3 +54,8 @@ Local verification on 20 October 2026: all 16 contributor CI gates pass, includi
 native app bundle. Both actual-status-button probe runs pass: normal rotation produces two distinct frames at a
 fixed 155 × 16 points; Reduce Motion produces one stable frame at the same size. These are in-process native
 image checks, not a claim that a full keyboard/form/Calendar-import or separate clean-user QA run was performed.
+
+The founder's installed-app screenshot exposed a horizontal alignment regression in alpha 2: unused reserved
+width sat entirely after the label. Alpha 3 centers the entire icon/label group within that canvas, snapping its
+offset to whole points. The rendering test now measures the actual bitmap's left/right ink margins as well as
+the common frame width, so a left-aligned label cannot pass on canvas dimensions alone.
