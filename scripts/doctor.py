@@ -86,10 +86,15 @@ def main():
             (contents / "probe.txt").write_text("Clepso temporary host diagnostic.\n")
             destination = scratch / "probe.dmg"
             code, output, error = run(["hdiutil", "create", "-srcfolder", str(contents),
-                                  "-format", "UDZO", "-volname", "ClepsoDiagnostic", str(destination)], timeout=30)
+                                  "-format", "UDZO", "-fs", "HFS+", "-size", "64m",
+                                  "-volname", "ClepsoDiagnostic", str(destination)], timeout=30)
             report("Disk image creation", code == 0 and destination.is_file(),
                    "temporary DMG created; removed on exit" if code == 0 else
                    (error.strip() or output.strip())[-240:] or "failed (exit {})".format(code))
+            if code == 0:
+                code, _, error = run(["hdiutil", "verify", str(destination)], timeout=30)
+                report("Disk image integrity", code == 0,
+                       "checksums verified" if code == 0 else error.strip()[-240:] or "verification failed")
 
     print("\n{} failed check(s).".format(len(failures)))
     if failures:

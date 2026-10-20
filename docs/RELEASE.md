@@ -98,7 +98,9 @@ Output goes to `build/release/<tag>/` (gitignored), with `release.log` and every
    - `spctl -a -vvv -t exec`: before notarisation it must say `source=Unnotarized Developer ID`; after, `accepted` and
      `source=Notarized Developer ID`, and `stapler validate` must pass.
 4. **A signed DMG** (`Clepso-<version>-<channel>-UNNOTARIZED.dmg`): the app and an `Applications` link, HFS+, UDZO,
-   signed with the Developer ID and a timestamp, `codesign --verify --strict`, `hdiutil verify`, then mounted read-only
+   explicitly sized in 64 MiB increments with 16 MiB metadata headroom (automatic sizing failed integrity checks
+   for the v0.2 payload on macOS 27). `hdiutil verify` must pass before signing, then it is signed with the Developer ID
+   and a timestamp, checked with `codesign --verify --strict` and `hdiutil verify` again, then mounted read-only
    to check its contents and that the app inside has the same CDHash as the checked one.
 5. **Without the notary profile it stops here** (exit 3) and prints the command from section 2. Everything above is
    built and checked; the `-UNNOTARIZED` DMG must never be published.

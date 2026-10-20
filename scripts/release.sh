@@ -207,12 +207,20 @@ verify_app() {
 # make_dmg <app> <dmg>: the app and an Applications link, compressed, signed with a timestamp, and checked mounted.
 make_dmg() {
     local app="$1" dmg="$2" stage="$OUT/dmg-staging" mnt="$OUT/dmg-mount" out
+    local stage_kb image_mb
     rm -rf "$stage" "$dmg"; mkdir -p "$stage"
     ditto "$app" "$stage/Clepso.app"
     ln -s /Applications "$stage/Applications"
-    hdiutil create -volname Clepso -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg" >"$OUT/logs/hdiutil.log" 2>&1 \
+    # Automatic sizing produced an unreadable UDZO image for the 0.2 payload on macOS 27. Explicit 64 MiB
+    # increments verify correctly; reserve at least 16 MiB beyond the staged files for HFS+/partition metadata.
+    stage_kb=$(du -sk "$stage" | awk '{print $1}')
+    image_mb=$(( (stage_kb + 16384 + 65535) / 65536 * 64 ))
+    hdiutil create -volname Clepso -srcfolder "$stage" -fs HFS+ -format UDZO -size "${image_mb}m" -ov "$dmg" >"$OUT/logs/hdiutil.log" 2>&1 \
         || { cat "$OUT/logs/hdiutil.log"; fail "hdiutil create"; }
     rm -rf "$stage"
+    hdiutil verify "$dmg" >"$OUT/logs/hdiutil-verify-unsigned.log" 2>&1 \
+        || { cat "$OUT/logs/hdiutil-verify-unsigned.log"; fail "unsigned DMG integrity"; }
+    ok "unsigned DMG integrity (${image_mb} MiB logical size)"
     codesign --sign "$IDENTITY" --timestamp "$dmg" || fail "signing the DMG"
     out=$(codesign --verify --strict --verbose=2 "$dmg" 2>&1) || { echo "$out"; fail "DMG signature"; }
     echo "$out" | sed 's/^/   /'

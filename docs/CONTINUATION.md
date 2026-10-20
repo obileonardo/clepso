@@ -43,3 +43,10 @@ DMG and public release. Use `docs/RELEASE.md`; passing host diagnostics alone is
 ## Remaining external work
 
 Branded email/domain registration, OAuth console credentials, legal identity/address and paid-service decisions need owner information or setup. The production desktop/VS Code mod install/use/remove check and physical keyboard/Calendar import checks need working native surfaces and permissions; the shipping mod remains disabled. Automatic Gemini/other-agent adapters need validated telemetry and authorised access. Phone/Watch/widgets, relay/push, announcements and updates remain future work with platform, service and verification prerequisites; they are not described as completed here.
+
+## Packaging correction
+
+An automatically sized DMG failed verification even before signing; the same checked app in an explicitly sized
+64 MiB HFS+/UDZO image passed. Release packaging now sizes the staged payload plus 16 MiB metadata headroom in
+64 MiB increments, verifies the unsigned image, then retains the signature, integrity and read-only mount checks.
+The host diagnostic checks its temporary image's integrity too. This changes packaging, not the app's behavior.
