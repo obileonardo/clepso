@@ -20,9 +20,12 @@ Phosphor-green actions and a dithered hero with Clepso's logo composited over it
 approved preview (800 × 201 → 1000 × 251 px; height rounded to the nearest pixel). The flattened 1200 × 474 PNG
 needs no background-image or overlay support and stays under 500 KB.
 
-Headings use an optional, same-site Clepso Pixel font with a local Courier New fallback. Instructions, the button,
-expiry, same-device guidance, fallback link and security note are real text. The hero has Clepso alt text; the
-message remains usable when remote images and fonts are blocked. No authentication token appears as visible body
+Headings use small, 2× PNGs rendered directly from `design/brand/pipeline/pixel_glyphs.py`, the exact source of
+the Clepso Pixel display font, including its kerning. Mail clients can strip `@font-face`, which caused the
+previous heading to fall back to Courier in the founder's inbox. These headings need no downloaded font.
+Each remains an `h1` with its full accessible name and image alt text. Instructions, the button, expiry,
+same-device guidance, fallback link and security note are real text. The hero has Clepso alt text; the
+message remains usable when remote images are blocked. No authentication token appears as visible body
 text. Normal and hovered text/action contrast meet 4.5:1 in browser verification.
 
 ### Why `{{ .ConfirmationURL }}`
@@ -47,18 +50,18 @@ python3 -I scripts/build-email.py --check         # what CI runs (make ci, "emai
 
 The check fails when a template is stale, a subject in `config.toml` doesn't match, the HTML is malformed, has an
 HTML comment, a script, an unexpected font or an image without alt text, or is over Gmail's 102 KB clipping size.
-The only allowed web font is the same-site Clepso Pixel face, and its local fallback is required. The hero's PNG
-dimensions and 500 KB size budget are checked too. The expiry
+Web fonts are disallowed. Heading PNGs must match the deterministic glyph rasterizer byte-for-byte and include
+the full heading text alternative. The hero's PNG dimensions and 500 KB size budget are checked too. The expiry
 text comes from `otp_expiry` in `config.toml`; if you change it there (or on the hosted project), regenerate.
 
 Rules the generator keeps, because mail clients need them: table layout, inline styles (the `<style>` block only adds
-phone and dark-mode refinements), no external stylesheets, one optional same-site display font, no scripts, no tracking pixels. **No HTML comments**:
+phone and dark-mode refinements), no external stylesheets or downloaded fonts, no scripts, no tracking pixels. **No HTML comments**:
 Supabase renders templates with Go's `html/template`, which strips them, so Outlook conditional comments never arrive.
 
-The website publishes `design/email/clepso-protocol-hero-v1.png` and the existing display font at
+The website publishes `design/email/clepso-protocol-hero-v1.png` and four `clepso-heading-*-v1.png` files at
 `/assets/email/`. `scripts/build-site.py` copies them and CI compares source and hosted copies. Deploy these assets
 before applying templates that reference them; verify anonymous HTTPS downloads and byte hashes. Retain old asset
-URLs for previously sent emails, including `clepso-logo-email-244.png`. See `design/email/README.md` for the artwork's
+URLs for previously sent emails, including `clepso-logo-email-244.png` and `ClepsoPixel-Regular.woff2`. See `design/email/README.md` for the artwork's
 source and retained license. No SMTP change is required when changing the layout.
 
 ### On the local stack

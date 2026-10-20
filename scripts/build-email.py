@@ -11,8 +11,9 @@ redirect each app asked for: /app on the web, clepso://auth-callback on the Mac.
 code, so {{ .Token }} is never shown. See docs/EMAIL.md.
 
 Email-client rules: table layout and inline styles; dark Protocol palette; one flattened hero image with the
-Clepso logo already composited over the artwork. The optional hosted display font has a monospace fallback;
-all instructions, actions and fallback links remain real text when images/fonts are blocked. No scripts,
+Clepso logo already composited over the artwork. Display headings are rasterized from the same glyph source
+as Clepso Pixel, with accessible text alternatives; no downloaded font is needed. All instructions, actions
+and fallback links remain real text when images are blocked. No scripts,
 tracking or HTML comments (Supabase's Go html/template strips comments, including Outlook conditionals).
 """
 import html
@@ -21,6 +22,8 @@ import re
 import sys
 import struct
 import shutil
+import importlib.util
+import zlib
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -32,12 +35,67 @@ GMAIL_CLIP = 102 * 1024                                   # Gmail hides everythi
 
 # Founder-selected Protocol: same layout and palette as the approved preview.
 BG, SURFACE, LINE, TEXT, TEXT2, ACCENT, INK = "#252525", "#131313", "#373D38", "#FFFFFF", "#B9C1BB", "#4DFF8F", "#0C1710"
-MONO = "'Clepso Pixel', 'Courier New', monospace"
 SANS = "Arial, Helvetica, sans-serif"
 HERO_FILE = "clepso-protocol-hero-v1.png"
 HERO = f"{SITE}/assets/email/{HERO_FILE}"
-FONT = f"{SITE}/assets/email/ClepsoPixel-Regular.woff2"
-FONT_FACE = f"@font-face {{ font-family: 'Clepso Pixel'; src: url('{FONT}') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }}"
+
+# Use the font's own source grid, rather than a lookalike or an inbox-dependent web font.
+# Standard-library PNG output keeps regeneration reproducible without image/font dependencies.
+_glyph_spec = importlib.util.spec_from_file_location("clepso_email_glyphs", repo / "design/brand/pipeline/pixel_glyphs.py")
+GLYPHS = importlib.util.module_from_spec(_glyph_spec)
+_glyph_spec.loader.exec_module(GLYPHS)
+KERN = {(a, b): amount for a, b, amount in GLYPHS.auto_kern()}
+
+
+def heading_file(name):
+    return f"clepso-heading-{name.replace('_', '-')}-v1.png"
+
+
+def heading_layout(title):
+    def advance(text):
+        return sum(GLYPHS.SPACES[ch] if ch in GLYPHS.SPACES else len(GLYPHS.G[ch][1][0]) + 1
+                   for ch in text) + sum(KERN.get(pair, 0) for pair in zip(text, text[1:]))
+    lines = []
+    current = ""
+    for word in title.upper().split():
+        candidate = f"{current} {word}" if current else word
+        if current and advance(candidate) * 4 > 516:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    lines.append(current)
+    return lines, max(advance(line) for line in lines) * 4, len(lines) * 50
+
+
+def heading_png(title):
+    lines, width, height = heading_layout(title)
+    w, h = width * 2, height * 2
+    pixels = bytearray(bytes.fromhex(SURFACE[1:]) * (w * h))
+    for line_index, line in enumerate(lines):
+        x, previous = 0, None
+        for ch in line:
+            x += KERN.get((previous, ch), 0)
+            if ch in GLYPHS.SPACES:
+                x += GLYPHS.SPACES[ch]
+            else:
+                top, rows = GLYPHS.G[ch]
+                for row_index, row in enumerate(rows):
+                    for col, cell in enumerate(row):
+                        if cell != "#":
+                            continue
+                        left = (x + col) * 8
+                        upper = line_index * 100 + 24 + (GLYPHS.CAP - top + row_index) * 8
+                        for y in range(upper, upper + 8):
+                            start = (y * w + left) * 3
+                            pixels[start:start + 24] = b"\xff" * 24
+                x += len(rows[0]) + 1
+            previous = ch
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+    scanlines = b"".join(b"\0" + pixels[y * w * 3:(y + 1) * w * 3] for y in range(h))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(scanlines, 9)) + chunk(b"IEND", b""))
 
 
 def otp_expiry_words():
@@ -129,7 +187,6 @@ HEAD = f"""<!DOCTYPE html>
 <meta name="supported-color-schemes" content="dark">
 <title>[[subject]]</title>
 <style>
-  {FONT_FACE}
   :root {{ color-scheme: dark; supported-color-schemes: dark; }}
   body {{ margin: 0 !important; padding: 0 !important; width: 100% !important; }}
   a[x-apple-data-detectors] {{ color: inherit !important; text-decoration: none !important; }}
@@ -148,7 +205,6 @@ HEAD = f"""<!DOCTYPE html>
   @media only screen and (max-width: 520px) {{
     .cl-pad {{ padding-left: 28px !important; padding-right: 28px !important; }}
     .cl-outer {{ padding: 20px 12px !important; }}
-    .cl-title {{ font-size: 32px !important; line-height: 40px !important; }}
     .cl-button-table {{ width: 100% !important; }}
     .cl-button a {{ display: block !important; text-align: center !important; padding-left: 12px !important; padding-right: 12px !important; }}
   }}
@@ -165,7 +221,7 @@ BODY = f"""<body class="cl-bg" style="margin:0;padding:0;width:100%;background-c
   <img class="cl-hero" src="{HERO}" width="552" alt="Clepso" style="display:block;width:100%;max-width:552px;height:auto;border:0;color:{ACCENT};font-family:'Courier New',monospace;font-size:24px;line-height:32px;">
 </td></tr>
 <tr><td class="cl-pad" style="padding:32px 40px;">
-  <h1 class="cl-title" style="margin:0 0 24px;font-family:{MONO};font-size:40px;line-height:50px;font-weight:400;letter-spacing:0;color:{TEXT};">[[title]]</h1>
+  <h1 class="cl-title" aria-label="[[title]]" style="margin:0 0 24px;font-family:{SANS};font-size:24px;line-height:32px;font-weight:600;letter-spacing:0;color:{TEXT};">[[heading]]</h1>
 [[body]]
 [[button]]
 [[facts]]
@@ -210,13 +266,18 @@ def fallback(where):
             f'Button not working? <a class="cl-link" href="{LINK}" target="_blank" style="color:{ACCENT};text-decoration:underline;">Open the link directly</a>.</p>')
 
 
-def render(e):
+def render(name, e):
     out = (HEAD + BODY)
+    _, width, height = heading_layout(e["title"])
     parts = {
         "subject": html.escape(e["subject"]),
         "preheader": e["preheader"],
         "tag": html.escape(e["tag"]),
         "title": html.escape(e["title"].upper()),
+        "heading": (f'<img class="cl-heading-image" src="{SITE}/assets/email/{heading_file(name)}" '
+                    f'width="{width}" height="{height}" alt="{html.escape(e["title"].upper(), quote=True)}" '
+                    f'style="display:block;width:100%;max-width:{width}px;height:auto;border:0;color:{TEXT};'
+                    f'font-family:{SANS};font-size:24px;line-height:32px;font-weight:600;">'),
         "body": "\n".join(para(t, i == 0) for i, t in enumerate(e["body"])),
         "button": button(*e["button"]) if e["button"] else "",
         "facts": facts(e["facts"]),
@@ -270,13 +331,14 @@ def problems(name, text, subject):
             errs.append(f"{name}: layout table without role=presentation")
     if "<!--" in text or "/*" in text:
         errs.append(f"{name}: comments (Go's html/template strips them before sending)")
-    # Exactly one optional display font is allowed; all content must have a local fallback.
-    if text.count(FONT_FACE) != 1 or re.search(r"<script|@import|<link\b|@font-face", text.replace(FONT_FACE, ""), re.I):
+    if re.search(r"<script|@import|<link\b|@font-face", text, re.I):
         errs.append(f"{name}: scripts, external CSS or an unexpected web font")
     if 'Courier New' not in text or 'alt="Clepso"' not in text:
         errs.append(f"{name}: missing font/image fallback")
     if f'src="{HERO}"' not in text:
         errs.append(f"{name}: unexpected hero image")
+    if f'src="{SITE}/assets/email/{heading_file(name)}"' not in text or f'aria-label="{html.escape(EMAILS[name]["title"].upper(), quote=True)}"' not in text:
+        errs.append(f"{name}: missing branded heading or accessible heading text")
     if f"<title>{html.escape(subject)}</title>" not in text:
         errs.append(f"{name}: <title> does not match the subject")
     return errs
@@ -314,7 +376,14 @@ def main(argv):
     elif asset.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", asset.read_bytes()[16:24]) != (1200, 474):
         errs.append("Protocol hero dimensions must be 1200 x 474")
     for name, e in EMAILS.items():
-        text = render(e)
+        text = render(name, e)
+        heading = repo / "design/email" / heading_file(name)
+        heading_bytes = heading_png(e["title"])
+        if check:
+            if not heading.exists() or heading.read_bytes() != heading_bytes:
+                errs.append(f"{name}: heading image is stale; regenerate emails")
+        else:
+            heading.write_bytes(heading_bytes)
         path = OUT / f"{name}.html"
         errs += problems(name, text, e["subject"])
         want = (e["subject"], f"./supabase/templates/{name}.html")
@@ -331,11 +400,11 @@ def main(argv):
             preview.mkdir(parents=True, exist_ok=True)
             (preview / "assets").mkdir(exist_ok=True)
             shutil.copyfile(repo / "design/email" / HERO_FILE, preview / "assets" / HERO_FILE)
-            shutil.copyfile(repo / "design/brand/fonts/ClepsoPixel-Regular.woff2", preview / "assets/ClepsoPixel-Regular.woff2")
+            (preview / "assets" / heading_file(name)).write_bytes(heading_bytes)
             sample = (text.replace(LINK, "http://127.0.0.1:54321/auth/v1/verify?token=pkce_3f9c1d8e7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f&amp;type=magiclink&amp;redirect_to=http://127.0.0.1:3000/app")
                       .replace(ME, "ada@example.com").replace(NEW, "ada.lovelace@example.org")
                       .replace(HERO, "assets/" + HERO_FILE)
-                      .replace(FONT, "assets/ClepsoPixel-Regular.woff2"))
+                      .replace(f"{SITE}/assets/email/{heading_file(name)}", "assets/" + heading_file(name)))
             (preview / f"{name}.html").write_text(sample)
         print(f"{name}: {len(text.encode())} bytes, subject \"{e['subject']}\"")
     for m in errs:
