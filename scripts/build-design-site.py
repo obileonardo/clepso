@@ -1062,6 +1062,6 @@ if not (site / "index.html").exists():
 <style>:root{color-scheme:light dark}body{font:16px -apple-system,system-ui,sans-serif;margin:0;padding:48px 16px;background:Canvas;color:CanvasText}</style>
 </head><body><p>Clepso. <a href="/design-system/">Design system</a></p></body></html>
 """)
-(site / "vercel.json").write_text(json.dumps({"trailingSlash": True}, indent=2) + "\n")
+(site / "vercel.json").write_text(json.dumps({"trailingSlash": True, "headers": [{"source": "/assets/email/ClepsoPixel-Regular.woff2", "headers": [{"key": "Access-Control-Allow-Origin", "value": "*"}]}]}, indent=2) + "\n")
 n_files = sum(1 for p in out.rglob("*") if p.is_file())
 print(f"wrote {out / 'index.html'} ({len(page) // 1024} KB), {n_files} files, {len(THEMES)} theme appearances, {len(GLYPHS)} icons")

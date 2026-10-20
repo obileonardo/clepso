@@ -183,13 +183,17 @@ struct HooksInstallerTests {
             process.executableURL = URL(fileURLWithPath: "/bin/sh")
             process.arguments = ["-c", installer.commandValue]
             process.environment = ["HOME": box.home.path, "PATH": "/usr/bin:/bin"]
-            let out = Pipe(), input = Pipe()
+            let out = Pipe()
+            // Missing helpers may exit before reading stdin. A file keeps that valid behaviour from
+            // racing a parent-side pipe write and killing the whole test process with SIGPIPE.
+            let inputURL = box.home.appendingPathComponent("hook-test-stdin.json")
+            try Data(#"{"hook_event_name": "Stop", "session_id": "s", "prompt": "secret"}"#.utf8).write(to: inputURL)
+            let input = try FileHandle(forReadingFrom: inputURL)
+            defer { try? input.close(); try? FileManager.default.removeItem(at: inputURL) }
             process.standardOutput = out
             process.standardError = out
             process.standardInput = input
             try process.run()
-            input.fileHandleForWriting.write(Data(#"{"hook_event_name": "Stop", "session_id": "s", "prompt": "secret"}"#.utf8))
-            try input.fileHandleForWriting.close()
             process.waitUntilExit()
             return (process.terminationStatus, String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self))
         }

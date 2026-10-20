@@ -374,12 +374,16 @@ struct WrapperScriptTests {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = [script.path]
-        let input = Pipe(), output = Pipe()
+        let output = Pipe()
+        // The shim and silent fallback can exit without reading stdin. Prepare a file before launch
+        // so those paths cannot race a pipe write and terminate the test runner with SIGPIPE.
+        let inputURL = script.appendingPathExtension("test-stdin")
+        try Data(stdin.utf8).write(to: inputURL)
+        let input = try FileHandle(forReadingFrom: inputURL)
+        defer { try? input.close(); try? FileManager.default.removeItem(at: inputURL) }
         process.standardInput = input
         process.standardOutput = output
         try process.run()
-        try input.fileHandleForWriting.write(contentsOf: Data(stdin.utf8))
-        try input.fileHandleForWriting.close()
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         return (String(decoding: data, as: UTF8.self), process.terminationStatus)

@@ -222,12 +222,18 @@ claude_mod() {
 }
 
 # Account emails (backend/supabase/templates) are generated: up to date, wired into config.toml, well-formed, no
-# comments (Supabase strips them), no scripts or web fonts, and under Gmail's clipping size. The logo they link is in
-# site/ and matches the brand pipeline's output.
+# comments (Supabase strips them), no scripts or web fonts, and under Gmail's clipping size. Artwork and headings
+# match the deterministic brand output in site/.
 email_templates() {
     python3 -I scripts/build-email.py --check || return 1
     cmp design/brand/logo/png/clepso-logo-email-244.png site/assets/email/clepso-logo-email-244.png || return 1
-    echo "email templates current; logo deployed with the site"
+    cmp design/email/clepso-protocol-hero-v1.png site/assets/email/clepso-protocol-hero-v1.png || return 1
+    cmp design/brand/fonts/ClepsoPixel-Regular.woff2 site/assets/email/ClepsoPixel-Regular.woff2 || return 1
+    local heading
+    for heading in design/email/clepso-heading-*-v1.png; do
+        cmp "$heading" "site/assets/email/${heading##*/}" || return 1
+    done
+    echo "email templates and hosted Protocol assets current; text remains usable without images/fonts"
 }
 
 # The app bundle builds, is signed, embeds the helper under its identifier, carries no sandbox, network or exception
