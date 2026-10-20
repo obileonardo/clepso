@@ -113,14 +113,32 @@ struct GoalsSection: View {
         }
         return VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
             Toggle(isOn: Binding(get: { value != nil }, set: { set($0 ? fallback : nil) })) {
-                Text(value == nil ? Copy.Goals.off : Copy.Goals.target).font(theme.font(.supporting))
+                HStack {
+                    Text(Copy.Goals.target).font(theme.font(.supporting))
+                    Spacer(minLength: theme.spacing(.compact))
+                }
             }
             .toggleStyle(PixelToggleStyle())
+            .accessibilityLabel(Copy.Goals.targetFor(Self.title(kind)))
             if let value {
-                Stepper(value: Binding(get: { value }, set: { set($0) }), in: range, step: step) {
-                    Text("\(value)\(unit)").font(theme.font(.title)).monospacedDigit().foregroundStyle(theme.color(.textPrimary, scheme))
+                HStack(spacing: theme.spacing(.standard)) {
+                    Text("\(value)\(unit)").font(theme.font(.title)).monospacedDigit()
+                        .foregroundStyle(theme.color(.textPrimary, scheme))
+                        .accessibilityLabel(Copy.Goals.targetFor(Self.title(kind)))
+                        .accessibilityValue("\(value)\(unit)")
+                    Spacer(minLength: theme.spacing(.standard))
+                    HStack(spacing: theme.spacing(.standard)) {
+                        Button(Copy.Alerts.stepEarlier) { set(max(range.lowerBound, value - step)) }
+                            .buttonStyle(PixelButtonStyle())
+                            .disabled(value <= range.lowerBound)
+                            .accessibilityLabel(Copy.Goals.decrease(Self.title(kind)))
+                        Button(Copy.Alerts.stepLater) { set(min(range.upperBound, value + step)) }
+                            .buttonStyle(PixelButtonStyle())
+                            .disabled(value >= range.upperBound)
+                            .accessibilityLabel(Copy.Goals.increase(Self.title(kind)))
+                    }
                 }
-                .accessibilityLabel(Self.title(kind))
+                .accessibilityElement(children: .contain)
             }
         }
     }

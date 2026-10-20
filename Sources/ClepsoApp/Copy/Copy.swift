@@ -501,6 +501,9 @@ enum Copy {
     }
 
     enum Goals {
+        static func targetFor(_ goal: String) -> String { "\(goal) target" }
+        static func decrease(_ goal: String) -> String { "Decrease \(goal.lowercased()) target" }
+        static func increase(_ goal: String) -> String { "Increase \(goal.lowercased()) target" }
         static let title = "Goals", subtitle = "Targets you set; checked on this Mac against what Claude Code reports"
         static let activeDays = "Active days a week", fiveHourPeak = "Keep the 5-hour limit under", weeklyFinish = "Finish the week under"
         static func activeDetail(_ n: Int, _ target: Int) -> String { "Active \(n) of the last 7 days; goal \(target)" }

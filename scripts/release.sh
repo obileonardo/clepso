@@ -22,7 +22,8 @@ cd "$(dirname "$0")/.."
 NOTARY_PROFILE=clepso-notary
 APP_ID=com.elvisobi.clepso
 HELPER_ID=com.elvisobi.clepso.statusline
-MIN_FREE_GB=8
+MIN_BUILD_FREE_GB=8
+MIN_TEMP_FREE_GB=2
 # Debug-only names (probe flags, debug launch arguments, the helper's test clock and budget): none may reach a release
 # binary. One list for this script and make ci's "release build has no debug code" gate.
 DEBUG_ONLY=$(cat scripts/debug-only-names.regex)
@@ -71,9 +72,14 @@ else
 fi
 ok "version $VERSION, build $BUILD (reachable HEAD and release-tag history), commit ${COMMIT:0:12}"
 
-free_kb=$(df -k /System/Volumes/Data | awk 'NR==2 {print $4}')
-[ "$free_kb" -ge $((MIN_FREE_GB * 1024 * 1024)) ] || fail "under ${MIN_FREE_GB} GB free on /System/Volumes/Data"
-ok "$((free_kb / 1024 / 1024)) GB free"
+# Archives and DerivedData live on the checkout's volume; system temporary space is a separate requirement.
+# Checking only the internal disk incorrectly blocks external-drive builds even when the build volume has room.
+build_free_kb=$(df -k "$OUT" | awk 'NR==2 {print $4}')
+[ "$build_free_kb" -ge $((MIN_BUILD_FREE_GB * 1024 * 1024)) ] || fail "under ${MIN_BUILD_FREE_GB} GB free on the build volume ($OUT)"
+temp_volume="${TMPDIR:-/private/tmp}"
+temp_free_kb=$(df -k "$temp_volume" | awk 'NR==2 {print $4}')
+[ "$temp_free_kb" -ge $((MIN_TEMP_FREE_GB * 1024 * 1024)) ] || fail "under ${MIN_TEMP_FREE_GB} GB free on the temporary volume ($temp_volume)"
+ok "$((build_free_kb / 1024 / 1024)) GB free on build volume; $((temp_free_kb / 1024 / 1024)) GB free on temporary volume"
 
 TEAM="${CLEPSO_TEAM_ID:-$(sed -n 's/^ *CLEPSO_DEVELOPMENT_TEAM *= *\([A-Z0-9]*\).*/\1/p' Config/Signing.local.xcconfig 2>/dev/null | tail -1)}"
 [[ "$TEAM" =~ ^[A-Z0-9]{10}$ ]] || fail "no team id: set CLEPSO_DEVELOPMENT_TEAM in Config/Signing.local.xcconfig or CLEPSO_TEAM_ID"
