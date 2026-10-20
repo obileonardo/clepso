@@ -47,11 +47,46 @@ extension MenuBarIcon {
     @MainActor
     public static func pixelImage(_ shape: Shape, staleMark: Bool, text: String?, height: CGFloat = 16,
                                   reservingText: [String] = []) -> NSImage {
+        renderedImage(shape, staleMark: staleMark, text: text, height: height, reservingText: reservingText,
+                      inset: 0, foreground: .black, background: nil)
+    }
+
+    /// A compact, opaque brand capsule. macOS must preserve these colours instead of template-tinting them.
+    /// Six points of horizontal padding replaces the design's eight; the display face remains on its pixel grid.
+    @MainActor
+    public static func pillImage(_ shape: Shape, staleMark: Bool, text: String?, theme: Theme = .phosphor,
+                                 reservingText: [String] = []) -> NSImage {
+        let colors = pillColors(shape, staleMark: staleMark, theme: theme)
+        return renderedImage(shape, staleMark: staleMark, text: text?.uppercased(), height: 20,
+                             reservingText: reservingText.map { $0.uppercased() }, inset: 6,
+                             foreground: NSColor(srgbRed: colors.ink.red, green: colors.ink.green, blue: colors.ink.blue, alpha: 1),
+                             background: NSColor(srgbRed: colors.fill.red, green: colors.fill.green, blue: colors.fill.blue, alpha: 1))
+    }
+
+    /// The state remains readable from the glyph and wording as well as colour. Stale readings never look live.
+    public static func pillColors(_ shape: Shape, staleMark: Bool, theme: Theme = .phosphor) -> (ink: RGB, fill: RGB) {
+        let token: ColorToken = switch shape {
+        case .flatline: .statusBlocked
+        case .approaching: .statusAttention
+        case .stale: .statusStale
+        case .waiting, .notConnected: .statusUnknown
+        case .beat, .demo: staleMark ? .statusStale : .accent
+        }
+        let fill = theme.rgb(token, .dark)
+        let darkInk = theme.rgb(.background, .dark), lightInk = theme.rgb(.textPrimary, .dark)
+        let ink = RGB.contrast(darkInk, fill) >= RGB.contrast(lightInk, fill) ? darkInk : lightInk
+        return (ink, fill)
+    }
+
+    @MainActor
+    private static func renderedImage(_ shape: Shape, staleMark: Bool, text: String?, height: CGFloat,
+                                      reservingText: [String], inset: CGFloat, foreground: NSColor, background: NSColor?) -> NSImage {
         _ = PixelFonts.ensureRegistered()
         let on = pixels(shape, staleMark: staleMark)
-        let unit = height / 16
+        let glyphHeight: CGFloat = background == nil ? height : 16
+        let unit = glyphHeight / 16
         let font = NSFont(name: PixelFonts.display, size: 10) ?? NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold)
-        let label = text.map { NSAttributedString(string: $0, attributes: [.font: font, .foregroundColor: NSColor.black]) }
+        let label = text.map { NSAttributedString(string: $0, attributes: [.font: font, .foregroundColor: foreground]) }
         let gap: CGFloat = label == nil ? 0 : 4
         // Reserve the widest frame for a rotating readout; adjacent status items must not move every six seconds.
         let reservedWidth = text == nil ? 0 : reservingText.map {
@@ -60,12 +95,16 @@ extension MenuBarIcon {
         let textWidth = ceil(max(label?.size().width ?? 0, reservedWidth))
         // Center the icon + current label inside the reserved canvas. Reserving only trailing space makes short
         // frames sit against the left edge of macOS's pill. Snap to whole points to preserve the pixel grid.
-        let contentOffset = floor((textWidth - ceil(label?.size().width ?? 0)) / 2)
-        let size = NSSize(width: height + gap + textWidth, height: height)
+        let contentOffset = inset + floor((textWidth - ceil(label?.size().width ?? 0)) / 2)
+        let size = NSSize(width: glyphHeight + gap + textWidth + 2 * inset, height: height)
         let image = NSImage(size: size, flipped: true) { _ in
-            NSColor.black.setFill()
+            if let background {
+                background.setFill()
+                NSBezierPath(roundedRect: NSRect(origin: .zero, size: size), xRadius: height / 2, yRadius: height / 2).fill()
+            }
+            foreground.setFill()
             for index in on {
-                NSRect(x: contentOffset + CGFloat(index % 16) * unit, y: CGFloat(index / 16) * unit, width: unit, height: unit).fill()
+                NSRect(x: contentOffset + CGFloat(index % 16) * unit, y: (height - glyphHeight) / 2 + CGFloat(index / 16) * unit, width: unit, height: unit).fill()
             }
             if let label {
                 // Clepso Pixel at 10 pt puts one font pixel on one point (INTEGRATION.md §2), and its 12 pt line box
@@ -76,12 +115,12 @@ extension MenuBarIcon {
                 NSGraphicsContext.current?.shouldAntialias = false
                 NSGraphicsContext.current?.cgContext.setShouldSmoothFonts(false)
                 let h = label.size().height
-                label.draw(at: NSPoint(x: contentOffset + height + gap, y: (height - h) / 2))
+                label.draw(at: NSPoint(x: contentOffset + glyphHeight + gap, y: (height - h) / 2))
                 NSGraphicsContext.restoreGraphicsState()
             }
             return true
         }
-        image.isTemplate = true
+        image.isTemplate = background == nil
         return image
     }
 }

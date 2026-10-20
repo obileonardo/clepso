@@ -78,6 +78,19 @@ enum PopoverProbe {
         recorder.log("login item (this run's stand-in, never the Mac's): \(model.loginItemEnabled)")
         recorder.log("keyboard navigation (the Mac's setting): \(NSApp.isFullKeyboardAccessEnabled) · reduce motion override: \(ProbeOverrides.reduceMotion)")
 
+        // An isolated, externally driven native form/Calendar session. The marker closes it cleanly.
+        if defaults.bool(forKey: "ClepsoProbeInteractive") {
+            await model.completeOnboarding()
+            model.detailsSection = .limits
+            openDetails()
+            let done = folder.appendingPathComponent("interactive-done")
+            for _ in 0..<9_000 where !FileManager.default.fileExists(atPath: done.path) {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            recorder.log("interactive native QA session ended")
+            return true
+        }
+
         // The driver clicks; wait for it (at most twenty minutes: idle runs wait between clicks).
         let done = folder.appendingPathComponent("driver-done")
         for _ in 0..<12_000 where !FileManager.default.fileExists(atPath: done.path) { try? await Task.sleep(for: .milliseconds(100)) }
@@ -387,6 +400,19 @@ enum PopoverProbe {
         await key(49, " ", focus: 5, "Space", expect: "", flips: true)
         await key(36, "\r", focus: 3, "Return", expect: "pixel-prominent")          // the default button, from anywhere
         await key(53, "\u{1b}", focus: 3, "Escape", expect: "pixel-button")        // the cancel button
+        // Calendar arrows travel through the real SwiftUI key-command path, not just the date helper.
+        state.request = 9
+        try? await Task.sleep(for: .milliseconds(300))
+        for (code, character, days, weeks) in [(UInt16(124), "\u{f703}", 0, 1), (123, "\u{f702}", 0, -1),
+                                               (126, "\u{f700}", -1, 0), (125, "\u{f701}", 1, 0)] {
+            keepKey("calendar-arrow")
+            let expected = FocusGallery.grid.day(from: state.day, days: days, weeks: weeks)
+            press(window, key: code, character)
+            try? await Task.sleep(for: .milliseconds(300))
+            let ok = state.day == expected
+            if !ok { failures.append("calendar-arrow-\(code)") }
+            recorder.log("calendar arrow \(code): \(state.day ?? "none"), expected \(expected ?? "none") · \(ok ? "ok" : "WRONG")")
+        }
         window.close()
 
         // The Dashboard's Home page, Tab by Tab from the sidebar, captured (judged by system-ring pixels only).
@@ -522,7 +548,9 @@ enum PopoverProbe {
             }
             try? png.write(to: folder.appendingPathComponent("menu-bar-\(index).png"))
             frames.append(["sha256": SHA256.hash(data: png).map { String(format: "%02x", $0) }.joined(),
-                           "width": String(describing: image.size.width), "height": String(describing: image.size.height)])
+                           "width": String(describing: image.size.width), "height": String(describing: image.size.height),
+                           "button_width": String(describing: button.bounds.width),
+                           "scale": String(describing: button.window?.backingScaleFactor ?? 1)])
         }
         let hashes = Set(frames.compactMap { $0["sha256"] })
         let widths = Set(frames.compactMap { $0["width"] })
