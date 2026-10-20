@@ -109,7 +109,11 @@ final class FakeAgent: @unchecked Sendable {
         let bound = withUnsafePointer(to: &address) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size)) }
         }
-        guard bound == 0, listen(fd, 8) == 0 else { throw POSIXError(.EADDRINUSE) }
+        guard bound == 0, listen(fd, 8) == 0 else {
+            let failure = POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            close(fd)
+            throw failure
+        }
         let listener = fd
         Thread { [self] in
             while true {

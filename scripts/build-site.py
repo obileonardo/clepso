@@ -1014,6 +1014,7 @@ def accounts_config():
     official app builds read), or CLEPSO_ACCOUNTS_URL and CLEPSO_ACCOUNTS_KEY for a local stack. The same checks as
     SyncConfig.swift: a plausible host and a publishable key; a secret key is refused outright."""
     url, key = os.environ.get("CLEPSO_ACCOUNTS_URL", "").strip(), os.environ.get("CLEPSO_ACCOUNTS_KEY", "").strip()
+    providers = os.environ.get("CLEPSO_ACCOUNTS_PROVIDERS", "")
     if not (url and key):
         values, local = {}, repo / "Config" / "Sync.local.xcconfig"
         if local.exists():
@@ -1024,10 +1025,12 @@ def accounts_config():
                     values[k.strip()] = v.strip()
         host = values.get("CLEPSO_SYNC_HOST", "")
         key = values.get("CLEPSO_SYNC_PUBLISHABLE_KEY", "")
+        providers = providers or values.get("CLEPSO_SYNC_PROVIDERS", "")
         url = f"https://{host}" if re.fullmatch(r"(?=.{4,253}$)[a-z0-9-]+(\.[a-z0-9-]+)+", host) else ""
     url_ok = re.fullmatch(r"https://[a-z0-9-]+(\.[a-z0-9-]+)+|http://(127\.0\.0\.1|localhost):\d{1,5}", url)
     key_ok = 0 < len(key) <= 512 and not re.search(r"\s|\$\(", key) and not key.startswith("sb_secret_")
-    return {"url": url, "key": key} if url_ok and key_ok else None
+    enabled = sorted(set(providers.split(",")) & {"apple", "google", "github"})
+    return {"url": url, "key": key, "providers": enabled} if url_ok and key_ok else None
 
 
 # Connections only to this site and a Supabase project (127.0.0.1:54321 is the local stack, for testing).

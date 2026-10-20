@@ -231,10 +231,28 @@ conformance.
 | Agent tasks and runs | 30 days |
 | Notification receipts | 30 days |
 | Diagnostics log | 7 days, at most 1 MB |
-| Settings backups (`~/.claude/clepso-backups/`) | Until the user deletes them (an option in Delete all) |
+| Settings backups (`~/.claude/clepso-backups/`) | 30 days after disconnect, cleaned on a later launch; Delete all can remove them immediately |
 | Pre-migration database copies | Removed by Delete all |
 
-Retention runs at launch and then at most once a day.
+These are defaults and upper limits. Settings › Your data lets the user shorten limit/manual history to 7 or 30 days,
+sessions and receipts to 7 or 14 days, and diagnostics to 1 or 3 days. A shorter choice purges old records immediately;
+ordinary cleanup runs at launch and at most once a day. Increasing a period cannot restore deleted data. The export
+header records the selected periods. A backup expires only if no connection is active and its exact bytes still match
+the record made at disconnect; modified and unrecognised files are preserved. No background process survives deleting
+the app, so cleanup needs a later launch if the user kept the backups.
+
+### Manually entered allowances
+
+Settings never signs in to another agent to obtain a manual reading. Limits › Other agents accepts a provider from a
+fixed list, a window kind, an optional 0–100 percentage, an optional reported reset, when the user checked, a selected
+catalog plan and whether they enabled paid overage. No arbitrary notes, pasted pages, account credentials or account
+identifiers are accepted. Readings are `userConfirmed` and plans are selected, not provider-verified. A reading ages
+after 10 minutes; passing its reported reset does not fabricate a new value. These records stay local, separate from
+automatic pools, and do not trigger automatic alerts. They are included in export and removed by Delete all.
+
+Scheduled reset notices are recorded in `reset_schedules` with their source observation, absolute reset and status.
+Only an actual delivered notification returned by macOS produces a delivered receipt; a missing pending request or
+elapsed timer is never proof. Expected-reset notices are decided by the app tick, with a 15-minute freshness limit, and say capacity has not been rechecked.
 
 ## 7. Changing `~/.claude/settings.json` safely
 
@@ -294,7 +312,8 @@ couldn't be edited): they remove it by its own install records, the same way. Th
 ## 8. Export and delete all
 
 **Export my data** writes one JSON file (0600) through a save panel: the tables `accounts`, `observations`,
-`pool_snapshots`, `sessions`, `notification_receipts`, `preferences`, `agent_tasks` and `agent_runs`, with a header
+`pool_snapshots`, `sessions`, `notification_receipts`, `preferences`, `agent_tasks`, `agent_runs`, `agent_background`,
+`agent_background_counts`, `reset_schedules` and `manual_allowances`, with a header
 (schema version, export time, app version, retention). Internal dedupe hashes are left out; every string is checked
 again with the §4 scrub rules, and one that fails is exported as null and counted.
 

@@ -18,7 +18,7 @@ public enum Exporter {
     static let maxStringBytes = 16_384
 
     public static func document(_ tables: [(table: String, rows: [[String: ExportValue]])], exportedAt: Date,
-                                appVersion: String) throws -> (Data, Summary) {
+                                appVersion: String, retention: DataRetention = DataRetention()) throws -> (Data, Summary) {
         var summary = Summary(rowsByTable: [:], scrubbed: 0)
         var body: [String: Any] = [:]
         for (table, rows) in tables {
@@ -38,7 +38,9 @@ public enum Exporter {
         }
         let document: [String: Any] = [
             "header": ["schemaVersion": schemaVersion, "exportedAt": Int64((exportedAt.timeIntervalSince1970 * 1000).rounded()),
-                       "appVersion": appVersion, "retentionDays": retentionDays,
+                       "appVersion": appVersion, "retentionDays": retention.validated.readings,
+                       "retention": ["readings": retention.validated.readings, "sessions": retention.validated.sessions,
+                                     "receipts": retention.validated.receipts, "logs": retention.validated.logs],
                        "contains": "Usage readings, plan label and preferences. No prompts, paths, keys or transcripts."],
             "tables": body,
         ]

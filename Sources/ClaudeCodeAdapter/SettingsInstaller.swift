@@ -409,6 +409,7 @@ public struct SettingsInstaller: Sendable {
         if FileManager.default.fileExists(atPath: paths.clepsoDir.path) {
             try FileManager.default.removeItem(at: paths.clepsoDir)
         }
+        try? BackupRetention(paths: paths).markDisconnected(at: now())
     }
 
     // MARK: - Recovery after an interrupted install (§3.4)

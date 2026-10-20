@@ -6,3 +6,6 @@
 
 CLEPSO_SYNC_HOST = your-project-ref.supabase.co
 CLEPSO_SYNC_PUBLISHABLE_KEY = sb_publishable_your_key
+
+// Add only after each provider's console setup and callback have been verified. Empty keeps its button disabled.
+// CLEPSO_SYNC_PROVIDERS = apple,google,github

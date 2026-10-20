@@ -5,14 +5,16 @@ import Testing
 struct CatalogTests {
     @Test func bundledSeedDecodes() throws {
         let catalog = try PlanCatalog.bundled()
-        #expect(catalog.catalogVersion == "1.0.0")
-        #expect(catalog.entries.count == 31)
+        #expect(catalog.catalogVersion == "1.1.0")
+        #expect(catalog.entries.count == 44)
         #expect(catalog.skipped == 0)
         // Max 5× and Max 20× are separately selectable.
         let ids = catalog.claudePlans.map(\.id)
         #expect(ids.contains("anthropic.max.5x") && ids.contains("anthropic.max.20x"))
         #expect(!ids.contains("anthropic.api.payg"))
         #expect(catalog.claudePlans.allSatisfy { !$0.displayName.isEmpty && !$0.sourceURL.isEmpty })
+        #expect(catalog.subscriptionPlans(publisher: "cursor").map(\.shortLabel) == ["Free", "Plus", "Premium", "Super", "Ultra", "Teams", "Enterprise"])
+        #expect(catalog.subscriptionPlans(publisher: "github").contains { $0.shortLabel == "Max" })
     }
 
     /// §3: an entry missing a required field is skipped on its own; an unknown tier or status still decodes.

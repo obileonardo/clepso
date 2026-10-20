@@ -29,6 +29,25 @@ func query(_ r: URLRequest, _ name: String) -> String? { URLComponents(url: r.ur
 
 @Suite("Accounts configuration")
 struct SyncConfigTests {
+    @Test("Only explicitly configured sign-in providers are exposed, and a provider URL clears an older email flow")
+    func configuredProviders() async throws {
+        let configured = try #require(SyncConfig(infoDictionary: ["ClepsoSyncHost": "abcd.supabase.co", "ClepsoSyncPublishableKey": "sb_publishable_x", "ClepsoSyncProviders": "apple, google,github,unknown"]))
+        #expect(configured.enabledProviders == [.apple, .google, .github])
+        #expect(config.enabledProviders.isEmpty)
+        let storage = MemoryAuthStore(), transport = StubTransport()
+        let client = SyncClient(config: configured, transport: transport, store: storage, now: { t0 })
+        try await client.requestEmailLink("e@example.test")
+        let earlier = storage.load().pendingVerifier
+        let url = try #require(await client.providerURL(.github))
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        #expect(items.first { $0.name == "provider" }?.value == "github")
+        #expect(storage.load().pendingVerifier != earlier && storage.load().pendingEmail == nil)
+        #expect(await client.hasPendingSignIn)
+        #expect(transport.all.count == 1, "building an OAuth URL itself sends no network request")
+        transport.respond(200, sessionJSON())
+        _ = try await client.handleCallback(URL(string: "clepso://auth-callback?code=oauth-code")!)
+        #expect(!(await client.hasPendingSignIn))
+    }
     @Test("Read from Info.plist values: host and publishable key; https and the app's redirect")
     func fromInfoPlist() throws {
         let c = try #require(SyncConfig(infoDictionary: ["ClepsoSyncHost": "abcd.supabase.co", "ClepsoSyncPublishableKey": "sb_publishable_x"]))

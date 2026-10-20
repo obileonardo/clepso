@@ -13,11 +13,15 @@ public struct SyncConfig: Sendable, Equatable {
     public let publishableKey: String
     /// Where sign-in links and providers send the user back to the app (registered in Info.plist).
     public let redirectURL: URL
+    /// Only providers whose OAuth apps have been configured by the deployment owner. Empty by default: no broken
+    /// sign-in button is advertised before the console setup exists.
+    public let enabledProviders: Set<SyncClient.Provider>
 
-    public init(projectURL: URL, publishableKey: String, redirectURL: URL) {
+    public init(projectURL: URL, publishableKey: String, redirectURL: URL, enabledProviders: Set<SyncClient.Provider> = []) {
         self.projectURL = projectURL
         self.publishableKey = publishableKey
         self.redirectURL = redirectURL
+        self.enabledProviders = enabledProviders
     }
 
     public static let urlScheme = "clepso"
@@ -33,7 +37,9 @@ public struct SyncConfig: Sendable, Equatable {
               let key = (infoDictionary[Self.publishableKeyKey] as? String)?.trimmingCharacters(in: .whitespaces),
               Self.isPlausibleHost(host), Self.isPlausibleKey(key),
               let url = URL(string: "https://\(host)") else { return nil }
-        self.init(projectURL: url, publishableKey: key, redirectURL: Self.redirectURL)
+        let names = (infoDictionary["ClepsoSyncProviders"] as? String ?? "").split(separator: ",")
+        let providers = Set(names.compactMap { SyncClient.Provider(rawValue: $0.trimmingCharacters(in: .whitespaces)) })
+        self.init(projectURL: url, publishableKey: key, redirectURL: Self.redirectURL, enabledProviders: providers)
     }
 
     /// A bare host name such as `abcd.supabase.co`: no scheme, path, port or unexpanded build setting.

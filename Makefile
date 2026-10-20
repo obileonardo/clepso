@@ -1,4 +1,8 @@
-.PHONY: ci ci-contributor build test perf design-site site clean-ci app release backend-test
+.PHONY: ci ci-contributor build test perf design-site site clean-ci app release backend-test doctor
+
+# Read-only service/credential checks plus a disposable, unmounted disk-image probe. Never publishes.
+doctor:
+	python3 scripts/doctor.py --disk-image-probe
 
 # Optional local settings (gitignored), e.g. DOCS for the site build. Template: Config/local.mk.example.
 -include Config/local.mk

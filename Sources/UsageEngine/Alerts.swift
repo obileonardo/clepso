@@ -115,7 +115,7 @@ public enum AlertPlanner {
             switch kind {
             case .resetExpected where !prior.contains(.exhausted):
                 continue                     // §2: expected resets are announced for windows that hit their limit
-            case .readyAgain where prior.isDisjoint(with: [.exhausted, .resetExpected]):
+            case .readyAgain where prior.isDisjoint(with: [.exhausted, .resetExpected, .resetReminder]):
                 continue                     // B4: nobody at 85% gets a "ready" they never waited for
             default: break
             }

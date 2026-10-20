@@ -52,6 +52,7 @@ struct LimitsSection: View {
                     Text(Copy.Details.noLimits).font(theme.font(.label)).foregroundStyle(theme.color(.textSecondary, scheme))
                 }
             }
+            ManualLimitsSection(model: model)
         }
     }
 

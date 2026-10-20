@@ -80,7 +80,8 @@ monotonic version. `SessionSnapshot` holds a session's context and token figures
 
 The engine emits events (`windowOpened`, `thresholdCrossed`, `exhausted`, `readyAgain`, `resetExpected`,
 `staleSource`, among others) into `derived_events`. `notification_receipts` records which events led to a
-notification decision, so a rebuild never notifies twice. Limit notifications themselves are not implemented yet.
+notification decision, so a rebuild never notifies twice. Limit notifications, quiet hours and reset reminders are
+implemented. OS-delivered reset reminders also qualify the Ready again rule; a merely scheduled notice does not.
 
 ## 3. SQL schema
 
@@ -94,10 +95,26 @@ migration v1 (`Sources/Storage/SchemaV1.swift`):
 | Projections | `pool_windows`, `pool_snapshots`, `session_snapshots`, `derived_events` |
 | Notifications | `notification_receipts`, `alert_suppressions` |
 | Plans | `subscription_identities`, `plan_catalog_versions`, `entitlements`, `entitlement_pool_links` |
-| Reserved for later features | `reset_schedules`, `calendar_sync_receipts`, `devices`, `sync_cursors` |
+| Scheduling | `reset_schedules` (active), `calendar_sync_receipts` (reserved) |
+| Reserved for later features | `devices`, `sync_cursors` |
 | Operations | `connector_health`, `preferences` |
 
 Instants are `INTEGER` epoch milliseconds (UTC). Projections store a JSON snapshot with a schema version.
+
+### Manual allowances (migration v6)
+
+`manual_allowances` keeps dated user-entered snapshots independently of automatic pools: `id`, `provider_id`,
+`window_kind`, decimal `used_pct` (nullable text), `reset_at` (nullable), `observed_at`, `entered_at`, optional
+`plan_catalog_id`, and `paid_overage` (explicit user confirmation). An index orders readings by provider, window and
+measurement time. The newest measurement wins, with entry time breaking ties; entering older history does not move
+the current card backwards. Validation rejects future observations, invalid percentages and resets at/before the
+observation. Removing a manually tracked window removes its earlier entries too, so an old snapshot cannot reappear.
+Retention follows limit history; export and Delete all include the table. These readings do not sync or trigger
+automatic alerts.
+
+`reset_schedules`, present since v1, now records successfully scheduled local notices (`resetReminder`). It retains source observation, window, reset, lead, version and status. Rescheduling within a window
+updates the same identifier. Disconnect, disable or confirmed recovery cancels obsolete requests, including triggers
+that just became due. Only actual macOS delivery can mark a schedule delivered and create its alert receipt.
 
 ### 3.1 Migration v3: agents per task
 

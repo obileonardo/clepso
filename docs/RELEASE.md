@@ -3,10 +3,10 @@
 How a signed, notarised Clepso build is made (roadmap increment 4.1). This is the maintainer's runbook; contributors
 never need it, and nothing here is required to build from source (`make app` signs ad hoc).
 
-> **State on 19 Oct 2026.** `scripts/release.sh` (`make release TAG=…`) runs the whole flow below. A trial run on
-> branch `release/v0.1.0-alpha` built, signed, checked and packaged `v0.1.0-alpha.1` up to notarisation, which waits for
-> the notary profile (section 2). Notarisation, stapling and publishing have **not been run** yet. Mark each step
-> done here the first time it succeeds, with the date.
+> **State on 19 Oct 2026.** v0.1.0-alpha.1 was signed, notarised and published at 12:28 UTC after the founder's
+> clean-account launch and network check. Main subsequently gained v0.2, the gated v0.3 mod and fixes. The continuation
+> adds manual readings, retention controls and scheduling receipts. v0.2.0-alpha.1 remains a draft until its own checks,
+> signing, notarisation and publication succeed. Current evidence and environment blockers: `CONTINUATION.md`.
 
 ## 1. What a release is
 
@@ -40,11 +40,15 @@ never need it, and nothing here is required to build from source (`make app` sig
 
 ## 2. Prerequisites (one time)
 
+Run `make doctor` before a release to check host network, Keychain and disk-image access without changing credentials
+or publishing. For session-permission troubleshooting, see [HOST_ACCESS.md](HOST_ACCESS.md). This does not replace CI
+or the signed release gates below.
+
 | Item | State | Notes |
 |---|---|---|
 | Developer ID Application certificate (DECISIONS A6) | **Present** in the maintainer's login keychain (`security find-identity -v -p codesigning`) | Export the `.p12` once and keep it in the password manager: Apple can't re-issue a lost private key |
 | Team ID and bundle prefix (A7) | **Decided** 18 Oct 2026: `com.elvisobi` (app `com.elvisobi.clepso`, helper `com.elvisobi.clepso.statusline`, sign-in scheme `clepso://`) | The script checks the helper against `anchor apple generic and identifier "com.elvisobi.clepso.statusline" and certificate leaf[subject.OU] = "<TEAMID>"` |
-| Notary credentials | **Not set up** (19 Oct 2026) | See below |
+| Notary credentials | Used for v0.1.0-alpha.1; verify the `clepso-notary` profile on every release | See below; a sandbox may be unable to read the login Keychain |
 | `Config/Signing.local.xcconfig` | Present on the maintainer's Mac (gitignored) | The script reads the team from `CLEPSO_DEVELOPMENT_TEAM` (or `CLEPSO_TEAM_ID` in the environment) and signs with "Developer ID Application" whatever identity the file names for daily builds |
 
 **Notary profile.** Once, on the release Mac, store credentials under the profile name the script uses,
@@ -94,8 +98,11 @@ Output goes to `build/release/<tag>/` (gitignored), with `release.log` and every
    - `spctl -a -vvv -t exec`: before notarisation it must say `source=Unnotarized Developer ID`; after, `accepted` and
      `source=Notarized Developer ID`, and `stapler validate` must pass.
 4. **A signed DMG** (`Clepso-<version>-<channel>-UNNOTARIZED.dmg`): the app and an `Applications` link, HFS+, UDZO,
-   signed with the Developer ID and a timestamp, `codesign --verify --strict`, `hdiutil verify`, then mounted read-only
-   to check its contents and that the app inside has the same CDHash as the checked one.
+   explicitly sized in 64 MiB increments with 16 MiB metadata headroom (automatic sizing failed integrity checks
+   for the v0.2 payload on macOS 27). `hdiutil verify` must pass before signing, then it is signed with the Developer ID
+   and a timestamp, checked with `codesign --verify --strict` and `hdiutil verify` again, then mounted read-only
+   at an internal temporary mount point (external-volume mount points can be denied), to check its contents and that
+   the app inside has the same CDHash as the checked one. The mount is detached and the temporary directory removed.
 5. **Without the notary profile it stops here** (exit 3) and prints the command from section 2. Everything above is
    built and checked; the `-UNNOTARIZED` DMG must never be published.
 6. **Notarise the app** (`ditto` zip, `notarytool submit --keychain-profile clepso-notary --wait`, JSON in

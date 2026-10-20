@@ -160,7 +160,11 @@
   // Signed out: email link form, or "check your email" after asking for one.
   function renderSignIn(message = "", kind = "warn") {
     const pending = store.get(PENDING);
-    const sent = pending && pending.sentAt && Date.now() - pending.sentAt < 60 * 60 * 1000;
+    const sent = pending && pending.email && pending.sentAt && Date.now() - pending.sentAt < 60 * 60 * 1000;
+    const providerNames = { apple: "Apple", google: "Google", github: "GitHub" };
+    const providers = Array.isArray(cfg.providers) ? cfg.providers.filter(p => Object.hasOwn(providerNames, p)) : [];
+    const providerButtons = providers.length ? `<div class="btns">${providers.map(p =>
+      `<button class="btn" type="button" data-provider="${p}">Continue with ${providerNames[p]}</button>`).join("")}</div>` : "";
     const form = sent ? `
       <div class="note" role="status"><p><b>Check your email.</b> We sent a sign-in link to <b>${esc(pending.email)}</b>.</p>
       <p>Open it in this browser on this device: the link only works where you asked for it. It expires after an hour.</p></div>
@@ -173,7 +177,7 @@
       </form>
       <p class="chart-note" id="email-help" style="margin-top:10px">A one-time link, no password. Signing in with a new address creates an account.</p>`;
     show(top("Sign in", "See the daily counts your Mac uploads: activity, tokens per model, limits, agents and goals.") +
-      row("signin", "Sign in", "Optional. The same account as Clepso on your Mac (Clepso › Account).", notice(kind, message) + form) +
+      row("signin", "Sign in", "Optional. The same account as Clepso on your Mac (Clepso › Account).", notice(kind, message) + form + providerButtons) +
       row("what", "What's here", "Daily counts only. Never prompts, replies, file paths or project names.",
         `<ul class="plain">
           <li>The last 14 days of Claude Code activity and tokens per model</li>
@@ -188,6 +192,23 @@
     }
     root.querySelector("[data-resend]")?.addEventListener("click", ev => (acted = true, requestLink(pending.email, null, ev.currentTarget)));
     root.querySelector("[data-other]")?.addEventListener("click", () => { acted = true; store.del(PENDING); renderSignIn(); root.querySelector("#email")?.focus(); });
+    root.querySelectorAll("[data-provider]").forEach(button => button.addEventListener("click", async () => {
+      acted = true;
+      button.disabled = true;
+      try {
+        const provider = button.dataset.provider;
+        if (!providers.includes(provider)) throw new Error("provider unavailable");
+        const { verifier, challenge } = await pkce();
+        store.set(PENDING, { verifier, provider, sentAt: Date.now() });
+        // Storage can be disabled by the browser. Never leave for OAuth unless the verifier survived the write.
+        if (store.get(PENDING)?.verifier !== verifier) throw new Error("storage unavailable");
+        const target = new URL(`${cfg.url}/auth/v1/authorize`);
+        target.search = new URLSearchParams({ provider, redirect_to: REDIRECT, code_challenge: challenge, code_challenge_method: "s256" });
+        location.assign(target.href);
+      } catch {
+        renderSignIn("Couldn't start sign-in. Allow storage for this site, then try again.", "err");
+      }
+    }));
   }
 
   async function requestLink(email, formEl, button) {

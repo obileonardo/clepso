@@ -34,6 +34,10 @@ public enum Formatting {
     /// "8:30 AM" or "08:30": the locale's own hour cycle (`j`), so the Mac's 12/24-hour setting is honoured.
     public static func clock(_ date: Date, zone: TimeZone, locale: Locale) -> String { format(date, template: "jmm", zone: zone, locale: locale) }
 
+    public static func measuredTime(_ date: Date, zone: TimeZone, locale: Locale) -> String {
+        format(date, template: "yMMMdjmm", zone: zone, locale: locale)
+    }
+
     /// A reset time: clock time today, weekday and time within a week, the date beyond.
     public static func resetTime(_ date: Date, now: Date, zone: TimeZone, locale: Locale) -> String {
         var calendar = Calendar(identifier: .gregorian)

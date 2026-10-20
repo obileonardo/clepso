@@ -136,7 +136,7 @@ public struct PKCE: Sendable, Equatable {
 // MARK: - Client
 
 public actor SyncClient {
-    public enum Provider: String, Sendable, CaseIterable { case apple, google, github }
+    public enum Provider: String, Sendable, CaseIterable, Hashable { case apple, google, github }
 
     let configuration: SyncConfig?
     let transport: any HTTPTransport
@@ -145,12 +145,14 @@ public actor SyncClient {
 
     /// Whether this build can use accounts at all. False for builds from source without a configured project.
     public nonisolated let isAvailable: Bool
+    public nonisolated let enabledProviders: Set<Provider>
 
     /// `config` nil: Sync is off. No request is ever sent and no session is reported.
     public init(config: SyncConfig?, transport: any HTTPTransport = URLSessionTransport(), store: any AuthStore = KeychainAuthStore(),
                 now: @escaping @Sendable () -> Date) {
         self.configuration = config
         self.isAvailable = config != nil
+        self.enabledProviders = config?.enabledProviders ?? []
         self.transport = transport
         self.store = store
         self.now = now
@@ -158,6 +160,7 @@ public actor SyncClient {
 
     public var session: AuthSession? { isAvailable ? store.load().session : nil }
     public var pendingEmail: String? { isAvailable ? store.load().pendingEmail : nil }
+    public var hasPendingSignIn: Bool { isAvailable && store.load().pendingVerifier != nil }
 
     /// The configuration, or `unavailable` before anything touches the network.
     func requireConfig() throws -> SyncConfig {
@@ -189,6 +192,7 @@ public actor SyncClient {
         let pkce = PKCE.make()
         var stored = store.load()
         stored.pendingVerifier = pkce.verifier
+        stored.pendingEmail = nil
         store.save(stored)
         var components = URLComponents(url: config.projectURL.appendingPathComponent("auth/v1/authorize"), resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "provider", value: provider.rawValue),

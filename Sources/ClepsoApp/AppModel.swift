@@ -7,6 +7,7 @@ import enum Domain.EvidenceKind
 import enum Domain.Freshness
 import enum Domain.Product
 import struct Domain.Redacted
+import struct Domain.ManualAllowance
 import Foundation
 import enum SwiftUI.ColorScheme
 import Observation
@@ -39,6 +40,8 @@ public final class AppModel {
     /// §1.6 quiet hours (off by default) and §2 reset reminders' lead in minutes (nil: off, the default).
     public internal(set) var quietHours = QuietHours()
     public internal(set) var reminderLead: Int?
+    public internal(set) var dataRetention = DataRetention()
+    public internal(set) var manualAllowances: [ManualAllowance] = []
     public internal(set) var dashboardRequests = 0
     /// On only when the user chose it here and the system confirms it. `SMAppService.mainApp.status` was seen
     /// reporting `.enabled` for a development build that never registered, so the system's word alone is not enough.
@@ -68,7 +71,7 @@ public final class AppModel {
     }
     public private(set) var account: AccountState = .signedOut
     public private(set) var lastSync: Date?
-    public private(set) var accountMessage: String?
+    public internal(set) var accountMessage: String?
     public private(set) var accountBusy = false
     private var lastSyncAttempt: Date?
     /// Increment 1.13: Dark (the original Phosphor look), Light, or follow the system.
@@ -138,7 +141,7 @@ public final class AppModel {
     private var ingestor: Ingestor?
     private var loggedHealth = IngestSocket.Health()
     private var loggedCounters = Ingestor.Counters()
-    private var lastPurge: Date?
+    var lastPurge: Date?
     private var tasks: [Task<Void, Never>] = []
     private var generation = 0
     /// The move from the layout before the rename to Clepso, done in `init` before any file in the data folder or
@@ -194,6 +197,9 @@ public final class AppModel {
             alertsSnoozedUntil = try await store.preference(Pref.alertsSnoozedUntil, as: Date.self)
             quietHours = try await store.preference(Pref.quietHours, as: QuietHours.self) ?? QuietHours()
             reminderLead = try await store.preference(Pref.reminderLead, as: Int.self).flatMap { $0 > 0 ? $0 : nil }
+            dataRetention = (try await store.preference(Pref.dataRetention, as: DataRetention.self) ?? DataRetention()).validated
+            manualAllowances = try await store.manualAllowances()
+            diagnostics.setRetention(days: dataRetention.logs)
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
             agentsCounting = Self.hooks(environment).isInstalled
@@ -215,6 +221,7 @@ public final class AppModel {
         await refreshAccount()
         await purgeIfDue()
         if environment.rewritesHome {
+            _ = try? BackupRetention(paths: .init(home: environment.home)).purgeExpired(at: now)
             if Self.hooks(environment).needsRepair() { try? Self.hooks(environment).repair() }
             if Self.claudeMod(environment).needsRepair() { try? Self.claudeMod(environment).repair() }
             // The status line's wrapper names the helper by its full path; after the app moves or is renamed (Clepso.app →
@@ -294,7 +301,8 @@ public final class AppModel {
         let now = environment.clock.now()
         if let lastPurge, now.timeIntervalSince(lastPurge) < 86_400 { return }
         lastPurge = now
-        if let report = try? await store?.purge(now: now), !report.isEmpty {
+        diagnostics.setRetention(days: dataRetention.logs)
+        if let report = try? await store?.purge(now: now, retention: dataRetention.storePolicy), !report.isEmpty {
             diagnostics.record(.purged(readings: report.readings, sessions: report.sessions))
         }
     }
@@ -340,6 +348,7 @@ public final class AppModel {
 
     public func refresh() async {
         guard let store else { return }
+        if let saved = try? await store.manualAllowances() { manualAllowances = saved }
         generation += 1
         let mine = generation
         let now = environment.clock.now()
@@ -592,7 +601,7 @@ public final class AppModel {
     public func handleOpenURL(_ url: URL) async {
         guard url.scheme == SyncConfig.urlScheme else { return }
         // An isolated debug run shares the installed app's URL scheme: a link for a sign-in it did not start is not its own.
-        if environment.isolated, await environment.sync.pendingEmail == nil { return }
+        if environment.isolated, !(await environment.sync.hasPendingSignIn) { return }
         detailsSection = .account
         accountBusy = true
         defer { accountBusy = false }
@@ -896,7 +905,7 @@ public final class AppModel {
         guard let store else { return .failure(ExportFailure(reason: Copy.Problem.storage)) }
         do {
             let (data, summary) = try Exporter.document(try await store.exportRows(), exportedAt: environment.clock.now(),
-                                                        appVersion: environment.appVersion)
+                                                        appVersion: environment.appVersion, retention: dataRetention)
             try Exporter.write(data, to: url)
             diagnostics.record(.exported(rows: summary.rows, scrubbed: summary.scrubbed))
             return .success(summary)
@@ -1034,6 +1043,8 @@ public final class AppModel {
         alertsSnoozedUntil = nil
         quietHours = QuietHours()
         reminderLead = nil
+        dataRetention = DataRetention()
+        manualAllowances = []
         codexConnection = nil
         lastSync = nil
         accountMessage = nil
@@ -1069,6 +1080,7 @@ public final class AppModel {
         static let alertsSnoozedUntil = "alerts.snoozedUntil"
         static let quietHours = "alerts.quietHours"
         static let reminderLead = "alerts.resetReminderLeadMinutes"
+        static let dataRetention = "data.retention.v1"
         static let theme = "general.theme"
         static let approvedAgentNames = "claudeCode.approvedAgentNames"
         static let whatsNewSeen = "whatsNew.lastSeenVersion"

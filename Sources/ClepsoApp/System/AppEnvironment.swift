@@ -228,18 +228,20 @@ public protocol NotificationAuthorizing: Sendable {
     /// 2.1: what to do when the user picks an alert's action ("Snooze 1 h") or clicks it.
     func onAction(_ handler: @escaping @Sendable (AlertAction) -> Void)
     /// 2.3: adds a request that fires at `alert.fireAt`; a pending request with the same identifier is replaced.
-    func schedule(_ alert: ScheduledAlert) async
+    func schedule(_ alert: ScheduledAlert) async throws
     /// 2.3: the reset reminders the notification center still holds (`ReminderPlanner.isReminder` identifiers).
     func pendingReminders() async -> [ScheduledAlert]
     func removePending(_ identifiers: [String]) async
+    func deliveredSchedules() async -> [DeliveredSchedule]
 }
 
 extension NotificationAuthorizing {
     public func deliver(_ alert: AlertNotification) async {}
     public func onAction(_ handler: @escaping @Sendable (AlertAction) -> Void) {}
-    public func schedule(_ alert: ScheduledAlert) async {}
+    public func schedule(_ alert: ScheduledAlert) async throws {}
     public func pendingReminders() async -> [ScheduledAlert] { [] }
     public func removePending(_ identifiers: [String]) async {}
+    public func deliveredSchedules() async -> [DeliveredSchedule] { [] }
 }
 
 /// One limit alert as the notification center shows it (NOTIFICATIONS_AND_SCHEDULING §1.9).
@@ -258,6 +260,12 @@ public struct AlertNotification: Sendable, Equatable {
 public struct ScheduledAlert: Sendable, Equatable {
     public let notification: AlertNotification
     public let fireAt: Date
+}
+
+public struct DeliveredSchedule: Sendable, Equatable {
+    public let identifier: String
+    public let deliveredAt: Date
+    public init(identifier: String, deliveredAt: Date) { self.identifier = identifier; self.deliveredAt = deliveredAt }
 }
 
 public enum AlertAction: Sendable, Equatable { case open, snoozeOneHour }
@@ -333,7 +341,7 @@ public struct SystemNotifications: NotificationAuthorizing {
 
     static let fireAtKey = "fireAt"
 
-    public func schedule(_ alert: ScheduledAlert) async {
+    public func schedule(_ alert: ScheduledAlert) async throws {
         #if canImport(UserNotifications)
         let center = UNUserNotificationCenter.current()
         let content = UNMutableNotificationContent()
@@ -347,14 +355,14 @@ public struct SystemNotifications: NotificationAuthorizing {
         content.sound = note.passive ? nil : .default
         content.userInfo = [Self.fireAtKey: alert.fireAt.timeIntervalSince1970]
         let trigger = UNCalendarNotificationTrigger(dateMatching: Self.triggerComponents(for: alert.fireAt), repeats: false)
-        try? await center.add(UNNotificationRequest(identifier: note.identifier, content: content, trigger: trigger))
+        try await center.add(UNNotificationRequest(identifier: note.identifier, content: content, trigger: trigger))
         #endif
     }
 
     public func pendingReminders() async -> [ScheduledAlert] {
         #if canImport(UserNotifications)
         return await UNUserNotificationCenter.current().pendingNotificationRequests().compactMap { request in
-            guard ReminderPlanner.isReminder(request.identifier),
+            guard ReminderPlanner.isScheduled(request.identifier),
                   let seconds = request.content.userInfo[Self.fireAtKey] as? Double else { return nil }
             let c = request.content
             return ScheduledAlert(notification: AlertNotification(identifier: request.identifier, title: c.title, body: c.body,
@@ -371,6 +379,17 @@ public struct SystemNotifications: NotificationAuthorizing {
         #if canImport(UserNotifications)
         guard !identifiers.isEmpty else { return }
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        #endif
+    }
+
+    public func deliveredSchedules() async -> [DeliveredSchedule] {
+        #if canImport(UserNotifications)
+        return await UNUserNotificationCenter.current().deliveredNotifications().compactMap { note in
+            guard ReminderPlanner.isScheduled(note.request.identifier) else { return nil }
+            return DeliveredSchedule(identifier: note.request.identifier, deliveredAt: note.date)
+        }
+        #else
+        return []
         #endif
     }
 

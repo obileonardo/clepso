@@ -206,13 +206,21 @@ verify_app() {
 
 # make_dmg <app> <dmg>: the app and an Applications link, compressed, signed with a timestamp, and checked mounted.
 make_dmg() {
-    local app="$1" dmg="$2" stage="$OUT/dmg-staging" mnt="$OUT/dmg-mount" out
+    local app="$1" dmg="$2" stage="$OUT/dmg-staging" mnt out
+    local stage_kb image_mb
     rm -rf "$stage" "$dmg"; mkdir -p "$stage"
     ditto "$app" "$stage/Clepso.app"
     ln -s /Applications "$stage/Applications"
-    hdiutil create -volname Clepso -srcfolder "$stage" -fs HFS+ -format UDZO -ov "$dmg" >"$OUT/logs/hdiutil.log" 2>&1 \
+    # Automatic sizing produced an unreadable UDZO image for the 0.2 payload on macOS 27. Explicit 64 MiB
+    # increments verify correctly; reserve at least 16 MiB beyond the staged files for HFS+/partition metadata.
+    stage_kb=$(du -sk "$stage" | awk '{print $1}')
+    image_mb=$(( (stage_kb + 16384 + 65535) / 65536 * 64 ))
+    hdiutil create -volname Clepso -srcfolder "$stage" -fs HFS+ -format UDZO -size "${image_mb}m" -ov "$dmg" >"$OUT/logs/hdiutil.log" 2>&1 \
         || { cat "$OUT/logs/hdiutil.log"; fail "hdiutil create"; }
     rm -rf "$stage"
+    hdiutil verify "$dmg" >"$OUT/logs/hdiutil-verify-unsigned.log" 2>&1 \
+        || { cat "$OUT/logs/hdiutil-verify-unsigned.log"; fail "unsigned DMG integrity"; }
+    ok "unsigned DMG integrity (${image_mb} MiB logical size)"
     codesign --sign "$IDENTITY" --timestamp "$dmg" || fail "signing the DMG"
     out=$(codesign --verify --strict --verbose=2 "$dmg" 2>&1) || { echo "$out"; fail "DMG signature"; }
     echo "$out" | sed 's/^/   /'
@@ -220,8 +228,11 @@ make_dmg() {
     grep -E '^(Authority=Developer|TeamIdentifier|Timestamp)' <<<"$out" | sed 's/^/   dmg: /' || true
     grep -q '^Timestamp=' <<<"$out" || fail "DMG has no secure timestamp"
     hdiutil verify "$dmg" >"$OUT/logs/hdiutil-verify.log" 2>&1 || { cat "$OUT/logs/hdiutil-verify.log"; fail "hdiutil verify"; }
-    mkdir -p "$mnt"
-    hdiutil attach "$dmg" -readonly -nobrowse -noautoopen -mountpoint "$mnt" >"$OUT/logs/hdiutil-attach.log" 2>&1 || fail "mounting the DMG"
+    # DiskArbitration can deny a mount point beneath an external output volume. Use an internal temporary
+    # directory, independent of where the checked image and archive are stored.
+    mnt=$(mktemp -d /private/tmp/clepso-dmg-mount.XXXXXX)
+    hdiutil attach "$dmg" -readonly -nobrowse -noautoopen -mountpoint "$mnt" >"$OUT/logs/hdiutil-attach.log" 2>&1 \
+        || { cat "$OUT/logs/hdiutil-attach.log"; rmdir "$mnt" 2>/dev/null || true; fail "mounting the DMG"; }
     local status=0 listing
     listing=$(ls "$mnt" | tr '\n' ' ')
     [ "$listing" = "Applications Clepso.app " ] || { echo "   DMG holds: $listing"; status=1; }

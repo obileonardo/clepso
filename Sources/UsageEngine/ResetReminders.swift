@@ -29,6 +29,13 @@ public enum ReminderPlanner {
         public let leadMinutes: Int
         /// The absolute instant `resetsAt − lead`: a zone or daylight-saving change never moves it (F16, F17).
         public let fireAt: Date
+        public let kind: AlertKind
+
+        public init(identifier: String, poolKey: String, windowID: UUID, resetsAt: Date, leadMinutes: Int,
+                    fireAt: Date, kind: AlertKind = .resetReminder) {
+            self.identifier = identifier; self.poolKey = poolKey; self.windowID = windowID
+            self.resetsAt = resetsAt; self.leadMinutes = leadMinutes; self.fireAt = fireAt; self.kind = kind
+        }
     }
 
     /// A request the notification center holds.
@@ -54,6 +61,10 @@ public enum ReminderPlanner {
 
     public static func isReminder(_ identifier: String) -> Bool {
         identifier.hasSuffix("|" + AlertKind.resetReminder.rawValue + "|-")
+    }
+
+    public static func isScheduled(_ identifier: String) -> Bool {
+        isReminder(identifier) || identifier.hasSuffix("|" + AlertKind.resetExpected.rawValue + "|-")
     }
 
     /// The reminders that should be pending now, nearest first, at most `limit`. Nothing when the user hasn't chosen
@@ -86,12 +97,16 @@ public enum ReminderPlanner {
 
     /// `pending` may hold other requests; only reminders are touched. A reminder that came due in the last 15 minutes
     /// is left to the OS, which may be delivering it right now.
-    public static func reconcile(desired: [Planned], pending: [Pending], now: Date) -> Changes {
+    public static func reconcile(desired: [Planned], pending: [Pending], now: Date, activeIdentifiers: Set<String>? = nil) -> Changes {
         var changes = Changes()
         let wanted = Dictionary(desired.map { ($0.identifier, $0) }, uniquingKeysWith: { first, _ in first })
         var held: [String: Date] = [:]
-        for request in pending where isReminder(request.identifier) {
+        for request in pending where isScheduled(request.identifier) {
             held[request.identifier] = request.fireAt
+            if let activeIdentifiers, !activeIdentifiers.contains(request.identifier) {
+                changes.remove.append(request.identifier)
+                continue
+            }
             if wanted[request.identifier] != nil { continue }
             if request.fireAt > now { changes.remove.append(request.identifier) }
             else if now.timeIntervalSince(request.fireAt) > staleAfter {
