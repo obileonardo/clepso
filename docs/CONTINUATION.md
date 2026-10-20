@@ -15,28 +15,30 @@ The founder authorised completing unfinished work needing no further information
 
 ## Verification
 
-405 selected tests across 75 suites pass with compiler warnings treated as errors. This includes the new production mapper → store → app-model → injected-notifications flows, precise weekly Calendar export, v5→v6 migration with a checked pre-migration backup, manual history ordering/removal, real-delivery receipt checks, retention, provider PKCE configuration and backup preservation. The selection excludes Unix socket integration because this execution sandbox rejects bind with EPERM; it does not disable those tests in CI.
+The complete test suite passes: **534 tests across 106 suites**, with real Unix socket integration enabled.
+All **16 strict local CI gates pass**, including pinned toolchain, compiler warnings as errors, helper linkage,
+no debug-only code in release objects, source/privacy/design checks, strict mod validation and the signed app bundle.
+All six hosted PR checks pass at `e0c5d0d`: SwiftPM build/tests, contributor gates and four CodeQL languages.
 
-The optimized ClepsoApp module and status-line helper compile with warnings treated as errors. The existing ten source/privacy/design/mod/email gates pass. JavaScript syntax, Python syntax and Git whitespace checks pass. A rendered manual-card component was inspected; a full-window ImageRenderer result cannot substitute for native ScrollView/keyboard testing.
+The 200-round helper performance gate passes: paired status-line overhead p95 12.13 ms (budget 20 ms), with 200/200
+frames delivered. Hook overhead p95 1.02 ms, also 200/200 frames delivered. The manual card was rendered and inspected.
+A signed debug app launches with a separate test home/database and starts its listener. Native UI automation timed
+out while attaching, so a complete keyboard/form/Calendar-import run is not claimed.
 
-Full baseline socket/app integration tests were attempted and are blocked by the environment. The latest remote main CI failure predates this work; its detailed log and a new remote run are still needed. Full CI and the signed app-bundle release gate are not claimed green.
+The first unrestricted full suite caught late expected-reset notifications after a long sleep. The OS expected-reset
+trigger was removed: these notices stay on the app tick, where the 15-minute maximum age is enforceable. Persistent
+opt-in reset reminders and actual delivery receipts remain. Full and targeted regression tests now pass.
 
-## Host access and release verification
+## Host access and release
 
-The original restricted executor could not reach GitHub, use the signing/notary Keychain, bind local sockets or
+The initial restricted executor could not reach GitHub, use the signing/notary Keychain, bind local sockets or
 create disk images. After the client enabled normal escalation approval, `make doctor` passed every check using
 approved execution outside the sandbox. No credentials were replaced and no macOS security settings were weakened.
-The continuation branch is pushed and PR #9 runs hosted CI.
+The continuation is pushed in PR #9. Xcode now resolves the local package and builds the signed app successfully.
 
-The first full strict local gate passed the build, helper linkage, release debug-code audit, ten static gates, mod
-validation and signed app-bundle checks. The full tests caught a long-sleep regression in the newly added OS
-expected-reset scheduling. That scheduling was removed: expected-reset alerts stay on the app tick, where their
-15-minute maximum age is enforceable. Persistent opt-in reset reminders and actual delivery receipts remain.
-The targeted timezone, sleep, app-flow and schedule-store regression tests pass. The complete gate is being rerun
-before the signed/notarized `v0.2.0-alpha.1` candidate is published.
-
-The old remote main failure was a timeout waiting for a timezone/relaunch reading. That test passes in the local full
-run and targeted regression run; a successful hosted run is still required before describing remote CI as fixed.
+The old main CI failure was a timeout waiting for a timezone/relaunch reading; that test passes in the complete
+local and hosted continuation runs. The `v0.2.0-alpha.1` candidate still needs its signed archive, notarized/stapled
+DMG and public release. Use `docs/RELEASE.md`; passing host diagnostics alone is not a publication gate.
 
 ## Remaining external work
 
