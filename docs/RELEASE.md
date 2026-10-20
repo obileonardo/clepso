@@ -159,7 +159,9 @@ After the authorized release is public as Latest, update
 [`obileonardo/homebrew-clepso`](https://github.com/obileonardo/homebrew-clepso):
 
 ```sh
-# From a clean clone of homebrew-clepso:
+# From the clean tapped checkout (audit resolves casks by tap/name):
+cd "$(brew --repository obileonardo/clepso)"
+git switch -c update/clepso-release
 python3 scripts/update-cask.py
 python3 -m unittest discover -s tests -v
 brew style Casks/clepso.rb
@@ -167,7 +169,7 @@ brew audit --cask --strict --online obileonardo/clepso/clepso
 git diff
 ```
 
-Review and commit the version/checksum change, then push it. The updater checks the downloaded DMG against
+Review and commit the version/checksum change, then push it and open a pull request. The updater checks the downloaded DMG against
 `SHA256SUMS` and GitHub's asset digest before editing the cask. The tap's CI verifies installation, signing,
 Gatekeeper and uninstall on Apple silicon. Its daily release monitor reports a stale cask without writing one.
 This step needs no new app build, signing credentials in GitHub Actions or extra server.
