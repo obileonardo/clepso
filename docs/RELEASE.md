@@ -66,8 +66,9 @@ An App Store Connect API key (Developer role) works too and is what a CI release
 
 ## 3. Build, sign, notarise: `scripts/release.sh`
 
-Run on the maintainer's Mac from a clean checkout of the release commit, with roughly 8 GB free
-(`df -h /System/Volumes/Data`; the script refuses below 8 GB).
+Run on the maintainer's Mac from a clean checkout of the release commit, with at least 8 GB free on the
+checkout/build volume and 2 GB free on the system temporary volume. The script checks each volume separately;
+external-drive builds keep archives and DerivedData on that build drive.
 
 ```sh
 git switch --detach <release commit on main>
@@ -78,7 +79,7 @@ make release TAG=v0.1.0-alpha.1                 # = scripts/release.sh v0.1.0-al
 Output goes to `build/release/<tag>/` (gitignored), with `release.log` and every tool's log in `logs/`. The script:
 
 1. **Preflight.** The tag's version equals `MARKETING_VERSION`; a clean tree (`--allow-dirty` for trials only; never
-   publish a dirty build); if the tag exists it must be HEAD; 8 GB free; a valid Developer ID Application identity for
+   publish a dirty build); if the tag exists it must be HEAD; 8 GB free on the build volume and 2 GB on the temporary volume; a valid Developer ID Application identity for
    the team; whether the `clepso-notary` profile works (checked first, so a missing one is reported early).
 2. **Archive** (Release, `generic/platform=macOS`, `ONLY_ACTIVE_ARCH=NO`, version and build number set) and
    **export** with `method developer-id`, manual signing: Xcode re-signs inside-out with the hardened runtime and a
