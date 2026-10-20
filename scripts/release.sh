@@ -54,7 +54,9 @@ exec > >(tee "$OUT/release.log") 2>&1
 step "Preflight"
 MARKETING=$(sed -n 's/^ *MARKETING_VERSION: *//p' project.yml | head -1)
 [ "$MARKETING" = "$VERSION" ] || fail "tag $TAG is version $VERSION but project.yml MARKETING_VERSION is $MARKETING"
-BUILD=$(git rev-list --count HEAD)
+# Published source tags can preserve a pre-squash history with more commits than main. Count the union so the
+# next release's CFBundleVersion cannot go backwards just because its predecessor was squash-merged.
+BUILD=$(git rev-list --count HEAD --tags='v*')
 COMMIT=$(git rev-parse HEAD)
 DIRTY=$(git status --porcelain --untracked-files=no)
 if [ -n "$DIRTY" ]; then
@@ -67,7 +69,7 @@ if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
 else
     echo "   note: tag $TAG does not exist yet; it must point at $COMMIT when published"
 fi
-ok "version $VERSION, build $BUILD (git rev-list --count HEAD), commit ${COMMIT:0:12}"
+ok "version $VERSION, build $BUILD (reachable HEAD and release-tag history), commit ${COMMIT:0:12}"
 
 free_kb=$(df -k /System/Volumes/Data | awk 'NR==2 {print $4}')
 [ "$free_kb" -ge $((MIN_FREE_GB * 1024 * 1024)) ] || fail "under ${MIN_FREE_GB} GB free on /System/Volumes/Data"
@@ -273,9 +275,12 @@ cat >"$OUT/publish-commands.txt" <<EOF
 # Only after the notarised DMG and SHA256SUMS exist in this folder, from a clean checkout of $COMMIT.
 git tag -a $TAG $COMMIT -m "Clepso $VERSION ${TAG#v$VERSION-}"
 git push origin $TAG
-gh release create $TAG --repo obileonardo/clepso --verify-tag --prerelease --draft \\
+gh release create $TAG --repo obileonardo/clepso --verify-tag --draft \\
   --title "Clepso $VERSION ${TAG#v$VERSION-}" --notes-file docs/release-notes/$TAG.md \\
   "$OUT/$NAME.dmg" "$OUT/SHA256SUMS"
+# After checking the draft's assets and notes, publish the authorized alpha as Latest for sidebar visibility.
+# The alpha tag/title/notes still describe its maturity; GitHub excludes prereleases from Latest.
+gh release edit $TAG --repo obileonardo/clepso --draft=false --prerelease=false --latest
 EOF
 
 if [ "$NOTARY_READY" != 1 ]; then

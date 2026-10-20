@@ -3,10 +3,10 @@
 How a signed, notarised Clepso build is made (roadmap increment 4.1). This is the maintainer's runbook; contributors
 never need it, and nothing here is required to build from source (`make app` signs ad hoc).
 
-> **State on 19 Oct 2026.** v0.1.0-alpha.1 was signed, notarised and published at 12:28 UTC after the founder's
-> clean-account launch and network check. Main subsequently gained v0.2, the gated v0.3 mod and fixes. The continuation
-> adds manual readings, retention controls and scheduling receipts. v0.2.0-alpha.1 remains a draft until its own checks,
-> signing, notarisation and publication succeed. Current evidence and environment blockers: `CONTINUATION.md`.
+> **State on 20 Oct 2026.** v0.2.0-alpha.1 was signed, notarised, stapled and published at 08:06:45 UTC.
+> The subsequent v0.2.0-alpha.2 update adds the dynamic menu bar readout. Every update must pass its own build,
+> signing, notarisation and publication gates. Native rotation and Reduce Motion can be verified without screen
+> recording using the isolated debug probe documented in `specs/dynamic-menubar.md`.
 
 ## 1. What a release is
 
@@ -34,7 +34,8 @@ never need it, and nothing here is required to build from source (`make app` sig
   one shows nothing. The seen version is a preference in the app's own database, so a probe run (always on a temporary
   data folder) never changes the user's. `-ClepsoProbeWhatsNew YES` shows the card in probe screenshots.
 - Version: `MARKETING_VERSION` (numeric semver, `0.2.0` on the v0.2 branch) in `project.yml`; `CURRENT_PROJECT_VERSION` is
-  `git rev-list --count HEAD` at the tagged commit, set by the script. The channel lives only in the tag and the DMG
+  `git rev-list --count HEAD --tags='v*'`, set by the script. Counting the union of HEAD and published source-tag
+  histories prevents a squash merge from moving the next build number backwards. The channel lives only in the tag and the DMG
   name: tags `v0.1.0-alpha.1`, `v0.1.0-alpha.2`, … (founder decision, 19 Oct 2026). The app shows its version under
   the name in the Dashboard's sidebar.
 
@@ -140,12 +141,16 @@ After the gate passes, from the same clean checkout (the script writes these, fi
 ```sh
 git tag -a v0.1.0-alpha.1 <release commit> -m "Clepso 0.1.0 alpha.1"
 git push origin v0.1.0-alpha.1
-gh release create v0.1.0-alpha.1 --repo obileonardo/clepso --verify-tag --prerelease --draft \
+gh release create v0.1.0-alpha.1 --repo obileonardo/clepso --verify-tag --draft \
   --title "Clepso 0.1.0 alpha.1" --notes-file docs/release-notes/v0.1.0-alpha.1.md \
   build/release/v0.1.0-alpha.1/Clepso-0.1.0-alpha.1.dmg build/release/v0.1.0-alpha.1/SHA256SUMS
 ```
 
-The draft is checked on GitHub (assets, notes, pre-release flag), then the founder publishes it.
+Check the draft's assets, notes and anonymous download, then publish the authorized release with
+`gh release edit <tag> --repo obileonardo/clepso --draft=false --prerelease=false --latest`.
+The founder requested the current alpha in the repository's Latest release sidebar. GitHub excludes releases
+marked as prereleases from Latest; retain the alpha tag, title and explicit limitations in the notes while using
+the regular GitHub release metadata for that display. This metadata choice does not claim stable software.
 
 ## 6. Open decisions that change the signed build
 

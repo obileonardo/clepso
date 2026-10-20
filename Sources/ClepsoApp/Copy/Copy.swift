@@ -668,7 +668,9 @@ enum Copy {
         static let selected = "Selected"
         static let system = "System", light = "Light", dark = "Dark"
         static let loginSub = "Start \(product) when you log in"
-        static let percentSub = "The highest limit's % next to the icon"
+        static let percentSub = "Show used percentages with the agent and limit window"
+        static let menuBarDisplay = "Menu bar readout"
+        static let menuBarDisplaySub = "Rotate every 6 seconds, keep the summary, or pin a limit. Rotation pauses with Reduce Motion or VoiceOver."
         static let notificationsTitle = "Notifications"
         static let allowed = "Allowed", notAllowed = "Not allowed yet", allow = "Allow…"
         static let connection = "Connection"
@@ -807,7 +809,7 @@ enum Copy {
     enum Settings {
         static let general = "General", notifications = "Notifications", providers = "Providers", plan = "Plan", diagnostics = "Diagnostics"
         static let launchAtLogin = "Open at login"
-        static let showPercent = "Show highest usage in menu bar"
+        static let showPercent = "Show usage in menu bar"
         static let test = "Send a test notification"
         static func providerConnected(_ time: String) -> String { "Connected · observed \(time)" }
         static let providerInstalled = "Installed · no readings yet"

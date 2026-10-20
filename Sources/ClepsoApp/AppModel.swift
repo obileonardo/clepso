@@ -50,6 +50,7 @@ public final class AppModel {
     public private(set) var firstRealReadingAt: Date?
     public private(set) var demo = false
     public private(set) var showPercent = true
+    public private(set) var menuBarDisplay: MenuBarDisplay = .rotating
     public private(set) var forwardCost = true          // On by default
     /// Increment 1.7d: reading Claude Code's own statistics file is a second source, so it is off until the user agrees.
     public private(set) var statsEnabled = false
@@ -189,6 +190,7 @@ public final class AppModel {
             onboardingComplete = try await store.preference(Pref.onboardingComplete, as: Bool.self) ?? false
             demo = try await store.preference(Pref.demo, as: Bool.self) ?? false
             showPercent = try await store.preference(Pref.showPercent, as: Bool.self) ?? true
+            menuBarDisplay = (try await store.preference(Pref.menuBarDisplay, as: String.self)).flatMap(MenuBarDisplay.init(rawValue:)) ?? .rotating
             forwardCost = try await store.preference(Pref.forwardCost, as: Bool.self) ?? true
             firstRealReadingAt = try await store.preference(Pref.firstReading, as: Date.self)
             statsEnabled = try await store.preference(Pref.readStats, as: Bool.self) ?? false
@@ -419,6 +421,11 @@ public final class AppModel {
         showPercent = on
         try? await store?.setPreference(Pref.showPercent, on, now: environment.clock.now())
         await refresh()
+    }
+
+    public func setMenuBarDisplay(_ display: MenuBarDisplay) async {
+        menuBarDisplay = display
+        try? await store?.setPreference(Pref.menuBarDisplay, display.rawValue, now: environment.clock.now())
     }
 
     /// `settings.providers.forwardCost`. When installed, the helper's config is regenerated so the change applies.
@@ -1032,6 +1039,7 @@ public final class AppModel {
         firstRealReadingAt = nil
         demo = false
         showPercent = true
+        menuBarDisplay = .rotating
         forwardCost = true
         approvedAgentNames = []
         agentNameAllowlist.set([])
@@ -1067,6 +1075,7 @@ public final class AppModel {
         static let onboardingComplete = "onboarding.completed"
         static let demo = "demo.enabled"
         static let showPercent = "menubar.showPercent"
+        static let menuBarDisplay = "menubar.display"
         static let forwardCost = "claudeCode.forwardCost"
         static let firstReading = "onboarding.firstReadingAt"
         static let loginItem = "general.openAtLogin"

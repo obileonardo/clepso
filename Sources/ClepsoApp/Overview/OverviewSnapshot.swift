@@ -22,6 +22,8 @@ public struct OverviewSnapshot: Sendable {
     public let empty: Empty?
     /// Agents per task (increment 1.9); nil while the hooks aren't installed.
     public let agents: AgentsSummary?
+    /// Provider/window-specific menu bar frames, including explicit placeholders for unreported windows.
+    public var menuBarReadouts: [MenuBarReadout] = []
     /// Codex's limits (increment 3.4); nil while reading Codex is off.
     public var codex: AgentLimitsSection? = nil
     /// Codex's agents per task (item 4): shown while reading Codex is on, never in demo; nil until the first read ends.
