@@ -986,6 +986,8 @@ for name in ("three.module.min.js", "three-LICENSE.txt"):
 shutil.copy(repo / "design/brand/favicon/favicon.svg", assets / "favicon.svg")
 (assets / "email").mkdir(exist_ok=True)   # account emails link here: keep the name stable (scripts/build-email.py)
 shutil.copy(repo / "design/brand/logo/png/clepso-logo-email-244.png", assets / "email" / "clepso-logo-email-244.png")
+shutil.copy(repo / "design/email/clepso-protocol-hero-v1.png", assets / "email" / "clepso-protocol-hero-v1.png")
+shutil.copy(repo / "design/brand/fonts/ClepsoPixel-Regular.woff2", assets / "email" / "ClepsoPixel-Regular.woff2")
 for name in ("favicon.ico", "apple-touch-icon.png"):
     shutil.copy(repo / "design/brand/favicon" / name, site / name)
 

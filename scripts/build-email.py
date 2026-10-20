@@ -10,16 +10,17 @@ Both apps sign in with PKCE, and {{ .ConfirmationURL }} (Auth's /verify link) is
 redirect each app asked for: /app on the web, clepso://auth-callback on the Mac. Neither app takes a typed
 code, so {{ .Token }} is never shown. See docs/EMAIL.md.
 
-Email-client rules followed here: tables for layout, every style inline (a <style> block only adds dark-mode and
-small-screen refinements that clients without it can skip), no web fonts, no scripts, no tracking or remote images.
-Branding stays readable when an inbox blocks images. The light palette is Clepso's warm paper and deep phosphor;
-an explicit dark palette is an enhancement for clients that support it. No HTML comments: Supabase Auth renders templates
-with Go's html/template, which strips them (so Outlook conditional comments can't be used).
+Email-client rules: table layout and inline styles; dark Protocol palette; one flattened hero image with the
+Clepso logo already composited over the artwork. The optional hosted display font has a monospace fallback;
+all instructions, actions and fallback links remain real text when images/fonts are blocked. No scripts,
+tracking or HTML comments (Supabase's Go html/template strips comments, including Outlook conditionals).
 """
 import html
 import json
 import re
 import sys
+import struct
+import shutil
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -29,10 +30,14 @@ CONFIG = repo / "backend" / "supabase" / "config.toml"
 SITE = "https://clepso-app.vercel.app"
 GMAIL_CLIP = 102 * 1024                                   # Gmail hides everything after ~102 KB of HTML
 
-# Phosphor light tokens (Sources/DesignSystem/Theme/Tokens.swift); email-safe system type.
-BG, SURFACE, LINE, TEXT, TEXT2, ACCENT, INK = "#F3F1E7", "#FBFAF4", "#D8D7CB", "#0F1A13", "#44564A", "#0A7238", "#FFFFFF"
-MONO = "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace"
-SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
+# Founder-selected Protocol: same layout and palette as the approved preview.
+BG, SURFACE, LINE, TEXT, TEXT2, ACCENT, INK = "#252525", "#131313", "#373D38", "#FFFFFF", "#B9C1BB", "#4DFF8F", "#0C1710"
+MONO = "'Clepso Pixel', 'Courier New', monospace"
+SANS = "Arial, Helvetica, sans-serif"
+HERO_FILE = "clepso-protocol-hero-v1.png"
+HERO = f"{SITE}/assets/email/{HERO_FILE}"
+FONT = f"{SITE}/assets/email/ClepsoPixel-Regular.woff2"
+FONT_FACE = f"@font-face {{ font-family: 'Clepso Pixel'; src: url('{FONT}') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }}"
 
 
 def otp_expiry_words():
@@ -120,32 +125,30 @@ HEAD = f"""<!DOCTYPE html>
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="x-apple-disable-message-reformatting">
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
 <title>[[subject]]</title>
 <style>
-  :root {{ color-scheme: light dark; supported-color-schemes: light dark; }}
+  {FONT_FACE}
+  :root {{ color-scheme: dark; supported-color-schemes: dark; }}
   body {{ margin: 0 !important; padding: 0 !important; width: 100% !important; }}
   a[x-apple-data-detectors] {{ color: inherit !important; text-decoration: none !important; }}
   .cl-text a[x-apple-data-detectors], .cl-text a[href^="mailto:"], .cl-muted a[x-apple-data-detectors] {{ color: inherit !important; text-decoration: none !important; }}
-  .cl-button:hover {{ background-color: #085E2E !important; }}
+  .cl-button:hover {{ background-color: #8DE9A7 !important; }}
   a:focus-visible {{ outline: 2px solid {ACCENT}; outline-offset: 4px; }}
   @media (prefers-color-scheme: dark) {{
-    .cl-bg {{ background-color: #101612 !important; }}
-    .cl-card {{ background-color: #18231B !important; border-color: #354339 !important; }}
-    .cl-ink, .cl-title, .cl-text strong {{ color: #F1F4EB !important; }}
-    .cl-text, .cl-muted {{ color: #B5C5B6 !important; }}
-    .cl-rule {{ border-color: #354339 !important; }}
-    .cl-link {{ color: #8DE9A7 !important; }}
-    .cl-button {{ background-color: #4DFF8F !important; border-color: #4DFF8F !important; }}
-    .cl-button a {{ color: #0F1A13 !important; }}
-    .cl-button:hover {{ background-color: #8DE9A7 !important; border-color: #8DE9A7 !important; }}
-    a:focus-visible {{ outline-color: #8DE9A7; }}
+    .cl-bg {{ background-color: {BG} !important; }}
+    .cl-card {{ background-color: {SURFACE} !important; border-color: {LINE} !important; }}
+    .cl-title, .cl-text strong, .cl-link {{ color: {TEXT} !important; }}
+    .cl-text, .cl-muted {{ color: {TEXT2} !important; }}
+    .cl-button {{ background-color: {ACCENT} !important; }}
+    .cl-button a {{ color: {INK} !important; }}
+    .cl-button:hover {{ background-color: #8DE9A7 !important; }}
   }}
   @media only screen and (max-width: 520px) {{
-    .cl-pad {{ padding: 30px 24px 28px !important; }}
-    .cl-outer {{ padding: 24px 16px 32px !important; }}
-    .cl-title {{ font-size: 30px !important; line-height: 36px !important; }}
+    .cl-pad {{ padding-left: 28px !important; padding-right: 28px !important; }}
+    .cl-outer {{ padding: 20px 12px !important; }}
+    .cl-title {{ font-size: 32px !important; line-height: 40px !important; }}
     .cl-button-table {{ width: 100% !important; }}
     .cl-button a {{ display: block !important; text-align: center !important; padding-left: 12px !important; padding-right: 12px !important; }}
   }}
@@ -154,29 +157,26 @@ HEAD = f"""<!DOCTYPE html>
 """
 
 BODY = f"""<body class="cl-bg" style="margin:0;padding:0;width:100%;background-color:{BG};">
-<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:{BG};">[[preheader]]&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
+<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:{BG};">[[preheader]]&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
 <table role="presentation" class="cl-bg" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="{BG}" style="width:100%;background-color:{BG};border-collapse:collapse;">
-<tr><td class="cl-outer" align="center" style="padding:48px 24px 40px;">
-<table role="presentation" width="536" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:536px;border-collapse:collapse;">
-<tr><td style="padding:0 0 28px 2px;">
-  <a class="cl-ink" href="{SITE}/" style="font-family:{MONO};font-size:20px;line-height:28px;font-weight:700;letter-spacing:3px;color:{TEXT};text-decoration:none;">CLEPSO<span style="color:{ACCENT};">.</span></a>
+<tr><td class="cl-outer" align="center" style="padding:32px 24px;">
+<table role="presentation" class="cl-card" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="{SURFACE}" style="width:100%;max-width:600px;background-color:{SURFACE};border:1px solid {LINE};border-collapse:separate;border-spacing:0;">
+<tr><td style="padding:24px 24px 0;">
+  <img class="cl-hero" src="{HERO}" width="552" alt="Clepso" style="display:block;width:100%;max-width:552px;height:auto;border:0;color:{ACCENT};font-family:'Courier New',monospace;font-size:24px;line-height:32px;">
 </td></tr>
-<tr><td class="cl-card cl-pad" bgcolor="{SURFACE}" style="background-color:{SURFACE};border:1px solid {LINE};padding:40px 40px 32px;">
-  <p class="cl-muted" style="margin:0 0 18px;font-family:{MONO};font-size:10px;line-height:16px;letter-spacing:1.6px;text-transform:uppercase;color:{TEXT2};">[[tag]]</p>
-  <h1 class="cl-title" style="margin:0 0 18px;font-family:{SANS};font-size:34px;line-height:40px;font-weight:650;letter-spacing:-1px;color:{TEXT};">[[title]]</h1>
+<tr><td class="cl-pad" style="padding:32px 40px;">
+  <h1 class="cl-title" style="margin:0 0 24px;font-family:{MONO};font-size:40px;line-height:50px;font-weight:400;letter-spacing:0;color:{TEXT};">[[title]]</h1>
 [[body]]
 [[button]]
 [[facts]]
 [[fallback]]
-  <p class="cl-muted cl-rule" style="margin:28px 0 0;padding-top:24px;border-top:1px solid {LINE};font-family:{SANS};font-size:13px;line-height:20px;color:{TEXT2};">[[ignore]]</p>
+  <p class="cl-muted" style="margin:32px 0 0;font-family:{SANS};font-size:13px;line-height:21px;color:{TEXT2};">[[ignore]]</p>
 </td></tr>
-<tr><td style="padding:24px 2px 0;font-family:{SANS};font-size:12px;line-height:19px;">
-  <p class="cl-muted" style="margin:0 0 8px;color:{TEXT2};">Your coding-agent limits, before you hit them.</p>
-  <p style="margin:0;"><a class="cl-link" href="{SITE}/" style="color:{ACCENT};text-decoration:underline;">Clepso</a> &nbsp;&middot;&nbsp; <a class="cl-link" href="{SITE}/privacy/" style="color:{ACCENT};text-decoration:underline;">Privacy</a></p>
+<tr><td class="cl-pad" style="padding:24px 40px 28px;border-top:1px solid {LINE};">
+  <p style="margin:0 0 14px;font-family:{SANS};font-size:13px;line-height:21px;color:{TEXT};">Your limits. A clearer signal.</p>
+  <p style="margin:0;font-family:{SANS};font-size:12px;line-height:20px;color:{TEXT2};"><a href="{SITE}/" style="color:inherit;text-decoration:underline;">Clepso</a> &nbsp;/&nbsp; <a href="{SITE}/privacy/" style="color:inherit;text-decoration:underline;">Privacy</a></p>
 </td></tr>
-</table>
-</td></tr>
-</table>
+</table></td></tr></table>
 </body>
 </html>
 """
@@ -184,14 +184,14 @@ BODY = f"""<body class="cl-bg" style="margin:0;padding:0;width:100%;background-c
 
 def para(text, first):
     top = "0" if first else "14px"
-    return (f'  <p class="cl-text" style="margin:{top} 0 0 0;font-family:{SANS};font-size:16px;line-height:25px;'
+    return (f'  <p class="cl-text" style="margin:{top} 0 0 0;font-family:{SANS};font-size:16px;line-height:26px;'
             f'color:{TEXT2};">{text}</p>')
 
 
 def button(label, href):
     return f"""  <table role="presentation" class="cl-button-table" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 0;border-collapse:separate;"><tr>
     <td class="cl-button" align="center" bgcolor="{ACCENT}" style="background-color:{ACCENT};border:1px solid {ACCENT};border-radius:2px;mso-padding-alt:15px 24px;">
-      <a href="{href}" target="_blank" style="display:inline-block;padding:15px 24px;font-family:{SANS};font-size:15px;line-height:20px;font-weight:600;color:{INK};text-decoration:none;">{html.escape(label)}&nbsp;&nbsp;&rarr;</a>
+      <a href="{href}" target="_blank" style="display:inline-block;padding:16px 24px;font-family:{SANS};font-size:15px;line-height:22px;font-weight:600;color:{INK};text-decoration:none;">{html.escape(label)}</a>
     </td></tr></table>"""
 
 
@@ -216,7 +216,7 @@ def render(e):
         "subject": html.escape(e["subject"]),
         "preheader": e["preheader"],
         "tag": html.escape(e["tag"]),
-        "title": html.escape(e["title"]),
+        "title": html.escape(e["title"].upper()),
         "body": "\n".join(para(t, i == 0) for i, t in enumerate(e["body"])),
         "button": button(*e["button"]) if e["button"] else "",
         "facts": facts(e["facts"]),
@@ -270,8 +270,13 @@ def problems(name, text, subject):
             errs.append(f"{name}: layout table without role=presentation")
     if "<!--" in text or "/*" in text:
         errs.append(f"{name}: comments (Go's html/template strips them before sending)")
-    if re.search(r"<script|@import|<link\b|@font-face", text, re.I):
-        errs.append(f"{name}: scripts, external CSS or web fonts")
+    # Exactly one optional display font is allowed; all content must have a local fallback.
+    if text.count(FONT_FACE) != 1 or re.search(r"<script|@import|<link\b|@font-face", text.replace(FONT_FACE, ""), re.I):
+        errs.append(f"{name}: scripts, external CSS or an unexpected web font")
+    if 'Courier New' not in text or 'alt="Clepso"' not in text:
+        errs.append(f"{name}: missing font/image fallback")
+    if f'src="{HERO}"' not in text:
+        errs.append(f"{name}: unexpected hero image")
     if f"<title>{html.escape(subject)}</title>" not in text:
         errs.append(f"{name}: <title> does not match the subject")
     return errs
@@ -303,6 +308,11 @@ def main(argv):
     preview = Path(argv[argv.index("--preview") + 1]) if "--preview" in argv else None
     errs = []
     configured = subjects_in_config()
+    asset = repo / "design/email" / HERO_FILE
+    if not asset.exists() or len(asset.read_bytes()) > 500_000:
+        errs.append("Protocol hero missing or larger than the 500 KB asset budget")
+    elif asset.read_bytes()[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", asset.read_bytes()[16:24]) != (1200, 474):
+        errs.append("Protocol hero dimensions must be 1200 x 474")
     for name, e in EMAILS.items():
         text = render(e)
         path = OUT / f"{name}.html"
@@ -319,8 +329,13 @@ def main(argv):
             path.write_text(text)
         if preview:
             preview.mkdir(parents=True, exist_ok=True)
+            (preview / "assets").mkdir(exist_ok=True)
+            shutil.copyfile(repo / "design/email" / HERO_FILE, preview / "assets" / HERO_FILE)
+            shutil.copyfile(repo / "design/brand/fonts/ClepsoPixel-Regular.woff2", preview / "assets/ClepsoPixel-Regular.woff2")
             sample = (text.replace(LINK, "http://127.0.0.1:54321/auth/v1/verify?token=pkce_3f9c1d8e7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f&amp;type=magiclink&amp;redirect_to=http://127.0.0.1:3000/app")
-                      .replace(ME, "ada@example.com").replace(NEW, "ada.lovelace@example.org"))
+                      .replace(ME, "ada@example.com").replace(NEW, "ada.lovelace@example.org")
+                      .replace(HERO, "assets/" + HERO_FILE)
+                      .replace(FONT, "assets/ClepsoPixel-Regular.woff2"))
             (preview / f"{name}.html").write_text(sample)
         print(f"{name}: {len(text.encode())} bytes, subject \"{e['subject']}\"")
     for m in errs:

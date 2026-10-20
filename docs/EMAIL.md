@@ -15,11 +15,15 @@ exists, how they're built and previewed, and what the hosted project needs befor
 Not customised: `invite` (only an admin with the service key can invite) and `reauthentication` (only for password
 changes; neither app asks for it). The opt-in security notifications (`password_changed` and others) are off.
 
-All four share a compact layout using Phosphor's warm-paper light palette and an optional dark palette.
-A text wordmark remains visible when images are blocked; headings and paragraphs use email-safe system sans-serif,
-with monospace reserved for the brand and small label. One button leads the message. Expiry, same-device guidance,
-a short fallback link and the security note follow it. Authentication tokens never appear as visible body text.
-There are no remote images, full-URL blocks or facts tables. Text and action contrast meet 4.5:1, including hover.
+All four use the founder-selected **Protocol** design: charcoal canvas, a dark card, Clepso Pixel headings,
+Phosphor-green actions and a dithered hero with Clepso's logo composited over it. The logo footprint is **1.25×** the
+approved preview (800 × 201 → 1000 × 251 px; height rounded to the nearest pixel). The flattened 1200 × 474 PNG
+needs no background-image or overlay support and stays under 500 KB.
+
+Headings use an optional, same-site Clepso Pixel font with a local Courier New fallback. Instructions, the button,
+expiry, same-device guidance, fallback link and security note are real text. The hero has Clepso alt text; the
+message remains usable when remote images and fonts are blocked. No authentication token appears as visible body
+text. Normal and hovered text/action contrast meet 4.5:1 in browser verification.
 
 ### Why `{{ .ConfirmationURL }}`
 
@@ -42,16 +46,20 @@ python3 -I scripts/build-email.py --check         # what CI runs (make ci, "emai
 ```
 
 The check fails when a template is stale, a subject in `config.toml` doesn't match, the HTML is malformed, has an
-HTML comment, a script, a web font or an image without alt text, or is over Gmail's 102 KB clipping size. The expiry
+HTML comment, a script, an unexpected font or an image without alt text, or is over Gmail's 102 KB clipping size.
+The only allowed web font is the same-site Clepso Pixel face, and its local fallback is required. The hero's PNG
+dimensions and 500 KB size budget are checked too. The expiry
 text comes from `otp_expiry` in `config.toml`; if you change it there (or on the hosted project), regenerate.
 
 Rules the generator keeps, because mail clients need them: table layout, inline styles (the `<style>` block only adds
-phone and dark-mode refinements), no external CSS or fonts, no scripts, no tracking pixels. **No HTML comments**:
+phone and dark-mode refinements), no external stylesheets, one optional same-site display font, no scripts, no tracking pixels. **No HTML comments**:
 Supabase renders templates with Go's `html/template`, which strips them, so Outlook conditional comments never arrive.
 
-The redesigned email needs no image downloads to display the brand. Keep the previous logo URL
-`https://clepso-app.vercel.app/assets/email/clepso-logo-email-244.png` available for emails already sent;
-`scripts/build-site.py` still publishes it. No website deployment is needed to update the new templates.
+The website publishes `design/email/clepso-protocol-hero-v1.png` and the existing display font at
+`/assets/email/`. `scripts/build-site.py` copies them and CI compares source and hosted copies. Deploy these assets
+before applying templates that reference them; verify anonymous HTTPS downloads and byte hashes. Retain old asset
+URLs for previously sent emails, including `clepso-logo-email-244.png`. See `design/email/README.md` for the artwork's
+source and retained license. No SMTP change is required when changing the layout.
 
 ### On the local stack
 
@@ -156,6 +164,7 @@ both subjects and HTML. Never print a complete hosted auth response; it can cont
   ([email templates guide](https://supabase.com/docs/guides/auth/auth-email-templates)).
 - Browser verification covers Chromium and WebKit: four templates at 700, 390 and 320 px, light/dark appearance,
   stripped embedded CSS, long email addresses, button sizes, visible fallback links and contrast including hover.
-  The first live email reached the founder but its inbox recoloured the dark-only layout and blocked the logo;
-  the redesign removes that image dependency and excess content. Browser checks are not certification for Gmail,
+  The first live email reached the founder but its inbox recoloured the initial dark layout and blocked the logo.
+  The founder subsequently selected Protocol through the visual board and approved the blended hero, then requested
+  the 1.25× logo enlargement. The selected design keeps all essential actions and guidance as live text. Browser checks are not certification for Gmail,
   Outlook or Apple Mail. Verify the redesigned message in real clients before claiming those results.
