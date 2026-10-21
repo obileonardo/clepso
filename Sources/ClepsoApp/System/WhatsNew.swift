@@ -31,6 +31,14 @@ struct WhatsNew: Sendable, Equatable, Identifiable {
 
     /// Newest first.
     static let entries: [WhatsNew] = [
+        WhatsNew(version: "0.3.0", title: Copy.WhatsNewCard.everywhereTitle, summary: Copy.WhatsNewCard.everywhereSummary, highlights: [
+            Highlight(symbol: "chevron.left.forwardslash.chevron.right", title: Copy.WhatsNewCard.desktopLimitsTitle,
+                      detail: Copy.WhatsNewCard.desktopLimitsDetail, section: .settings, open: Copy.WhatsNewCard.openSettings),
+            Highlight(symbol: "calendar", title: Copy.WhatsNewCard.calendarTitle, detail: Copy.WhatsNewCard.calendarDetail,
+                      section: .limits, open: Copy.WhatsNewCard.openLimits),
+            Highlight(symbol: "plus", title: Copy.WhatsNewCard.goalControlsTitle, detail: Copy.WhatsNewCard.goalControlsDetail,
+                      section: .goals, open: Copy.WhatsNewCard.openGoals),
+        ]),
         WhatsNew(version: "0.2.0", title: Copy.WhatsNewCard.firstSeasonTitle, summary: Copy.WhatsNewCard.firstSeasonSummary, highlights: [
             Highlight(symbol: "person.text.rectangle", title: Copy.WhatsNewCard.cardTitle, detail: Copy.WhatsNewCard.cardDetail,
                       section: .card, open: Copy.HomePage.openCard),

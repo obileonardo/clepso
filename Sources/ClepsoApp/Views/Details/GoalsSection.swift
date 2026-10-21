@@ -128,11 +128,15 @@ struct GoalsSection: View {
                         .accessibilityValue("\(value)\(unit)")
                     Spacer(minLength: theme.spacing(.standard))
                     HStack(spacing: theme.spacing(.standard)) {
-                        Button(Copy.Alerts.stepEarlier) { set(max(range.lowerBound, value - step)) }
+                        Button { set(max(range.lowerBound, value - step)) } label: {
+                            PixelIcon(.minus).frame(width: 12, height: 12)
+                        }
                             .buttonStyle(PixelButtonStyle())
                             .disabled(value <= range.lowerBound)
                             .accessibilityLabel(Copy.Goals.decrease(Self.title(kind)))
-                        Button(Copy.Alerts.stepLater) { set(min(range.upperBound, value + step)) }
+                        Button { set(min(range.upperBound, value + step)) } label: {
+                            PixelIcon(.plus).frame(width: 12, height: 12)
+                        }
                             .buttonStyle(PixelButtonStyle())
                             .disabled(value >= range.upperBound)
                             .accessibilityLabel(Copy.Goals.increase(Self.title(kind)))

@@ -23,12 +23,12 @@ struct CalendarActionTests {
         { h in (try? FileManager.default.contentsOfDirectory(atPath: h.model.environment.calendarDirectory.path)) ?? [] }
     }
 
-    @Test("Nothing is created by default: the action is off in Stage A, and readings, ticks and alerts open nothing")
+    @Test("Calendar is available by default, but readings, ticks and alerts never create or open an event")
     func nothingByDefault() async throws {
         let h = try await harness()
         defer { h.finish() }
         #expect(AppEnvironment(dataDirectory: h.box.data, home: h.box.home, shimPath: "", loginItem: FakeLoginItem(),
-                               notifications: FakeNotifications()).calendarActions == false)
+                               notifications: FakeNotifications()).calendarActions)
         await h.travel(weekly.timeIntervalSince(h.clock.now()) + 60)          // through the reset, alerts and all
         #expect(h.opened.isEmpty)
         #expect(calendarFiles(h).isEmpty)

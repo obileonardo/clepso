@@ -415,6 +415,17 @@ enum Copy {
         static let changelogHint = "Opens the changelog on \(Card.website) in your browser"
         static let openGoals = "Open goals"
 
+        // v0.3.0 "Claude, everywhere"
+        static let everywhereTitle = "Claude, everywhere"
+        static let everywhereSummary = "Connect the Claude desktop app and VS Code, keep a weekly reset in Calendar, and adjust your goals with clearer controls."
+        static let desktopLimitsTitle = "Desktop and IDE limits"
+        static let desktopLimitsDetail = "Connect the Claude Code mod in Settings to read five-hour and weekly limits after replies in the desktop Code tab and VS Code panel."
+        static let calendarTitle = "Weekly resets in Calendar"
+        static let calendarDetail = "Add a reported weekly reset from Limits. Calendar asks before adding the event; the expected reset can change."
+        static let goalControlsTitle = "Clearer goal controls"
+        static let goalControlsDetail = "Balanced pixel plus and minus icons make your target adjustments easier to read."
+        static let openSettings = "Open settings", openLimits = "Open limits"
+
         // v0.2.0 "Your first season"
         static let firstSeasonTitle = "Your first season"
         static let firstSeasonSummary = "Two pages that were waiting for some history: your Player Card and Goals. Both read what is already on this Mac, "
@@ -525,7 +536,7 @@ enum Copy {
             case .weeklyFinish: return "\(Int(value.rounded()))% at day end"
             }
         }
-        static let note = "Goals stay on this Mac for now. When accounts arrive, you'll be able to see them anywhere."
+        static let note = "Targets are saved on this Mac. If you sign in, your daily goal summaries sync to your Clepso account."
     }
 
     enum Account {
