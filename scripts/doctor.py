@@ -35,8 +35,12 @@ def main():
     print("Clepso host access checks (not a build, signing or release gate)", flush=True)
     code, output, error = run(["xcode-select", "-p"])
     report("Xcode selection", code == 0, output.strip() if code == 0 else error.strip())
-    free_gb = shutil.disk_usage("/").free / (1024 ** 3)
-    report("Internal free space", free_gb >= 8, "{:.1f} GiB available; release requires 8 GiB".format(free_gb))
+    build_free_gb = shutil.disk_usage(Path.cwd()).free / (1024 ** 3)
+    temp_free_gb = shutil.disk_usage(tempfile.gettempdir()).free / (1024 ** 3)
+    report("Build volume free space", build_free_gb >= 8,
+           "{:.1f} GiB available; release requires 8 GiB".format(build_free_gb))
+    report("Temporary volume space", temp_free_gb >= 2,
+           "{:.1f} GiB available; release requires 2 GiB".format(temp_free_gb))
 
     for host in ("github.com", "api.github.com", "apple.com"):
         # Run DNS in a child so an unresponsive resolver has a bounded timeout.

@@ -11,6 +11,7 @@ struct AccountSection: View {
     @State private var email = ""
     @State private var choosingPlan = false
     @State private var confirmDelete = false
+    @State private var uploadDetailsOpen = false
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
@@ -35,7 +36,8 @@ struct AccountSection: View {
                     Button(Copy.Account.change) { choosingPlan = true }.buttonStyle(PixelButtonStyle())
                 }
             }
-            section(Copy.AccountPage.signIn, Copy.AccountPage.signInSub) {
+            section(signedIn ? Copy.AccountPage.connection : Copy.AccountPage.signIn,
+                    signedIn ? Copy.AccountPage.connectionSub : Copy.AccountPage.signInSub) {
                 if model.accountsAvailable {
                     signInMethods
                 } else {
@@ -44,16 +46,8 @@ struct AccountSection: View {
                 }
             }
             if signedIn {
-                section(Copy.AccountPage.sync, Copy.Sync.explainer) {
-                    HStack(spacing: theme.spacing(.standard)) {
-                        Text(model.lastSync.map { Copy.Sync.lastSynced(Formatting.age(of: $0, now: model.environment.clock.now(),
-                                                                                    zone: model.environment.timeZone, locale: model.environment.locale)) }
-                             ?? Copy.Sync.neverSynced)
-                            .font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
-                        Spacer()
-                        Button(Copy.Sync.syncNow) { Task { await model.syncNow() } }.buttonStyle(PixelButtonStyle(prominent: true))
-                            .disabled(model.accountBusy || model.snapshot.isDemo)
-                    }
+                section(Copy.AccountPage.sync, Copy.AccountPage.syncSub) {
+                    uploadControls
                 }
             }
             if let file = model.statsFile, let summary = model.statsSummary(.allTime) {
@@ -96,6 +90,37 @@ struct AccountSection: View {
             Button(Copy.Sync.deleteConfirm, role: .destructive) { Task { await model.deleteAccount() } }
         } message: {
             Text(Copy.Sync.deleteBody)
+        }
+    }
+
+    var uploadControls: some View {
+        VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
+            HStack(spacing: theme.spacing(.standard)) {
+                Text(model.lastSync.map { Copy.Sync.lastSynced(Formatting.age(of: $0, now: model.environment.clock.now(),
+                                                                            zone: model.environment.timeZone, locale: model.environment.locale)) }
+                     ?? Copy.Sync.neverSynced)
+                    .font(theme.font(.label)).foregroundStyle(theme.color(.textPrimary, scheme))
+                Spacer()
+                Button(Copy.Sync.syncNow) { Task { await model.syncNow() } }.buttonStyle(PixelButtonStyle(prominent: true))
+                    .disabled(model.accountBusy || model.snapshot.isDemo)
+            }
+            Text(Copy.Sync.summary).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                .fixedSize(horizontal: false, vertical: true)
+            Button { uploadDetailsOpen.toggle() } label: {
+                HStack(spacing: theme.spacing(.standard)) {
+                    PixelIcon(.chevronRight).rotationEffect(.degrees(uploadDetailsOpen ? 90 : 0))
+                    Text(Copy.Sync.detailsTitle).font(theme.font(.supporting))
+                }
+                .foregroundStyle(theme.color(.textSecondary, scheme))
+                .padding(.vertical, theme.spacing(.compact))
+            }
+            .buttonStyle(PixelPlainButtonStyle())
+            .accessibilityValue(uploadDetailsOpen ? Copy.ModelsPage.expanded : Copy.ModelsPage.collapsed)
+            if uploadDetailsOpen {
+                Text(Copy.Sync.explainer).font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, theme.spacing(.spacious) + theme.spacing(.standard))
+            }
         }
     }
 

@@ -18,6 +18,7 @@ import html
 import json
 import os
 import re
+import runpy
 import shutil
 import subprocess
 import sys
@@ -37,13 +38,13 @@ def git(*args):
 
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
 # The latest public build; bump with each release (docs/RELEASE.md).
-RELEASE_TAG = "v0.3.0-alpha.1"
+RELEASE_TAG = "v0.3.0-alpha.2"
 RELEASE_URL = f"https://github.com/obileonardo/clepso/releases/tag/{RELEASE_TAG}"
 
 NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
 MENU = [("Docs", [("", "Overview"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]),
         ("Project", [("progress/", "Progress"), ("changelog/", "Changelog"), ("screens/", "Screens"), ("design-system/", "Design system"),
-                     ("app/", "Web dashboard")])]
+                     ("characters/", "Characters"), ("app/", "Web dashboard")])]
 DOC_PAGES = [("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]
 
 # ------------------------------------------------------------------------------------------------------------ shell
@@ -839,8 +840,9 @@ page("changelog/", "Changelog", "Every commit to Clepso, newest first.", f"""
 <h1>Changelog <span class="code-voice">// {len(log)} commits</span></h1>
 <p class="lede">Every commit, newest first. Each one passed all {len(GATES)} quality gates before it was pushed.</p>
 <p class="muted">Clepso was called Pulse until 18 Oct 2026. Older commits keep the name they were written with.</p></section>
-<div class="release"><div><p class="eyebrow">Current release · <b>{e(RELEASE_TAG)}</b></p><h2>Claude, everywhere</h2>
-<p>Desktop and VS Code limits, clearer Goals controls, weekly Calendar export and optional email accounts.</p>
+<div class="release"><div><p class="eyebrow">Current release · <b>{e(RELEASE_TAG)}</b></p><h2>Small details. Better fit.</h2>
+<p>Matching pixel toggle corners, a compact Account upload section and a refreshed product website.</p>
+<p>Explore the <a href="/characters/">interactive character-art preview</a>; the new characters are a website preview, not yet part of the Mac app.</p>
 <p><a href="{RELEASE_URL}">Download and release notes</a></p></div></div>
 {f'<div class="release rv"><div><p class="eyebrow">Latest increment · <b>{e(latest_inc[0])}</b></p><h3>{e(latest_inc[1])}</h3><p>Passed every gate:</p></div><div class="gates">{gates_list}</div></div>' if latest_inc else ""}
 <div class="filters"><input type="search" placeholder="Search the changelog" aria-label="Search the changelog">{chips}</div>
@@ -1078,6 +1080,7 @@ SEARCH.append({"t": "Web dashboard", "p": "Page", "u": "/app/", "x": "Sign in to
 <p class="lede">That page doesn't exist. <a href="/">Back to the overview</a>, or press ⌘K to search.</p></div></main>{footer()}
 <script src="/assets/site.js" defer></script></body></html>
 """)
+runpy.run_path(str(repo / "scripts/public_site.py"))["build"](site, RELEASE_TAG)
 print(f"app: accounts {'configured' if accounts else 'not configured'}")
 print(f"site: {len(NAV) + 4} pages, {shot_count} screens, {done}/{total} increments done, {TESTS} tests, {len(GATES)} gates, "
       f"{len(SEARCH)} search entries, commit {COMMIT}")
