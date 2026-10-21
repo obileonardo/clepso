@@ -39,6 +39,29 @@ public enum ColorToken: String, CaseIterable, Sendable, Codable {
     public static let surfaces: [ColorToken] = [.background, .surfaceElevated, .surfaceMuted]
 }
 
+/// Original character artwork inks, shared by the native atlas and website drawings. Decorative art keeps its
+/// authored palette across themes; labels, controls and all usage information still use semantic ColorToken values.
+public enum CharacterInk: Int, CaseIterable, Sendable {
+    case ink, deep, shade, green, mint, cream, paper, gold, amber, orange
+
+    public var rgb: RGB {
+        switch self {
+        case .ink: RGB(0x14241D)
+        case .deep: RGB(0x243E31)
+        case .shade: RGB(0x40634A)
+        case .green: RGB(0x60E99A)
+        case .mint: RGB(0xB5EFC8)
+        case .cream: RGB(0xF5EBD3)
+        case .paper: RGB(0xCFCCAE)
+        case .gold: RGB(0xF4C477)
+        case .amber: RGB(0xCB884A)
+        case .orange: RGB(0xE6A15F)
+        }
+    }
+
+    public var color: Color { rgb.color }
+}
+
 public enum TypographyToken: String, CaseIterable, Sendable { case metricDisplay, metricHero, metricMedium, title, label, supporting, micro }
 /// `section`: the air above and below a Dashboard section's content, between its hairlines (32 pt, founder review 18 Oct 2026).
 public enum SpacingToken: String, CaseIterable, Sendable { case compact, standard, spacious, windowPadding, section }

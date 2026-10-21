@@ -1,4 +1,4 @@
-"""Build the product landing page and original character-art preview from reviewed local sources.
+"""Build the product landing page and original character artwork from reviewed local sources.
 
 Also called by build-site.py after the documentation build. No private planning documents or credentials
 are read here. Re-running this command is idempotent and preserves the documentation landing page.
@@ -47,10 +47,10 @@ def build(site, release_tag):
 <main style="padding-top:56px;max-width:900px"><h1 style="font-size:48px">About the artwork.</h1>
 <p>The literary guild is original Clepso pixel art inspired by the creative-work names Opus, Fable, Sonnet and Haiku.
 The owl maestro, fox storyteller, poet and paper crane are our interpretations. They are not official provider mascots.</p>
-<p>This is a preview of a new art direction. The current Mac release still uses its existing model characters.
+<p>These characters ship in the Mac Models screen from 0.3.0 alpha 3 onward. The old 12 × 12 drawings remain on this page for comparison.
 Edition details identify a model version; Clepso’s usage-based levels remain separate.</p>
 <p>The drawings use an integer pixel grid, a consistent foot anchor and a restrained palette. Only the selected
-portrait moves. Pause and Reduce Motion controls are available; model data is not needed for this preview.</p>
+portrait moves. Pause and Reduce Motion controls are available; model data is not needed to explore this page. The website’s level-up flourish is a preview effect; it does not change usage or claim a new app animation.</p>
 <h2>Sources behind the names</h2><p><a href="https://www.merriam-webster.com/dictionary/opus">Opus</a> ·
 <a href="https://www.merriam-webster.com/dictionary/fable">Fable</a> ·
 <a href="https://www.poetryfoundation.org/education/glossary/sonnet">Sonnet</a> ·
@@ -86,12 +86,12 @@ Typography uses Clepso’s existing fonts and their accompanying open font licen
     if release_tag not in content:
         content = content.replace("Current release ·", "Previous release ·", 1)
         card = ('<div class="release"><div><p class="eyebrow">Current release · <b>' + release_tag
-                + '</b></p><h2>Small details. Better fit.</h2><p>Matching toggle corners, a compact Account upload section and a refreshed website.</p>'
-                + '<p>Explore the <a href="/characters/">character-art preview</a>. The new characters are not in this Mac release yet.</p>'
+                + '</b></p><h2>A little more character.</h2><p>The literary guild now appears in the Mac Models screen, with distinct editions and quiet authored motion.</p>'
+                + '<p>Explore the <a href="/characters/">characters</a>. Pause and Reduce Motion controls keep the selected portrait quiet when you need it.</p>'
                 + '<p><a href="' + release_url + '">Download and release notes</a></p></div></div>')
         content = content.replace('<div class="release">', card + '<div class="release">', 1)
         changelog.write_text(content)
-    print("Public site: product landing, preserved docs, character preview and search links built for " + release_tag)
+    print("Public site: product landing, preserved docs, characters and search links built for " + release_tag)
 
 
 if __name__ == "__main__":

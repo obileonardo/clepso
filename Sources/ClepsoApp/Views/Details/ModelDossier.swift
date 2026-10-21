@@ -15,6 +15,9 @@ struct ModelDossier: View {
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
+    @State private var characterPaused = false
+    @Environment(\.reduceMotion) private var reduceMotion
+
     var role: ColorToken { ModelStyle.role(entry.style) }
     var gap: CGFloat { theme.spacing(.standard) + theme.spacing(.compact) }
 
@@ -38,8 +41,23 @@ struct ModelDossier: View {
     var portrait: some View {
         let px = theme.stroke(.hairline) * 2
         return VStack(spacing: 0) {
-            ModelSprite(family: ModelSprite.Family(entry.id), role: role)
+            ModelSprite(modelID: entry.id, animated: !characterPaused)
                 .frame(width: theme.spacing(.spacious) * 8, height: theme.spacing(.spacious) * 6.5)
+            HStack(spacing: theme.spacing(.standard)) {
+                InfoButton(title: Copy.ModelsPage.characterAbout, text: Copy.ModelsPage.characterExplanation(entry.id)) {
+                    Text(Copy.ModelsPage.characterDetails)
+                }
+                Spacer(minLength: theme.spacing(.compact))
+                Button { characterPaused.toggle() } label: {
+                    Text(reduceMotion ? Copy.ModelsPage.characterStill : characterPaused ? Copy.ModelsPage.characterResume : Copy.ModelsPage.characterPause)
+                }
+                .buttonStyle(PixelPlainButtonStyle())
+                .accessibilityLabel(characterPaused ? Copy.ModelsPage.characterResumeLabel : Copy.ModelsPage.characterPauseLabel)
+                .accessibilityValue(reduceMotion ? Copy.ModelsPage.characterReduced : characterPaused ? Copy.ModelsPage.characterPaused : Copy.ModelsPage.characterPlaying)
+                .disabled(reduceMotion)
+            }
+            .font(theme.font(.micro)).foregroundStyle(theme.color(.textSecondary, scheme))
+            .padding(theme.spacing(.standard))
             Rectangle().fill(theme.color(role, scheme)).frame(height: px)
             Text(entry.name.uppercased()).font(theme.font(.title)).foregroundStyle(theme.color(.textPrimary, scheme))
                 .lineLimit(1).minimumScaleFactor(0.8)
@@ -58,7 +76,7 @@ struct ModelDossier: View {
                 .background(PixelRect(step: px).fill(theme.color(role, scheme)))
                 .padding(px * 2)
         }
-        .accessibilityElement(children: .ignore)
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(Copy.ModelsPage.rowLabel(rank: entry.rank, name: entry.name, level: entry.level?.level,
                                                      tokens: ModelsRoster.spoken(entry.share.tokens), share: ModelsRoster.spokenPercent(entry.share.share)))
         .accessibilityAddTraits(.isHeader)

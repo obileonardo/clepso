@@ -38,7 +38,7 @@ def git(*args):
 
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
 # The latest public build; bump with each release (docs/RELEASE.md).
-RELEASE_TAG = "v0.3.0-alpha.2"
+RELEASE_TAG = "v0.3.0-alpha.3"
 RELEASE_URL = f"https://github.com/obileonardo/clepso/releases/tag/{RELEASE_TAG}"
 
 NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
@@ -840,9 +840,9 @@ page("changelog/", "Changelog", "Every commit to Clepso, newest first.", f"""
 <h1>Changelog <span class="code-voice">// {len(log)} commits</span></h1>
 <p class="lede">Every commit, newest first. Each one passed all {len(GATES)} quality gates before it was pushed.</p>
 <p class="muted">Clepso was called Pulse until 18 Oct 2026. Older commits keep the name they were written with.</p></section>
-<div class="release"><div><p class="eyebrow">Current release · <b>{e(RELEASE_TAG)}</b></p><h2>Small details. Better fit.</h2>
-<p>Matching pixel toggle corners, a compact Account upload section and a refreshed product website.</p>
-<p>Explore the <a href="/characters/">interactive character-art preview</a>; the new characters are a website preview, not yet part of the Mac app.</p>
+<div class="release"><div><p class="eyebrow">Current release · <b>{e(RELEASE_TAG)}</b></p><h2>A little more character.</h2>
+<p>The literary guild now appears in the Mac Models screen, with distinct editions and quiet authored motion.</p>
+<p>Explore the <a href="/characters/">interactive characters</a>; the same artwork ships in the Mac app with Pause and Reduce Motion support.</p>
 <p><a href="{RELEASE_URL}">Download and release notes</a></p></div></div>
 {f'<div class="release rv"><div><p class="eyebrow">Latest increment · <b>{e(latest_inc[0])}</b></p><h3>{e(latest_inc[1])}</h3><p>Passed every gate:</p></div><div class="gates">{gates_list}</div></div>' if latest_inc else ""}
 <div class="filters"><input type="search" placeholder="Search the changelog" aria-label="Search the changelog">{chips}</div>

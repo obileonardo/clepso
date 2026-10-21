@@ -39,7 +39,7 @@ export function sprite(model,frame=0,action='idle') {
   if(newer){dot(34,11,'gold');dot(35,10,'gold');}
  }
  if(model.family==='fable') {
-  const newer=model.version==='5.1',tail=flutter?1:0;
+  const newer=model.version==='5.1',tail=(flutter||(!newer&&gesture))?1:0;
   poly(newer?[[12,27],[9,19+tail],[5,18+tail],[3,22],[4,29],[9,33],[16,33],[18,29]]:[[12,26],[8,20+tail],[4,23+tail],[3,29],[6,33],[15,34],[18,30]],'ink');
   poly(newer?[[11,27],[8,21+tail],[5,20+tail],[5,25],[7,29],[13,31]]:[[11,27],[8,23+tail],[5,24+tail],[5,29],[8,31],[14,32]],'amber');
   poly(newer?[[5,20+tail],[7,21+tail],[8,24],[6,26],[5,24]]:[[8,23+tail],[5,24+tail],[5,28],[8,29],[10,27]],'cream');
