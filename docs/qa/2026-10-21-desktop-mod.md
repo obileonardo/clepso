@@ -42,9 +42,39 @@ The app's ledger compacts unchanged pool values for up to 120 seconds and sessio
 (`PoolReducer`). Those mechanisms prevent treating absence of a retained pool row as proof that the mod omitted
 it. Conversely, context delivery alone does not prove desktop-only quota freshness or the menu-bar update.
 
+## Follow-up: isolated desktop quotas
+
+The owner approved two additional short replies and a private local collector. Both replies were used; no
+further model prompts were sent. The received frames and the local `/status` command identify the embedded
+Code engine as **2.1.304** for this check, rather than the first check's 2.1.299.
+
+The normal `ClaudeModInstaller` temporarily installed the unchanged mod with a private test helper. That helper
+was linked from the existing `StatusLineShim` object and called its existing `modMain`, passing a test-only home
+in the environment dictionary. Its private config pointed to a separate Unix socket and HMAC key. The process's
+real HOME, terminal status-line configuration and production listener were left unchanged. The existing fixture
+listener collected the sanitized wire frames. `FrameMapper.map` then fed a real in-memory `Store` configured
+with `LedgerPolicy.everyReading`, with no terminal observations in that test store. The verifier did not modify
+the production database. This isolates desktop quota reduction from terminal priority and unchanged-value compaction.
+
+| Check | Observed result |
+| --- | --- |
+| Real desktop capture | Two complete `via=mod`, `surface=desktop` frames |
+| Quota adoption | Both five-hour and seven-day readings adopted by the normal mapper/store path |
+| Reset adoption | Both reset instants retained; wire values are Unix seconds, store instants use milliseconds |
+| Native usage comparison | Weekly percentage matched exactly; five-hour percentage within one point |
+| Native reset comparison | Weekly local day/time matched; five-hour countdown within two minutes of capture |
+| Model comparison | Canonical id `claude-fable-5-1` agrees with the selected Fable 5.1 label; `/model` exposes only the label |
+| Version comparison | Frame source version matches the native local `/status` command |
+| Cleanup | Installer returned `restoredExactly`; settings bytes and mode match; mod directory, handoff and install record removed; collector stopped |
+
+Private raw frames, account/session details, settings backups and the HMAC key are excluded from source and
+recovery archives. Safe receipts retain check results rather than raw quota/session data. No mod, helper or app
+source changed. This proves real desktop telemetry and its isolated mapper/store adoption; it does not prove the
+shipping app's menu-bar presentation or takeover while a competing terminal source is active.
+
 ## Remaining checks
 
-Run a controlled desktop-only quota check during a quiet terminal interval, verify menu-bar values and resets,
-compare the exact model id through `/model`, and test a current VS Code panel. Confirm removal/discoverability
-in the supported plugin UI. Do not flip `ReleaseFeatures.shipping.claudeMod` based on this partial result.
+Verify the shipping menu-bar values/reset presentation, compare canonical model ids across surfaces, and test a
+current VS Code panel. `/model` alone cannot provide an independent canonical-id comparison in the tested desktop.
+Confirm removal/discoverability in the supported plugin UI. Do not flip `ReleaseFeatures.shipping.claudeMod` yet.
 See the [live runbook](../runbooks/v0.3-live-mod-test.md) and [integration plan](../specs/v0.3-integration-plan.md).
