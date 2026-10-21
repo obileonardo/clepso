@@ -413,7 +413,7 @@ Buttons: **Cancel** (default, Escape) · **Add the mod**.
 
 | # | Question | How it gets answered |
 |---|---|---|
-| Q1 | Does `$.process.run` work in the desktop Code tab (F9)? | **Verified 21 Oct:** context readings reached Clepso through the helper from desktop Code 2.1.299. Independent desktop-only pool adoption remains open; see the live result below |
+| Q1 | Does `$.process.run` work in the desktop Code tab (F9)? | **Verified 21 Oct:** context readings reached Clepso through the helper from desktop Code 2.1.299. Follow-up on 2.1.304 captured both quota windows and resets; normal mapper/in-memory store adopted them in isolation from terminal readings. Shipping menu-bar presentation remains open; see the live result below |
 | Q2 | After removal, does `/plugin` show the deleted marketplace as an error? | **Partial 21 Oct:** CLI cache entry remains disabled after exact removal. Desktop plugin manager did not list the directory-backed mod even while it ran. Full supported-UI removal check remains open; do not rewrite unrelated settings just to clear a cache entry |
 | Q3 | Does the first session after install load the mod, or only the next one (R4)? | **Verified 21 Oct on the tested environment:** first new local session after installation/restart delivered |
 | Q4 | Should the mod also send the model name (`$.session.model()`, a fifth call) so desktop sessions are labelled? | **Answered 19 Oct 2026: yes** (founder decision). The mod sends `model.id` only (F11, §5.2); confirm in runbook D5 that a desktop session's value matches the terminal's status-line `model.id` |
