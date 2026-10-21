@@ -37,7 +37,7 @@ def git(*args):
 
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
 # The latest public build; bump with each release (docs/RELEASE.md).
-RELEASE_TAG = "v0.1.0-alpha.1"
+RELEASE_TAG = "v0.3.0-alpha.1"
 RELEASE_URL = f"https://github.com/obileonardo/clepso/releases/tag/{RELEASE_TAG}"
 
 NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
@@ -839,6 +839,9 @@ page("changelog/", "Changelog", "Every commit to Clepso, newest first.", f"""
 <h1>Changelog <span class="code-voice">// {len(log)} commits</span></h1>
 <p class="lede">Every commit, newest first. Each one passed all {len(GATES)} quality gates before it was pushed.</p>
 <p class="muted">Clepso was called Pulse until 18 Oct 2026. Older commits keep the name they were written with.</p></section>
+<div class="release"><div><p class="eyebrow">Current release · <b>{e(RELEASE_TAG)}</b></p><h2>Claude, everywhere</h2>
+<p>Desktop and VS Code limits, clearer Goals controls, weekly Calendar export and optional email accounts.</p>
+<p><a href="{RELEASE_URL}">Download and release notes</a></p></div></div>
 {f'<div class="release rv"><div><p class="eyebrow">Latest increment · <b>{e(latest_inc[0])}</b></p><h3>{e(latest_inc[1])}</h3><p>Passed every gate:</p></div><div class="gates">{gates_list}</div></div>' if latest_inc else ""}
 <div class="filters"><input type="search" placeholder="Search the changelog" aria-label="Search the changelog">{chips}</div>
 {"".join(days_html)}
