@@ -21,13 +21,15 @@ never need it, and nothing here is required to build from source (`make app` sig
   under Rosetta with it.
 - Architectures (DECISIONS C4): the app is arm64 only in alpha; the helper is universal (`arm64 x86_64`) because
   Claude Code may run it under Rosetta. Set per target in `project.yml`.
-- No accounts in alpha unless the founder decides otherwise (RELEASE_ROADMAP §5: Supabase's built-in email only reaches
-  the project team, so nobody else could sign in). `scripts/release.sh` builds without the accounts project by default,
-  so the build never touches the network; `--with-accounts` keeps `Config/Sync.local.xcconfig`.
+- v0.3 official builds include optional email accounts, authorized by the founder after custom SMTP and branded
+  delivery were verified. Build them with `--with-accounts`, using the public project settings in the gitignored
+  `Config/Sync.local.xcconfig`. Only a publishable key ships; never copy a server credential. Sign-in is explicit,
+  and uploads require a signed-in user. The script's default remains an unconfigured offline build for contributors.
 - No auto-update in alpha (C3; opt-in update checks come at beta, v0.5). Testers reinstall from the DMG.
 - Release features (`Sources/ClepsoApp/System/ReleaseFeatures.swift`): release builds use `ReleaseFeatures.shipping`.
-  v0.1 hid the player Card and Goals; v0.2 ships both, so `shipping` now shows every section. The switch stays for a
-  later hold-back. Debug builds show everything; `-ClepsoReleaseFeatures shipping` shows what a release shows.
+  v0.3 ships the Card, Goals and Claude desktop/IDE connection. The connection still requires its consent sheet;
+  shipping availability never silently installs a mod. Weekly Calendar export is available after a tap.
+  Debug builds show everything; `-ClepsoReleaseFeatures shipping` shows what a release shows.
 - What's new (`Sources/ClepsoApp/System/WhatsNew.swift`, from v0.2): Home shows the newest entry once after the version
   changes (never on a fresh install). A release with something to spotlight adds an entry at the top of
   `WhatsNew.entries` (its `version` equal to `MARKETING_VERSION`) and its text in `Copy.WhatsNewCard`; a patch without
@@ -176,8 +178,8 @@ This step needs no new app build, signing credentials in GitHub Actions or extra
 
 ## 6. Open decisions that change the signed build
 
-- **Accounts in the alpha.** Default: none (section 1). Building with `--with-accounts` puts the accounts project in
-  the app; the release notes' "No network in this build" line then has to change.
+- **Accounts in the alpha.** v0.3 official builds use `--with-accounts` after SMTP, email-provider, signup and Mac
+  callback preflight. Other builders may omit it for an offline build. Release notes disclose optional account uploads.
 - **Calendar through EventKit.** Add-to-Calendar (2.5) currently writes an `.ics` file that Calendar imports after
   asking the user, which needs no entitlement or permission. Adding events directly with EventKit write-only access
   would need `com.apple.security.personal-information.calendars` under the hardened runtime and an

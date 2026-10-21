@@ -9,8 +9,8 @@ public struct ReleaseFeatures: Sendable, Equatable {
     public var playerCard: Bool
     public var goals: Bool
     /// v0.3 "Claude, everywhere": limits from the Claude desktop app and the VS Code panel through Clepso's Claude Code
-    /// mod (docs/specs/mod-bridge.md). Its Settings row is hidden until the first live install has passed
-    /// (docs/runbooks/v0.3-live-mod-test.md).
+    /// mod (docs/specs/mod-bridge.md). Available in v0.3 after live desktop/IDE quota and restoration checks.
+    /// Installation remains an explicit opt-in through its consent sheet.
     public var claudeMod: Bool
 
     public init(playerCard: Bool, goals: Bool, claudeMod: Bool = false) {
@@ -21,9 +21,8 @@ public struct ReleaseFeatures: Sendable, Equatable {
 
     /// Everything built: debug builds and tests.
     public static let all = ReleaseFeatures(playerCard: true, goals: true, claudeMod: true)
-    /// What the next release ships. v0.2.0: the Card and Goals (v0.1.0 hid both). The Claude Code mod stays off until
-    /// its live test has passed (v0.3).
-    public static let shipping = ReleaseFeatures(playerCard: true, goals: true, claudeMod: false)
+    /// v0.3 ships the Card, Goals and the optional Claude desktop/IDE connection.
+    public static let shipping = ReleaseFeatures(playerCard: true, goals: true, claudeMod: true)
 
     /// This build's features. `debugFlag` reads a debug launch argument (always nil in release builds).
     static func current(debugFlag: (String) -> String?) -> ReleaseFeatures {

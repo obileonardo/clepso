@@ -34,8 +34,8 @@ public struct AppEnvironment: Sendable {
     public var timeZone: TimeZone
     public var locale: Locale
     public var tickInterval: Duration
-    /// 2.5 Calendar actions. Off: UX_SPEC hides them in Stage A. Debug builds turn them on with `-ClepsoCalendarActions YES`.
-    public var calendarActions = false
+    /// Weekly-reset Calendar export is available in v0.3. Creating/opening an event still requires a tap.
+    public var calendarActions = true
     /// Where Add to Calendar writes its `.ics` file (temporary: Calendar copies the event when the user adds it).
     public var calendarDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("\(Product.name) Calendar")
     /// Opens a file in its default app (Calendar, for `.ics`). Tests record the call instead.
@@ -140,7 +140,9 @@ public struct AppEnvironment: Sendable {
         environment.rewritesHome = !isolated || homeFlag != nil
         environment.features = ReleaseFeatures.current(debugFlag: flag)
         #if DEBUG
-        environment.calendarActions = UserDefaults.standard.bool(forKey: "ClepsoCalendarActions")
+        if let calendar = flag("ClepsoCalendarActions") {
+            environment.calendarActions = (calendar as NSString).boolValue
+        }
         #endif
         return environment
     }

@@ -11,11 +11,11 @@ struct ReleaseFeaturesTests {
     /// What v0.1.0 shipped: a configuration that holds both back, to keep the mechanism tested.
     static let heldBack = ReleaseFeatures(playerCard: false, goals: false)
 
-    @Test("v0.2 ships the Card and Goals: the shipping configuration hides nothing; debug builds show everything")
+    @Test("v0.3 ships the Card, Goals and desktop/IDE connection; debug builds show everything")
     func shipping() {
         #expect(ReleaseFeatures.shipping.playerCard && ReleaseFeatures.shipping.goals)
-        #expect(ReleaseFeatures.shipping == ReleaseFeatures(playerCard: true, goals: true, claudeMod: false))
-        #expect(ReleaseFeatures.all.claudeMod && !ReleaseFeatures.shipping.claudeMod)
+        #expect(ReleaseFeatures.shipping == ReleaseFeatures(playerCard: true, goals: true, claudeMod: true))
+        #expect(ReleaseFeatures.all.claudeMod && ReleaseFeatures.shipping.claudeMod)
         #expect(AppModel.DetailsSection.allCases.allSatisfy(ReleaseFeatures.shipping.allows))
         #expect(AppModel.DetailsSection.allCases.allSatisfy(ReleaseFeatures.all.allows))
         let hidden = AppModel.DetailsSection.allCases.filter { !Self.heldBack.allows($0) }
@@ -25,6 +25,7 @@ struct ReleaseFeaturesTests {
         #expect(ReleaseFeatures.current(debugFlag: { $0 == "ClepsoReleaseFeatures" ? "shipping" : nil }) == .shipping)
         let live = AppEnvironment.live(bundle: .main, flag: { $0 == "ClepsoReleaseFeatures" ? "shipping" : nil })
         #expect(live.features == .shipping)
+        #expect(live.calendarActions)
     }
 
     @Test("The sidebar lists the Card and Goals in the release, and neither when they are held back")

@@ -4,7 +4,7 @@
 |---|---|
 | **Date** | 2026-10-19 |
 | **Release** | v0.3.0-alpha "Claude, everywhere" (branch `feat/v0.3-claude-everywhere`) |
-| **Status** | Built behind `ReleaseFeatures.claudeMod` (off in release builds) until the first live install (`docs/runbooks/v0.3-live-mod-test.md`) passes |
+| **Status** | Shipping availability enabled for v0.3.0-alpha.1 after real desktop/IDE quota and restoration checks; installation remains explicit opt-in. Remaining QA is disclosed in the release notes |
 | **Normative source** | `mod/claude-code/` (the mod), `Sources/ShimProtocol/ModHandoff.swift` (hand-off allowlist), `Sources/StatusLineShim/StatusLineShim.swift` `modMain`, `Sources/ClaudeCodeAdapter/ClaudeModInstaller.swift`, `Sources/UsageEngine/PoolReducer.swift` (one source per window) |
 | **Builds on** | `statusline-shim.md` (frame v1, §6), `hook-frame.md`, `PRIVACY_AND_SECURITY.md` §4 and §7, the 19 Oct mod test (planning docs `DESKTOP_AND_IDE_LIMITS.md` §0, `evidence/mod-spike-19oct/`) |
 

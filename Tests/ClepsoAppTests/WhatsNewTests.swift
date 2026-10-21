@@ -45,6 +45,26 @@ struct WhatsNewTests {
 
     // MARK: Which entry
 
+    @Test("Updating from v0.2 shows the desktop/IDE, Calendar and Goals release entry")
+    func everywhereUpdate() async throws {
+        let mac = Mac()
+        let previous = await mac.launch("0.2.0")
+        await previous.completeOnboarding()
+        previous.stop()
+        let updated = await mac.launch("0.3.0")
+        let entry = try #require(updated.whatsNew)
+        #expect(entry.version == "0.3.0")
+        #expect(entry.highlights.map(\.section) == [.settings, .limits, .goals])
+        for highlight in entry.highlights {
+            #expect(PixelGlyph(symbol: highlight.symbol) != .question)
+        }
+        await updated.dismissWhatsNew()
+        updated.stop()
+        let relaunched = await mac.launch("0.3.0")
+        #expect(relaunched.whatsNew == nil)
+        relaunched.stop()
+    }
+
     @Test("The newest entry after the last seen version and no later than this one; nothing for a patch, a downgrade or a dev build")
     func choosing() throws {
         let v02 = try #require(Self.v02)

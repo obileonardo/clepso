@@ -82,9 +82,9 @@ struct ClaudeModTests {
         #expect(!model.claudeModOn)
     }
 
-    @Test("Held back in the release until the live test passes; shown in debug builds")
+    @Test("Desktop/IDE connection ships after live verification; installation is still opt-in")
     func releaseFlag() {
-        #expect(!ReleaseFeatures.shipping.claudeMod)
+        #expect(ReleaseFeatures.shipping.claudeMod)
         #expect(ReleaseFeatures.all.claudeMod)
     }
 }
