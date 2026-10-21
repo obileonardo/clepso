@@ -1,0 +1,58 @@
+{
+  "opus": [
+    ".....aa.....",
+    "....aaaa....",
+    "...aaaaaa...",
+    "..aaaaaaaa..",
+    "....bbbb....",
+    "....bdbd....",
+    "....bbbb...c",
+    "...aaaaaa..c",
+    "..aaaaaaaa.c",
+    "..a.aaaa.a.c",
+    "....aaaa...c",
+    "...aa..aa..."
+  ],
+  "sonnet": [
+    "....bbbb....",
+    "...bbbbbb...",
+    "...bddddb...",
+    "...bbbbbb...",
+    "....bbbb..b.",
+    "..aaaaaaaa.b",
+    ".aaaaaaaaa.b",
+    ".a.aaaaaa.ab",
+    ".c.aaaaaa...",
+    "...aaaaaa...",
+    "...aa..aa...",
+    "..aaa..aaa.."
+  ],
+  "haiku": [
+    "............",
+    ".....bb.....",
+    "....bbbb....",
+    ".c..bdbd..c.",
+    ".cc.bbbb.cc.",
+    ".ccc.aa.ccc.",
+    "..ccaaaacc..",
+    "...caaaac...",
+    "....aaaa....",
+    "....a..a....",
+    "............",
+    "............"
+  ],
+  "fable": [
+    "..aaaaa.....",
+    ".aaaaaaac...",
+    "....bbbb....",
+    "....bdbd....",
+    "....bbbb....",
+    "...aaaaaa.c.",
+    "..aaaaaaacc.",
+    "..a.aaaaccc.",
+    "....aaaa.c..",
+    "....aaaa....",
+    "...aa..aa...",
+    "............"
+  ]
+}

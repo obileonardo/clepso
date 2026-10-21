@@ -240,7 +240,8 @@ enum Copy {
         static let profile = "Profile", profileSub = "The name Home greets you with and the card shows."
         static let plan = "Plan", planSub = "The plan you chose. \(product) never guesses it from usage."
         static let signIn = "Sign in", signInSub = "Optional. Sign in to see goals and usage on the web."
-        static let sync = "Upload"
+        static let connection = "Connection", connectionSub = "Your Clepso account is connected."
+        static let sync = "Upload", syncSub = "Keep your web dashboard updated."
         static let year = "Your year", yearSub = "Every day you used Claude Code this year."
         static let emailLink = "Email link", emailSub = "A one-time link, no password"
         static let connected = "CONNECTED", soon = "Soon", soonSub = "Being set up"
@@ -553,7 +554,9 @@ enum Copy {
     /// Clepso accounts.
     enum Sync {
         static let title = "CLEPSO ACCOUNT"
-        static let explainer = "Sign in to see your goals and usage on the web (and later on iPhone). Once an hour \(product) uploads daily counts only: messages, sessions and tokens per model per day (when Claude Code stats are on), each day's limit peaks, agents per task (when counting is on), your goals and your name and plan. Never prompts, replies, file paths, project names or session ids. Delete the account at any time and everything on the server goes with it."
+        static let summary = "Daily summaries upload hourly. Prompts, replies and files stay on this Mac."
+        static let detailsTitle = "What gets uploaded?"
+        static let explainer = "Once an hour \(product) uploads daily counts only: messages, sessions and tokens per model per day (when Claude Code stats are on), each day's limit peaks, agents per task (when counting is on), your goals and your name and plan. Never prompts, replies, file paths, project names or session ids. Delete the account at any time and everything on the server goes with it."
         static let emailPlaceholder = "you@example.com"
         static let emailMe = "Email me a link"
         static func linkSent(_ email: String) -> String { "Check \(email): open the link on this Mac to sign in. It works once and expires within the hour." }

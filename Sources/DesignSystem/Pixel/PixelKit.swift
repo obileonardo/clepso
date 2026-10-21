@@ -498,7 +498,7 @@ public struct PixelSegmented<Option: Hashable>: View {
     }
 }
 
-/// A switch in the pixel style (increment 1.11): a stepped track with a square knob, lit when on, "ON"/"OFF" said in
+/// A switch in the pixel style (increment 1.11): a stepped track with a matching inset knob, lit when on, "ON"/"OFF" said in
 /// words beside it so the state never rests on colour or position alone.
 public struct PixelToggleStyle: ToggleStyle {
     @Environment(\.theme) private var theme
@@ -517,7 +517,9 @@ public struct PixelToggleStyle: ToggleStyle {
                 ZStack(alignment: on ? .trailing : .leading) {
                     PixelRect(step: theme.stroke(.hairline) * 2).fill(theme.color(on ? .accent : .surfaceMuted, scheme).opacity(on ? 0.35 : 1))
                     PixelRect(step: theme.stroke(.hairline) * 2).strokeBorder(theme.color(on ? .accent : .separator, scheme), lineWidth: theme.stroke(.hairline))
-                    Rectangle().fill(theme.color(on ? .accent : .textSecondary, scheme))
+                    // One fewer corner step than the frame, as with the pixel meter's inset fill.
+                    PixelSteppedRect(step: theme.stroke(.hairline) * 2, steps: 1)
+                        .fill(theme.color(on ? .accent : .textSecondary, scheme))
                         .frame(width: unit * 2, height: unit * 2).padding(unit / 2)
                 }
                 .frame(width: unit * 5, height: unit * 3)
