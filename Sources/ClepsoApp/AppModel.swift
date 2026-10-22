@@ -45,6 +45,7 @@ public final class AppModel {
     public internal(set) var manualAllowances: [ManualAllowance] = []
     public internal(set) var mcpClients: [String] = []
     public internal(set) var widgetsEnabled = false
+    public internal(set) var widgetSharingBusy = false
     var lastWidgetSnapshot: UsageSnapshot?
     public internal(set) var integrationMessage: String?
     public internal(set) var updateChecksEnabled = false
@@ -211,7 +212,14 @@ public final class AppModel {
             dataRetention = (try await store.preference(Pref.dataRetention, as: DataRetention.self) ?? DataRetention()).validated
             manualAllowances = try await store.manualAllowances()
             mcpClients = SnapshotFile(dataDirectory: environment.dataDirectory).clients()
-            widgetsEnabled = try await store.preference(Pref.widgets, as: Bool.self) ?? false
+            let widgetChoice = try await store.preference(Pref.widgets, as: Bool.self)
+            widgetsEnabled = widgetChoice ?? false
+            // Finish an off transition interrupted after its preference was committed. Never resolve a group
+            // container for a user who has not configured widget sharing.
+            if widgetChoice == false, let container = environment.widgetContainer() {
+                do { try SnapshotFile(dataDirectory: container).removeSnapshot(); environment.reloadWidgets() }
+                catch { integrationMessage = "Widget sharing is off, but its previous snapshot could not be cleared. Try turning sharing off again." }
+            }
             diagnostics.setRetention(days: dataRetention.logs)
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
@@ -1010,10 +1018,15 @@ public final class AppModel {
         if items.contains(.data) {
             do { try SnapshotFile(dataDirectory: environment.dataDirectory).revokeAndRemove() }
             catch { return DeleteReport(failure: "Could not revoke integration access. No usage data was deleted.") }
-            if widgetsEnabled {
-                await setWidgetsEnabled(false)
-                if widgetsEnabled { return DeleteReport(failure: "Could not clear widget sharing. No usage data was deleted.") }
-            }
+            guard !widgetSharingBusy else { return DeleteReport(failure: "A sharing change is still being saved. Try deleting data again shortly.") }
+            // Deletion must also work when storage failed to open. Clear the external snapshot synchronously
+            // before closing/removing SQLite; no publisher can interleave this main-actor transition.
+            do {
+                if let container = environment.widgetContainer() { try SnapshotFile(dataDirectory: container).removeSnapshot() }
+            } catch { return DeleteReport(failure: "Could not clear widget sharing. No usage data was deleted.") }
+            widgetsEnabled = false
+            lastWidgetSnapshot = nil
+            environment.reloadWidgets()
             stop()
             try? await store?.close()
             store = nil

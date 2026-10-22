@@ -70,6 +70,39 @@ struct IntegrationSharingTests {
         #expect(!model.widgetsEnabled)
         #expect(model.integrationMessage != nil)
     }
+    @Test func interruptedWidgetOptOutIsClearedOnRestart() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let container = box.root.appendingPathComponent("widget")
+        let clock = TestClock()
+        var environment = box.model(clock: clock).environment
+        environment.widgetContainer = { container }
+        let first = AppModel(environment: environment)
+        await first.start()
+        await first.setWidgetsEnabled(true)
+        let shared = SnapshotFile(dataDirectory: container)
+        #expect((try? shared.load()) != nil)
+        // Crash boundary: the off choice reached SQLite, but the old shared snapshot still exists.
+        try await first.store?.setPreference(AppModel.Pref.widgets, false, now: clock.now())
+        first.stop()
+        let second = AppModel(environment: environment); await second.start(); defer { second.stop() }
+        #expect(!second.widgetsEnabled)
+        #expect((try? shared.load()) == nil)
+    }
+    @Test func concurrentRefreshCannotUndoWidgetOptOut() async throws {
+        let box = Sandbox(); defer { box.cleanUp() }
+        let container = box.root.appendingPathComponent("widget")
+        var environment = box.model(clock: TestClock()).environment
+        environment.widgetContainer = { container }
+        let model = AppModel(environment: environment); await model.start(); defer { model.stop() }
+        for _ in 0..<20 {
+            await model.setWidgetsEnabled(true)
+            async let disabled = model.setWidgetsEnabled(false)
+            async let refreshed: Void = model.refresh()
+            let (off, _) = await (disabled, refreshed)
+            #expect(off && !model.widgetsEnabled)
+            #expect((try? SnapshotFile(dataDirectory: container).load()) == nil)
+        }
+    }
     @Test func updateSettingsUseInjectedControllerOnly() async {
         let box = Sandbox(); defer { box.cleanUp() }
         let updater = UnavailableUpdater()

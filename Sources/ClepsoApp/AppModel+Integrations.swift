@@ -41,23 +41,31 @@ extension AppModel {
         } catch { integrationMessage = "The integration snapshot could not be written. Clients cannot read current usage." }
     }
 
-    public func setWidgetsEnabled(_ enabled: Bool) async {
-        guard let store else { integrationMessage = "Clepso is still opening its data. Try again shortly."; return }
+    @discardableResult public func setWidgetsEnabled(_ enabled: Bool) async -> Bool {
+        guard !widgetSharingBusy else { return false }
+        guard let store else { integrationMessage = "Clepso is still opening its data. Try again shortly."; return false }
         if enabled, environment.widgetContainer() == nil {
-            integrationMessage = "Widget sharing is unavailable in this app signature. Install the signed Clepso release."; return
+            integrationMessage = "Widget sharing is unavailable in this app signature. Install the signed Clepso release."; return false
         }
+        widgetSharingBusy = true
+        defer { widgetSharingBusy = false }
         do {
-            if !enabled, let container = environment.widgetContainer() { try SnapshotFile(dataDirectory: container).removeSnapshot() }
+            // Persist first, block publishers across the await, then clear. A crash between the two operations
+            // is reconciled on launch from the explicit false preference.
             try await store.setPreference(Pref.widgets, enabled, now: environment.clock.now())
+            if !enabled, let container = environment.widgetContainer() { try SnapshotFile(dataDirectory: container).removeSnapshot() }
             widgetsEnabled = enabled
             lastWidgetSnapshot = nil
+            widgetSharingBusy = false
+            integrationMessage = nil
             if enabled { publishWidget() }
             environment.reloadWidgets()
-        } catch { integrationMessage = "Could not save widget sharing. Try again." }
+            return true
+        } catch { integrationMessage = "Could not finish changing widget sharing. The previous snapshot may remain; try again."; return false }
     }
 
     private func publishWidget() {
-        guard widgetsEnabled, let container = environment.widgetContainer() else { return }
+        guard widgetsEnabled, !widgetSharingBusy, let container = environment.widgetContainer() else { return }
         do {
             let file = SnapshotFile(dataDirectory: container)
             let value = integrationSnapshot()

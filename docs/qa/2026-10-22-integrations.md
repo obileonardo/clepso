@@ -5,10 +5,10 @@ This report distinguishes implementation checks from public distribution and phy
 
 | Check | Observed result |
 | --- | --- |
-| Strict local CI | All 17 gates passed; warnings-as-errors build and 557 tests across 111 suites |
+| Strict local CI | All 17 gates passed; warnings-as-errors build and 559 tests across 111 suites |
 | MCP dispatch/file boundary | Six tests: permission/revocation, symlink/mode/schema bounds, malformed/unknown requests, demo/missing/stale/reset handling |
 | Real MCP client | Official TypeScript SDK 1.32.1 initialized, listed and called both tools, filtered, rejected arbitrary arguments and observed revocation; no model prompt |
-| Integration lifecycle | Five app tests: default off, real projection, demo exclusion, restart persistence, independent widget/MCP sharing and deletion |
+| Integration lifecycle | Seven app tests: default off, real projection, demo exclusion, restart persistence, independent widget/MCP sharing and deletion |
 | Native level-up trigger | Two tests: real new threshold only; selection/range/demo/hidden/replay/unknown-output cases suppressed |
 | Widget build/signature | Signed embedded WidgetKit extension; version matches host; sandbox and exact team-prefixed group entitlements verified |
 | Offscreen widget rendering | Actual widget source, small/medium and light/dark; fresh, old, reset-expected and missing fixtures |
@@ -43,3 +43,14 @@ The first Developer ID export check correctly stopped on Sparkle Autoupdate's pr
 Mach-O confirmed this was the sole extra installer identifier; the exact role-specific allowlist now accepts it.
 The other four Sparkle binaries have no entitlements. All binaries still require Clepso's Developer ID team,
 hardened runtime, secure timestamp and the exact executable inventory. No arbitrary entitlement exemption was added.
+
+Final privacy review added a publication guard across widget preference writes, startup reconciliation of an
+interrupted opt-out, and direct snapshot cleanup during data deletion even when SQLite cannot open. Seven focused
+sharing tests passed, including concurrent refresh/opt-out and a simulated crash boundary. These changes require
+a new signed source build; the earlier build 235 artifact is superseded and must not be published.
+
+On the earlier artifact, the official Sparkle verifier accepted the signed feed/archive and rejected a changed
+signed download URL and a substituted archive. Appended XML comments are outside the signed payload, so the
+negative feed test deliberately changes the enclosure URL. Repeat signature checks on the final artifact.
+
+Final strict rerun after the opt-out correction: all 17 gates passed; 559 tests across 111 suites.

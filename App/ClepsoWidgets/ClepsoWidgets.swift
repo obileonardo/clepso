@@ -54,8 +54,8 @@ struct LimitsWidgetView: View {
                 }
             }
             if rows.isEmpty {
-                Text("Your limits, here.").font(theme.font(.label))
-                Text("Open Clepso → Settings → Integrations to share widget readings.")
+                Text(entry.snapshot == nil ? "Your limits, here." : "Waiting for a reading.").font(theme.font(.label))
+                Text(entry.snapshot == nil ? "Open Clepso → Settings → Integrations to share widget readings." : "Connect a reader in Clepso. Reported limits will appear here.")
                     .font(theme.font(.supporting)).foregroundStyle(theme.color(.textSecondary, scheme))
             } else {
                 if family == .systemMedium {

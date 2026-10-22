@@ -154,6 +154,7 @@ struct SettingsSection: View {
             group("Integrations") {
                 row("square.grid.2x2", "Desktop widgets", "Share limits with Clepso’s small and medium widgets. Widgets refresh on macOS’s schedule and label old readings.") {
                     toggle(model.widgetsEnabled) { value in Task { await model.setWidgetsEnabled(value) } }
+                        .disabled(model.widgetSharingBusy)
                 }
                 row("link", "Clepso MCP", "Share read-only limits and reader health with a client you choose. Your client may send these readings to its AI provider.") { EmptyView() }
                 ForEach(model.mcpClients, id: \.self) { client in
