@@ -5,9 +5,12 @@ DerivedData/
 .DS_Store
 site/.vercel/
 .tools/
+Tests/MCPClient/node_modules/
 build/
 App/ClepsoMac/Info.plist
 App/ClepsoMac/ClepsoMac.entitlements
+App/ClepsoWidgets/Info.plist
+App/ClepsoWidgets/ClepsoWidgets.entitlements
 
 # Local build configuration: signing identity and the accounts project (Config/*.example are the templates)
 Config/*.local.xcconfig

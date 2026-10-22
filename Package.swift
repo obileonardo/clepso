@@ -8,6 +8,9 @@ let package = Package(
     platforms: [.macOS(.v14), .iOS(.v17), .watchOS(.v10)],
     products: [
         .library(name: "Domain", targets: ["Domain"]),
+        .library(name: "IntegrationSnapshot", targets: ["IntegrationSnapshot"]),
+        .library(name: "ClepsoMCP", targets: ["ClepsoMCP"]),
+        .library(name: "ClaudeCodeAdapter", targets: ["ClaudeCodeAdapter"]),
         .library(name: "ShimProtocol", targets: ["ShimProtocol"]),
         .library(name: "Storage", targets: ["Storage"]),
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
@@ -25,6 +28,8 @@ let package = Package(
     targets: [
         // Value types, provenance, ids. No I/O, no clock reads.
         .target(name: "Domain"),
+        .target(name: "IntegrationSnapshot"),
+        .target(name: "ClepsoMCP", dependencies: ["IntegrationSnapshot"]),
         // Socket frame v1 and the approved field allowlist (PRIVACY_AND_SECURITY §4). Foundation only.
         .target(name: "ShimProtocol"),
         // The helper's run loop: stdin, child spawn, frame, socket send (ARCHITECTURE §3).
@@ -42,12 +47,12 @@ let package = Package(
         // Increment 3.4: Codex limits from its own session files.
         .target(name: "CodexAdapter", dependencies: ["Domain"]),
         // Headless CLI: reversible install/uninstall now; replay, status and export later (ARCHITECTURE §2).
-        .executableTarget(name: "clepso", dependencies: ["ClaudeCodeAdapter"]),
+        .executableTarget(name: "clepso", dependencies: ["ClaudeCodeAdapter", "ClepsoMCP"]),
         // The bundled plan catalog seed; signed downloads arrive in 3.1.
         .target(name: "SubscriptionCatalog", resources: [.copy("Resources/plan-catalog.v1.json")]),
         // Composition root, view models and screens (ARCHITECTURE §2). The Xcode app target is a thin @main over this.
         .target(name: "ClepsoApp", dependencies: ["DesignSystem", "Domain", "Storage", "UsageEngine", "ClaudeCodeAdapter", "CodexAdapter",
-                                                 "SubscriptionCatalog", "ShimProtocol", "Sync"]),
+                                                 "SubscriptionCatalog", "ShimProtocol", "Sync", "IntegrationSnapshot"]),
         // Clepso accounts: the only module allowed to make network calls.
         .target(name: "Sync"),
         // Developer-only fixture tooling: capture listener, capture shim, scrubber. Never shipped.
@@ -59,6 +64,7 @@ let package = Package(
         .target(name: "TestFixtures", resources: [.copy("Resources")]),
 
         .testTarget(name: "DomainTests", dependencies: ["Domain"]),
+        .testTarget(name: "IntegrationSnapshotTests", dependencies: ["IntegrationSnapshot", "ClepsoMCP"]),
         .testTarget(name: "ShimProtocolTests", dependencies: ["ShimProtocol"]),
         .testTarget(name: "UsageEngineTests", dependencies: ["UsageEngine", "Domain"]),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem", "Domain"]),
@@ -69,7 +75,7 @@ let package = Package(
         .testTarget(name: "SubscriptionCatalogTests", dependencies: ["SubscriptionCatalog"]),
         .testTarget(name: "SyncTests", dependencies: ["Sync"]),
         .testTarget(name: "ClepsoAppTests", dependencies: ["ClepsoApp", "DesignSystem", "Domain", "Storage", "UsageEngine",
-                                                          "ClaudeCodeAdapter", "ShimProtocol", "SubscriptionCatalog", "Sync"]),
+                                                          "ClaudeCodeAdapter", "ShimProtocol", "SubscriptionCatalog", "Sync", "IntegrationSnapshot"]),
         // Runs the built clepso-statusline binary as a child process against a temporary HOME.
         .testTarget(name: "ShimIntegrationTests", dependencies: ["clepso-statusline", "clepso", "Domain", "ShimProtocol", "TestFixtures", "ClaudeCodeAdapter", "FixtureTools",
                                                              "UsageEngine", "Storage", "ClepsoApp"]),

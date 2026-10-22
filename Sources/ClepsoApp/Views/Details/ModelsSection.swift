@@ -49,7 +49,8 @@ struct ModelsSection: View {
                 switch model.modelsView {
                 case .arena:
                     ModelDossier(entry: chosen, range: summary.range, activity: ModelsRoster.activity(chosen.id, summary: summary, from: first),
-                                 weekly: StatsSummary.Day.between(first, summary.today) + 1 > 120, from: first)
+                                 weekly: StatsSummary.Day.between(first, summary.today) + 1 > 120, from: first,
+                                 levelUpdates: !model.demo, now: { [clock = model.environment.clock] in clock.now() })
                 case .chart:
                     StackedModelChart(summary: summary, from: first, to: summary.today, highlight: roster.showsRoster ? chosen.id : nil)
                 }

@@ -56,6 +56,12 @@ jobs:
           set -o pipefail
           swift test --skip-build --xunit-output .build/test-results.xml 2>&1 | tee .build/swift-tests.log
 
+      - name: Official MCP client interoperability
+        run: |
+          node --version
+          npm ci --prefix Tests/MCPClient --ignore-scripts --no-audit --no-fund
+          npm --prefix Tests/MCPClient test
+
       - name: Keep test failure evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

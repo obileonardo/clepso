@@ -9,6 +9,7 @@ import enum Domain.Product
 import struct Domain.Redacted
 import struct Domain.ManualAllowance
 import Foundation
+import IntegrationSnapshot
 import enum SwiftUI.ColorScheme
 import Observation
 import enum ShimProtocol.HookFrame
@@ -42,6 +43,12 @@ public final class AppModel {
     public internal(set) var reminderLead: Int?
     public internal(set) var dataRetention = DataRetention()
     public internal(set) var manualAllowances: [ManualAllowance] = []
+    public internal(set) var mcpClients: [String] = []
+    public internal(set) var widgetsEnabled = false
+    var lastWidgetSnapshot: UsageSnapshot?
+    public internal(set) var integrationMessage: String?
+    public internal(set) var updateChecksEnabled = false
+    public internal(set) var updateDownloadsEnabled = false
     public internal(set) var dashboardRequests = 0
     /// On only when the user chose it here and the system confirms it. `SMAppService.mainApp.status` was seen
     /// reporting `.enabled` for a development build that never registered, so the system's word alone is not enough.
@@ -175,6 +182,8 @@ public final class AppModel {
     public func start() async {
         guard !started else { return }
         started = true
+        updateChecksEnabled = environment.updater?.automaticChecks ?? false
+        updateDownloadsEnabled = environment.updater?.automaticDownloads ?? false
         PixelFonts.ensureRegistered()                    // before the first popover open, not during it
         let now = environment.clock.now()
         diagnostics.record(.appStarted(version: environment.appVersion))
@@ -201,6 +210,8 @@ public final class AppModel {
             reminderLead = try await store.preference(Pref.reminderLead, as: Int.self).flatMap { $0 > 0 ? $0 : nil }
             dataRetention = (try await store.preference(Pref.dataRetention, as: DataRetention.self) ?? DataRetention()).validated
             manualAllowances = try await store.manualAllowances()
+            mcpClients = SnapshotFile(dataDirectory: environment.dataDirectory).clients()
+            widgetsEnabled = try await store.preference(Pref.widgets, as: Bool.self) ?? false
             diagnostics.setRetention(days: dataRetention.logs)
             profileName = try await store.preference(Pref.profileName, as: String.self) ?? Greeting.defaultName(fullUserName: environment.fullUserName)
             goals = try await store.preference(Pref.goals, as: Goals.self) ?? Goals()
@@ -380,6 +391,7 @@ public final class AppModel {
                                                zone: environment.timeZone, locale: environment.locale)
         guard mine == generation else { return }         // a newer refresh finished first
         self.snapshot = snapshot
+        publishIntegrations()
         if case .storage = problem { problem = nil }
     }
 
@@ -607,6 +619,9 @@ public final class AppModel {
     /// The sign-in link's return to the app (`clepso://auth-callback?code=…`).
     public func handleOpenURL(_ url: URL) async {
         guard url.scheme == SyncConfig.urlScheme else { return }
+        if url.host == "dashboard", url.query == nil, url.fragment == nil {
+            detailsSection = .limits; return
+        }
         // An isolated debug run shares the installed app's URL scheme: a link for a sign-in it did not start is not its own.
         if environment.isolated, !(await environment.sync.hasPendingSignIn) { return }
         detailsSection = .account
@@ -993,6 +1008,12 @@ public final class AppModel {
 
         // The database (and with it every preference) and the socket: the app starts over as a fresh install.
         if items.contains(.data) {
+            do { try SnapshotFile(dataDirectory: environment.dataDirectory).revokeAndRemove() }
+            catch { return DeleteReport(failure: "Could not revoke integration access. No usage data was deleted.") }
+            if widgetsEnabled {
+                await setWidgetsEnabled(false)
+                if widgetsEnabled { return DeleteReport(failure: "Could not clear widget sharing. No usage data was deleted.") }
+            }
             stop()
             try? await store?.close()
             store = nil
@@ -1004,10 +1025,10 @@ public final class AppModel {
                 let databases = [LegacyDataMigration.databaseName, LegacyDataMigration.legacyDatabaseName]
                 let contents = (try? fm.contentsOfDirectory(atPath: data.path)) ?? []
                 let migrationBackups = contents.filter { name in databases.contains { name.hasPrefix("\($0).pre-") } && name.hasSuffix(".bak") }
-                var names = databases.flatMap { db in [db] + LegacyDataMigration.companions.map { db + $0 } } + ["run/agent.sock"] + migrationBackups
+                var names = databases.flatMap { db in [db] + LegacyDataMigration.companions.map { db + $0 } } + ["run/agent.sock", "integrations/mcp-clients.json"] + migrationBackups
                 if items.contains(.diagnostics) { names.append("diagnostics.jsonl") }
                 for name in names { try? fm.removeItem(at: data.appendingPathComponent(name)) }
-                for folder in [data.appendingPathComponent("run"), data] where (try? fm.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {
+                for folder in [data.appendingPathComponent("run"), data.appendingPathComponent("integrations"), data] where (try? fm.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {
                     try? fm.removeItem(at: folder)
                 }
                 leftovers += ((try? fm.contentsOfDirectory(atPath: data.path)) ?? []).filter { $0 != "diagnostics.jsonl" }
@@ -1053,6 +1074,9 @@ public final class AppModel {
         reminderLead = nil
         dataRetention = DataRetention()
         manualAllowances = []
+        mcpClients = []
+        widgetsEnabled = false
+        integrationMessage = nil
         codexConnection = nil
         lastSync = nil
         accountMessage = nil
@@ -1073,6 +1097,7 @@ public final class AppModel {
 
     enum Pref {
         static let onboardingComplete = "onboarding.completed"
+        static let widgets = "integrations.widgets.v1"
         static let demo = "demo.enabled"
         static let showPercent = "menubar.showPercent"
         static let menuBarDisplay = "menubar.display"

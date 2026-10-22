@@ -21,11 +21,14 @@ settings:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: $(CLEPSO_CODE_SIGN_IDENTITY)      # "-" (ad hoc) unless Config/Signing.local.xcconfig sets it
     ENABLE_HARDENED_RUNTIME: YES       # on every target
-    MARKETING_VERSION: 0.3.0
+    MARKETING_VERSION: 0.4.0
     CURRENT_PROJECT_VERSION: 1
 packages:
   Clepso:
     path: .
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
 # Stable CLI/archive scheme in every fresh checkout, without relying on Xcode's user-local auto-created schemes.
 schemes:
   ClepsoMac:
@@ -62,9 +65,19 @@ targets:
         ClepsoSyncHost: $(CLEPSO_SYNC_HOST)                        # empty in builds from source: Sync stays off
         ClepsoSyncPublishableKey: $(CLEPSO_SYNC_PUBLISHABLE_KEY)
         ClepsoSyncProviders: $(CLEPSO_SYNC_PROVIDERS)
+        ClepsoWidgetGroup: $(CLEPSO_WIDGET_GROUP)
+        SUFeedURL: https://clepso-app.vercel.app/updates/appcast.xml
+        SUPublicEDKey: WeaRornZqBUmFaOutT62FtvopukvrlEZPCEiapwbCpk=
+        SUEnableAutomaticChecks: false
+        SUAutomaticallyUpdate: false
+        SUAllowsAutomaticUpdates: true
+        SUSendProfileInfo: false
+        SURequireSignedFeed: true
+        SUVerifyUpdateBeforeExtraction: true
     entitlements:
       path: App/ClepsoMac/ClepsoMac.entitlements
-      properties: {}                   # empty: no sandbox (Clepso edits ~/.claude), no network entitlement, no exceptions
+      properties:
+        com.apple.security.application-groups: [$(CLEPSO_WIDGET_GROUP)]
     settings:
       base:
         PRODUCT_NAME: Clepso
@@ -75,12 +88,69 @@ targets:
     dependencies:
       - package: Clepso
         product: ClepsoApp
+      - package: Sparkle
+        product: Sparkle
+      - target: ClepsoWidgets
+        embed: true
+        codeSign: true
       - target: clepso-statusline
         embed: true
         codeSign: true
         copy:
           destination: wrapper
           subpath: Contents/Helpers
+      - target: clepso
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
+  clepso:
+    type: tool
+    platform: macOS
+    sources: [Sources/clepso]
+    settings:
+      base:
+        PRODUCT_NAME: clepso
+        PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso.cli
+        SKIP_INSTALL: YES
+        GENERATE_INFOPLIST_FILE: YES
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES
+    dependencies:
+      - package: Clepso
+        product: ClaudeCodeAdapter
+      - package: Clepso
+        product: ClepsoMCP
+  ClepsoWidgets:
+    type: app-extension
+    platform: macOS
+    sources: [App/ClepsoWidgets]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso.widgets
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
+        ENABLE_APP_SANDBOX: YES
+        ARCHS: arm64
+    info:
+      path: App/ClepsoWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Clepso
+        ClepsoWidgetGroup: $(CLEPSO_WIDGET_GROUP)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: App/ClepsoWidgets/ClepsoWidgets.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.application-groups: [$(CLEPSO_WIDGET_GROUP)]
+    dependencies:
+      - package: Clepso
+        product: IntegrationSnapshot
+      - package: Clepso
+        product: DesignSystem
   clepso-statusline:
     type: tool
     platform: macOS

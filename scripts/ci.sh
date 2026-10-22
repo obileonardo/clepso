@@ -246,7 +246,7 @@ app_bundle() {
     local helper="$app/Contents/Helpers/clepso-statusline"
     [ -x "$helper" ] || { echo "helper missing"; return 1; }
     local helpers; helpers=$(ls "$app/Contents/Helpers")
-    [ "$helpers" = "clepso-statusline" ] || { echo "unexpected files in Contents/Helpers: $helpers"; return 1; }
+    [ "$helpers" = $'clepso\nclepso-statusline' ] || { echo "unexpected files in Contents/Helpers: $helpers"; return 1; }
     # Capture first, then match: `cmd | grep -q` under pipefail fails when grep closes the pipe early.
     local info
     info=$(codesign -dv "$helper" 2>&1)
@@ -262,7 +262,12 @@ app_bundle() {
     done
     local keys
     keys=$(codesign -d --entitlements - --xml "$app" 2>/dev/null | plutil -convert json -o - - | python3 -c 'import json,sys; print(" ".join(sorted(json.load(sys.stdin))))')
-    [ "$keys" = "com.apple.security.get-task-allow" ] || [ -z "$keys" ] || { echo "unexpected entitlements: $keys"; return 1; }
+    [ "$keys" = "com.apple.security.application-groups com.apple.security.get-task-allow" ] || [ "$keys" = "com.apple.security.application-groups" ] || { echo "unexpected entitlements: $keys"; return 1; }
+    local widget="$app/Contents/PlugIns/ClepsoWidgets.appex"
+    [ -x "$widget/Contents/MacOS/ClepsoWidgets" ] || { echo "widget extension missing"; return 1; }
+    [ "$(plutil -extract CFBundleShortVersionString raw "$widget/Contents/Info.plist")" = "$(plutil -extract CFBundleShortVersionString raw "$app/Contents/Info.plist")" ] || { echo "widget version mismatch"; return 1; }
+    [ "$(plutil -extract SURequireSignedFeed raw "$app/Contents/Info.plist")" = true ] || { echo "signed update feed required"; return 1; }
+    [ "$(plutil -extract SUVerifyUpdateBeforeExtraction raw "$app/Contents/Info.plist")" = true ] || { echo "update signature must be checked before extraction"; return 1; }
     [ "$(plutil -extract LSUIElement raw "$app/Contents/Info.plist")" = "true" ] || { echo "LSUIElement not set"; return 1; }
     # The app may upload (optional Sync); the helper Claude Code runs must never touch the network.
     local net

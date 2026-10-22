@@ -38,7 +38,7 @@ def git(*args):
 
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
 # The latest public build; bump with each release (docs/RELEASE.md).
-RELEASE_TAG = "v0.3.0-alpha.3"
+RELEASE_TAG = "v0.4.0-alpha.1"
 RELEASE_URL = f"https://github.com/obileonardo/clepso/releases/tag/{RELEASE_TAG}"
 
 NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
@@ -46,6 +46,7 @@ MENU = [("Docs", [("", "Overview"), ("metrics/", "Metrics"), ("architecture/", "
         ("Project", [("progress/", "Progress"), ("changelog/", "Changelog"), ("screens/", "Screens"), ("design-system/", "Design system"),
                      ("characters/", "Characters"), ("app/", "Web dashboard")])]
 DOC_PAGES = [("metrics/", "Metrics"), ("architecture/", "Architecture"), ("privacy/", "Privacy")]
+MENU[0][1].append(("integrations/", "Widgets, MCP & updates"))
 
 # ------------------------------------------------------------------------------------------------------------ shell
 
@@ -698,7 +699,11 @@ docs_page("architecture/", "Architecture", "How Clepso is put together: processe
 
 docs_page("privacy/", "Privacy", "What Clepso reads, what it keeps on your Mac, and what it uploads if you sign in.",
           "Clepso works fully on your Mac without an account. If you choose to sign in, it uploads daily counts so you can see your "
-          "goals and usage elsewhere. This page lists every field. Draft, 17 October 2026.", """
+          "goals and usage elsewhere. Published by Elvis Obi, Lagos, Nigeria. Updated 22 October 2026.", """
+<h2 id="publisher">Publisher and contact</h2>
+<p>Clepso is published by <strong>Elvis Obi</strong>, Lagos, Nigeria. For privacy questions, corrections or requests,
+email <a href="mailto:contact@elvisobi.com">contact@elvisobi.com</a>. Clepso is independent software and is not affiliated
+with the AI providers whose usage it displays.</p>
 <h2 id="mac">On your Mac</h2>
 <p>Clepso reads Claude Code's status line (limits, model, context, session cost estimate, durations, lines changed), and, only if you turn them
 on, Claude Code's statistics file, four background hooks that count subagents per task, and Codex's session files (only the
@@ -723,7 +728,27 @@ ids, per-session cost, your Claude account details or anything about other apps.
 <h2 id="account">Your account</h2>
 <p>Sign-in is by email link (Apple, Google and GitHub to follow). Your email is held by the sign-in service to send links; it is not stored
 with your counts. <strong>Delete account</strong> (Clepso › Account) deletes the account and every row stored with it, at once. Signing out
-stops uploads; deleting the account removes what was uploaded. Nothing is sold or shared, and there is no advertising or tracking.</p>
+stops uploads; deleting the account removes what was uploaded. Clepso does not sell personal data or use advertising trackers.</p>
+
+<h2 id="integrations">Optional local integrations</h2>
+<p>Desktop widgets and MCP sharing start off. Widgets receive only provider/window names, reported percentages,
+observation and reset times, source and state in an app-group container. MCP exposes the same allowlisted fields
+to clients you explicitly allow in Settings. Your MCP client may forward readings to its AI service. Revoke a client
+in Settings; deleting local data revokes all grants. Local processes running under your Mac account can read this
+shared snapshot. Neither integration receives prompts, replies, paths, session identifiers, email addresses or credentials.</p>
+<p>When enabled, automatic updates contact the Clepso update feed hosted on Vercel and download releases from GitHub.
+Update archives and feeds are signed. Automatic checks and downloads are choices in Settings; no system profile is sent.</p>
+
+<h2 id="services">Service providers</h2>
+<p>The public website is hosted on Vercel; downloads are hosted on GitHub. Optional accounts use Supabase for
+authentication and storage and Namecheap Private Email for sign-in delivery. These services process the requests
+needed to provide those features, including normal connection metadata such as IP addresses. Reading usage locally
+does not require a Clepso account. Provider account subscriptions remain with their respective providers.</p>
+
+<h2 id="control">Your controls</h2>
+<p>Choose retention in Settings. Export or delete local data there, turn off individual readers and sharing, or delete
+your Clepso account from Account. Account deletion removes the server rows belonging to your account; uninstalling
+the app by itself does not request server deletion. Contact the publisher if you need help with a privacy request.</p>
 
 <h2 id="security">Security</h2>
 <p>Every table is protected by row-level security: a signed-in user can read and write only their own rows, and an anonymous request is
@@ -731,6 +756,38 @@ refused. The app holds only the project's publishable key; your session is kept 
 """)
 
 # ----------------------------------------------------------------------------------------------------------- screens
+
+docs_page("integrations/", "Within reach", "Desktop widgets, read-only MCP and signed updates.",
+          "Available from 0.4.0 alpha 1. Each connection starts with your choice in Clepso Settings.", """
+<h2 id="widgets">Desktop widgets</h2>
+<p>In Settings → Integrations, enable Desktop widgets. Add <strong>Clepso limits</strong> from the Mac widget gallery.
+The small layout shows two windows; the medium layout shows four. Automatic readings come first. Manual entries,
+missing values, old readings and expected resets stay labeled. Click the widget to open Limits.</p>
+<p>macOS controls refresh frequency. A widget is a recent snapshot, not a live menu-bar replacement. Turning sharing
+off removes its shared snapshot. No account is required.</p>
+<h2 id="mcp">Ask an assistant</h2>
+<p>In Settings → Integrations, enter a client name, review the disclosure and choose Allow. Copy setup and add the JSON
+to that client's documented MCP configuration. Clepso never edits another client's settings automatically.</p>
+<div class="table-wrap"><table><thead><tr><th>Tool</th><th>Returns</th></tr></thead><tbody>
+<tr><td><code>get_limits</code></td><td>Reported used percentages, reset times, source and freshness</td></tr>
+<tr><td><code>get_reader_health</code></td><td>Observation times and whether the app snapshot/readings are current</td></tr>
+</tbody></table></div>
+<p>Both tools accept an optional provider filter. Missing data stays missing; an expected reset never proves
+availability. The server uses local stdio, with no shell, file, credential, settings or database tool.</p>
+<p>Your client may forward usage readings to its AI service. Local processes running as your Mac user can read
+the shared file. Revoke any client in Settings; running clients lose permission on their next request. Deleting
+local data revokes all grants. Demo data is never shared.</p>
+<h2 id="updates">Updates in the app</h2>
+<p>Use Settings → Updates to check manually, enable daily checks, or allow automatic installation. Automatic options
+start off. This alpha channel includes preview releases. Sparkle verifies signed feeds and archives before extraction;
+official app and DMG releases remain signed and notarized. No system profile is sent.</p>
+<p>The first updater-enabled release must be installed using the DMG or Homebrew once. Homebrew remains available:
+<code>brew upgrade --cask --greedy obileonardo/clepso/clepso</code>.</p>
+<h2 id="privacy">Small, deliberate boundaries</h2>
+<p>Widgets and MCP receive only provider/window labels, usage percentages, observation/reset times, source and state.
+They never receive prompts, replies, paths, session identifiers, email addresses or credentials.
+Read the <a href="/privacy/">privacy notice</a> for account uploads and service providers.</p>
+""")
 
 GROUPS = [
     ("Menu bar", {

@@ -1,6 +1,7 @@
 import AppKit
 import DesignSystem
 import Domain
+import IntegrationSnapshot
 import SwiftUI
 import UniformTypeIdentifiers
 import UsageEngine
@@ -19,6 +20,8 @@ struct SettingsSection: View {
     @State private var newAgentName = ""
     @State private var agentNameMessage: String?
     @State private var agentSuggestions: [String]?
+    @State private var mcpName = ""
+    @State private var pendingMCP: String?
     @Environment(\.theme) var theme
     @Environment(\.colorScheme) var scheme
     @Environment(\.openWindow) private var openWindow
@@ -90,6 +93,19 @@ struct SettingsSection: View {
                     .padding(.leading, theme.spacing(.spacious) * 2.8)
                     .padding(.bottom, theme.spacing(.standard) + theme.spacing(.compact))
             }
+            group("Updates") {
+                row("arrow.triangle.2.circlepath", "Check for updates", "Updates are signed, verified and notarized before installation. This alpha channel includes preview releases.") {
+                    Button("Check now…") { model.checkForUpdates() }.buttonStyle(PixelButtonStyle())
+                        .disabled(!model.updatesAvailable)
+                }
+                row("clock", "Automatic update checks", "Check the Clepso update feed once a day. You can turn this off at any time.") {
+                    toggle(model.updateChecksEnabled) { model.setUpdateChecks($0) }.disabled(!model.updatesAvailable)
+                }
+                row("square.and.arrow.down", "Download and install automatically", "Allow verified updates to install when Clepso quits. Sparkle asks before interrupting active use.") {
+                    toggle(model.updateDownloadsEnabled) { model.setUpdateDownloads($0) }
+                        .disabled(!model.updatesAvailable || !model.updateChecksEnabled)
+                }
+            }
             group(Copy.SettingsPage.claudeCode) {
                 row("link", Copy.SettingsPage.connection, connectionLine) {
                     if model.preview.installed {
@@ -134,6 +150,31 @@ struct SettingsSection: View {
                     toggle(model.codexEnabled) { on in Task { await model.setCodexEnabled(on) } }
                         .disabled(!model.codexInstalled && !model.codexEnabled)
                 }
+            }
+            group("Integrations") {
+                row("square.grid.2x2", "Desktop widgets", "Share limits with Clepso’s small and medium widgets. Widgets refresh on macOS’s schedule and label old readings.") {
+                    toggle(model.widgetsEnabled) { value in Task { await model.setWidgetsEnabled(value) } }
+                }
+                row("link", "Clepso MCP", "Share read-only limits and reader health with a client you choose. Your client may send these readings to its AI provider.") { EmptyView() }
+                ForEach(model.mcpClients, id: \.self) { client in
+                    row("checkmark.shield", client, "Allowed on this Mac") {
+                        Button("Copy setup") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(model.mcpConfiguration(client: client), forType: .string)
+                        }.buttonStyle(PixelButtonStyle())
+                        Button("Revoke") { Task { await model.setMCPClient(client, allowed: false) } }.buttonStyle(PixelButtonStyle())
+                    }
+                }
+                row("plus", "Allow a client", "Name it using lowercase letters, numbers and hyphens. No client settings are changed automatically.") {
+                    TextField("e.g. claude-desktop", text: $mcpName)
+                        .textFieldStyle(.plain).font(theme.font(.label)).autocorrectionDisabled()
+                        .padding(theme.spacing(.standard)).background(theme.color(.surfaceMuted, scheme))
+                        .frame(maxWidth: theme.spacing(.spacious) * 9).accessibilityLabel("MCP client name")
+                        .onSubmit { if SnapshotFile.validClient(mcpName) { pendingMCP = mcpName } }
+                    Button("Allow…") { pendingMCP = mcpName }.buttonStyle(PixelButtonStyle())
+                        .disabled(!SnapshotFile.validClient(mcpName))
+                }
+                if let message = model.integrationMessage { note(message) }
             }
             group(Copy.SettingsPage.data) {
                 retentionControls
@@ -194,6 +235,14 @@ struct SettingsSection: View {
             }
         } message: {
             Text(Copy.Explainer.restoreExact + " " + Copy.Explainer.restoreSurgical)
+        }
+        .confirmationDialog("Share usage with this MCP client?", isPresented: Binding(get: { pendingMCP != nil }, set: { if !$0 { pendingMCP = nil } })) {
+            Button("Allow read-only usage") {
+                if let client = pendingMCP { Task { await model.setMCPClient(client, allowed: true) } }
+                pendingMCP = nil; mcpName = ""
+            }
+        } message: {
+            Text("Shares provider names, usage percentages, reset times, freshness and manual/automatic provenance. No prompts, replies, paths, session IDs or account details. Your client may forward readings to an AI service. Local processes under your Mac account can read the shared file. Revoke access here at any time.")
         }
     }
 

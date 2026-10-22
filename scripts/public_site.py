@@ -50,7 +50,7 @@ The owl maestro, fox storyteller, poet and paper crane are our interpretations. 
 <p>These characters ship in the Mac Models screen from 0.3.0 alpha 3 onward. The old 12 × 12 drawings remain on this page for comparison.
 Edition details identify a model version; Clepso’s usage-based levels remain separate.</p>
 <p>The drawings use an integer pixel grid, a consistent foot anchor and a restrained palette. Only the selected
-portrait moves. Pause and Reduce Motion controls are available; model data is not needed to explore this page. The website’s level-up flourish is a preview effect; it does not change usage or claim a new app animation.</p>
+portrait moves. Pause and Reduce Motion controls are available; model data is not needed to explore this page. From 0.4.0 alpha 1, a native flourish marks newly crossed output levels while viewing a model. The website’s button remains a demonstration and does not change usage.</p>
 <h2>Sources behind the names</h2><p><a href="https://www.merriam-webster.com/dictionary/opus">Opus</a> ·
 <a href="https://www.merriam-webster.com/dictionary/fable">Fable</a> ·
 <a href="https://www.poetryfoundation.org/education/glossary/sonnet">Sonnet</a> ·

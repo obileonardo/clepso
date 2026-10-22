@@ -4,7 +4,7 @@ import SwiftUI
 // The app target is deliberately thin (ARCHITECTURE §2): everything testable lives in the ClepsoApp package target.
 @main
 struct ClepsoMacApp: App {
-    @State private var model = AppModel(environment: .live())
+    @State private var model = AppModel(environment: .withUpdater())
     @NSApplicationDelegateAdaptor(QuitHandler.self) private var quitHandler
 
     var body: some Scene {

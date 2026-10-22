@@ -27,7 +27,7 @@ public struct ClepsoScenes: Scene {
             DetailsView(model: model).themed(model)
                 .onOpenURL { url in Task { await model.handleOpenURL(url) } }      // the sign-in link returns here
         }
-        .handlesExternalEvents(matching: ["auth-callback"])
+        .handlesExternalEvents(matching: ["auth-callback", "dashboard"])
         .defaultSize(width: DetailsMetrics.defaultWidth, height: DetailsMetrics.minHeight + 160)
         .commands { SettingsCommand(model: model) }
 
