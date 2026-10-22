@@ -1,4 +1,5 @@
 import ClaudeCodeAdapter
+import ClepsoMCP
 import Darwin
 import Foundation
 
@@ -10,6 +11,7 @@ usage: clepso install   --shim <helper path> [--socket <path>] [--confirm]
        clepso uninstall [--confirm]
        clepso status
        clepso recover
+       clepso mcp --client <name>
 
 Without --confirm, install and uninstall print what they would change and touch nothing.
 """
@@ -23,6 +25,14 @@ let confirmed = arguments.contains("--confirm")
 let home = URL(fileURLWithPath: ProcessInfo.processInfo.environment["HOME"] ?? NSHomeDirectory())
 let paths = SettingsInstaller.Paths(home: home)
 let defaultSocket = home.appendingPathComponent("Library/Application Support/Clepso/run/agent.sock").path
+
+// Enter stdio before migration diagnostics: MCP stdout may contain only JSON-RPC messages.
+if arguments.first == "mcp" {
+    guard let client = option("--client") else { FileHandle.standardError.write(Data("mcp requires --client <name>\n".utf8)); exit(2) }
+    var server = MCPServer(dataDirectory: home.appendingPathComponent("Library/Application Support/Clepso"), client: client)
+    do { try server.run() } catch { exit(1) }
+    exit(0)
+}
 
 func installer(shim: String = "", socket: String = defaultSocket) -> SettingsInstaller {
     SettingsInstaller(paths: paths, shimPath: shim, socketPath: socket)

@@ -112,6 +112,7 @@ struct ModelCharacter: Sendable {
 struct ModelSprite: View {
     let modelID: String
     var animated = false
+    var celebrationAt: Date?
     @Environment(\.reduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var visible = false
@@ -121,10 +122,41 @@ struct ModelSprite: View {
         TimelineView(.animation(minimumInterval: ModelCharacter.frameInterval, paused: reduceMotion || !moving)) { timeline in
             let frame = ModelCharacter.frame(at: timeline.date.timeIntervalSinceReferenceDate, enabled: moving)
             ModelCharacterCanvas(modelID: modelID, frame: frame)
+                .overlay {
+                    if moving, let celebrationAt {
+                        ModelLevelFlourish(elapsed: timeline.date.timeIntervalSince(celebrationAt))
+                    }
+                }
         }
         .onAppear { visible = true }
         .onDisappear { visible = false }
         .accessibilityHidden(true)
+    }
+}
+
+/// Eight stepped sparks; the existing selected-portrait timeline drives them, so no hidden timer is introduced.
+struct ModelLevelFlourish: View {
+    let elapsed: TimeInterval
+    @Environment(\.theme) private var theme
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.displayScale) private var displayScale
+    var body: some View {
+        Canvas { context, size in
+            guard elapsed.isFinite, elapsed >= 0, elapsed < 1.8 else { return }
+            let placement = ModelCharacter.placement(size: size, displayScale: displayScale)
+            let unit = placement.unit, origin = placement.origin
+            let step = floor(elapsed * 10), spread = 10 + step / 2
+            context.opacity = min(1, (1.8 - elapsed) * 2)
+            for (dx, dy) in [(-1.0, -1.0), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)] {
+                let x = origin.x + floor(20 + dx * spread) * unit
+                let y = origin.y + floor(20 + dy * spread) * unit
+                var star = Path()
+                star.addRect(CGRect(x: x, y: y - unit, width: unit, height: unit * 3))
+                star.addRect(CGRect(x: x - unit, y: y, width: unit * 3, height: unit))
+                context.fill(star, with: .color(theme.color(.accent, scheme)))
+            }
+        }
+        .allowsHitTesting(false).accessibilityHidden(true)
     }
 }
 

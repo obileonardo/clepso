@@ -8,6 +8,10 @@ never need it, and nothing here is required to build from source (`make app` sig
 > signing, notarisation and publication gates. Native rotation and Reduce Motion can be verified without screen
 > recording using the isolated debug probe documented in `specs/dynamic-menubar.md`.
 
+## 0.4 additions
+
+The founder authorized automatic updates and desktop widgets on 22 October 2026, superseding the earlier alpha deferral below. Current app-group/signature rules are in `project.yml` and `scripts/release.sh`; the Mac host now has one team-prefixed app-group entitlement and embeds a sandboxed WidgetKit extension plus the signed MCP CLI and Sparkle. See [widgets](widgets.md) and [signed updates](in-app-updates.md). The status-line helper remains network-free. Generate and publish the signed update feed after the public DMG is live.
+
 ## 1. What a release is
 
 - A Developer ID signed, hardened-runtime, notarised and stapled `Clepso.app` in a signed, notarised, stapled DMG,

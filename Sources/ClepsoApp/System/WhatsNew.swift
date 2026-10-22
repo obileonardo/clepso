@@ -31,6 +31,11 @@ struct WhatsNew: Sendable, Equatable, Identifiable {
 
     /// Newest first.
     static let entries: [WhatsNew] = [
+        WhatsNew(version: "0.4.0", title: "Your limits, within reach", summary: "Desktop widgets, read-only MCP and signed in-app updates. Every connection remains your choice.", highlights: [
+            Highlight(symbol: "square.grid.2x2", title: "Desktop widgets", detail: "Small and medium widgets keep reported usage, source and freshness on your desktop.", section: .settings, open: Copy.WhatsNewCard.openSettings),
+            Highlight(symbol: "link", title: "Ask your assistant", detail: "Allow an MCP client to read limits and reader health. Revoke it at any time.", section: .settings, open: Copy.WhatsNewCard.openSettings),
+            Highlight(symbol: "arrow.triangle.2.circlepath", title: "Signed updates", detail: "Check for updates in the app, or opt in to automatic checks and installation.", section: .settings, open: Copy.WhatsNewCard.openSettings),
+        ]),
         WhatsNew(version: "0.3.0", title: Copy.WhatsNewCard.everywhereTitle, summary: Copy.WhatsNewCard.everywhereSummary, highlights: [
             Highlight(symbol: "chevron.left.forwardslash.chevron.right", title: Copy.WhatsNewCard.desktopLimitsTitle,
                       detail: Copy.WhatsNewCard.desktopLimitsDetail, section: .settings, open: Copy.WhatsNewCard.openSettings),

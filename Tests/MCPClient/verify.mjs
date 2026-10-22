@@ -1,0 +1,32 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import assert from 'node:assert/strict';
+const home = await mkdtemp(join(tmpdir(), 'clepso-mcp-sdk-'));
+const dir = join(home, 'Library/Application Support/Clepso/integrations');
+await mkdir(dir, { recursive: true, mode: 0o700 });
+const acl = join(dir, 'mcp-clients.json');
+await writeFile(acl, JSON.stringify(['sdk-check']), {mode:0o600});
+await writeFile(join(dir,'usage.v1.json'), JSON.stringify({schemaVersion:1,generatedAt:new Date().toISOString().replace(/\.\d+Z$/,'Z'),demo:false,limits:[{provider:'codex',window:'fiveHour',source:'automatic',usedPercent:91,observedAt:'2020-01-01T00:00:00Z',resetsAt:'2020-01-02T00:00:00Z',state:'reported'}]}), {mode:0o600});
+const transport = new StdioClientTransport({command:process.argv[2],args:['mcp','--client','sdk-check'],env:{...process.env,HOME:home},stderr:'pipe'});
+let errors=''; transport.stderr?.on('data',d=>{ errors+=d; });
+const client = new Client({name:'clepso-sdk-verification',version:'1.0.0'});
+try {
+ await client.connect(transport);
+ const tools = await client.listTools();
+ assert.deepEqual(tools.tools.map(x=>x.name), ['get_limits','get_reader_health']);
+ const result = await client.callTool({name:'get_limits',arguments:{provider:'codex'}});
+ assert.equal(result.isError,false);
+ assert.equal(result.structuredContent.readings[0].usedPercent,91);
+ assert.equal(result.structuredContent.readings[0].state,'resetExpected');
+ assert.equal(result.structuredContent.readings[0].freshness,'stale');
+ const health = await client.callTool({name:'get_reader_health',arguments:{}});
+ assert.equal(health.structuredContent.readings[0].usedPercent,undefined);
+ await assert.rejects(()=>client.callTool({name:'get_limits',arguments:{path:'/etc/passwd'}}));
+ await writeFile(acl,'[]',{mode:0o600});
+ await assert.rejects(()=>client.callTool({name:'get_limits',arguments:{}}));
+ assert.equal(errors,'');
+ console.log('PASS: official MCP SDK 1.32.1; initialize/list/call/filter/health/stale/reset/invalid arguments/live revocation; no model prompts.');
+} finally { await client.close(); await rm(home,{recursive:true,force:true}); }

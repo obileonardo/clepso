@@ -1,4 +1,4 @@
-# Implementation status — 0.3.0 alpha 3
+# Implementation status — 0.4.0 alpha 1
 
 This is the current feature inventory for this release source. Older continuation reports describe earlier builds;
 they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeatures.swift`.
@@ -7,6 +7,11 @@ they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeat
 | --- | --- |
 | Native Models characters | Owl maestro, fox storyteller, poet and paper crane; Opus 5/5.5 and Fable 5/5.1 editions differ; unknown families get a neutral robot |
 | Native character motion | Selected portrait only; Pause/Resume, system Reduce Motion, hidden/inactive-view schedule suspension; roster and level markers remain still |
+| Native level-up flourish | Newly crossed output thresholds while the same model/range is visible; selection, demo, replay and inactive updates do not celebrate |
+| Desktop widgets | Small/medium WidgetKit extension, opt-in aggregate sharing, source/freshness/reset labels and Limits deep link |
+| Clepso MCP | Read-only stdio `get_limits` and `get_reader_health`, explicit grants/revocation, bounded private snapshot; verified with official SDK |
+| Signed in-app updates | Sparkle 2.10.0, mandatory feed/archive signatures and verification before extraction; manual/automatic settings, no profile reporting |
+| Publisher details | Elvis Obi, Lagos, Nigeria; contact@elvisobi.com; updated factual privacy disclosures |
 | Character meanings | About explains each literary name, edition details and original-art provenance; levels and capabilities are separate |
 | Goals controls | Right-aligned target toggle and +/- controls with balanced pixel cross/minus |
 | Shared toggles | Stepped inner thumb follows the outer track vocabulary in both states |
@@ -25,14 +30,10 @@ they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeat
 | Item | Actual remaining work |
 | --- | --- |
 | Automatic Gemini CLI, Grok, Cursor, Copilot, Windsurf tracking | Validate real supported telemetry and access; manual entries are already available |
-| Clepso MCP server | Snapshot contract, explicit disclosure/consent, stale/offline behavior and real-client verification; see specs/v0.3-integration-plan.md |
 | iPhone/Watch app and mobile alarms | Separate app, pairing, push/delivery infrastructure, device credentials and end-to-end checks |
-| Production widgets | Widget work is a development prototype; it is not included in the public Mac release bundle |
 | Apple, Google and GitHub sign-in | Provider wiring exists, but founder-owned OAuth console applications/credentials/verification are not configured live |
-| Automatic in-app updates | Not enabled in this alpha; upgrade using the published DMG or Homebrew |
-| Website’s level-up flourish in the native app | Website demo only; no native celebration is claimed |
 | Additional model-version costumes | Known Opus 5.5 and Fable 5.1 editions have explicit variants; other versions retain the base family character |
-| Final legal identity/privacy publication details | Founder identity/address and legal review before 1.0; existing privacy disclosures remain available |
+| External legal review | Publisher details and factual privacy publication are supplied; no external legal sign-off is claimed |
 | Domain purchase | Explicitly on hold; branded email already uses the existing mailbox |
 
 ## Verification still required

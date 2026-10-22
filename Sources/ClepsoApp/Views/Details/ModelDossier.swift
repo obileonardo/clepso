@@ -1,5 +1,6 @@
 import ClaudeCodeAdapter
 import DesignSystem
+import Domain
 import SwiftUI
 
 /// The chosen model in full, after the founder's references: Life Reset's character profile (a framed sprite with a
@@ -12,11 +13,17 @@ struct ModelDossier: View {
     let activity: [Int]
     let weekly: Bool
     let from: String
+    var levelUpdates = false
+    var now: @Sendable () -> Date = { SystemClock().now() }
     @Environment(\.theme) private var theme
     @Environment(\.colorScheme) private var scheme
 
     @State private var characterPaused = false
+    @State private var levelTransition = ModelLevelTransition()
+    @State private var levelReached: Int?
+    @State private var celebrationAt: Date?
     @Environment(\.reduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     var role: ColorToken { ModelStyle.role(entry.style) }
     var gap: CGFloat { theme.spacing(.standard) + theme.spacing(.compact) }
@@ -34,6 +41,16 @@ struct ModelDossier: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Copy.ModelsPage.dossierLabel(entry.name))
+        .onAppear { observeLevel(active: false) }
+        .onChange(of: entry) { _, _ in observeLevel(active: levelUpdates && scenePhase == .active) }
+        .onChange(of: range) { _, _ in observeLevel(active: false) }
+        .onChange(of: levelUpdates) { _, _ in observeLevel(active: false) }
+        .task(id: celebrationAt) {
+            guard celebrationAt != nil else { return }
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            levelReached = nil; celebrationAt = nil
+        }
     }
 
     /// Life Reset's portrait: the sprite in a frame of the model's colour, its name on a plate underneath, the rank in
@@ -41,8 +58,17 @@ struct ModelDossier: View {
     var portrait: some View {
         let px = theme.stroke(.hairline) * 2
         return VStack(spacing: 0) {
-            ModelSprite(modelID: entry.id, animated: !characterPaused)
+            ModelSprite(modelID: entry.id, animated: !characterPaused, celebrationAt: celebrationAt)
                 .frame(width: theme.spacing(.spacious) * 8, height: theme.spacing(.spacious) * 6.5)
+                .overlay(alignment: .topTrailing) {
+                    if let level = levelReached {
+                        Text("LV \(level) ↑").font(theme.font(.micro)).foregroundStyle(theme.color(.background, scheme))
+                            .padding(theme.spacing(.compact))
+                            .background(PixelRect(step: px).fill(theme.color(.accent, scheme)))
+                            .padding(px * 2)
+                            .accessibilityLabel("Level \(level) reached")
+                    }
+                }
             HStack(spacing: theme.spacing(.standard)) {
                 InfoButton(title: Copy.ModelsPage.characterAbout, text: Copy.ModelsPage.characterExplanation(entry.id)) {
                     Text(Copy.ModelsPage.characterDetails)
@@ -80,6 +106,13 @@ struct ModelDossier: View {
         .accessibilityLabel(Copy.ModelsPage.rowLabel(rank: entry.rank, name: entry.name, level: entry.level?.level,
                                                      tokens: ModelsRoster.spoken(entry.share.tokens), share: ModelsRoster.spokenPercent(entry.share.share)))
         .accessibilityAddTraits(.isHeader)
+    }
+
+    private func observeLevel(active: Bool) {
+        let level = levelTransition.observe(id: entry.id, scope: range.rawValue + (levelUpdates ? ".live" : ".preview"),
+                                            output: entry.level?.output, active: active)
+        if let level { levelReached = level; celebrationAt = now() }
+        else if !active { levelReached = nil; celebrationAt = nil }
     }
 
     /// Life Reset's stat table: the four kinds of token as rows, output first and lit, because it is the one that counts.

@@ -4,6 +4,7 @@ import AppKit
 import Domain
 import Foundation
 import Sync
+import WidgetKit
 import enum UsageEngine.ReminderPlanner
 #if canImport(ServiceManagement)
 import ServiceManagement
@@ -70,6 +71,9 @@ public struct AppEnvironment: Sendable {
     /// Clepso's Claude Code mod as bundled (`Contents/Resources/claude-code`); nil: beside `shimPath` in the app bundle.
     /// Tests point it at the repository's `mod/claude-code`.
     public var claudeModDirectory: URL?
+    public var widgetContainer: @Sendable () -> URL? = { nil }
+    public var reloadWidgets: @MainActor @Sendable () -> Void = {}
+    public var updater: (any AppUpdating)?
 
     public init(dataDirectory: URL, home: URL, shimPath: String, clock: any WallClock = SystemClock(),
                 loginItem: any LoginItemControlling, notifications: any NotificationAuthorizing,
@@ -138,6 +142,10 @@ public struct AppEnvironment: Sendable {
                                           legacyDataDirectory: legacyData)
         environment.isolated = isolated
         environment.rewritesHome = !isolated || homeFlag != nil
+        if !isolated, let group = bundle.infoDictionary?["ClepsoWidgetGroup"] as? String, !group.hasPrefix(".") {
+            environment.widgetContainer = { FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) }
+            environment.reloadWidgets = { WidgetCenter.shared.reloadTimelines(ofKind: "ClepsoLimits") }
+        }
         environment.features = ReleaseFeatures.current(debugFlag: flag)
         #if DEBUG
         if let calendar = flag("ClepsoCalendarActions") {

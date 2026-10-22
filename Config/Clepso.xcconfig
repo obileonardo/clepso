@@ -14,6 +14,7 @@ CLEPSO_DEVELOPMENT_TEAM =
 CLEPSO_SYNC_HOST =
 CLEPSO_SYNC_PUBLISHABLE_KEY =
 CLEPSO_SYNC_PROVIDERS =
+CLEPSO_WIDGET_GROUP = $(CLEPSO_DEVELOPMENT_TEAM).com.elvisobi.clepso.widgets
 
 #include? "Signing.local.xcconfig"
 #include? "Sync.local.xcconfig"

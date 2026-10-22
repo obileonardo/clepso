@@ -144,10 +144,14 @@ verify_app() {
     while IFS= read -r -d '' bin; do
         [[ "$(file -b "$bin")" == *Mach-O* ]] && machos+=("$bin")
     done < <(find "$app" -type f -print0)
-    local expected=("$app/Contents/MacOS/Clepso" "$app/Contents/Helpers/clepso-statusline")
+    local sparkle="$app/Contents/Frameworks/Sparkle.framework/Versions/B"
+    local expected=("$app/Contents/MacOS/Clepso" "$app/Contents/Helpers/clepso-statusline" "$app/Contents/Helpers/clepso"
+        "$app/Contents/PlugIns/ClepsoWidgets.appex/Contents/MacOS/ClepsoWidgets"
+        "$sparkle/Sparkle" "$sparkle/Autoupdate" "$sparkle/Updater.app/Contents/MacOS/Updater"
+        "$sparkle/XPCServices/Downloader.xpc/Contents/MacOS/Downloader" "$sparkle/XPCServices/Installer.xpc/Contents/MacOS/Installer")
     [ "$(printf '%s\n' "${machos[@]}" | sort)" = "$(printf '%s\n' "${expected[@]}" | sort)" ] \
         || fail "unexpected executables in the bundle: ${machos[*]}"
-    ok "executables: Contents/MacOS/Clepso, Contents/Helpers/clepso-statusline (nothing else)"
+    ok "exact executable allowlist: app, fixed status-line helper, read-only CLI, widget and five Sparkle binaries"
 
     for bin in "${machos[@]}"; do
         local rel="${bin#"$app"/}" info keys found
@@ -162,8 +166,16 @@ verify_app() {
             | python3 -I -c 'import json,sys; e=json.load(sys.stdin); print(" ".join(f"{k}={v}" for k, v in sorted(e.items())))')
         if [ "$rel" = Contents/Helpers/clepso-statusline ]; then
             [ "$keys" = "com.apple.application-identifier=$TEAM.$HELPER_ID" ] || fail "$rel: unexpected entitlements: ${keys:-none}"
+        elif [ "$rel" = Contents/Helpers/clepso ]; then
+            [ "$keys" = "com.apple.application-identifier=$TEAM.com.elvisobi.clepso.cli" ] || fail "$rel: unexpected entitlements: ${keys:-none}"
+        elif [ "$rel" = Contents/MacOS/Clepso ]; then
+            [ "$keys" = "com.apple.security.application-groups=['$TEAM.com.elvisobi.clepso.widgets']" ] || fail "$rel: unexpected app-group entitlements: $keys"
+        elif [ "$rel" = Contents/PlugIns/ClepsoWidgets.appex/Contents/MacOS/ClepsoWidgets ]; then
+            [ "$keys" = "com.apple.security.app-sandbox=True com.apple.security.application-groups=['$TEAM.com.elvisobi.clepso.widgets']" ] || fail "$rel: unexpected widget entitlements: $keys"
+        elif [ "$rel" = Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate ]; then
+            [ "$keys" = "com.apple.application-identifier=org.sparkle-project.Sparkle.Autoupdate" ] || fail "$rel: unexpected installer entitlements: $keys"
         else
-            [ -z "$keys" ] || fail "$rel: entitlements present: $keys (the app carries none, not even get-task-allow)"
+            [ -z "$keys" ] || fail "$rel: unexpected entitlements: $keys"
         fi
         # Captured first: `strings | grep -q` under pipefail can miss a match when grep closes the pipe early.
         found=$(strings -a "$bin" | grep -E "$DEBUG_ONLY" || true)

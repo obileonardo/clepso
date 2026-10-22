@@ -1,0 +1,7 @@
+{
+  "name": "clepso-mcp-qa",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node verify.mjs ../../.build/debug/clepso"},
+  "dependencies": {"@modelcontextprotocol/sdk": "1.32.1"}
+}
