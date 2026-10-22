@@ -54,3 +54,5 @@ signed download URL and a substituted archive. Appended XML comments are outside
 negative feed test deliberately changes the enclosure URL. Repeat signature checks on the final artifact.
 
 Final strict rerun after the opt-out correction: all 17 gates passed; 559 tests across 111 suites.
+
+Final release source `90a7fac84793d0343f48aa546de7b42e0ac0a643` passed all six hosted checks and merged as PR #21. Build 236 app and DMG were notarized, stapled and accepted by Gatekeeper. Final feed/archive signatures verified; altered enclosure URL and archive were rejected. GitHub Latest v0.4.0-alpha.1 is public with verified asset digests. Website publication and installed upgrade are recorded separately. Social sign-in is now on hold at the user’s request.

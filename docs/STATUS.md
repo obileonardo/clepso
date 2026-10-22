@@ -31,7 +31,7 @@ they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeat
 | --- | --- |
 | Automatic Gemini CLI, Grok, Cursor, Copilot, Windsurf tracking | Validate real supported telemetry and access; manual entries are already available |
 | iPhone/Watch app and mobile alarms | Separate app, pairing, push/delivery infrastructure, device credentials and end-to-end checks |
-| Apple, Google and GitHub sign-in | Provider wiring exists, but founder-owned OAuth console applications/credentials/verification are not configured live |
+| Apple, Google and GitHub sign-in | On hold by user request; existing email sign-in remains live |
 | Additional model-version costumes | Known Opus 5.5 and Fable 5.1 editions have explicit variants; other versions retain the base family character |
 | External legal review | Publisher details and factual privacy publication are supplied; no external legal sign-off is claimed |
 | Domain purchase | Explicitly on hold; branded email already uses the existing mailbox |

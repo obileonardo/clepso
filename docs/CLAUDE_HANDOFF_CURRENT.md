@@ -1,4 +1,6 @@
-> Public source handoff. Private configuration, credentials and raw account frames are deliberately excluded. Distribution changes after this snapshot require a fresh release/install receipt.
+> Public handoff; credentials/private configuration and raw account data are excluded.
+
+> **CURRENT DISTRIBUTION: 0.4.0 alpha 1, build 236 — released, website live, Homebrew updated and Mac upgraded on 22 October 2026.** Read the latest checkpoint below; earlier distribution tables are historical.
 
 # Clepso — current handoff for Claude or Codex
 
@@ -169,3 +171,20 @@ The earlier 235 artifact's feed/archive signatures verified with the official Sp
 - Final strict CI completed successfully: **17 gates**, **559 tests across 111 suites**. Seven sharing lifecycle tests include concurrent refresh/opt-out and interrupted-off cleanup. Source now ready to commit and rebuild; build 235 remains superseded.
 - User confirmed Grok and Cursor are **personal subscriptions**, not API/team administrator accounts. Do not substitute admin billing APIs for their consumer quota readings. Supported local token/context readings must remain distinct from account limits.
 - Root Package.resolved restored only the known Xcode-generated Sparkle resolution noise. project.yml retains the exact Sparkle pin.
+
+### Scope update — social sign-in on hold
+
+The user explicitly said **“Let’s leave social sign-in for now.”** Apple/Google/GitHub OAuth setup is deferred by user request. Keep existing email sign-in working; do not ask for provider registration or enable incomplete providers. The prepared OAUTH_SETUP_REQUIRED.md is a future setup reference. Other implementation/release work remains authorized.
+
+### Completed distribution checkpoint — 0.4.0 alpha 1/build 236
+
+- Full release/installation table: `V040_RELEASE_REPORT.md`; public copy `app/docs/qa/2026-10-22-release.md`.
+- Signed source `90a7fac84793d0343f48aa546de7b42e0ac0a643`, merged app PR #21; all six checks passed. GitHub Latest is public with verified DMG/SHA256SUMS/appcast assets.
+- Website deployed from app/site to `dpl_6kgYULjhTbt3Z6SAA7GfhCSviLxA`; production READY. 21 routes/assets, feed bytes and unchanged email assets match source; browser QA passed.
+- Tap PR #4 merged at `2460222f182d1775df7994326d8485cb98572a68`; style, strict online audit and clean Apple silicon install/remove passed. Actual tap synchronized to main.
+- Installed `~/Applications/Clepso.app` **0.4.0/build 236** through normal Homebrew --greedy. Previous app/database backup `/Users/elvisobi/Library/Application Support/Clepso Update Backups/20261022T092337Z`. Installed app/helper/CLI/widget/framework code matches release; one process. SQLite quick_check ok; every preference value and all Claude settings unchanged. Persistent mod enabled; Codex reader and rotating menu retained.
+- Signed updater feed publicly available at https://clepso-app.vercel.app/updates/appcast.xml . First updater-enabled app was installed by Homebrew; actual Sparkle old-to-new installation remains unverified.
+- **Social sign-in deferred by user request. Domain purchase remains excluded.** No additional prompts/emails authorized or sent.
+- Next implementation is isolated in `app-next/`, branch `feat/provider-telemetry`, based on exact signed source. Initial bounded Gemini recording reader + native Settings/Limits integration added; four reader tests and two consent/demo/deletion tests passed with synthetic files. **Not yet shipped or fully gated**. Files: Package.swift; Sources/ProviderTelemetry/Gemini{Recording,Reader}.swift; AppModel+Gemini.swift; AppModel.swift; SettingsSection/LimitsSection/GeminiUsageSection.swift; Tests/ProviderTelemetryTests and GeminiLifecycleTests. Do not confuse this working checkout with installed 236.
+- Gemini counts are retained recording activity, not subscription quota. User's Grok/Cursor accounts are personal; admin analytics APIs cannot substitute. Latest official docs describe both legacy Cursor pools and a newer shared X/Grok/Cursor subscription; do not assume the user's plan migrated. Supported personal quota extraction still needs a validated contract.
+- Remaining mobile/Watch/relay/push, additional costumes and physical QA continue. Physical native UI remains inaccessible through CUA; do not bypass using AX/AppleScript/shell UI automation.
