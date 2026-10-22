@@ -284,6 +284,24 @@ enum Copy {
 
     /// Models page (1.12, after the founder's Krea pick).
     enum ModelsPage {
+        static let characterAbout = "About this character"
+        static let characterDetails = "About"
+        static let characterPause = "Pause", characterResume = "Resume"
+        static let characterStill = "Still"
+        static let characterPauseLabel = "Pause character animation", characterResumeLabel = "Resume character animation"
+        static let characterReduced = "Stopped by Reduce Motion", characterPaused = "Paused", characterPlaying = "Playing when this window is active"
+        static func characterExplanation(_ id: String) -> String {
+            let description: String = switch ModelCharacter(id).edition {
+            case .opus: "Opus means a creative work or composition. Clepso’s owl maestro carries a score, a classic collar and a slim baton."
+            case .opus55: "Opus means a creative work or composition. The Opus 5.5 owl maestro has taller paired ear tufts, a double collar and a split mantle."
+            case .fable: "A fable is a story that teaches a lesson, often through animals. Clepso’s fox storyteller carries a closed book and wears a short travelling cloak."
+            case .fable51: "A fable is a story that teaches a lesson, often through animals. The Fable 5.1 fox has an open folio, a long split scarf and a different tail silhouette."
+            case .sonnet: "A sonnet is a fourteen-line poem. Clepso’s verse keeper wears a feathered cap and carries a manuscript and quill."
+            case .haiku: "Haiku is a compact Japanese poetic form. Clepso’s folded-paper crane has angular wings and a long neck: a small, economical silhouette."
+            case .other: "Clepso uses a neutral robot for an unrecognised model family. The name and reported usage identify the model."
+            }
+            return description + "\n\nOriginal Clepso artwork, not an official provider mascot. Edition details represent model identity; levels still come only from all-time output tokens. Colour and artwork make no capability claim."
+        }
         // Roster + Dossier (founder's pick, 19 Oct 2026: docs/design-concepts/models, proposal A).
         static func totalIn(_ range: StatsSummary.Range) -> String { range == .allTime ? "TOKENS, ALL TIME" : "TOKENS IN THIS RANGE" }
         static func rosterTitle(_ n: Int) -> String { "ROSTER · \(n)" }

@@ -300,6 +300,7 @@ run "redaction audit"               redaction_audit
 run "secret scan"                   secret_scan
 run "no committed accounts project" no_committed_sync_project
 run "email templates"               email_templates
+run "character artwork parity"      node scripts/build-character-art.mjs --check
 run "Claude Code mod"               claude_mod
 run "app bundle"                    app_bundle
 

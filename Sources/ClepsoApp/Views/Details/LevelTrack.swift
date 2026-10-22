@@ -122,7 +122,7 @@ struct LevelTrack: View {
         let px = theme.stroke(.hairline) * 2
         let label = Copy.ModelsPage.spriteLabel(entry.name, entry.level?.level ?? 0)
         return Button { onSelect(entry.id) } label: {
-            ModelSprite(family: ModelSprite.Family(entry.id), role: ModelStyle.role(entry.style), animated: chosen)
+            ModelSprite(modelID: entry.id)
                 .frame(width: sprite, height: sprite)
                 .padding(px)
                 .background { if chosen { PixelRect(step: px).fill(theme.color(.surfaceMuted, scheme)) } }

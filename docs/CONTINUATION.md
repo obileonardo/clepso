@@ -1,3 +1,5 @@
+> **Current status: 21 October 2026, alpha 3 source.** Native literary-guild characters are included, and the previous toggle, Account, Goals, desktop/IDE, Calendar and email-account features remain enabled. See [STATUS.md](STATUS.md) for the current implementation and remaining-work inventory. All records below are historical, including old statements that accounts or the shipping mod are disabled.
+
 # Continuation — 19–20 October 2026
 
 The founder authorised completing unfinished work needing no further information, pushing it to GitHub, and publishing a downloadable DMG. Work began at `9c617a9` on `feat/autonomous-release-completion`.

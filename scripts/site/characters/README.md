@@ -1,14 +1,16 @@
-# Clepso character-art preview
+# Clepso literary-guild characters
 
-Original procedural pixel drawings from the founder-reviewed “literary guild” study, 21 October 2026.
-The public website integrates this preview; the native app retains its existing characters until a separate,
-version-aware compact-art implementation is completed and verified.
+Original procedural pixel drawings from the founder-reviewed study, 21 October 2026. This artwork also ships in the
+native Mac Models screen from 0.3.0 alpha 3: version-aware portraits, still roster/track markers and authored motion.
 
-`sprites.js` contains the integer-grid artwork. `study.js` provides selection, authored poses, pause,
-grayscale and reduced-motion previews. No model account, prompts or usage data are read or transmitted.
-The current-sprite JSON reproduces existing Clepso bitmaps only for the before/after comparison.
-Fonts reuse the website’s existing Clepso fonts and accompanying open font license.
+`sprites.js` is the source artwork. `node scripts/build-character-art.mjs` freezes its four poses and palette into
+`ModelCharacterAtlas.swift`; `--check` is a CI parity gate. Native rendering uses cached pixel runs, physical-pixel
+placement, a compact raster for small markers, Pause/Resume and system Reduce Motion. Unknown models keep a robot.
 
-Rebuild the public pages with `python3 -I scripts/public_site.py site v0.3.0-alpha.2`.
-The main documentation generator invokes the same builder at the end, so the landing page and character
-preview are retained on future documentation builds. Private QA images and local configuration are not copied.
+`study.js` provides the public interactive selection, poses, grayscale and reduced-motion comparison. Its level-up
+flourish is a website-only demo. No model account, prompts or usage data are read or transmitted. The current-sprite
+JSON preserves the original twelve-cell bitmaps solely for the before/after comparison. Fonts reuse the existing
+Clepso website fonts and open font license.
+
+Rebuild with `python3 -I scripts/public_site.py site v0.3.0-alpha.3`. The main documentation generator invokes the
+same builder, preserving the product page and characters. Private QA images and configuration are never copied.

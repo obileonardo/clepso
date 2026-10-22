@@ -69,16 +69,4 @@ struct ModelsViewTests {
         #expect(ModelSpecialty.of(totals("x", 0, 0, 0, 0), party: party) == nil)
     }
 
-    @Test("Model families map to sprites; unknown models get the robot")
-    func families() {
-        #expect(ModelSprite.Family("claude-opus-5-5") == .opus)
-        #expect(ModelSprite.Family("claude-sonnet-4-5-20250929") == .sonnet)
-        #expect(ModelSprite.Family("claude-haiku-5-5") == .haiku)
-        #expect(ModelSprite.Family("claude-fable-5-1") == .fable)
-        #expect(ModelSprite.Family("some-other-model") == .other)
-        for f in [ModelSprite.Family.opus, .sonnet, .haiku, .fable, .other] {
-            let rows = ModelSprite.bitmap(f)
-            #expect(rows.count == 12 && rows.allSatisfy { $0.count == 12 }, "\(f) bitmap is not 12×12")
-        }
-    }
 }

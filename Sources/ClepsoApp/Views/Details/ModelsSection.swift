@@ -209,7 +209,7 @@ struct RosterRow: View {
             Text("\(entry.rank)").font(theme.font(.title)).monospacedDigit()
                 .foregroundStyle(theme.color(chosen ? .textPrimary : .textSecondary, scheme))
                 .frame(minWidth: theme.spacing(.spacious) * 1.25, alignment: .center)
-            ModelSprite(family: ModelSprite.Family(entry.id), role: role, animated: false)
+            ModelSprite(modelID: entry.id)
                 .frame(width: theme.spacing(.spacious) * 2.25, height: theme.spacing(.spacious) * 2.25)
             VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
                 HStack(alignment: .firstTextBaseline, spacing: theme.spacing(.standard)) {
@@ -540,72 +540,5 @@ struct ModelLevel: Equatable {
         self.level = reached + 1
         self.floor = reached == 0 ? 0 : Self.targets[reached - 1]
         self.next = reached < Self.targets.count ? Self.targets[reached] : Self.targets[reached - 1]
-    }
-}
-
-/// A 12×12 pixel character per model family, drawn from a bitmap, with a one-pixel idle bob.
-struct ModelSprite: View {
-    enum Family {
-        case opus, sonnet, haiku, fable, other
-        init(_ id: String) {
-            let id = id.lowercased()
-            self = id.contains("opus") ? .opus : id.contains("sonnet") ? .sonnet : id.contains("haiku") ? .haiku : id.contains("fable") ? .fable : .other
-        }
-    }
-    let family: Family
-    let role: ColorToken
-    /// False draws one still frame: the roster's small sprites stay still, so only the chosen model moves.
-    var animated = true
-    @Environment(\.theme) private var theme
-    @Environment(\.colorScheme) private var scheme
-    @Environment(\.reduceMotion) private var reduceMotion
-
-    var body: some View {
-        // Under Reduce Motion the schedule is paused: one still frame, and no timer waking the app every 0.6 s.
-        TimelineView(.animation(minimumInterval: 0.6, paused: reduceMotion || !animated)) { timeline in
-            let frame = reduceMotion || !animated ? 0 : Int(timeline.date.timeIntervalSinceReferenceDate / 0.6) % 2
-            Canvas { context, size in
-                let rows = Self.bitmap(family)
-                let unit = floor(min(size.width, size.height) / CGFloat(rows.count + 2))
-                let origin = CGPoint(x: (size.width - unit * 12) / 2, y: (size.height - unit * 12) / 2 + CGFloat(frame) * unit / 2)
-                for (r, row) in rows.enumerated() {
-                    for (c, ch) in row.enumerated() {
-                        let color: Color? = switch ch {
-                        case "a": theme.color(role, scheme)
-                        case "b": theme.color(.textPrimary, scheme)
-                        case "c": theme.color(role, scheme).opacity(0.45)
-                        case "d": theme.color(.background, scheme)
-                        default: nil
-                        }
-                        if let color { context.fill(Path(CGRect(x: origin.x + CGFloat(c) * unit, y: origin.y + CGFloat(r) * unit, width: unit, height: unit)), with: .color(color)) }
-                    }
-                }
-                // Shadow under the feet, steady while the body bobs.
-                context.fill(Path(CGRect(x: origin.x + unit * 3, y: (size.height + unit * 12) / 2 + unit * 0.6, width: unit * 6, height: unit / 2)),
-                             with: .color(theme.color(.separator, scheme)))
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    nonisolated static func bitmap(_ f: Family) -> [[Character]] {
-        let rows: [String] = switch f {
-        case .opus: [   // a wizard with a staff
-            ".....aa.....", "....aaaa....", "...aaaaaa...", "..aaaaaaaa..", "....bbbb....", "....bdbd....",
-            "....bbbb...c", "...aaaaaa..c", "..aaaaaaaa.c", "..a.aaaa.a.c", "....aaaa...c", "...aa..aa..."]
-        case .sonnet: [ // a knight with a sword
-            "....bbbb....", "...bbbbbb...", "...bddddb...", "...bbbbbb...", "....bbbb..b.", "..aaaaaaaa.b",
-            ".aaaaaaaaa.b", ".a.aaaaaa.ab", ".c.aaaaaa...", "...aaaaaa...", "...aa..aa...", "..aaa..aaa.."]
-        case .haiku: [  // a winged sprite
-            "............", ".....bb.....", "....bbbb....", ".c..bdbd..c.", ".cc.bbbb.cc.", ".ccc.aa.ccc.",
-            "..ccaaaacc..", "...caaaac...", "....aaaa....", "....a..a....", "............", "............"]
-        case .fable: [  // a bard in a feathered hat
-            "..aaaaa.....", ".aaaaaaac...", "....bbbb....", "....bdbd....", "....bbbb....", "...aaaaaa.c.",
-            "..aaaaaaacc.", "..a.aaaaccc.", "....aaaa.c..", "....aaaa....", "...aa..aa...", "............"]
-        case .other: [  // a robot
-            ".....c......", ".....a......", "..aaaaaaaa..", "..abbaabba..", "..abdaadba..", "..aaaaaaaa..",
-            "...a.aa.a...", ".aaaaaaaaaa.", ".a.aaaaaa.a.", "...aaaaaa...", "...a....a...", "..aa....aa.."]
-        }
-        return rows.map(Array.init)
     }
 }
