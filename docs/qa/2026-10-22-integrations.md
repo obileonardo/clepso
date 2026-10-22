@@ -37,3 +37,9 @@ by ImageRenderer, so an offscreen Settings capture is not treated as a real inpu
 Both release helper performance checks passed with 200/200 delivered frames. Paired app-present added latency:
 status-line p95 5.37 ms; hook p95 0.30 ms, each under the 20 ms budget. This measures the status-line/hook path;
 it does not measure widget refresh latency or updater download speed.
+
+The first Developer ID export check correctly stopped on Sparkle Autoupdate's preserved
+`com.apple.application-identifier=org.sparkle-project.Sparkle.Autoupdate` entitlement. Inspection of every exported
+Mach-O confirmed this was the sole extra installer identifier; the exact role-specific allowlist now accepts it.
+The other four Sparkle binaries have no entitlements. All binaries still require Clepso's Developer ID team,
+hardened runtime, secure timestamp and the exact executable inventory. No arbitrary entitlement exemption was added.

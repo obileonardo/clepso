@@ -172,6 +172,8 @@ verify_app() {
             [ "$keys" = "com.apple.security.application-groups=['$TEAM.com.elvisobi.clepso.widgets']" ] || fail "$rel: unexpected app-group entitlements: $keys"
         elif [ "$rel" = Contents/PlugIns/ClepsoWidgets.appex/Contents/MacOS/ClepsoWidgets ]; then
             [ "$keys" = "com.apple.security.app-sandbox=True com.apple.security.application-groups=['$TEAM.com.elvisobi.clepso.widgets']" ] || fail "$rel: unexpected widget entitlements: $keys"
+        elif [ "$rel" = Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate ]; then
+            [ "$keys" = "com.apple.application-identifier=org.sparkle-project.Sparkle.Autoupdate" ] || fail "$rel: unexpected installer entitlements: $keys"
         else
             [ -z "$keys" ] || fail "$rel: unexpected entitlements: $keys"
         fi
