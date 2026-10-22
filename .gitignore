@@ -44,3 +44,6 @@ site/app/config.js
 # Supabase CLI working files, wherever the CLI was run from (the project lives in backend/supabase)
 **/supabase/.temp/
 **/supabase/.branches/
+
+# Shared generated tool cache may be a local worktree symlink.
+/.tools
