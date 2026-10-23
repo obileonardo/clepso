@@ -29,6 +29,7 @@ let package = Package(
         // Value types, provenance, ids. No I/O, no clock reads.
         .target(name: "Domain"),
         .target(name: "IntegrationSnapshot"),
+        .target(name: "ProviderTelemetry"),
         .target(name: "ClepsoMCP", dependencies: ["IntegrationSnapshot"]),
         // Socket frame v1 and the approved field allowlist (PRIVACY_AND_SECURITY §4). Foundation only.
         .target(name: "ShimProtocol"),
@@ -52,7 +53,7 @@ let package = Package(
         .target(name: "SubscriptionCatalog", resources: [.copy("Resources/plan-catalog.v1.json")]),
         // Composition root, view models and screens (ARCHITECTURE §2). The Xcode app target is a thin @main over this.
         .target(name: "ClepsoApp", dependencies: ["DesignSystem", "Domain", "Storage", "UsageEngine", "ClaudeCodeAdapter", "CodexAdapter",
-                                                 "SubscriptionCatalog", "ShimProtocol", "Sync", "IntegrationSnapshot"]),
+                                                 "SubscriptionCatalog", "ShimProtocol", "Sync", "IntegrationSnapshot", "ProviderTelemetry"]),
         // Clepso accounts: the only module allowed to make network calls.
         .target(name: "Sync"),
         // Developer-only fixture tooling: capture listener, capture shim, scrubber. Never shipped.
@@ -64,6 +65,7 @@ let package = Package(
         .target(name: "TestFixtures", resources: [.copy("Resources")]),
 
         .testTarget(name: "DomainTests", dependencies: ["Domain"]),
+        .testTarget(name: "ProviderTelemetryTests", dependencies: ["ProviderTelemetry"]),
         .testTarget(name: "IntegrationSnapshotTests", dependencies: ["IntegrationSnapshot", "ClepsoMCP"]),
         .testTarget(name: "ShimProtocolTests", dependencies: ["ShimProtocol"]),
         .testTarget(name: "UsageEngineTests", dependencies: ["UsageEngine", "Domain"]),
@@ -75,7 +77,7 @@ let package = Package(
         .testTarget(name: "SubscriptionCatalogTests", dependencies: ["SubscriptionCatalog"]),
         .testTarget(name: "SyncTests", dependencies: ["Sync"]),
         .testTarget(name: "ClepsoAppTests", dependencies: ["ClepsoApp", "DesignSystem", "Domain", "Storage", "UsageEngine",
-                                                          "ClaudeCodeAdapter", "ShimProtocol", "SubscriptionCatalog", "Sync", "IntegrationSnapshot"]),
+                                                          "ClaudeCodeAdapter", "ShimProtocol", "SubscriptionCatalog", "Sync", "IntegrationSnapshot", "ProviderTelemetry"]),
         // Runs the built clepso-statusline binary as a child process against a temporary HOME.
         .testTarget(name: "ShimIntegrationTests", dependencies: ["clepso-statusline", "clepso", "Domain", "ShimProtocol", "TestFixtures", "ClaudeCodeAdapter", "FixtureTools",
                                                              "UsageEngine", "Storage", "ClepsoApp"]),

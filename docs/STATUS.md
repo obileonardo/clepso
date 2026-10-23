@@ -1,4 +1,4 @@
-# Implementation status — 0.4.0 alpha 1
+# Implementation status — 0.4.0 alpha 2 source candidate
 
 This is the current feature inventory for this release source. Older continuation reports describe earlier builds;
 they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeatures.swift`.
@@ -21,7 +21,7 @@ they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeat
 | Codex and terminal tracking | Existing automatic readings and provenance retained |
 | Calendar | User-triggered reported weekly-reset export; no automatic event creation |
 | Branded email and web accounts | Optional email-link sign-in and daily-summary upload; approved Protocol templates and fonts |
-| Other providers | Manual snapshots and catalog entries; not automatic adapters |
+| Other providers | Opt-in Gemini CLI recorded token activity; manual quota snapshots and catalog entries. Other automatic adapters remain pending |
 | Website | Product homepage, interactive characters, documentation and web dashboard |
 | Distribution | Release workflow builds Developer ID signed/notarized/stapled app + DMG; public GitHub releases and dedicated Homebrew tap |
 
