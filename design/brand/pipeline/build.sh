@@ -9,7 +9,17 @@ VENV=${CLEPSO_BRAND_VENV:-"$HERE/../.venv"}
 PY=${CLEPSO_BRAND_PYTHON:-python3.12}
 if [ ! -x "$VENV/bin/python" ]; then
   "$PY" -m venv "$VENV"
-  "$VENV/bin/pip" install --quiet -r "$HERE/requirements.txt"
+fi
+# Reconcile existing environments too: changing the security pin must not silently keep an older installed wheel.
+REQUIREMENTS_HASH=$(shasum -a 256 "$HERE/requirements.txt" | awk '{print $1}')
+STAMP="$VENV/.clepso-requirements.sha256"
+INSTALLED_HASH=$(cat "$STAMP" 2>/dev/null || true)
+if [ "$INSTALLED_HASH" != "$REQUIREMENTS_HASH" ]; then
+  echo "Synchronising pinned brand dependencies"
+  "$VENV/bin/python" -m pip install --quiet -r "$HERE/requirements.txt"
+  "$VENV/bin/python" -m pip check
+  printf '%s\n' "$REQUIREMENTS_HASH" > "$STAMP.next"
+  mv "$STAMP.next" "$STAMP"
 fi
 # cairosvg needs libcairo (Homebrew: brew install cairo); render.swift needs the Xcode command line tools.
 export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH:-/opt/homebrew/lib:/usr/local/lib}"
