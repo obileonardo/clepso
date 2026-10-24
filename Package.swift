@@ -8,6 +8,7 @@ let package = Package(
     platforms: [.macOS(.v14), .iOS(.v17), .watchOS(.v10)],
     products: [
         .library(name: "Domain", targets: ["Domain"]),
+        .library(name: "Sync", targets: ["Sync"]),
         .library(name: "IntegrationSnapshot", targets: ["IntegrationSnapshot"]),
         .library(name: "ClepsoMCP", targets: ["ClepsoMCP"]),
         .library(name: "ClaudeCodeAdapter", targets: ["ClaudeCodeAdapter"]),
@@ -54,7 +55,7 @@ let package = Package(
         .target(name: "ClepsoApp", dependencies: ["DesignSystem", "Domain", "Storage", "UsageEngine", "ClaudeCodeAdapter", "CodexAdapter",
                                                  "SubscriptionCatalog", "ShimProtocol", "Sync", "IntegrationSnapshot"]),
         // Clepso accounts: the only module allowed to make network calls.
-        .target(name: "Sync"),
+        .target(name: "Sync", dependencies: ["IntegrationSnapshot"]),
         // Developer-only fixture tooling: capture listener, capture shim, scrubber. Never shipped.
         .target(name: "FixtureTools", dependencies: ["ShimProtocol"]),
         .executableTarget(name: "clepso-fixture", dependencies: ["FixtureTools"]),
@@ -73,7 +74,7 @@ let package = Package(
         .testTarget(name: "ClaudeCodeAdapterTests", dependencies: ["ClaudeCodeAdapter", "Domain", "ShimProtocol", "TestFixtures"]),
         .testTarget(name: "FixtureToolsTests", dependencies: ["FixtureTools"]),
         .testTarget(name: "SubscriptionCatalogTests", dependencies: ["SubscriptionCatalog"]),
-        .testTarget(name: "SyncTests", dependencies: ["Sync"]),
+        .testTarget(name: "SyncTests", dependencies: ["Sync", "IntegrationSnapshot"]),
         .testTarget(name: "ClepsoAppTests", dependencies: ["ClepsoApp", "DesignSystem", "Domain", "Storage", "UsageEngine",
                                                           "ClaudeCodeAdapter", "ShimProtocol", "SubscriptionCatalog", "Sync", "IntegrationSnapshot"]),
         // Runs the built clepso-statusline binary as a child process against a temporary HOME.

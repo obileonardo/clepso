@@ -22,6 +22,7 @@ struct SettingsSection: View {
     @State private var agentSuggestions: [String]?
     @State private var mcpName = ""
     @State private var pendingMCP: String?
+    @State private var confirmMobileSharing = false
     @Environment(\.theme) var theme
     @Environment(\.colorScheme) var scheme
     @Environment(\.openWindow) private var openWindow
@@ -152,6 +153,13 @@ struct SettingsSection: View {
                 }
             }
             group("Integrations") {
+                row("iphone", "iPhone and Apple Watch", "Share aggregate limits through your Clepso account. The phone can plan expected-reset reminders and pass readings to your paired Watch.") {
+                    toggle(model.mobileSharingEnabled) { enabled in
+                        if enabled { confirmMobileSharing = true }
+                        else { Task { await model.setMobileSharing(false) } }
+                    }.disabled(model.mobileSharingBusy || !model.accountsAvailable)
+                }
+                if let message = model.mobileSharingMessage { note(message) }
                 row("square.grid.2x2", "Desktop widgets", "Share limits with Clepso’s small and medium widgets. Widgets refresh on macOS’s schedule and label old readings.") {
                     toggle(model.widgetsEnabled) { value in Task { await model.setWidgetsEnabled(value) } }
                         .disabled(model.widgetSharingBusy)
@@ -244,6 +252,11 @@ struct SettingsSection: View {
             }
         } message: {
             Text("Shares provider names, usage percentages, reset times, freshness and manual/automatic provenance. No prompts, replies, paths, session IDs or account details. Your client may forward readings to an AI service. Local processes under your Mac account can read the shared file. Revoke access here at any time.")
+        }
+        .confirmationDialog("Share limits with your iPhone?", isPresented: $confirmMobileSharing) {
+            Button("Enable mobile sharing") { Task { await model.setMobileSharing(true) } }
+        } message: {
+            Text("Uploads the latest provider, window, percentage, source, state and observation/reset times through your existing Clepso account. No conversations, paths, model/session IDs or credentials. Your phone signs in separately and can send that reading to its paired Watch. Sharing starts off. Disable here to stop uploads and remove the server reading when online. Server readings expire after 15 minutes; an offline phone may retain an old reading or reminder. Reported reset times do not confirm renewed quota.")
         }
     }
 

@@ -33,6 +33,7 @@ extension AppModel {
 
     func publishIntegrations() {
         publishWidget()
+        publishMobileIfDue()
         let file = SnapshotFile(dataDirectory: environment.dataDirectory)
         do {
             try file.setClients(mcpClients)
