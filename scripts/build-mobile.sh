@@ -2,6 +2,7 @@
 # No signing identity, provisioning profile, account configuration or simulator boot is needed for this check.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 -I scripts/check-mobile-icons.py
 if [ ! -x .tools/xcodegen/bin/xcodegen ]; then
     echo "Run scripts/bootstrap.sh first to prepare the pinned XcodeGen tool."
     exit 1

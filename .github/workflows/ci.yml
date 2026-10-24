@@ -97,7 +97,9 @@ jobs:
         run: bash scripts/build-mobile.sh
 
       - name: Native iPhone account and consent lifecycle tests
-        run: python3 scripts/test-mobile.py
+        run: |
+          python3 Tests/Tooling/test_mobile_simulator.py
+          python3 scripts/test-mobile.py
 
       - name: Keep gate logs
         if: always()

@@ -22,6 +22,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     os.chdir(root)
     os.umask(0o077)
+    subprocess.run(['python3', '-I', 'scripts/check-mobile-icons.py'], check=True)
     folder = root / 'build/mobile-distribution' / str(args.build)
     if folder.exists():
         parser.error('This build output already exists; review it and choose a fresh build number')
