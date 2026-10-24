@@ -17,15 +17,20 @@ struct CompanionLimitsView: View {
                 ForEach(Array(envelope.snapshot.limits.enumerated()), id: \.offset) { _, row in
                     VStack(alignment: .leading, spacing: theme.spacing(.standard)) {
                         Text(row.provider.displayName.uppercased()).font(theme.font(.title))
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(row.window.displayName).font(theme.font(.label))
-                            Spacer(minLength: theme.spacing(.compact))
-                            Text(row.usedPercent.map { Formatting.percent(Decimal($0)) } ?? "—")
-                                .font(theme.font(.metricMedium)).monospacedDigit()
+                        ViewThatFits(in: .horizontal) {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(row.window.displayName).font(theme.font(.label)).fixedSize()
+                                Spacer(minLength: theme.spacing(.compact))
+                                percentage(row).fixedSize()
+                            }
+                            VStack(alignment: .leading, spacing: theme.spacing(.compact)) {
+                                Text(row.window.displayName).font(theme.font(.label))
+                                percentage(row)
+                            }
                         }
                         HStack(spacing: theme.stroke(.hairline)) {
                             ForEach(0..<20) { index in
-                                Rectangle().fill(theme.color(row.usedPercent.map { Double(index) / 20 < min(max($0 / 100, 0), 1) } == true ? .accent : .surfaceMuted, scheme))
+                                Rectangle().fill(theme.color(envelope.isCurrent(at: now) && row.state == .reported && row.freshness(at: now) == "fresh" && row.usedPercent.map { Double(index) / 20 < min(max($0 / 100, 0), 1) } == true ? .accent : .separator, scheme))
                             }
                         }.frame(height: theme.spacing(.standard))
                             .accessibilityHidden(true)
@@ -45,13 +50,24 @@ struct CompanionLimitsView: View {
             }
         }.foregroundStyle(theme.color(.textPrimary, scheme))
     }
+    private func percentage(_ row: UsageSnapshot.Limit) -> some View {
+        Text(row.usedPercent.map { Formatting.percent(Decimal($0)) } ?? "—")
+            .font(theme.font(.metricMedium)).monospacedDigit()
+    }
     func detail(_ row: UsageSnapshot.Limit, current: Bool) -> String {
         var parts = [row.source == .manual ? "Entered manually" : "Automatic reading"]
-        if row.effectiveState(at: now) == .resetExpected { parts.append("Reset expected · awaiting a reading") }
-        else if row.usedPercent == nil { parts.append("Usage not reported") }
-        else if let reset = row.resetsAt { parts.append("Expected reset " + reset.formatted(date: .abbreviated, time: .shortened)) }
+        switch row.effectiveState(at: now) {
+        case .resetExpected: parts.append("Reset expected · awaiting a reading")
+        case .disconnected: parts.append("Reader disconnected · waiting for a report")
+        case .invalid: parts.append("Reader error · any value shown is a previous report")
+        case .missing: parts.append("Usage not reported")
+        case .reported:
+            if row.usedPercent == nil { parts.append("Usage not reported") }
+            if let reset = row.resetsAt { parts.append("Expected reset " + reset.formatted(date: .abbreviated, time: .shortened)) }
+        }
         if !current || row.freshness(at: now) == "stale" { parts.append("Old reading") }
         if let observed = row.observedAt { parts.append("Read " + observed.formatted(date: .abbreviated, time: .shortened)) }
+        else { parts.append("Never read") }
         return parts.joined(separator: " · ")
     }
 }

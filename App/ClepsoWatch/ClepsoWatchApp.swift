@@ -45,7 +45,9 @@ struct WatchRoot: View {
                 VStack(alignment:.leading,spacing:theme.spacing(.standard)) {
                     Text("CLEPSO").font(theme.font(.title)).foregroundStyle(theme.color(.accent,scheme))
                     CompanionLimitsView(envelope:model.envelope,now:context.date,emptyMessage:"Sign in and share a reading from the paired iPhone.")
-                    Button("Refresh") { model.refresh() }.buttonStyle(PixelButtonStyle())
+                    Button { model.refresh() } label: {
+                        Text("Refresh").frame(minHeight: theme.spacing(.section))
+                    }.buttonStyle(PixelButtonStyle())
                     if let message = model.message { Text(message).font(theme.font(.supporting)) }
                     Text("Expected-reset notifications mirror your iPhone’s system settings.").font(theme.font(.supporting))
                 }.padding(theme.spacing(.compact))

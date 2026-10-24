@@ -14,7 +14,11 @@ struct PhoneRoot: View {
                     CompanionLimitsView(envelope: model.envelope, now: model.now,
                         emptyMessage: !model.signedIn ? "Sign in with the same Clepso account as your Mac, then enable mobile sharing on the Mac." : "Waiting for your Mac to share a reading.")
                     if let message = model.message { Text(message).font(theme.font(.supporting)) }
-                    if !model.signedIn { Button("Sign in") { settings = true }.buttonStyle(PixelButtonStyle(prominent:true)) }
+                    if !model.signedIn {
+                        Button { settings = true } label: {
+                            Text("Sign in").frame(minHeight: theme.spacing(.section))
+                        }.buttonStyle(PixelButtonStyle(prominent:true))
+                    }
                 }.padding(theme.spacing(.spacious))
             }
             .background(theme.color(.background,scheme)).foregroundStyle(theme.color(.textPrimary,scheme))
@@ -32,7 +36,10 @@ struct PhoneRoot: View {
                         Text(model.signedInEmail ?? "Connected account")
                         Button("Sign out") { Task { await model.signOut() } }
                     } else {
-                        TextField("Email address",text:$model.email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled()
+                        LabeledContent("Email") {
+                            TextField("you@example.com",text:$model.email).textContentType(.emailAddress).keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never).autocorrectionDisabled().accessibilityLabel("Email address")
+                        }
                         Button("Email sign-in link") { Task { await model.requestLink() } }.disabled(model.busy || !model.email.contains("@"))
                         if let pending = model.pendingEmail { Text("Link requested for \(pending). Open it on this iPhone.") }
                     }

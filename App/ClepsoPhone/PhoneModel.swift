@@ -27,10 +27,6 @@ import UserNotifications
         let defaults = UserDefaults.standard
         reminders = defaults.bool(forKey: "companion.reminders")
         leadMinutes = [0,5,15].contains(defaults.integer(forKey: "companion.lead")) ? defaults.integer(forKey: "companion.lead") : 0
-        if let size = (try? FileManager.default.attributesOfItem(atPath: cache.path)[.size]) as? NSNumber, size.intValue <= 128 * 1024,
-           let data = try? Data(contentsOf: cache), let value = try? RelayEnvelope.decoder().decode(RelayEnvelope.self, from: data), value.valid {
-            envelope = value
-        }
         link.onRefresh = { [weak self] in Task { await self?.refresh() } }
     }
     func start() async {
@@ -38,7 +34,12 @@ import UserNotifications
         signedIn = await client.session != nil
         signedInEmail = await client.session?.email
         pendingEmail = await client.pendingEmail
-        if !signedIn { clearSnapshot() }
+        if let account = await client.session?.userID {
+            if let size = (try? FileManager.default.attributesOfItem(atPath: cache.path)[.size]) as? NSNumber, size.intValue <= 128 * 1024,
+               let data = try? Data(contentsOf: cache), let value = try? RelayEnvelope.decoder().decode(CompanionCache.self, from: data) {
+                envelope = value.reading(for: account)
+            }
+        } else { clearSnapshot() }
         // Reconcile persisted-off and signed-out state after crashes, before any network suspension.
         await reconcileReminders()
         await refresh()
@@ -52,6 +53,8 @@ import UserNotifications
         } catch { message = "The sign-in link could not be requested. Try again when connected." }
     }
     func callback(_ url: URL) async {
+        generation += 1
+        clearSnapshot(); link.send(nil)
         do { signedInEmail = try await client.handleCallback(url).email; signedIn = true; pendingEmail = nil; message = nil; await refresh() }
         catch { message = "This sign-in link could not be completed. Request a fresh link on this iPhone." }
     }
@@ -62,9 +65,11 @@ import UserNotifications
         let current = generation
         do {
             let value = try await client.mobileRelay()
-            guard current == generation else { return }
+            let account = await client.session?.userID
+            guard current == generation, let account else { return }
             envelope = value; message = value == nil ? "Enable mobile sharing in Clepso on your Mac." : nil
-            if let value, let data = try? UsageSnapshot.encoder().encode(value) {
+            if let value,
+               let data = try? UsageSnapshot.encoder().encode(CompanionCache(accountID: account, envelope: value)) {
                 try FileManager.default.createDirectory(at: cache.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try data.write(to: cache, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             } else { try? FileManager.default.removeItem(at: cache) }
