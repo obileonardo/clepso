@@ -757,13 +757,13 @@ Your paired Watch receives the aggregate reading through the iPhone, never accou
 installation identifier, Apple device token and environment with Clepso's server. Those tokens are private, expire
 after 30 days and are removed on online opt-out or account deletion. Apple receives an empty background signal with
 no usage values. Delivery is best effort; it is not a guaranteed alarm. Offline opt-out waits for reconnection to
-remove a server token. The companion is a development preview; Apple push setup, physical delivery checks and public
+remove a server token. The companion is a development preview; Physical delivery checks and public
 mobile distribution remain pending.</p>
 
 <h2 id="services">Service providers</h2>
 <p>The public website is hosted on Vercel; downloads are hosted on GitHub. Optional accounts use Supabase for
 authentication and storage and Namecheap Private Email for sign-in delivery. The optional mobile companion uses
-Apple Push Notification service for background signals once configured. These services process the requests
+Apple Push Notification service for optional background signals. These services process the requests
 needed to provide those features, including normal connection metadata such as IP addresses. Reading usage locally
 does not require a Clepso account. Provider account subscriptions remain with their respective providers.</p>
 

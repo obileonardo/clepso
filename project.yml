@@ -196,6 +196,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
         CFBundleURLTypes:
           - CFBundleURLName: com.elvisobi.clepso.mobile.auth
             CFBundleURLSchemes: [clepso]
@@ -240,6 +241,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         WKApplication: true
+        ITSAppUsesNonExemptEncryption: false
         WKCompanionAppBundleIdentifier: com.elvisobi.clepso.mobile
     settings:
       base:

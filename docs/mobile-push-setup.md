@@ -41,3 +41,7 @@ User-facing function JWT verification stays **on**. The handler independently ch
 ## Remaining verification
 
 After configuration: verify both environment readiness checks, user-controlled phone sign-in/sharing, actual Apple acceptance, foreground/background refresh, local expected-reset reminders, offline opt-out, account deletion and paired Watch behavior. Do not equate HTTP acceptance with device delivery. Public mobile distribution/TestFlight still needs a reviewed export and App Store Connect setup.
+
+## Production package
+
+Run `python3 scripts/export-mobile.py --build NEXT_BUILD --team-id YOUR_TEAM_ID` after preparing signing/account configuration. It archives with the Production Info setting, exports with App Store Connect automatic signing, verifies the exported Production entitlement, strict signatures and both privacy manifests, and records a SHA-256 receipt. It never uploads or accepts agreements. Do not install the intermediate development-signed archive: its Info setting intentionally anticipates the final export. Build a separate Development archive for direct device installation. An exported IPA is not a public installation link; TestFlight still requires an App Store Connect record, upload/processing and any required review.
