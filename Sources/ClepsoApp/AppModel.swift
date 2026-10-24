@@ -10,6 +10,7 @@ import struct Domain.Redacted
 import struct Domain.ManualAllowance
 import Foundation
 import IntegrationSnapshot
+import ProviderTelemetry
 import enum SwiftUI.ColorScheme
 import Observation
 import enum ShimProtocol.HookFrame
@@ -77,6 +78,13 @@ public final class AppModel {
     var codexAgentTasks: [CodexAgents.Task]?
     var codexUsage: CodexUsage?
     var codexScanning = false
+    public internal(set) var geminiEnabled = false
+    public internal(set) var geminiChanging = false
+    public internal(set) var geminiUsage: RecordedUsage?
+    public internal(set) var geminiMessage: String?
+    var geminiReader = GeminiReader()
+    var geminiScanning = false
+    var geminiGeneration = 0
     /// The Clepso account on this Mac.
     public enum AccountState: Equatable, Sendable {
         case signedOut
@@ -210,6 +218,7 @@ public final class AppModel {
             firstRealReadingAt = try await store.preference(Pref.firstReading, as: Date.self)
             statsEnabled = try await store.preference(Pref.readStats, as: Bool.self) ?? false
             codexEnabled = try await store.preference(Pref.readCodex, as: Bool.self) ?? false
+            geminiEnabled = try await store.preference(Pref.readGemini, as: Bool.self) ?? false
             alertsEnabled = try await store.preference(Pref.alertsEnabled, as: Bool.self) ?? true
             alertsSnoozedUntil = try await store.preference(Pref.alertsSnoozedUntil, as: Date.self)
             quietHours = try await store.preference(Pref.quietHours, as: QuietHours.self) ?? QuietHours()
@@ -275,6 +284,7 @@ public final class AppModel {
 
     public func stop() {
         mobilePublishTask?.cancel()
+        geminiGeneration += 1
         tasks.forEach { $0.cancel() }
         tasks = []
         socket?.stop()
@@ -312,6 +322,7 @@ public final class AppModel {
 
     private func tick() async {
         let codexEvents = await pollCodex()
+        await pollGemini()
         let tickEvents = (try? await store?.tick(now: environment.clock.now())) ?? []
         await purgeIfDue()
         await syncIfDue()
@@ -1103,6 +1114,10 @@ public final class AppModel {
         statsEnabled = false
         stats = nil
         codexEnabled = false
+        geminiEnabled = false
+        geminiGeneration += 1
+        geminiUsage = nil
+        geminiReader = GeminiReader()
         codexLatest = nil
         alertsEnabled = true
         alertsSnoozedUntil = nil
@@ -1149,6 +1164,7 @@ public final class AppModel {
         static let lastSync = "account.lastSync"
         static let appearance = "general.appearance"
         static let readCodex = "codex.readSessionFiles"
+        static let readGemini = "gemini.readRecordings.v1"
         static let alertsEnabled = "alerts.enabled"
         static let alertsSnoozedUntil = "alerts.snoozedUntil"
         static let quietHours = "alerts.quietHours"

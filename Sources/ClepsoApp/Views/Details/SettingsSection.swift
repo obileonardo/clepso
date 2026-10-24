@@ -152,6 +152,14 @@ struct SettingsSection: View {
                         .disabled(!model.codexInstalled && !model.codexEnabled)
                 }
             }
+            group("Gemini CLI") {
+                row("terminal", "Read recorded token activity", "Read counters and timestamps from the newest Gemini CLI recordings on this Mac. Those files also contain conversations; content is discarded. Reading stays on this Mac; disabling clears the temporary file cache. No credentials are read or telemetry enabled.") {
+                    toggle(model.geminiEnabled) { on in Task { await model.setGeminiEnabled(on) } }
+                        .disabled(model.geminiChanging || (!model.geminiInstalled && !model.geminiEnabled))
+                }
+                note(model.geminiInstalled ? "Gemini recordings found. Tokens do not establish your subscription quota or reset time." : "No Gemini CLI recordings found. Run Gemini CLI on this Mac first; web chat is separate.")
+                if let message = model.geminiMessage { note(message) }
+            }
             group("Integrations") {
                 row("iphone", "iPhone and Apple Watch", "Share aggregate limits through your Clepso account. The phone can plan expected-reset reminders and pass readings to your paired Watch.") {
                     toggle(model.mobileSharingEnabled) { enabled in

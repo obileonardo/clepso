@@ -38,7 +38,7 @@ def git(*args):
 
 COMMIT, COMMIT_DATE = git("log", "-1", "--pretty=%h"), git("log", "-1", "--pretty=%ad", "--date=short")
 # The latest public build; bump with each release (docs/RELEASE.md).
-RELEASE_TAG = "v0.4.0-alpha.1"
+RELEASE_TAG = "v0.4.0-alpha.2"
 RELEASE_URL = f"https://github.com/obileonardo/clepso/releases/tag/{RELEASE_TAG}"
 
 NAV = [("", "Overview"), ("progress/", "Progress"), ("metrics/", "Metrics"), ("architecture/", "Architecture"), ("changelog/", "Changelog")]
@@ -739,6 +739,13 @@ shared snapshot. Neither integration receives prompts, replies, paths, session i
 <p>When enabled, automatic updates contact the Clepso update feed hosted on Vercel and download releases from GitHub.
 Update archives and feeds are signed. Automatic checks and downloads are choices in Settings; no system profile is sent.</p>
 
+<h2 id="gemini">Optional Gemini CLI recording reader</h2>
+<p>From 0.4.0 alpha 2, a separate opt-in reader scans the newest Gemini CLI recordings for numeric activity and timestamps.
+These files also contain conversations; content is discarded. Numeric activity, hashed deduplication keys and a temporary
+file cache stay in memory on this Mac. Paths are used to find files and cache modification times, and are never persisted
+or uploaded. Disabling clears the cache. Credentials are not read and provider telemetry is not enabled. These counts
+are not included in account uploads, widgets or MCP snapshots. They do not establish your subscription allowance.</p>
+
 <h2 id="services">Service providers</h2>
 <p>The public website is hosted on Vercel; downloads are hosted on GitHub. Optional accounts use Supabase for
 authentication and storage and Namecheap Private Email for sign-in delivery. These services process the requests
@@ -777,6 +784,12 @@ availability. The server uses local stdio, with no shell, file, credential, sett
 <p>Your client may forward usage readings to its AI service. Local processes running as your Mac user can read
 the shared file. Revoke any client in Settings; running clients lose permission on their next request. Deleting
 local data revokes all grants. Demo data is never shared.</p>
+<h2 id="gemini">Gemini CLI recorded activity</h2>
+<p>From 0.4.0 alpha 2, enable Read recorded token activity in Settings → Gemini CLI. Limits shows tokens from the newest
+16 retained local recordings, with input, cache, output, reasoning and tool counters kept separate. Counts and a temporary
+file cache stay in memory; conversation content is discarded. Disabling clears the cache. No credentials are read.</p>
+<p>This is retained recording activity, not a subscription quota or billing ledger. Deleted history can reduce counts;
+partial coverage is labeled. Quota percentage and reset time remain unknown from this source. Gemini web chat is separate.</p>
 <h2 id="updates">Updates in the app</h2>
 <p>Use Settings → Updates to check manually, enable daily checks, or allow automatic installation. Automatic options
 start off. This alpha channel includes preview releases. Sparkle verifies signed feeds and archives before extraction;
