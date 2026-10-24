@@ -53,6 +53,12 @@ struct PhoneRoot: View {
                     }
                     Text("Reminders describe a reported expected time, not confirmed availability. Fresh readings replace pending reminders. An offline phone may miss a cancellation. Apple Watch notification mirroring follows your system settings.")
                 }
+                Section("Background refresh") {
+                    Toggle("Receive background updates",isOn:Binding(get:{model.push.enabled},set:{enabled in Task { await model.push.setEnabled(enabled) }}))
+                        .toggleStyle(PixelToggleStyle()).disabled(model.push.busy || !model.signedIn)
+                    Text("Shares this app’s random installation ID, Apple device token and environment with Clepso’s server. Apple receives an empty refresh signal with no usage values. Delivery is best effort, at most three signals an hour. Turning this off removes the server token when online; otherwise removal waits for reconnection and tokens expire after 30 days.")
+                    if let message = model.push.message { Text(message) }
+                }
                 Section("Sharing") {
                     Text("Your Mac must separately enable mobile sharing. Only aggregate provider limits and timestamps are relayed through your account. The paired Watch receives that snapshot; account credentials stay on this iPhone.")
                     if let message = model.message { Text(message) }

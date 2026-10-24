@@ -85,6 +85,13 @@ extension AppModel {
             do {
                 try await self.environment.sync.publishMobileRelay(snapshot, generation: lease)
                 guard self.mobileSharing == choice, !Task.isCancelled else { return }
+                let at = self.environment.clock.now()
+                if self.lastMobileSignalAttempt.map({ at.timeIntervalSince($0) >= 21 * 60 || at < $0 }) ?? true {
+                    self.lastMobileSignalAttempt = at
+                    // A missing push setup or delayed Apple response must not invalidate a successful relay write.
+                    try? await self.environment.sync.signalMobileRefresh()
+                }
+                guard self.mobileSharing == choice, !Task.isCancelled else { return }
                 self.mobileSharingMessage = "Last mobile reading shared just now."
             } catch {
                 guard self.mobileSharing == choice, !Task.isCancelled else { return }

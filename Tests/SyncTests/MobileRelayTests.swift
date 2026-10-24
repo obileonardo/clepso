@@ -41,4 +41,35 @@ import Testing
         }
         #expect(transport.all.count == count)
     }
+    @Test func pushConsentAndSignalHaveNoCallerChosenOwnerOrDestination() async throws {
+        let transport = StubTransport(), client = client(transport), device = UUID(), lease = UUID()
+        transport.respond(200,"\"\(lease.uuidString)\"")
+        #expect(try await client.setMobileDevice(device, enabled: true) == lease)
+        transport.respond(204, "")
+        try await client.registerMobileDevice(device, generation: lease, token: String(repeating: "ab", count: 32), environment: .development)
+        transport.respond(200, "{\"configured\":true}")
+        try await client.checkMobilePush(.production)
+        transport.respond(202, "{\"accepted\":1}")
+        try await client.signalMobileRefresh()
+        let requests = transport.all
+        #expect(requests.map { $0.url!.path } == ["/rest/v1/rpc/set_mobile_device", "/rest/v1/rpc/register_mobile_device", "/functions/v1/mobile-signal", "/functions/v1/mobile-signal"])
+        #expect(body(requests[0])["p_device"] as? String == device.uuidString)
+        #expect(body(requests[1])["p_generation"] as? String == lease.uuidString)
+        #expect(body(requests[1])["p_environment"] as? String == "development")
+        #expect(Set(body(requests[2]).keys) == ["check", "environment"])
+        #expect(body(requests[2])["environment"] as? String == "production")
+        #expect(body(requests[3]).isEmpty)
+        #expect(requests.allSatisfy { $0.httpMethod == "POST" && $0.value(forHTTPHeaderField: "Authorization") == "Bearer synthetic-access" })
+    }
+    @Test func invalidPushTokenNeverLeavesClientAndReadinessMustBeExplicit() async throws {
+        let transport = StubTransport(), client = client(transport)
+        for token in ["", "abc", "AB", "https://example.test", String(repeating: "a", count: 1026)] {
+            await #expect(throws: SyncError.badResponse) {
+                try await client.registerMobileDevice(UUID(), generation: UUID(), token: token, environment: .production)
+            }
+        }
+        #expect(transport.all.isEmpty)
+        transport.respond(200, "{\"configured\":false}")
+        await #expect(throws: SyncError.badResponse) { try await client.checkMobilePush(.development) }
+    }
 }

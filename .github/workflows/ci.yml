@@ -62,6 +62,9 @@ jobs:
           npm ci --prefix Tests/MCPClient --ignore-scripts --no-audit --no-fund
           npm --prefix Tests/MCPClient test
 
+      - name: Mobile push authentication and Apple payload contract
+        run: node --test backend/supabase/functions/mobile-signal/handler.test.ts
+
       - name: Keep test failure evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -92,6 +95,9 @@ jobs:
 
       - name: Build iPhone and Watch companion without signing
         run: bash scripts/build-mobile.sh
+
+      - name: Native iPhone account and consent lifecycle tests
+        run: python3 scripts/test-mobile.py
 
       - name: Keep gate logs
         if: always()

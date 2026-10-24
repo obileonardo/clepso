@@ -699,7 +699,7 @@ docs_page("architecture/", "Architecture", "How Clepso is put together: processe
 
 docs_page("privacy/", "Privacy", "What Clepso reads, what it keeps on your Mac, and what it uploads if you sign in.",
           "Clepso works fully on your Mac without an account. If you choose to sign in, it uploads daily counts so you can see your "
-          "goals and usage elsewhere. Published by Elvis Obi, Lagos, Nigeria. Updated 22 October 2026.", """
+          "goals and usage elsewhere. Published by Elvis Obi, Lagos, Nigeria. Updated 24 October 2026.", """
 <h2 id="publisher">Publisher and contact</h2>
 <p>Clepso is published by <strong>Elvis Obi</strong>, Lagos, Nigeria. For privacy questions, corrections or requests,
 email <a href="mailto:contact@elvisobi.com">contact@elvisobi.com</a>. Clepso is independent software and is not affiliated
@@ -746,9 +746,24 @@ file cache stay in memory on this Mac. Paths are used to find files and cache mo
 or uploaded. Disabling clears the cache. Credentials are not read and provider telemetry is not enabled. These counts
 are not included in account uploads, widgets or MCP snapshots. They do not establish your subscription allowance.</p>
 
+<h2 id="mobile">Optional mobile companion preview</h2>
+<p>The development companion requires a separate, default-off mobile-sharing choice on your Mac. If enabled,
+Supabase holds only your latest aggregate provider limits, sources, states and observation/reset times under your
+account. It does not include model or session identifiers. Read access expires after 15 minutes; an automatic cleanup
+runs every five minutes. Turning sharing off removes the snapshot when online and revokes older publication leases.
+The iPhone keeps an account-bound cache, visibly labels old readings and clears the cache on sign-out.
+Your paired Watch receives the aggregate reading through the iPhone, never account credentials.</p>
+<p>Expected-reset reminders are optional and run locally. Separate background refresh consent registers a random app
+installation identifier, Apple device token and environment with Clepso's server. Those tokens are private, expire
+after 30 days and are removed on online opt-out or account deletion. Apple receives an empty background signal with
+no usage values. Delivery is best effort; it is not a guaranteed alarm. Offline opt-out waits for reconnection to
+remove a server token. The companion is a development preview; Apple push setup, physical delivery checks and public
+mobile distribution remain pending.</p>
+
 <h2 id="services">Service providers</h2>
 <p>The public website is hosted on Vercel; downloads are hosted on GitHub. Optional accounts use Supabase for
-authentication and storage and Namecheap Private Email for sign-in delivery. These services process the requests
+authentication and storage and Namecheap Private Email for sign-in delivery. The optional mobile companion uses
+Apple Push Notification service for background signals once configured. These services process the requests
 needed to provide those features, including normal connection metadata such as IP addresses. Reading usage locally
 does not require a Clepso account. Provider account subscriptions remain with their respective providers.</p>
 

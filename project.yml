@@ -37,6 +37,9 @@ schemes:
         ClepsoPhone: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets: [ClepsoPhoneTests]
   ClepsoWatch:
     build:
       targets:
@@ -198,6 +201,8 @@ targets:
             CFBundleURLSchemes: [clepso]
         ClepsoSyncHost: $(CLEPSO_SYNC_HOST)
         ClepsoSyncPublishableKey: $(CLEPSO_SYNC_PUBLISHABLE_KEY)
+        ClepsoPushEnvironment: $(CLEPSO_PUSH_ENVIRONMENT)
+        UIBackgroundModes: [remote-notification]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso.mobile
@@ -205,6 +210,11 @@ targets:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: Apple Development
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CLEPSO_PUSH_ENVIRONMENT: development
+    entitlements:
+      path: App/ClepsoPhone/ClepsoPhone.entitlements
+      properties:
+        aps-environment: development
     dependencies:
       - package: Clepso
         product: DesignSystem
@@ -242,5 +252,20 @@ targets:
         product: DesignSystem
       - package: Clepso
         product: Domain
+      - package: Clepso
+        product: IntegrationSnapshot
+  ClepsoPhoneTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [Tests/PhoneTests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.elvisobi.clepso.mobile.tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: ClepsoPhone
+      - package: Clepso
+        product: Sync
       - package: Clepso
         product: IntegrationSnapshot

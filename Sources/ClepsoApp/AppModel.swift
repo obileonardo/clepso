@@ -53,6 +53,7 @@ public final class AppModel {
     public internal(set) var mobileSharingMessage: String?
     var mobilePublishTask: Task<Void, Never>?
     var lastMobileAttempt: Date?
+    var lastMobileSignalAttempt: Date?
     public internal(set) var integrationMessage: String?
     public internal(set) var updateChecksEnabled = false
     public internal(set) var updateDownloadsEnabled = false

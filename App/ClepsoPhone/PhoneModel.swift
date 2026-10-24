@@ -16,18 +16,28 @@ import UserNotifications
     var reminders = false
     var leadMinutes = 0
     let client: SyncClient
+    let push: PhonePushController
     let link = CompanionWatchLink()
     private let clock: @Sendable () -> Date
     private let cache: URL
     private var generation = 0
+    private var changingAccount = false
     private var reminderChoice = 0
     private let reminderCoordinator = CompanionReminderCoordinator(client: PhoneReminderClient())
-    init(client: SyncClient, cache: URL, clock: @escaping @Sendable () -> Date) {
+    init(client: SyncClient, cache: URL, clock: @escaping @Sendable () -> Date, push: PhonePushController? = nil) {
         self.client = client; self.cache = cache; self.clock = clock; now = clock()
+        self.push = push ?? PhonePushController(client: client)
         let defaults = UserDefaults.standard
         reminders = defaults.bool(forKey: "companion.reminders")
         leadMinutes = [0,5,15].contains(defaults.integer(forKey: "companion.lead")) ? defaults.integer(forKey: "companion.lead") : 0
         link.onRefresh = { [weak self] in Task { await self?.refresh() } }
+        self.push.refresh = { [weak self] in
+            guard let self else { return false }
+            self.link.start()
+            let previous = self.envelope
+            await self.refresh()
+            return self.envelope != previous
+        }
     }
     func start() async {
         link.start()
@@ -39,13 +49,15 @@ import UserNotifications
                let data = try? Data(contentsOf: cache), let value = try? RelayEnvelope.decoder().decode(CompanionCache.self, from: data) {
                 envelope = value.reading(for: account)
             }
+            if envelope == nil { try? FileManager.default.removeItem(at: cache) }
         } else { clearSnapshot() }
         // Reconcile persisted-off and signed-out state after crashes, before any network suspension.
         await reconcileReminders()
+        await push.start()
         await refresh()
     }
     func requestLink() async {
-        guard !busy else { return }; busy = true; defer { busy = false }
+        guard !busy, !changingAccount else { return }; busy = true; defer { busy = false }
         do {
             try await client.requestEmailLink(email.trimmingCharacters(in: .whitespacesAndNewlines))
             pendingEmail = await client.pendingEmail
@@ -53,14 +65,26 @@ import UserNotifications
         } catch { message = "The sign-in link could not be requested. Try again when connected." }
     }
     func callback(_ url: URL) async {
+        guard url.scheme == SyncConfig.urlScheme, url.host == SyncConfig.redirectURL.host else { return }
+        guard await client.hasPendingSignIn else { message = "Request a sign-in link on this iPhone first."; return }
+        guard !push.busy, !changingAccount else { message = "Wait for the background refresh change to finish, then open the sign-in link again."; return }
+        changingAccount = true
+        defer { changingAccount = false }
         generation += 1
         clearSnapshot(); link.send(nil)
-        do { signedInEmail = try await client.handleCallback(url).email; signedIn = true; pendingEmail = nil; message = nil; await refresh() }
-        catch { message = "This sign-in link could not be completed. Request a fresh link on this iPhone." }
+        await push.setEnabled(false)
+        do {
+            signedInEmail = try await client.handleCallback(url).email; signedIn = true; pendingEmail = nil; message = nil
+            changingAccount = false
+            await refresh()
+        } catch {
+            signedIn = await client.session != nil; signedInEmail = await client.session?.email
+            message = "This sign-in link could not be completed. Request a fresh link on this iPhone."
+        }
     }
     func refresh() async {
         now = clock()
-        guard !busy, await client.session != nil else { return }
+        guard !busy, !changingAccount, await client.session != nil else { return }
         busy = true; defer { busy = false }
         let current = generation
         do {
@@ -78,6 +102,7 @@ import UserNotifications
         } catch SyncError.notSignedIn {
             guard current == generation else { return }
             signedIn = false; signedInEmail = nil; clearSnapshot(); link.send(nil)
+            push.clearLocally()
             await reconcileReminders()
             message = "Your session ended. Sign in again on this iPhone."
         } catch {
@@ -86,11 +111,15 @@ import UserNotifications
         }
     }
     func signOut() async {
+        guard !push.busy, !changingAccount else { message = "Wait for the background refresh change to finish, then sign out."; return }
+        changingAccount = true
+        defer { changingAccount = false }
         generation += 1
-        await client.signOut()
         signedIn = false; signedInEmail = nil; pendingEmail = nil
         clearSnapshot(); link.send(nil)
         await reconcileReminders()
+        await push.setEnabled(false)
+        await client.signOut()
     }
     func clearSnapshot() { envelope = nil; try? FileManager.default.removeItem(at: cache) }
     func setReminders(_ enabled: Bool) async {

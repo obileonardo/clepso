@@ -5,13 +5,16 @@ import SwiftUI
 import Sync
 
 @main struct ClepsoPhoneApp: App {
+    @UIApplicationDelegateAdaptor(PhonePushDelegate.self) private var pushDelegate
     @State private var model: PhoneModel
     @Environment(\.scenePhase) private var scenePhase
     init() {
         PixelFonts.ensureRegistered()
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let client = SyncClient(config: SyncConfig(infoDictionary: Bundle.main.infoDictionary ?? [:]), now: { SystemClock().now() })
-        _model = State(initialValue: PhoneModel(client: client, cache: directory.appendingPathComponent("Clepso/relay.v1.json"), clock: { SystemClock().now() }))
+        let phone = PhoneModel(client: client, cache: directory.appendingPathComponent("Clepso/relay.v1.json"), clock: { SystemClock().now() })
+        _model = State(initialValue: phone)
+        pushDelegate.controller = phone.push
     }
     var body: some Scene {
         WindowGroup {

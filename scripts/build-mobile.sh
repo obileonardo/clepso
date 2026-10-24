@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [ ! -x .tools/xcodegen/bin/xcodegen ]; then
-    echo "Run scripts/build.sh --debug first to prepare the pinned XcodeGen tool."
+    echo "Run scripts/bootstrap.sh first to prepare the pinned XcodeGen tool."
     exit 1
 fi
 .tools/xcodegen/bin/xcodegen generate
