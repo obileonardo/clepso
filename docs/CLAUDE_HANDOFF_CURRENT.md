@@ -1,8 +1,8 @@
-> **CURRENT DISTRIBUTION: 0.4.0 alpha 1, build 236 — released, website live, Homebrew updated and Mac upgraded on 22 October 2026.** Read the latest checkpoint below; earlier distribution tables are historical.
+> **CURRENT DISTRIBUTION: 0.4.0 alpha 2, build 244 — public GitHub release, website and Homebrew live; installed and verified on 24 October 2026. Mobile source is in progress separately.** Read the latest checkpoint below; earlier distribution tables are historical.
 
 # Clepso — current handoff for Claude or Codex
 
-Updated: 22 October 2026. Read this before older continuation reports. This is an evidence-based snapshot, not a claim that future features are already complete. Keep the progress ledger below current as work proceeds.
+Updated: 24 October 2026. Read this before older continuation reports. This is an evidence-based snapshot, not a claim that future features are already complete. Keep the progress ledger below current as work proceeds.
 
 ## Latest user instruction and authorized scope
 
@@ -14,17 +14,17 @@ Do not invent credentials, business/legal identity, device verification, support
 
 | Surface | Current verified state |
 | --- | --- |
-| App repository | `app/`, GitHub `obileonardo/clepso`; clean main `dace9a2ebdf3d1a40c43296787b07d62572fb160` at this handoff's creation |
-| Exact signed source | `v0.3.0-alpha.3` at `1ff1e1443aaa2a89ce5ca81dc9e589a3d529669e`; merged main has the identical tree |
-| Public release | https://github.com/obileonardo/clepso/releases/tag/v0.3.0-alpha.3 ; public Latest, title/tag explicitly alpha |
-| Direct DMG | https://github.com/obileonardo/clepso/releases/download/v0.3.0-alpha.3/Clepso-0.3.0-alpha.3.dmg |
-| DMG SHA-256 | `e34982f0a34c48694aa0da5ba77ecf883efb78b421753e59d8c740e6eab596fd` |
-| Installed app | `~/Applications/Clepso.app`, version `0.3.0`, build **232**, Homebrew-managed and verified running |
-| Homebrew repository | `homebrew-clepso/`, GitHub `obileonardo/homebrew-clepso`; clean main `1d61f492d99999c3321d18c0d3f064c1958678a9` |
-| Homebrew installation | Named cask `obileonardo/clepso/clepso`, receipt `0.3.0-alpha.3`; actual tap at `/opt/homebrew/Library/Taps/obileonardo/homebrew-clepso` |
-| Website | https://clepso-app.vercel.app ; character page `/characters/`, documentation `/docs/`, dashboard `/app/` |
-| Vercel deployment | `dpl_7Bpxg76A2gCRGC4FAHoigsMZmo32`, project `clepso`, scope `obileonardos-projects`, project ID `prj_ZTZiAhmv5oejW0DcgdzavbllW2qT` |
-| Latest completed PRs | App #20 and tap #3 merged; no open PRs at the end of that release |
+| App repository | app/, GitHub obileonardo/clepso; main d0c9f2a2450b8cb42ee3c70f0d178b5594af6068 |
+| Exact signed source | v0.4.0-alpha.2 at 7590ce3354a30af8dd2431592a3ec66e4dd2995c |
+| Public release | https://github.com/obileonardo/clepso/releases/tag/v0.4.0-alpha.2 ; public Latest, alpha label retained |
+| Direct DMG | https://github.com/obileonardo/clepso/releases/download/v0.4.0-alpha.2/Clepso-0.4.0-alpha.2.dmg |
+| DMG SHA-256 | 81454a3f57eb10644500b10333da2e8bca67982b6e2ef523f3a543c39fba0fa9 |
+| Installed app | ~/Applications/Clepso.app, 0.4.0/build244; Homebrew-managed, code and preserved settings verified |
+| Homebrew repository | homebrew-clepso/, obileonardo/homebrew-clepso; main e4413d2704160f06f3a4b804b9b9958a77104c91 |
+| Homebrew receipt | 0.4.0-alpha.2; real tap /opt/homebrew/Library/Taps/obileonardo/homebrew-clepso synchronized |
+| Website | https://clepso-app.vercel.app ; 22 live routes/assets byte-matched to reviewed site source |
+| Vercel deployment | dpl_3bsXhwBEPL7tLPMPLogtDKMPAsRY READY; project clepso, scope obileonardos-projects, project ID prj_ZTZiAhmv5oejW0DcgdzavbllW2qT |
+| Completed PRs | App #26 (Gemini), #29 (verified feed/records); tap #6 merged; mobile issue #27 continues separately |
 
 The workspace root is **not** a Git repository. Run app build/test/Git operations from `app/`, tap operations from `homebrew-clepso/`, website deployment from **`app/site/`**, not the app repository root. The original `~/Developer/clepso` checkout and six historical worktree sources were preserved. Their untracked items are generated cache symlinks, not hidden source changes.
 
@@ -217,3 +217,28 @@ User requests accurate latest app screenshots and a cleaner, more visually appea
 - Backup /Users/elvisobi/Library/Application Support/Clepso Update Backups/20261024T001556Z. Receipt verification/2026-10-24/gemini-release/installation.json. NTP +0.003100 seconds after restart.
 - Mobile issue #27 source remains uncommitted in app-mobile/feat/mobile-companion. iPhone+embedded Watch simulator build had passed before restart. No mobile backend schema deployed, no physical installation, no push credentials. Next fix serial reminder replacement and implement owner-isolated relay with generation-fenced revocation; recreate isolated database safely. Preliminary Sync mobile publish/revoke methods need generation fencing before use.
 - Other provider adapters/additional edition art/physical QA remain. Social OAuth and domain explicitly deferred. README refresh queued LAST. No new emails/model prompts authorized.
+
+### Mobile relay implementation checkpoint — 24 October (not shipped)
+
+- Active mobile worktree app-mobile/feat/mobile-companion, issue #27. Native Phone/Watch shared typed limits, independent email PKCE phone auth, WatchConnectivity aggregate-only handoff, cache clearing, opt-in expected-reset notifications and serial/coalesced OS writes implemented. Five plan/coordinator tests and two Sync transport tests pass; Phone+embedded Watch simulator build passed. Three Mac sharing consent lifecycle tests pass: no implicit daily-upload consent, demo refusal, suspended publish vs opt-out, offline off and restart retry.
+- Mac Settings mobile disclosure/toggle and persisted generation lease now wired; default off. Server protocol uses authenticated lease RPCs; pending removal/15-minute expiry disclosed. Additional lifecycle/diff review and full gates still pending.
+- Local test services survived reboot. Recreated configuration in ignored app-mobile/build/mobile-db (project clepso_mobile_test; 553xx ports), not production. Supabase CLI multi-statement query files were rejected; used PostgreSQL client via the isolated Docker container instead, without migration history during iteration.
+- Generated migration via CLI db pull: backend/supabase/migrations/20261024003013_mobile_relay.sql. Owner RLS, bounded exact-field validator, narrow unexposed definer writers/auth.uid, public invoker wrappers, no direct client writes, lock/generation-fenced off and expiry cleanup every five minutes. Advisors: no issues. Clean migration reset only on synthetic local project passed; baseline16 and relay35 pgTAP assertions pass. Two-connection publication/revoke test passes. Actual local Auth→RPC→REST with two synthetic users passed, no emails; fixtures deleted. Durable runners backend/tests/mobile_relay_{http,concurrency}.py capture local keys privately in memory.
+- No mobile schema has been applied to production. No APNs background function/device registration, signing/provisioning, TestFlight/public phone build or physical phone/Watch check completed. Do not call mobile fully shipped.
+- CUA after restart can list apps and read Finder AX, but installed Clepso attachment times out, Safari capture fails ScreenCaptureKit -3811, Finder image is blank; physical UI remains unverified.
+- GitHub current alerts include new Brotli (<1.2.1) and MCP test-only body-parser (<2.4.0) in addition to stale Pillow findings. Source Pillow13.0.0 is patched; need inspect/fix actual other pins as a separate real issue before next release. Do not suppress findings.
+- README remains queued last; social sign-in/domain deferred. No new email/model test allowance.
+
+- Release records PR #29 passed all six checks and squash-merged at app main d0c9f2a. Main checkout is clean. Recovery Git-only archives/bundles/patch and manifest refreshed to main; both bundles verify. Current installed app remains verified alpha2/build244.
+- Mobile source saved as 7884e2c before merging main; resolved only .gitignore generated Info exclusions and retained both mobile cancellation/Gemini generation guards in stop(). Full strict validation of the combined source is running (inspect app-mobile Git and /private/tmp/clepso-mobile-full-ci.log). No mobile source has yet been pushed or released.
+- Device archive **succeeded** with existing Apple Development provisioning before the merge. Two iPhone17Pro entries: physical/local-network iOS27.2 with Developer Mode already enabled, and sameMachine iOS27.0; no Watch in CoreDevice inventory. Device IDs stay private in /private/tmp/clepso-mobile-devices.json (0600). Do not guess an install target or publish development profiles. No physical mobile installation or push verified.
+
+### Final mobile core validation checkpoint — 24 October
+
+- Core source d167892 (after merge 5ef8ad2) passed all17 strict gates, **578 tests/118 suites**. Separate simulator iPhone+embedded Watch build passed. Final Release device archive built; both signatures verify outside the sandbox. Sandbox-only CSSMERR_TP_NOT_TRUSTED disappeared with normal trust-service access; no security check weakened.
+- Phone cache now hashes/binds the signed-in account and is not loaded in init before authentication is known. Callback/sign-out generations discard in-flight old-account reads. Two cache tests pass. Actual shared-source phone/Watch narrow/error/old renders inspected; these are Mac offscreen renders, not physical iOS/Dynamic Type proof.
+- New scripts/build-mobile.sh and CI step compile phone/Watch without signing or a simulator boot; that separate check passed. Full core CI was on d167892; subsequent edits only add this script/workflow and QA records, not app logic.
+- Native computer-use remains partly broken: Finder AX works, app capture fails/blank; no fresh physical UI pass claimed. Physical iPhone provisioning/connection check in progress; do not claim installation until verified.
+- Next: finish background APNs/device registration (Apple reference docs fetched in app-mobile/build/mobile-reference), production relay migration and ownership verification, physical phone/Watch installation/testing and distribution. Existing local tests use ignored build/mobile-db, not production. APNs credentials are not configured. Apple documents background pushes as best effort, at most roughly2–3/hour; do not turn them into a guaranteed alarm claim.
+- Dependency follow-up: existing Dependabot PR#28 patches Brotli1.2.0→1.2.1; MCP test-only body-parser2.3.0 needs2.4.0. Pillow13.0.0 already patched, but stale GitHub graph alerts remain. Work this as a real issue before the next public release; do not suppress alerts.
+- README visual refresh remains queued after all other work. Social OAuth/domain stay on hold. No new real email or model prompts authorized.

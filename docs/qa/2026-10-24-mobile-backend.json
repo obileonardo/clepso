@@ -1,0 +1,19 @@
+{
+  "production_migrations_applied": true,
+  "live_auth_rpc_rest_verified": true,
+  "function_jwt_auth_required": true,
+  "owner_derived_not_caller_supplied": true,
+  "both_environment_signers_configured": true,
+  "owner_only_reads_verified": true,
+  "old_relay_and_device_leases_rejected": true,
+  "zero_destination_signal_accepted": true,
+  "no_apple_push_sent": true,
+  "no_emails_sent": true,
+  "only_synthetic_fixture_accounts_used": true,
+  "physical_delivery_verified": false,
+  "synthetic_accounts_deleted": true,
+  "function_status": "ACTIVE",
+  "function_verify_jwt": true,
+  "migration_dry_run_up_to_date": true,
+  "new_production_advisor_warnings": 0
+}

@@ -1,0 +1,62 @@
+-- Synthetic users only; the transaction rolls back all fixtures.
+begin;
+create extension if not exists pgtap with schema extensions;
+select no_plan();
+insert into auth.users(id,email,aud,role) values
+ ('11111111-1111-1111-1111-111111111111','a@example.test','authenticated','authenticated'),
+ ('22222222-2222-2222-2222-222222222222','b@example.test','authenticated','authenticated');
+select set_config('test.snapshot',jsonb_build_object('schemaVersion',1,'demo',false,
+ 'generatedAt',to_char(now() at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'),'limits',jsonb_build_array(
+ jsonb_build_object('provider','codex','window','fiveHour','source','automatic','state','reported','usedPercent',80)))::text,true);
+select ok(not has_table_privilege('authenticated','public.mobile_relay','INSERT'),'direct INSERT cannot bypass lease');
+select ok(not has_table_privilege('authenticated','public.mobile_relay','UPDATE'),'direct UPDATE cannot bypass lease');
+select ok(not has_table_privilege('authenticated','public.mobile_relay','DELETE'),'direct DELETE cannot bypass control');
+select ok(not has_table_privilege('authenticated','public.mobile_relay_control','UPDATE'),'control cannot be edited directly');
+select ok(not has_function_privilege('anon','public.set_mobile_relay(boolean)','EXECUTE'),'anonymous cannot enable sharing');
+select ok(not has_function_privilege('anon','public.publish_mobile_relay(jsonb,uuid)','EXECUTE'),'anonymous cannot publish');
+select ok(not has_function_privilege('authenticated','clepso_private.valid_mobile_snapshot(jsonb)','EXECUTE'),'validator is internal');
+select ok(clepso_private.valid_mobile_snapshot(current_setting('test.snapshot')::jsonb),'typed aggregate is accepted');
+select ok(not clepso_private.valid_mobile_snapshot(current_setting('test.snapshot')::jsonb || '{"prompt":"private"}'),'unknown top-level content rejected');
+select ok(not clepso_private.valid_mobile_snapshot(jsonb_set(current_setting('test.snapshot')::jsonb,'{demo}','true')),'demo rejected');
+select ok(not clepso_private.valid_mobile_snapshot(jsonb_set(current_setting('test.snapshot')::jsonb,'{generatedAt}','"infinity"')),'nonfinite time rejected');
+select ok(not clepso_private.valid_mobile_snapshot(jsonb_set(current_setting('test.snapshot')::jsonb,'{limits,0,sessionId}','"private"')),'unknown row content rejected');
+select ok(not clepso_private.valid_mobile_snapshot(jsonb_set(current_setting('test.snapshot')::jsonb,'{limits,0,usedPercent}','-1')),'negative percentage rejected');
+select ok(not clepso_private.valid_mobile_snapshot(jsonb_set(current_setting('test.snapshot')::jsonb,'{limits,0,provider}','"arbitrary"')),'unknown provider rejected');
+select ok(not clepso_private.valid_mobile_snapshot(jsonb_set(current_setting('test.snapshot')::jsonb,'{limits,0,observedAt}','"2026-99-99T99:00:00Z"')),'invalid date rejected');
+select ok(not clepso_private.valid_mobile_snapshot(jsonb_set(current_setting('test.snapshot')::jsonb,'{limits}',(select jsonb_agg('{}'::jsonb) from generate_series(1,65)))),'too many rows rejected');
+set local role authenticated;
+set local request.jwt.claims='{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+select throws_ok($$select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb,gen_random_uuid())$$,'42501',null,'no publication before opt-in');
+select set_config('test.lease',public.set_mobile_relay(true)::text,true);
+select lives_ok($$select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb,current_setting('test.lease')::uuid)$$,'owner can publish with lease');
+select is((select count(*)::int from public.mobile_relay),1,'owner reads latest snapshot');
+select is((select user_id from public.mobile_relay),'11111111-1111-1111-1111-111111111111'::uuid,'server derives owner');
+select throws_ok($$select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb,gen_random_uuid())$$,'42501',null,'wrong generation rejected');
+select throws_ok($$select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb || '{"path":"private"}',current_setting('test.lease')::uuid)$$,'22023',null,'RPC validates fields');
+select throws_ok($$select public.publish_mobile_relay(jsonb_set(current_setting('test.snapshot')::jsonb,'{generatedAt}','"2000-01-01T00:00:00Z"'),current_setting('test.lease')::uuid)$$,'22023',null,'old replay rejected');
+set local request.jwt.claims='{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
+select is((select count(*)::int from public.mobile_relay),0,'other account sees no snapshot');
+select is((select count(*)::int from public.mobile_relay_control),0,'other account sees no lease');
+select throws_ok($$select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb,current_setting('test.lease')::uuid)$$,'42501',null,'other account cannot reuse lease');
+set local role anon;
+select throws_ok($$select * from public.mobile_relay$$,'42501',null,'anonymous cannot read relay');
+select throws_ok($$select public.set_mobile_relay(true)$$,'42501',null,'anonymous RPC denied');
+set local role authenticated;
+set local request.jwt.claims='{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+select public.set_mobile_relay(false);
+select is((select count(*)::int from public.mobile_relay),0,'disable removes snapshot');
+select throws_ok($$select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb,current_setting('test.lease')::uuid)$$,'42501',null,'delayed old writer cannot recreate revoked snapshot');
+select set_config('test.newlease',public.set_mobile_relay(true)::text,true);
+select isnt(current_setting('test.newlease'),current_setting('test.lease'),'reenable rotates generation');
+select throws_ok($$select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb,current_setting('test.lease')::uuid)$$,'42501',null,'prior generation remains fenced after reenable');
+select public.publish_mobile_relay(current_setting('test.snapshot')::jsonb,current_setting('test.newlease')::uuid);
+reset role;
+update public.mobile_relay set received_at=now()-interval '20 minutes',expires_at=now()-interval '5 minutes';
+set local role authenticated;
+select is((select count(*)::int from public.mobile_relay),0,'expired snapshot unavailable through RLS');
+select public.delete_account();
+reset role;
+select is((select count(*)::int from public.mobile_relay),0,'account deletion cascades snapshot');
+select is((select count(*)::int from public.mobile_relay_control),0,'account deletion cascades control');
+select * from finish();
+rollback;
