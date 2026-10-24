@@ -1,4 +1,4 @@
-# Implementation status — 0.4.0 alpha 2 source candidate
+# Implementation status — 0.4.0 alpha 2, build 244
 
 This is the current feature inventory for this release source. Older continuation reports describe earlier builds;
 they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeatures.swift`.
@@ -29,7 +29,7 @@ they do not override the shipping flags in `Sources/ClepsoApp/System/ReleaseFeat
 
 | Item | Actual remaining work |
 | --- | --- |
-| Automatic Gemini CLI, Grok, Cursor, Copilot, Windsurf tracking | Validate real supported telemetry and access; manual entries are already available |
+| Automatic Grok, Cursor, Copilot and Windsurf tracking | Supported personal-account quota access remains unvalidated. Gemini recorded token activity is shipped, separately from unknown subscription quotas |
 | iPhone/Watch app and mobile alarms | Separate app, pairing, push/delivery infrastructure, device credentials and end-to-end checks |
 | Apple, Google and GitHub sign-in | On hold by user request; existing email sign-in remains live |
 | Additional model-version costumes | Known Opus 5.5 and Fable 5.1 editions have explicit variants; other versions retain the base family character |
