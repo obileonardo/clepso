@@ -5,47 +5,27 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <title>Clepso</title>
         <item>
             <title>0.4.0</title>
-            <pubDate>Thu, 22 Oct 2026 06:59:24 +0100</pubDate>
+            <pubDate>Sat, 24 Oct 2026 00:37:41 +0100</pubDate>
             <link>https://clepso-app.vercel.app/</link>
             <sparkle:channel>alpha</sparkle:channel>
-            <sparkle:version>236</sparkle:version>
+            <sparkle:version>244</sparkle:version>
             <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
-            <description sparkle:format="markdown"><![CDATA[# Clepso 0.4.0 alpha 1 — within reach
+            <description sparkle:format="markdown"><![CDATA[# Clepso 0.4.0 alpha 2 — recorded activity
 
-This alpha adds desktop widgets, a read-only MCP server and signed in-app updates. Existing Claude/Codex readers,
-menu-bar rotation, Goals controls, stepped toggles, compact Account layout and native model characters remain available.
+Gemini CLI users can enable Read recorded token activity in Settings. Limits shows numeric activity from the newest 16 retained recordings on this Mac. Cache is part of input and is not counted twice. Repeated message records/checkpoints are deduplicated; malformed, oversized and additional coverage stays explicitly partial.
 
-- **Widgets:** small and medium WidgetKit layouts. Enable sharing in Settings → Integrations, then add Clepso limits
-  from the Mac widget gallery. Missing, manual, old and expected-reset readings stay explicitly labeled.
-- **MCP:** allow a named client in Settings → Integrations, review its disclosure and copy the setup. Two read-only
-  tools expose limits and reader health; no prompts, paths, credentials, session IDs or shell access. Revoke access
-  without restarting a client. Your client may forward usage readings to its AI provider.
-- **Updates:** Sparkle 2.10.0 with signed feeds and archives, verification before extraction and no system-profile
-  reporting. Manual check, daily checks and automatic installation are in Settings. Automatic choices start off.
-  Earlier updater-free releases still need this first upgrade by DMG/Homebrew.
-- **Models:** a restrained native pixel flourish marks a newly reached output level while viewing the same model.
-  Opening a model, changing range, demo mode, replayed older readings and inactive views do not trigger it.
-  Pause and Reduce Motion stop the moving effect.
-- **Publisher:** privacy contact is Elvis Obi, Lagos, Nigeria, contact@elvisobi.com. No new domain was purchased.
+The reader is optional, local and bounded. Recording files also contain conversations; Clepso discards content and does not read credentials or enable telemetry. Numeric activity, hashed deduplication keys and a temporary file cache stay in memory. Disabling clears the cache. This does not establish subscription quota percentages or reset times; those remain unknown. No new provider counts are uploaded or shared through widgets/MCP.
 
-Sharing is optional and local. The widget is a separate sandboxed extension, using only an allowlisted aggregate
-snapshot. MCP uses a private file and local stdio, with no HTTP listener. Deleting local data revokes sharing and
-clears the widget snapshot. No existing tracking connection is disabled by this update.
+The existing widgets, MCP server, signed updater, Goals fixes, native characters and Claude/Codex tracking remain available. The brand pipeline's Pillow dependency was updated to 13.0.0; a full rebuild and font checks passed, with identical pixels across 181 PNGs. The tooling dependency is not bundled in the Mac app.
 
-This is an incremental alpha, not a claim that every roadmap item is live. Automatic adapters for the other
-providers, iPhone/Watch/relay/push, live Apple/Google/GitHub OAuth, additional edition costumes and remaining physical
-QA continue separately. The publisher confirmed that OAuth applications have not yet been registered. Domain
-purchase remains explicitly excluded. A legal engineering review is not an external legal sign-off.
-
-Computer use still fails to attach, so fresh widget-gallery, VoiceOver and physical focus/lifecycle checks remain
-unverified. The committed QA report records automated and build/signing evidence separately.
+Other provider adapters, mobile/Watch/relay/push, extra model editions and physical QA continue separately. Social sign-in and domain purchase remain on hold. No new sign-in emails or model prompts were sent.
 ]]></description>
-            <enclosure url="https://github.com/obileonardo/clepso/releases/download/v0.4.0-alpha.1/Clepso-0.4.0-alpha.1.dmg" length="6858972" type="application/octet-stream" sparkle:edSignature="/vMK62uSI6aH4wd0QmPWfsXSFDAILq0fV/4pyAmWPzVDWX1F+HXtDIR0380D26LLFGtU59+AoLxeVQFni/apDw=="></enclosure>
+            <enclosure url="https://github.com/obileonardo/clepso/releases/download/v0.4.0-alpha.2/Clepso-0.4.0-alpha.2.dmg" length="7960466" type="application/octet-stream" sparkle:edSignature="jE70K04l1t3uB4XWzfZkusJl7XmaNUE7gZl8bMcOiyAex3O2G8g38BKkxv5zzN/yryOtIa5/TTxA1KmYKpP1CQ=="></enclosure>
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: 4DlBRHz/sEQE0U288ptS8IEPQwdjCyZV4LjoBURTJKLBydsNjzovECwSjOUXwixo0Sq8h6TKXG5CoIAuqpDgBQ==
-length: 3801
+edSignature: 8ApVznqhIy7+Eu+mFJl20OS+Nzrfm/VajAO6MVIC3GxqkMf1DeNJ5aEi8GSOTnbzZ04eUv8wfiF6FKPJJh7XCg==
+length: 2663
 -->
