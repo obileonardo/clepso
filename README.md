@@ -47,6 +47,13 @@ statistics file and the made-up profile name "Sam", rendered by the app itself (
 > itself (see [Download](#download)). You can also [build it from source](#build-from-source).
 > This repository (`clepso`, formerly `tokone`) builds `Clepso.app`.
 
+**Contents:** [Why Clepso](#why-clepso) · [What it does](#what-it-does) · [Private by design](#private-by-design) ·
+[How it works](#how-it-works) · [Design system](#design-system) · [Docs](#docs) · [Get started](#get-started) ·
+[Troubleshooting](#troubleshooting) · [Quality gates](#quality-gates-make-ci) ·
+[Optional accounts backend](#optional-accounts-backend) · [Project status and roadmap](#project-status-and-roadmap) ·
+[Contributing, security and conduct](#contributing-security-and-conduct) · [Licence and trademarks](#licence-and-trademarks) ·
+[Contributors](#contributors) · [Acknowledgements](#acknowledgements)
+
 ## Why Clepso
 
 Subscription plans for AI coding agents meter usage in rolling windows (for Claude Code: a 5-hour window and a
@@ -552,6 +559,61 @@ swift run clepso recover               # finish or roll back an interrupted inst
 
 The same tool runs the read-only MCP server (`clepso mcp --client <name>`) for a client you have allowed in Settings.
 
+## Troubleshooting
+
+Start with **Settings › Diagnostics**. It counts the updates Clepso received from Claude Code and keeps a log of recent
+events with paths and secrets removed.
+
+- **"Waiting for Claude Code…" or "No limits reported yet."** Clepso shows only what Claude Code reports, and Claude
+  Code reports limits through its status line. Connect Claude Code (see [Connect Claude Code](#connect-claude-code)),
+  then send any message in a Claude Code session in a terminal. Clepso must be running too: the helper drops readings
+  while the app is closed, so turn on **Open at login** in Settings.
+- **A limit says OLD or RESET?** A reading counts as stale after 10 minutes, and a passed reset waits for a fresh
+  reading. Both clear when the agent next reports: send a message in Claude Code or Codex.
+- **Connecting fails with "Couldn't update settings. Nothing was changed."** Clepso refuses to edit
+  `~/.claude/settings.json` when the file is not valid JSON or its current `statusLine` is not a command it can wrap.
+  Fix the file and connect again ([`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) §7).
+- **No limits from the Claude desktop app or VS Code.** Neither runs the status line. Turn on **Desktop app and VS Code
+  panel** in Settings (it needs the Claude Code connection first); readings start with your next Claude session there.
+  If Settings says "disableAllHooks is on in settings.json", Claude Code would run no mod and no status line until you
+  turn that off. If your organisation turns mods off, Clepso still counts tasks there but not limits
+  ([`docs/specs/mod-bridge.md`](docs/specs/mod-bridge.md)).
+- **Codex doesn't show.** It is opt-in: turn on **Read Codex's session files** in Settings. "Codex hasn't written a
+  session on this Mac" means there is no `~/.codex/sessions` yet, so run Codex once. "On. Waiting for Codex's next
+  session to report its limits" clears after your next Codex session.
+- **No alerts.** If Settings says "Notifications are off in System Settings.", choose **Open System Settings**, allow
+  Clepso, then use **Send a test notification**.
+- **The widget says "Open Clepso → Settings → Integrations to share widget readings."** Sharing starts off: turn on
+  **Desktop widgets** there, then add **Clepso limits** from the widget gallery. A build from source can't share
+  ("Widget sharing is unavailable in this app signature"). macOS decides when widgets refresh
+  ([`docs/widgets.md`](docs/widgets.md)).
+- **`clepso: command not found`.** Homebrew links the `clepso` tool; the DMG does not. Run
+  `/Applications/Clepso.app/Contents/Helpers/clepso`. For an MCP client, allow it in Settings › Integrations and use
+  **Copy setup**, which uses that path. "Client permission is off" means that client name is not allowed there
+  ([`docs/integrations/mcp.md`](docs/integrations/mcp.md)).
+- **No update arrives.** Apps from before v0.4.0-alpha.1 have no updater: install the new release once by hand. A bare
+  `brew upgrade` skips Clepso; see [Install with Homebrew](#install-with-homebrew).
+- **Reset or uninstall.** **Delete all Clepso data…** in Settings restores your Claude Code settings from the backup,
+  deletes `~/.claude/clepso` and Clepso's database and log in `~/Library/Application Support/Clepso`, and can also
+  delete the backups in `~/.claude/clepso-backups`. If the restore can't be done safely, nothing is deleted. Then move
+  the app to the Trash. `brew uninstall` on its own keeps your data and leaves Claude Code's settings as they are; to
+  disconnect only, use **Remove from Claude Code…** or `clepso uninstall --confirm`.
+
+<details>
+<summary><b>Building from source, and other checks</b></summary>
+
+| Symptom | What to check |
+|---|---|
+| `make ci` fails at "toolchain pinned" or "app bundle" | That is the strict mode. Use `make ci-contributor` unless you build official releases |
+| `make app` fails with a signing error | Remove or fix `Config/Signing.local.xcconfig`; without it the app is signed ad hoc |
+| The panel says Clepso isn't receiving updates (debug run) | The `-ClepsoDataDirectory` path is too long for a Unix socket; use a shorter one |
+| Account says accounts aren't available | Expected in builds from source (see [Optional accounts backend](#optional-accounts-backend)) |
+| The panel says "not connected" | Claude Code only runs the status line while a session is open; check Settings for the connection state and the diagnostics log |
+| My old status line disappeared | It should keep running. Run `swift run clepso status`, then `swift run clepso uninstall --confirm` to restore the backed-up bytes, and open an issue |
+| Want to see what Clepso stored | Settings › Export my data writes a JSON copy |
+
+</details>
+
 ## Quality gates (`make ci`)
 
 `scripts/ci.sh` has 17 gates. It runs every one even if an earlier one fails, prints a summary, and exits non-zero if
@@ -683,21 +745,6 @@ The live view, with the evidence for every increment, is the [Progress page](htt
 - `make site` reads planning documents that are not in this repository.
 - The local socket accepts any process running as your user; a code-signature check of the helper is planned
   ([`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) §3).
-
-</details>
-
-<details>
-<summary><b>Troubleshooting</b></summary>
-
-| Symptom | What to check |
-|---|---|
-| `make ci` fails at "toolchain pinned" or "app bundle" | That is the strict mode. Use `make ci-contributor` unless you build official releases |
-| `make app` fails with a signing error | Remove or fix `Config/Signing.local.xcconfig`; without it the app is signed ad hoc |
-| The panel says Clepso isn't receiving updates (debug run) | The `-ClepsoDataDirectory` path is too long for a Unix socket; use a shorter one |
-| Account says accounts aren't available | Expected in builds from source (see [Optional accounts backend](#optional-accounts-backend)) |
-| The panel says "not connected" | Claude Code only runs the status line while a session is open; check Settings for the connection state and the diagnostics log |
-| My old status line disappeared | It should keep running. Run `swift run clepso status`, then `swift run clepso uninstall --confirm` to restore the backed-up bytes, and open an issue |
-| Want to see what Clepso stored | Settings › Export my data writes a JSON copy |
 
 </details>
 
