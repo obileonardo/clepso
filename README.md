@@ -42,9 +42,9 @@ statistics file and the made-up profile name "Sam", rendered by the app itself (
 ---
 
 > [!NOTE]
-> **Alpha: [v0.3.0-alpha.3](https://github.com/obileonardo/clepso/releases/tag/v0.3.0-alpha.3) is out.** A signed, notarized build for Macs with Apple silicon on macOS 14 or
-> later ([download](#download)). It is an early pre-release: expect rough edges, and a new alpha every two weeks. You can
-> also [build it from source](#build-from-source).
+> **Alpha: [v0.4.0-alpha.2](https://github.com/obileonardo/clepso/releases/tag/v0.4.0-alpha.2) is out.** A signed, notarized build for Macs with Apple silicon on macOS 14 or
+> later ([download](#download)). It is an early pre-release: expect rough edges. From v0.4.0-alpha.1 it can update
+> itself (see [Download](#download)). You can also [build it from source](#build-from-source).
 > This repository (`clepso`, formerly `tokone`) builds `Clepso.app`.
 
 ## Why Clepso
@@ -105,9 +105,14 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
   (Claude Code's, and Codex's when that is on).
   **Other agents, by hand** adds dated readings for Claude Chat, ChatGPT, Gemini, Grok, Cursor, Copilot and Windsurf,
   explicitly labelled "Entered by you". These stay separate from automatic readings and do not trigger automatic alerts.
+  With the Gemini CLI reader on (*opt-in*), Limits also shows Gemini CLI's recorded token activity. That is activity,
+  not a quota: Clepso does not know Gemini's used percentage or reset time. A reported weekly reset can be added to
+  Calendar, which asks before it adds the event.
 - **Session**: recent sessions, the selected session's details, agents per task, usage by model.
 - **Overview** and **Models**: a year activity calendar, tokens per day (Claude Code and Codex), streaks, model shares,
-  and a "model arena" with levels earned from output tokens (*opt-in*: reads Claude Code's statistics file).
+  and a "model arena" with levels earned from output tokens (*opt-in*: reads Claude Code's statistics file). Each model
+  family has its own pixel character: an owl maestro for Opus, a fox storyteller for Fable, a verse keeper for Sonnet,
+  a paper crane for Haiku, and a neutral robot for families Clepso does not know.
 - **Card**: a shareable pixel "player card" (copy image, save PNG, share). Nothing is sent unless you share it.
   In releases from v0.2 (v0.1.0-alpha.1 hid it).
 - **Goals**: active days per week, keep the 5-hour peak under a target, finish the week under a target; streaks.
@@ -115,8 +120,9 @@ Everything below exists in the code on `main`. Items marked *opt-in* stay off un
 - **Account**: profile name, chosen plan, optional sign-in (see [Optional accounts backend](#optional-accounts-backend)).
 - **Settings**: appearance (System / Light / Dark) and colour theme (Phosphor, Amber, Cobalt, Orchid, Graphite; each
   with light and dark palettes), launch at login, notifications (alerts, quiet hours, reset reminders, a test
-  notification), the Claude Code connection (connect / remove), opt-ins (statistics file, agents per task, Codex),
-  export, demo data, diagnostics log, delete all.
+  notification), updates, the Claude Code connection (connect / remove), opt-ins (statistics file, agents per task,
+  Claude desktop and VS Code limits, Codex, Gemini CLI), integrations (desktop widgets, MCP clients), export, demo data,
+  diagnostics log, delete all.
 
 <table>
   <tr>
@@ -155,6 +161,21 @@ Every self-drawn control has a pixel focus ring, charts and the calendar move wi
 opens Settings, and all animation goes through one Reduce Motion switch ([`docs/A11Y_CHECKS.md`](docs/A11Y_CHECKS.md)).
 More screens: [`design/screens/`](design/screens/) and the [Screens page](https://clepso-app.vercel.app/screens/).
 
+### Outside the panel
+
+- **Claude desktop app and VS Code** (*opt-in*): Clepso's Claude Code mod reads the limits in sessions no terminal
+  draws and hands them to the same helper. Clepso shows the two `settings.json` entries it adds before writing them,
+  and takes both out again when you turn it off, byte for byte if nothing else changed
+  ([`docs/specs/mod-bridge.md`](docs/specs/mod-bridge.md)).
+- **Desktop widgets** (*opt-in*): small and medium widgets with the reported limits, their source, freshness and reset.
+  macOS decides how often they refresh ([`docs/widgets.md`](docs/widgets.md)).
+- **Clepso MCP** (*opt-in*): a local, read-only stdio server with two tools, `get_limits` and `get_reader_health`, for
+  a client you allow by name in Settings and can revoke. It edits no client configuration
+  ([`docs/integrations/mcp.md`](docs/integrations/mcp.md)).
+- **Signed updates**: Settings › Updates checks for a new release when you ask. Daily checks and automatic install are
+  off until you turn them on. Updates are signed and verified before they are unpacked
+  ([`docs/in-app-updates.md`](docs/in-app-updates.md)).
+
 ### Your data, under your control
 
 - **Export my data**: a JSON file (permissions 0600) of the local tables, with every string re-checked by the same
@@ -174,16 +195,18 @@ More screens: [`design/screens/`](design/screens/) and the [Screens page](https:
 | Claude Code status line | An allowlisted subset of the JSON Claude Code sends to its status-line command: limits, model, context, token and cache counts, durations, line counts, and the cost estimate (which you can switch off) | On once you connect it in onboarding or Settings |
 | Claude Code hooks | For `UserPromptSubmit`, `SubagentStart`, `SubagentStop` and `Stop`: the event name, keyed hashes of the session and agent ids, and the built-in agent type ("custom" otherwise, unless you approved that exact agent name in Settings); on `Stop` and `SubagentStop`, how many background tasks Claude Code still has in flight, by type, status and agent type (counts only: no ids, descriptions or commands) | Off (*opt-in*; shows the exact entry before writing it) |
 | `~/.claude/stats-cache.json` | Dates, counts, model ids and token totals through a field allowlist; never stored, logged or exported | Off (*opt-in*) |
+| Claude Code mod (`clepso-limits`) | In Claude desktop and VS Code sessions that no terminal draws, after each turn: the limit percentages and reset times, context-window numbers and the session's model id, passed through the helper's allowlist | Off (*opt-in*; shows the two entries before writing them) |
 | `~/.codex/sessions/**/rollout-*.jsonl` | Only `token_count` events (5-hour and weekly used %, reset, plan) and the model name, from the last 256 KB of the three newest files; other lines are skipped before decoding | Off (*opt-in* in Settings) |
+| Gemini CLI recordings (`~/.gemini/tmp`, `~/.cache/.gemini/tmp`) | Message ids (for deduplication), timestamps and numeric token fields from the 16 newest recordings; conversation content is discarded, and the counts stay in memory and are never uploaded ([`docs/integrations/gemini.md`](docs/integrations/gemini.md)) | Off (*opt-in* in Settings) |
 
 **Where Claude Code runs.** Limits come from the status line, which Claude Code draws in a terminal (including an IDE's
-terminal). The Claude desktop app's Code tab runs hooks but not the status line (tested 19 Oct 2026): its tasks and agents
-are counted, and its usage still counts against your plan, but the limit figures update only when a terminal session
-next reports.
+terminal). The Claude desktop app's Code tab runs hooks but not the status line (tested 19 Oct 2026). With the mod on,
+its limits arrive after each turn. Without it, its tasks and agents are counted, and its usage still counts against
+your plan, but the limit figures update only when a terminal session next reports.
 
-Automatic adapters for Gemini CLI, Cursor, GitHub Copilot, Windsurf and Grok are on the [roadmap](#project-status-and-roadmap).
-You can enter dated manual readings for them on Limits. The bundled plan catalog lists plans with source links; only Claude Code and
-Codex limits are read automatically today.
+Automatic adapters for Cursor, GitHub Copilot, Windsurf and Grok are on the [roadmap](#project-status-and-roadmap), as are
+Gemini's quota percentages and reset times. You can enter dated manual readings for them on Limits. The bundled plan
+catalog lists plans with source links; only Claude Code and Codex limits are read automatically today.
 
 </details>
 
@@ -201,7 +224,9 @@ machine can be undone.
   `make ci` fails if it links any networking library or symbol.
 - **Network code lives in one module.** Only `Sources/Sync` may use networking APIs, and only the app imports it
   (`make ci` enforces both). Sync does nothing unless the build carries an accounts project *and* you sign in.
-  **Builds from source carry none**, so they never sign in or upload anything.
+  **Builds from source carry none**, so they never sign in or upload anything. The one other network path is the
+  updater (Sparkle, in the app target): it fetches the signed update feed when you check, or daily once you turn
+  automatic checks on, and sends no system profile.
 - **Your Claude Code settings are changed reversibly.** Connecting changes exactly one key, `statusLine.command`,
   in `~/.claude/settings.json`, after writing a byte-exact backup to `~/.claude/clepso-backups/`. Writes are
   compare-and-swap with an atomic rename, and an interrupted install can be recovered. If you already had a status
@@ -218,7 +243,10 @@ machine can be undone.
   ([`backend/supabase/migrations/`](backend/supabase/migrations/)).
 
 What Clepso does **not** do: read your prompts or replies, read transcripts, or send anything anywhere unless you sign
-in. The full design is in [`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md); the [Privacy
+in. (Gemini CLI recordings hold conversations too: with that reader on, Clepso decodes only ids, timestamps and token
+counts from them.) Widgets and MCP clients get only limit readings (percentages, resets, source and freshness), and
+only once you turn them on; an MCP client may pass those readings on to its own AI service. The full design is in
+[`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md); the [Privacy
 page](https://clepso-app.vercel.app/privacy/) lists every uploaded field in plain words.
 
 ## How it works
@@ -232,7 +260,8 @@ page](https://clepso-app.vercel.app/privacy/) lists every uploaded field in plai
 3. **The app** validates the frame, stores a reading in SQLite when a value changes, and derives each limit's state
    (available, approaching, critical, exhausted, reset expected, available again) with pure, clock-injected state
    machines and a least-squares pace estimate.
-4. **Nothing leaves the Mac** unless you sign in to an official build; then only the daily counts listed above.
+4. **No usage data leaves the Mac** unless you sign in to an official build; then only the daily counts listed above.
+   An update check downloads the feed and sends none.
 
 <details>
 <summary><b>The full data flow</b> (diagram and details)</summary>
@@ -280,7 +309,8 @@ flowchart LR
 - The SwiftUI layer reads a projection of that state. Colours, spacing, type and motion come only from the `Theme`
   tokens in `DesignSystem`, and icons are pixel glyphs (all enforced by `make ci`).
 - Clepso is a menu bar-only app (`LSUIElement`). It is not sandboxed, because it has to read and edit files under
-  `~/.claude`; it has no entitlements beyond the debug-only `get-task-allow`, and official builds use hardened runtime.
+  `~/.claude`. Its only entitlements are the app group it shares with the sandboxed widget extension and the
+  debug-only `get-task-allow`, and official builds use hardened runtime.
 
 More: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) and the
 [Architecture page](https://clepso-app.vercel.app/architecture/).
@@ -358,7 +388,12 @@ specimens) lives in [`design/brand/`](design/brand/) and is generated by
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How Clepso is put together (section numbers are cited from code comments) |
 | [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Types, schema and the state machines |
 | [`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) | What Clepso reads, keeps and can upload, and how it protects the files it touches |
+| [`docs/STATUS.md`](docs/STATUS.md) | What the current release implements, what it does not, and what is still unverified |
 | [`docs/RELEASE.md`](docs/RELEASE.md) | The signing and notarization runbook (`make release`; first used for `v0.1.0-alpha.1`) |
+| [`docs/in-app-updates.md`](docs/in-app-updates.md) | Signed in-app updates: the feed, keys and release steps |
+| [`docs/widgets.md`](docs/widgets.md) | Desktop widgets and what they share |
+| [`docs/integrations/`](docs/integrations/) | Clepso MCP and the Gemini CLI reader |
+| [`docs/specs/mod-bridge.md`](docs/specs/mod-bridge.md) | The Claude Code mod for the desktop app and VS Code |
 | [`docs/A11Y_CHECKS.md`](docs/A11Y_CHECKS.md) | Keyboard-only and Reduce Motion checks |
 | [`docs/FIXTURES.md`](docs/FIXTURES.md) | The status-line fixture corpus |
 | [`docs/APPLE_PLATFORMS.md`](docs/APPLE_PLATFORMS.md) | iPhone, Apple Watch and widgets: feasibility |
@@ -370,13 +405,16 @@ specimens) lives in [`design/brand/`](design/brand/) and is generated by
 
 ### Download
 
-1. Download [Clepso-0.3.0-alpha.3.dmg](https://github.com/obileonardo/clepso/releases/download/v0.3.0-alpha.3/Clepso-0.3.0-alpha.3.dmg) from the [v0.3.0-alpha.3 release](https://github.com/obileonardo/clepso/releases/tag/v0.3.0-alpha.3). It needs **macOS 14 or later on a
+1. Download [Clepso-0.4.0-alpha.2.dmg](https://github.com/obileonardo/clepso/releases/download/v0.4.0-alpha.2/Clepso-0.4.0-alpha.2.dmg) from the [v0.4.0-alpha.2 release](https://github.com/obileonardo/clepso/releases/tag/v0.4.0-alpha.2). It needs **macOS 14 or later on a
    Mac with Apple silicon**. To check the file, download `SHA256SUMS` next to it and run `shasum -a 256 -c SHA256SUMS`.
 2. Open the disk image and drag **Clepso** into **Applications**, then open it from there.
 3. Follow the welcome window: it shows the one Claude Code setting it changes, and backs it up first.
 
-This alpha offers optional email accounts. Local tracking needs no account; signing in syncs the documented daily activity summaries over HTTPS. The [release notes](https://github.com/obileonardo/clepso/releases/tag/v0.3.0-alpha.3) list what is in it and its
+This alpha offers optional email accounts. Local tracking needs no account; signing in syncs the documented daily activity summaries over HTTPS. The [release notes](https://github.com/obileonardo/clepso/releases/tag/v0.4.0-alpha.2) list what is in it and its
 known limitations.
+
+Later releases arrive through **Settings › Updates**. Clepso checks only when you ask until you turn on automatic
+checks. An app from before v0.4.0-alpha.1 has no updater: install the new release once by hand.
 
 ### Install with Homebrew
 
@@ -386,8 +424,10 @@ open -a Clepso
 ```
 
 The [official Clepso tap](https://github.com/obileonardo/homebrew-clepso) installs the same signed, notarized alpha
-for Apple silicon on macOS 14 or later. If Homebrew asks to trust the third-party cask, review and approve Clepso.
-Quit Clepso before upgrading with `brew update` followed by `brew upgrade --cask obileonardo/clepso/clepso`.
+for Apple silicon on macOS 14 or later, and links its `clepso` command-line tool. If Homebrew asks to trust the
+third-party cask, review and approve Clepso. The cask declares `auto_updates true`, so a bare `brew upgrade` skips
+it. Update in the app, or quit Clepso and run `brew update` followed by
+`brew upgrade --cask --greedy obileonardo/clepso/clepso`, as the tap documents.
 
 Already installed from a DMG? Use the tap's [migration instructions](https://github.com/obileonardo/homebrew-clepso#existing-dmg-installation)
 to adopt the identical app and keep one copy. Homebrew preserves Clepso's Library data and does not change agent
@@ -401,12 +441,14 @@ connections or opt-ins. The tap also documents uninstalling and release maintena
 | Xcode | 27.1 (pinned by `make ci`; `make ci-contributor` accepts any Swift 6 toolchain) | Provides the macOS SDK and `xcodebuild` |
 | Swift | 6.4 (bundled with Xcode 27.1) | Swift 6 language mode; warnings are errors |
 | XcodeGen | 2.46.0 | Downloaded and SHA-256-checked into `.tools/` by `scripts/bootstrap.sh`; no Homebrew needed |
-| Claude Code | A version with status-line support | The fixtures were captured from 2.1.302 |
+| Claude Code | A version with status-line support | The fixtures were captured from 2.1.302. `make ci` also needs the `claude` CLI (2.1.287 or later) to check the mod; `make ci-contributor` skips that check without it |
+| Node.js | For `make ci` | The character artwork check; CI also runs the MCP client test with npm |
 | Docker and the Supabase CLI | Optional | Only for `make backend-test` |
-| Python 3 | Optional | Only for the documentation site and the fixture oracle |
+| Python 3 | For `make ci` | The email template check, the documentation site and the fixture oracle |
 
-The only third-party Swift package is [GRDB.swift](https://github.com/groue/GRDB.swift) 7.11.1, pinned by revision
-in `Package.resolved`.
+Two third-party Swift packages: [GRDB.swift](https://github.com/groue/GRDB.swift) 7.11.1, pinned by revision in
+`Package.resolved`, and [Sparkle](https://sparkle-project.org) 2.10.0, pinned exactly in `project.yml` and linked only
+by the app target.
 
 ### Build from source
 
@@ -508,9 +550,11 @@ swift run clepso uninstall --confirm   # restore your settings
 swift run clepso recover               # finish or roll back an interrupted install
 ```
 
+The same tool runs the read-only MCP server (`clepso mcp --client <name>`) for a client you have allowed in Settings.
+
 ## Quality gates (`make ci`)
 
-`scripts/ci.sh` has 16 gates. It runs every one even if an earlier one fails, prints a summary, and exits non-zero if
+`scripts/ci.sh` has 17 gates. It runs every one even if an earlier one fails, prints a summary, and exits non-zero if
 any failed. `make ci` is strict: it pins the toolchain and requires the app to be signed with a real identity, with
 hardened runtime, and with an accounts project configured, so an official build cannot quietly fall back.
 `make ci-contributor` (`scripts/ci.sh --contributor`) runs the same checks but accepts any Swift 6 toolchain, an ad-hoc
@@ -537,7 +581,9 @@ Xcode 27.1.
 | secret scan | No secret-shaped strings in the tree (a regex stand-in for a full scanner) |
 | no committed accounts project | No Supabase project host or publishable key in tracked files, and no `Config/*.local.xcconfig` tracked |
 | email templates | The account emails are current with their sources, and their logo is deployed with the site |
-| app bundle | `Clepso.app` builds and is signed, embeds the helper under its identifier, has no unexpected entitlements, runs as a menu bar app, registers the sign-in URL scheme, ships the third-party licences, and its helper links no networking. Strict mode also requires a real signature, hardened runtime and a configured accounts project |
+| character artwork parity | The app's character art matches the approved website drawings |
+| Claude Code mod | The mod validates strictly, calls only what its spec lists, and its tests pass, all in a throwaway home (contributor mode skips it when `claude` is missing) |
+| app bundle | `Clepso.app` builds and is signed, embeds the helper and the `clepso` tool, embeds the widget extension at the app's version, has no unexpected entitlements, requires a signed update feed checked before extraction, runs as a menu bar app, registers the sign-in URL scheme, bundles the mod byte for byte, ships the third-party licences, and its helper links no networking. Strict mode also requires a real signature, hardened runtime and a configured accounts project |
 
 </details>
 
@@ -545,26 +591,31 @@ Xcode 27.1.
 <summary><b>Project layout</b></summary>
 
 ```
-App/ClepsoMac/             @main, app icon and Acknowledgements.txt (Info.plist and entitlements are generated)
+App/ClepsoMac/             @main, the Sparkle updater, app icon and Acknowledgements.txt (Info.plist and entitlements are generated)
+App/ClepsoWidgets/         The WidgetKit extension (small and medium widgets)
 Config/                    Clepso.xcconfig defaults and templates for the uncommitted local settings
+mod/claude-code/           The clepso-limits Claude Code mod, bundled into the app as is
 Sources/
   Domain/                  Value types, provenance, Redacted<T>. No I/O, no clock reads
-  ShimProtocol/            Frame v1, the field allowlist, the string scrubber, hook frames
+  ShimProtocol/            Frame v1, the field allowlist, the string scrubber, hook frames, mod hand-off
   StatusLineShim/          The helper's run loop: stdin, child process, socket send
   clepso-statusline/       The helper executable Claude Code runs (one-line main)
-  ClaudeCodeAdapter/       Settings and hooks installers, ingest socket, frame mapper, statistics reader
+  ClaudeCodeAdapter/       Settings, hooks and mod installers, ingest socket, frame mapper, statistics reader
   CodexAdapter/            Codex session-file tail reader
+  ProviderTelemetry/       Gemini CLI recorded-activity reader
   UsageEngine/             Pure limit, reset, session and pace state machines; alerts, quiet hours, reset reminders
-  Storage/                 GRDB/SQLite schema v1–v3, migrations, ledger policy, retention
+  Storage/                 GRDB/SQLite schema v1–v6, migrations, ledger policy, retention
   SubscriptionCatalog/     Bundled plan catalog (plan-catalog.v1.json)
   DesignSystem/            Themes and tokens, status styles, pixel components and glyphs, bundled fonts
+  IntegrationSnapshot/     The allowlisted limits snapshot shared with widgets and MCP
+  ClepsoMCP/               The read-only stdio MCP server
   ClepsoApp/               Composition root, AppModel, projections, SwiftUI views, copy, diagnostics, export
   Sync/                    Optional accounts: PKCE email-link sign-in, Keychain session, upload
-  clepso/                  Headless CLI: install, uninstall, status, recover
+  clepso/                  Headless CLI: install, uninstall, status, recover, mcp
   FixtureTools/, clepso-fixture/   Developer-only capture listener and scrubber (never shipped)
   clepso-design-render/    Developer-only: renders real components to PNG for the design-system page
   TestFixtures/            Fixture corpus F01–F19 and one scrubbed real capture (C01)
-Tests/                     Swift Testing suites per module, plus integration tests that run the built helper
+Tests/                     Swift Testing suites per module, integration tests that run the built helper, and an MCP client check (MCPClient/)
 backend/supabase/          Accounts schema with row-level security, pgTAP tests, local Supabase config
 design/screens/            App screenshots (demo data, synthetic statistics)
 design/brand/              The Clepso mark, app icon, typefaces and their build pipeline
@@ -589,10 +640,10 @@ idempotently once an hour. Apple, Google and GitHub sign-in are shown as "Soon" 
 dashboard on the docs site ([`/app/`](https://clepso-app.vercel.app/app/)) shows a signed-in user their own uploaded
 counts and can delete the account ([`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) §9.1).
 
-**Official v0.3 builds include optional email accounts.** The app reads its project from Info.plist, which gets it from
+**Official builds include optional email accounts.** The app reads its project from Info.plist, which gets it from
 `Config/Sync.local.xcconfig` at build time. A build from source has none: the Account page says accounts aren't
-available in this build, Home never suggests signing in, and Clepso makes no network request at all. To use your own
-backend, apply `backend/supabase/migrations/` to your Supabase project and copy `Config/Sync.local.xcconfig.example`
+available in this build, Home never suggests signing in, and Clepso makes no network request unless you check for
+updates. To use your own backend, apply `backend/supabase/migrations/` to your Supabase project and copy `Config/Sync.local.xcconfig.example`
 with your project's host and **publishable** key (the app refuses secret keys).
 
 ## Project status and roadmap
@@ -605,16 +656,17 @@ The live view, with the evidence for every increment, is the [Progress page](htt
 | M1 Mac vertical slice: socket, engine, store, design system, menu bar app, diagnostics, export, delete all, details and stats, dashboard, pixel UI, light mode | Done |
 | 1.9 Agents per task through Claude Code hooks | Done (opt-in) |
 | 1.15–1.18 Five colour themes; Clepso's own typefaces, app icon and menu bar family; keyboard and Reduce Motion | Done |
-| 2.0 Accounts: schema with row-level security, Mac sign-in and upload, web dashboard (done); Apple, Google and GitHub sign-in | In progress |
+| 2.0 Accounts: schema with row-level security, Mac sign-in and upload, web dashboard | Done (email sign-in); Apple, Google and GitHub sign-in on hold |
 | 2.1–2.4 Limit alerts, quiet hours, reset reminders, time-travel test harness | Done |
-| 2.5 One-tap "add reset to Calendar" | Available in v0.3: weekly reported resets, explicit Calendar import |
-| Claude desktop / VS Code limits | Available in v0.3 through the opt-in Claude Code mod |
+| 2.5 One-tap "add reset to Calendar" | Available from v0.3: weekly reported resets, explicit Calendar import |
+| Claude desktop / VS Code limits | Available from v0.3 through the opt-in Claude Code mod |
 | 3.4 Codex limits: reader, store, panel, Limits page, Stats and Settings switch | Done (opt-in) |
 | 3.2 Manual snapshots | Implemented: dated readings on Limits, separate from automatic telemetry |
-| 3.5–3.9 Automatic Gemini CLI, Grok, Cursor, GitHub Copilot, Windsurf adapters | Planned; source and consent validation required |
+| Gemini CLI recorded token activity | Available from v0.4.0-alpha.2 (opt-in); not a quota |
+| 3.5–3.9 Automatic Gemini quota, Grok, Cursor, GitHub Copilot, Windsurf adapters | Planned; source and consent validation required |
 | 4.1 Signing and notarization (`make release`) | Done: [v0.1.0-alpha.1](https://github.com/obileonardo/clepso/releases/tag/v0.1.0-alpha.1), 19 Oct 2026 |
-| Next alphas, about every two weeks | v0.2 "Your first season", v0.3 limits from the Claude desktop app, v0.4 more agents |
-| 4.2 iPhone, Apple Watch and widgets (feasibility checked) | In progress |
+| Desktop widgets, read-only MCP, signed in-app updates | Available from v0.4.0-alpha.1 |
+| 4.2 iPhone and Apple Watch (feasibility checked) | In progress |
 
 <details>
 <summary><b>Known limitations</b></summary>
@@ -624,8 +676,10 @@ The live view, with the evidence for every increment, is the [Progress page](htt
 - Readings arrive only while Claude Code refreshes its status line, so Clepso shows how old each value is.
 - Clepso always uses `~/.claude`. A custom `CLAUDE_CONFIG_DIR` is supported by the installer code but not yet wired
   into the app.
-- Signed, notarized builds exist from v0.1.0-alpha.1, but there is no auto-update yet (planned for the beta); only
-  Apple silicon has been tested.
+- The app is built for Apple silicon only. In-app updates start with v0.4.0-alpha.1; an older install has to be
+  replaced by hand once.
+- Widgets need the official build's team-signed app group. A source build signed ad hoc reports widget sharing as
+  unavailable.
 - `make site` reads planning documents that are not in this repository.
 - The local socket accepts any process running as your user; a code-signature check of the helper is planned
   ([`docs/PRIVACY_AND_SECURITY.md`](docs/PRIVACY_AND_SECURITY.md) §3).
@@ -676,4 +730,5 @@ names are used only to say which tools Clepso works with.
 ## Acknowledgements
 
 - [GRDB.swift](https://github.com/groue/GRDB.swift) by Gwendal Roué (MIT), for SQLite.
+- [Sparkle](https://sparkle-project.org) 2.10.0 (MIT), for signed in-app updates.
 - [three.js](https://threejs.org) r160 (MIT), for the documentation site's footer scene.
