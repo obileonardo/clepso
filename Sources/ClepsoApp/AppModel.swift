@@ -48,6 +48,12 @@ public final class AppModel {
     public internal(set) var widgetsEnabled = false
     public internal(set) var widgetSharingBusy = false
     var lastWidgetSnapshot: UsageSnapshot?
+    var mobileSharing = MobileSharingState()
+    public internal(set) var mobileSharingBusy = false
+    public internal(set) var mobileSharingMessage: String?
+    var mobilePublishTask: Task<Void, Never>?
+    var lastMobileAttempt: Date?
+    var lastMobileSignalAttempt: Date?
     public internal(set) var integrationMessage: String?
     public internal(set) var updateChecksEnabled = false
     public internal(set) var updateDownloadsEnabled = false
@@ -223,6 +229,7 @@ public final class AppModel {
             mcpClients = SnapshotFile(dataDirectory: environment.dataDirectory).clients()
             let widgetChoice = try await store.preference(Pref.widgets, as: Bool.self)
             widgetsEnabled = widgetChoice ?? false
+            mobileSharing = try await store.preference(Pref.mobileSharing, as: MobileSharingState.self) ?? MobileSharingState()
             // Finish an off transition interrupted after its preference was committed. Never resolve a group
             // container for a user who has not configured widget sharing.
             if widgetChoice == false, let container = environment.widgetContainer() {
@@ -249,6 +256,7 @@ public final class AppModel {
             return
         }
         await refreshAccount()
+        await finishMobileRevocation()
         await purgeIfDue()
         if environment.rewritesHome {
             _ = try? BackupRetention(paths: .init(home: environment.home)).purgeExpired(at: now)
@@ -276,6 +284,7 @@ public final class AppModel {
     }
 
     public func stop() {
+        mobilePublishTask?.cancel()
         geminiGeneration += 1
         tasks.forEach { $0.cancel() }
         tasks = []
@@ -659,12 +668,20 @@ public final class AppModel {
     }
 
     public func cancelSignIn() async {
+        guard !mobileSharingBusy else { return }
+        if mobileSharing.enabled || mobileSharing.pendingRevocation {
+            guard await setMobileSharing(false) else { return }
+        }
         await environment.sync.signOut()
         account = .signedOut
         accountMessage = nil
     }
 
     public func signOut() async {
+        guard !mobileSharingBusy else { accountMessage = "Wait for the mobile sharing change to finish, then sign out."; return }
+        if mobileSharing.enabled || mobileSharing.pendingRevocation {
+            guard await setMobileSharing(false) else { accountMessage = "Could not save mobile sharing off. Retry before signing out."; return }
+        }
         await environment.sync.signOut()
         account = .signedOut
         accountMessage = Copy.Sync.signedOut
@@ -673,10 +690,13 @@ public final class AppModel {
 
     /// Deletes the account and everything stored with it on the server; nothing on this Mac changes.
     public func deleteAccount() async {
+        guard !mobileSharingBusy else { accountMessage = "Wait for the sharing change to finish before deleting your account."; return }
         accountBusy = true
         defer { accountBusy = false }
         do {
             try await environment.sync.deleteAccount()
+            mobileSharing = MobileSharingState()
+            try? await store?.setPreference(Pref.mobileSharing, mobileSharing, now: environment.clock.now())
             account = .signedOut
             lastSync = nil
             try? await store?.setPreference(Pref.lastSync, Date?.none, now: environment.clock.now())
@@ -992,6 +1012,7 @@ public final class AppModel {
     /// Deletes what was ticked, in the order of §8. Claude Code's settings are restored first: if that can't be done
     /// safely, nothing at all is deleted. Turning off the login item is part of the full delete only.
     public func delete(_ items: Set<DeleteItem>, includeBackups: Bool, relaunch: Bool = true) async -> DeleteReport {
+        guard !mobileSharingBusy else { return DeleteReport(failure: "Wait for the mobile sharing change to finish, then retry deletion.") }
         var report = DeleteReport()
         let installer = Self.installer(environment, forwardCost: forwardCost)
         let paths = installer.paths
@@ -1016,6 +1037,9 @@ public final class AppModel {
             for folder in [paths.clepsoDir, legacy.paths.clepsoDir] where Self.isRealDirectory(folder) { try? fm.removeItem(at: folder) }
         }
         if items.contains(.notifications) { await environment.notifications.removeAll() }
+        if items.contains(.account) || items.contains(.data), mobileSharing.enabled || mobileSharing.pendingRevocation {
+            guard await setMobileSharing(false) else { return DeleteReport(failure: "Could not save mobile sharing off. Retry before deleting local data.") }
+        }
         if items.contains(.account) {
             await environment.sync.signOut()
             account = .signedOut
@@ -1104,6 +1128,8 @@ public final class AppModel {
         manualAllowances = []
         mcpClients = []
         widgetsEnabled = false
+        mobileSharing = MobileSharingState()
+        lastMobileAttempt = nil
         integrationMessage = nil
         codexConnection = nil
         lastSync = nil
@@ -1126,6 +1152,7 @@ public final class AppModel {
     enum Pref {
         static let onboardingComplete = "onboarding.completed"
         static let widgets = "integrations.widgets.v1"
+        static let mobileSharing = "integrations.mobileSharing.v1"
         static let demo = "demo.enabled"
         static let showPercent = "menubar.showPercent"
         static let menuBarDisplay = "menubar.display"

@@ -1,0 +1,11 @@
+{
+  "bundle_identifier": "com.elvisobi.clepso.mobile",
+  "version": "0.4.0",
+  "build": "3",
+  "method": "app-store-connect",
+  "aps_environment": "production",
+  "strict_signature_verified": true,
+  "watch_embedded": true,
+  "sha256": "f44b45e7f2072b414b79c23962b1a1c641419c988a85506af68730b9ea318734",
+  "uploaded": false
+}

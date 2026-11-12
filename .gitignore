@@ -47,3 +47,13 @@ site/app/config.js
 
 # Shared generated tool cache may be a local worktree symlink.
 /.tools
+
+# Info files generated from the companion target specification.
+App/ClepsoPhone/Info.plist
+App/ClepsoWatch/Info.plist
+
+# Apple push signing keys and local server-secret input never belong in source.
+*.p8
+*.local.env
+**/functions/.env
+**/functions/*/.env

@@ -1,0 +1,13 @@
+{
+  "physical_iphone_installed": true,
+  "bundle_identifier": "com.elvisobi.clepso.mobile",
+  "aps_environment": "development",
+  "version": "0.4.0",
+  "build": "4",
+  "apple_development_profile_covers_phone": true,
+  "watch_app_embedded": true,
+  "watch_installation_verified": false,
+  "app_launched_verified": false,
+  "sign_in_or_quota_sharing_enabled": false,
+  "notifications_or_push_enabled": false
+}

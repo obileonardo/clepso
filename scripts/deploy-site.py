@@ -20,7 +20,7 @@ def main():
         if not (SITE / required).is_file():
             raise SystemExit("Missing website input: " + required)
     for path in SITE.rglob("*"):
-        if path.is_symlink() or path.suffix in {".xcconfig", ".p12", ".pem", ".key", ".sqlite", ".mobileprovision"} or path.name.startswith(".env"):
+        if path.is_symlink() or path.suffix in {".xcconfig", ".p8", ".p12", ".pem", ".key", ".sqlite", ".mobileprovision"} or path.name.startswith(".env"):
             raise SystemExit("Unexpected private or linked website input; review the site directory")
     base = ["vercel", "deploy", "--project", PROJECT, "--scope", SCOPE, "--yes", "--json"]
     result = subprocess.run(base + ["--dry"], cwd=SITE, capture_output=True, text=True, check=True)

@@ -578,7 +578,7 @@ public struct PixelQuietButtonStyle: PrimitiveButtonStyle {
 
         var body: some View {
             let px = theme.stroke(.hairline) * 2
-            configuration.label
+            let label = configuration.label
                 .font(theme.font(.micro))
                 .textCase(.uppercase)
                 .tracking(1)
@@ -588,8 +588,12 @@ public struct PixelQuietButtonStyle: PrimitiveButtonStyle {
                 .background(PixelRect(step: px).fill(theme.color(.surfaceMuted, scheme).opacity(hovering ? 1 : 0)))
                 .opacity(enabled ? 1 : 0.45)
                 .contentShape(Rectangle())
-                .onHover { hovering = $0 }                  // hover-ok: brightens only; focus has its ring
+            #if os(watchOS)
+            label.pixelFocusRing(focused)
+            #else
+            label.onHover { hovering = $0 }                 // hover-ok: brightens only; focus has its ring
                 .pixelFocusRing(focused)
+            #endif
         }
     }
 }

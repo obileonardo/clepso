@@ -197,11 +197,7 @@ redaction_audit() {
 }
 
 secret_scan() {
-    local hits
-    hits=$(grep -rnIE 'sk-ant-[A-Za-z0-9_-]{3,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|xox[abp]-[A-Za-z0-9-]{10,}|sb_secret_[A-Za-z0-9_-]{8,}' \
-        --exclude-dir=.build --exclude-dir=.git --exclude-dir=.swiftpm . | grep -v 'secret-scan: allow' || true)
-    [ -z "$hits" ] || { echo "$hits"; return 1; }
-    echo "no secret-shaped strings"
+    python3 -I scripts/scan-secrets.py
 }
 
 # Builds from source must never reach the maintainer's accounts project: no Supabase project or publishable key may be
