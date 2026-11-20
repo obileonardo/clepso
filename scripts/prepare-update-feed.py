@@ -81,7 +81,7 @@ def main():
             shutil.copy2(notes, staged / (dmg.stem + ".md"))
         subprocess.run([str(tools / "generate_appcast"), "--account", ACCOUNT, "--maximum-deltas", "0", "--channel", "alpha",
                         "--download-url-prefix", "https://github.com/obileonardo/clepso/releases/download/" + args.tag + "/",
-                        "--link", "https://clepso-app.vercel.app/", "--embed-release-notes", str(staged)], check=True)
+                        "--link", "https://clepso.ledger-trigger.workers.dev/", "--embed-release-notes", str(staged)], check=True)
         feed = staged / "appcast.xml"
         tree = ET.parse(feed)
         namespace = {"sparkle": "http://www.andymatuschak.org/xml-namespaces/sparkle"}

@@ -30,7 +30,7 @@ from pathlib import Path
 repo = Path(__file__).resolve().parent.parent
 OUT = repo / "backend" / "supabase" / "templates"
 CONFIG = repo / "backend" / "supabase" / "config.toml"
-SITE = "https://clepso-app.vercel.app"
+SITE = "https://clepso.ledger-trigger.workers.dev"
 GMAIL_CLIP = 102 * 1024                                   # Gmail hides everything after ~102 KB of HTML
 
 # Founder-selected Protocol: same layout and palette as the approved preview.

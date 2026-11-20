@@ -102,7 +102,7 @@ struct WhatsNewTests {
             #expect(PixelGlyph(symbol: highlight.symbol) != .question, "\(highlight.symbol) has no pixel glyph")
             #expect(!highlight.title.isEmpty && !highlight.detail.isEmpty && !highlight.open.isEmpty)
         }
-        #expect(WhatsNew.changelogURL.absoluteString == "https://clepso-app.vercel.app/changelog/")
+        #expect(WhatsNew.changelogURL.absoluteString == "https://clepso.ledger-trigger.workers.dev/changelog/")
         // Entries are newest first, each version once and readable.
         let versions = WhatsNew.entries.map { WhatsNew.numeric($0.version) }
         #expect(versions.allSatisfy { $0 != nil })
