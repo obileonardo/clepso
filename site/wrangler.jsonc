@@ -1,0 +1,18 @@
+// Clepso's site on Cloudflare Workers static assets (20 Nov 2026): Vercel blocked the owner's team for an unpaid invoice
+// on 19 Nov, so clepso-app.vercel.app is down. Files only, no Worker code: every request is a static asset, free and
+// unlimited on the free plan. Deploy from this folder with `npx wrangler deploy`.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "clepso",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  // no extra public preview address per upload
+  "preview_urls": false,
+  "assets": {
+    "directory": ".",
+    // vercel.json had "trailingSlash": true: /docs answers with a redirect to /docs/
+    "html_handling": "force-trailing-slash",
+    // Vercel served 404.html with a 404 for any missing path
+    "not_found_handling": "404-page"
+  }
+}

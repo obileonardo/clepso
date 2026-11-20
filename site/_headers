@@ -1,0 +1,3 @@
+# The same header vercel.json set: the email font may be loaded from other origins (email clients).
+/assets/email/ClepsoPixel-Regular.woff2
+  Access-Control-Allow-Origin: *

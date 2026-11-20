@@ -1,0 +1,9 @@
+# Never served: deploy and repository files (the same as .vercelignore, plus the Cloudflare and Vercel config)
+wrangler.jsonc
+.assetsignore
+.vercelignore
+vercel.json
+.gitignore
+.env*
+.vercel
+.wrangler
