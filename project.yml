@@ -66,7 +66,7 @@ targets:
         ClepsoSyncPublishableKey: $(CLEPSO_SYNC_PUBLISHABLE_KEY)
         ClepsoSyncProviders: $(CLEPSO_SYNC_PROVIDERS)
         ClepsoWidgetGroup: $(CLEPSO_WIDGET_GROUP)
-        SUFeedURL: https://clepso-app.vercel.app/updates/appcast.xml
+        SUFeedURL: https://clepso.ledger-trigger.workers.dev/updates/appcast.xml
         SUPublicEDKey: WeaRornZqBUmFaOutT62FtvopukvrlEZPCEiapwbCpk=
         SUEnableAutomaticChecks: false
         SUAutomaticallyUpdate: false

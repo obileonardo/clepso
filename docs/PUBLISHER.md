@@ -7,8 +7,8 @@ Confirmed by the publisher on 22 October 2026:
 | Publisher | Elvis Obi |
 | Public contact/service location | Lagos, Nigeria |
 | Email | contact@elvisobi.com |
-| Website | https://clepso-app.vercel.app |
-| Privacy notice | https://clepso-app.vercel.app/privacy/ |
+| Website | https://clepso.ledger-trigger.workers.dev |
+| Privacy notice | https://clepso.ledger-trigger.workers.dev/privacy/ |
 | Source license | MIT; see LICENSE |
 
 No street address, company registration, external legal sign-off or provider affiliation is asserted.

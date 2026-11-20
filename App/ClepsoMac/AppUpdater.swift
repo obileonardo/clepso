@@ -22,7 +22,7 @@ import Sparkle
         set { controller.updater.automaticallyDownloadsUpdates = newValue }
     }
     func check() { controller.checkForUpdates(nil) }
-    func feedURLString(for updater: SPUUpdater) -> String? { "https://clepso-app.vercel.app/updates/appcast.xml" }
+    func feedURLString(for updater: SPUUpdater) -> String? { "https://clepso.ledger-trigger.workers.dev/updates/appcast.xml" }
     func allowedChannels(for updater: SPUUpdater) -> Set<String> { ["alpha"] }
 }
 

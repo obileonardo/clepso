@@ -508,7 +508,7 @@ enum Copy {
         // The back and the flip (after Aqua Voice's card).
         static let flip = "Flip card", showBack = "Show back", showFront = "Show front"
         static let front = "Front", back = "Back"
-        static let website = "clepso-app.vercel.app"
+        static let website = "clepso.ledger-trigger.workers.dev"
         static let backTag = "PLAYER CARD"
         static let backLine = "Claude Code usage and limits, tracked on this Mac."
         static func activityTitle(_ weeks: Int) -> String { "ACTIVITY LOG · LAST \(weeks) WEEKS" }
