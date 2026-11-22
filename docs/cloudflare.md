@@ -8,3 +8,5 @@ Vercel blocked the owner's team for an unpaid invoice on 19 Nov 2026, so clepso-
 - Deploy: `cd site && npx wrangler deploy`. Going back: `vercel.json` and `.vercelignore` are kept.
 
 Differences from Vercel: trailing-slash redirects are 307 (Vercel 308); the address.
+
+Short address (22 Nov 2026): the same Worker also answers at https://clepso.elvisobi.com (a custom domain in the elvisobi.com zone), which the app, emails and docs now use. https://clepso.ledger-trigger.workers.dev keeps working.
