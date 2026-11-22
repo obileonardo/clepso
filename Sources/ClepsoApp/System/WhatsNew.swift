@@ -27,7 +27,7 @@ struct WhatsNew: Sendable, Equatable, Identifiable {
     var id: String { version }
 
     /// The site's changelog: opened only from the card's link, by the user's browser.
-    static let changelogURL = URL(string: "https://clepso.ledger-trigger.workers.dev/changelog/")!
+    static let changelogURL = URL(string: "https://clepso.elvisobi.com/changelog/")!
 
     /// Newest first.
     static let entries: [WhatsNew] = [

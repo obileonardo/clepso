@@ -4,7 +4,7 @@ Official Mac builds embed **Sparkle 2.10.0**, pinned in `project.yml`. Settings 
 daily automatic checks and automatic download/installation. Both automatic options start off. A user can opt in
 without an account. The alpha feed includes alpha previews; the UI says so explicitly.
 
-The fixed feed is `https://clepso.ledger-trigger.workers.dev/updates/appcast.xml`. Its URL is returned by the updater delegate,
+The fixed feed is `https://clepso.elvisobi.com/updates/appcast.xml`. Its URL is returned by the updater delegate,
 so a stale Sparkle user-default feed override cannot redirect normal checks. No system profile is sent.
 The Ed25519 public key is pinned in the app. The private key remains in the login Keychain, account
 `com.elvisobi.clepso.updates`. Never export or commit it.

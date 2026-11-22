@@ -78,7 +78,7 @@ the repo's path with the VM (Colima `mounts`) or run Docker Desktop.
 **Updated 20 October 2026:** the hosted accounts project now uses an existing mailbox's custom SMTP service,
 sender name **Clepso**, and all four branded subjects/templates above. The templates were read back byte-for-byte
 after deployment; unrelated authentication settings were unchanged. The link expiry remains 3600 seconds and the
-hosted email limit is 30 per hour. Links use the existing `clepso.ledger-trigger.workers.dev` site. No new domain
+hosted email limit is 30 per hour. Links use the existing `clepso.elvisobi.com` site. No new domain
 purchase or website migration was needed. Local development still uses Mailpit.
 
 The previous built-in service had these restrictions, which explain why changing HTML alone was insufficient:
