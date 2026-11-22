@@ -5,8 +5,9 @@
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "clepso",
   "compatibility_date": "2026-11-01",
-  // Installed apps read the update feed from clepso.ledger-trigger.workers.dev, so it stays on. Keep this line: once
-  // routes are listed, wrangler turns workers.dev off unless it is set here.
+  // The first Cloudflare address, clepso.ledger-trigger.workers.dev, stays on: links already sent in emails and docs
+  // use it, and web sign-ins started there return there. Keep this line: once routes are listed, wrangler turns
+  // workers.dev off unless it is set here.
   "workers_dev": true,
   // The short address (22 Nov 2026), a custom domain on the elvisobi.com zone. Listed here so a deploy keeps it.
   "routes": [{ "pattern": "clepso.elvisobi.com", "custom_domain": true }],
